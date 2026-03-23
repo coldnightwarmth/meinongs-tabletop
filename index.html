@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>meinong's game room</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="home-shell">
+      <section class="home-card" aria-label="Room setup">
+        <h1>meinong's game room</h1>
+        <label class="input-label" for="playerName">Your name (optional)</label>
+        <input
+          id="playerName"
+          name="playerName"
+          type="text"
+          maxlength="24"
+          placeholder="Player name"
+          autocomplete="name"
+        />
+        <button id="createRoomButton" class="primary-button" type="button">
+          generate new tabletop
+        </button>
+      </section>
+    </main>
+
+    <script type="module" src="./app-home.js"></script>
+  </body>
+</html>

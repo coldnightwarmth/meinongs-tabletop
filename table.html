@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tabletop Room</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="tableRoot" class="table-shell" aria-label="Live tabletop">
+      <div class="room-badge" id="roomBadge">room: --</div>
+      <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
+
+      <button id="copyLinkButton" class="copy-link-button" type="button" aria-live="polite">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path
+            d="M10 14L14 10M8.5 7.5L6 10C4.34315 11.6569 4.34315 14.3431 6 16C7.65685 17.6569 10.3431 17.6569 12 16L14.5 13.5M15.5 10.5L18 8C19.6569 6.34315 19.6569 3.65685 18 2C16.3431 0.343146 13.6569 0.343146 12 2L9.5 4.5"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span id="copyLabel">copy link</span>
+      </button>
+    </main>
+
+    <script type="module" src="./app-table.js"></script>
+  </body>
+</html>
