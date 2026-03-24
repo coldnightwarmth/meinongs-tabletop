@@ -194,15 +194,18 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .table-shell {
+  --playspace-grid-color: rgba(255, 255, 255, 0.08);
   position: relative;
   min-height: 100vh;
   width: 100%;
   overflow: hidden;
   background-color: #123328;
+  transition: background-color 180ms ease;
   touch-action: none;
 }
 
 .table-shell.light-mode {
+  --playspace-grid-color: rgba(33, 33, 28, 0.08);
   background-color: #ddd6c6;
 }
 
@@ -220,25 +223,23 @@ input[type="color"]::-webkit-color-swatch {
     0 16px 30px rgba(7, 12, 10, 0.34);
   background-color: #163f31;
   background-image:
-    linear-gradient(to right, var(--table-grid) var(--grid-line-size, 1px), transparent var(--grid-line-size, 1px)),
-    linear-gradient(to bottom, var(--table-grid) var(--grid-line-size, 1px), transparent var(--grid-line-size, 1px));
-  background-size: var(--grid-cell-size, 42px) var(--grid-cell-size, 42px);
-  transform-origin: 0 0;
-}
-
-.table-shell.light-mode .playspace-layer {
-  background-color: #ece5d7;
-  background-image:
     linear-gradient(
       to right,
-      rgba(33, 33, 28, 0.08) var(--grid-line-size, 1px),
+      var(--playspace-grid-color) var(--grid-line-size, 1px),
       transparent var(--grid-line-size, 1px)
     ),
     linear-gradient(
       to bottom,
-      rgba(33, 33, 28, 0.08) var(--grid-line-size, 1px),
+      var(--playspace-grid-color) var(--grid-line-size, 1px),
       transparent var(--grid-line-size, 1px)
     );
+  background-size: var(--grid-cell-size, 42px) var(--grid-cell-size, 42px);
+  transform-origin: 0 0;
+  transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.table-shell.light-mode .playspace-layer {
+  background-color: #ece5d7;
   border-color: rgba(37, 31, 23, 0.36);
   box-shadow:
     0 0 0 1px rgba(62, 54, 40, 0.24) inset,
@@ -259,6 +260,37 @@ input[type="color"]::-webkit-color-swatch {
   letter-spacing: 0.02em;
 }
 
+.room-badge.is-editable {
+  cursor: text;
+}
+
+.room-badge.is-editable:hover,
+.room-badge.is-editable:focus-visible {
+  background: rgba(10, 17, 15, 0.75);
+}
+
+.table-shell .room-title-input {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  z-index: 11;
+  min-width: 9rem;
+  max-width: min(56vw, 420px);
+  height: 2.02rem;
+  padding: 0 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(10, 17, 15, 0.8);
+  color: #f9f3e0;
+  font-size: 0.84rem;
+  letter-spacing: 0.02em;
+  outline: none;
+}
+
+.table-shell .room-title-input:focus {
+  border-color: rgba(234, 95, 49, 0.9);
+}
+
 .status-badge {
   position: absolute;
   top: calc(2.8rem + 5px);
@@ -269,6 +301,80 @@ input[type="color"]::-webkit-color-swatch {
   letter-spacing: 0.02em;
   text-transform: lowercase;
   opacity: 0.5;
+}
+
+.draw-mode-button {
+  position: absolute;
+  top: calc(3.95rem + 5px);
+  left: 0.9rem;
+  z-index: 10;
+  width: 1.92rem;
+  height: 1.92rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(10, 17, 15, 0.58);
+  color: rgba(247, 243, 232, 0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.draw-mode-button:hover,
+.draw-mode-button:focus-visible {
+  background: rgba(10, 17, 15, 0.8);
+}
+
+.draw-mode-button svg {
+  display: block;
+}
+
+.draw-mode-button.is-active {
+  background: rgba(234, 95, 49, 0.9);
+  border-color: rgba(255, 220, 206, 0.88);
+  color: #fff5ea;
+}
+
+.draw-clear-button,
+.draw-undo-button {
+  position: absolute;
+  top: calc(3.95rem + 5px);
+  z-index: 10;
+  width: 1.86rem;
+  height: 1.92rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(247, 243, 232, 0.78);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: color 120ms ease, transform 120ms ease;
+}
+
+.draw-clear-button {
+  left: calc(0.9rem + 2.24rem);
+}
+
+.draw-undo-button {
+  left: calc(0.9rem + 4.18rem);
+}
+
+.draw-clear-button:hover,
+.draw-clear-button:focus-visible,
+.draw-undo-button:hover,
+.draw-undo-button:focus-visible {
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+}
+
+.draw-clear-button svg,
+.draw-undo-button svg {
+  display: block;
 }
 
 .player-controls {
@@ -286,6 +392,19 @@ input[type="color"]::-webkit-color-swatch {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.player-hand-count {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  color: rgba(247, 243, 232, 0.95);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-block;
+  text-align: right;
+  letter-spacing: 0.01em;
 }
 
 .player-name-button,
@@ -383,6 +502,19 @@ input[type="color"]::-webkit-color-swatch {
   max-width: min(34vw, 180px);
 }
 
+.room-roster-count {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  color: rgba(247, 243, 232, 0.84);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-block;
+  text-align: right;
+  flex: 0 0 auto;
+}
+
 .hidden {
   display: none !important;
 }
@@ -391,7 +523,25 @@ input[type="color"]::-webkit-color-swatch {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 8;
+  z-index: 66000;
+}
+
+.drawing-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 7680px;
+  height: 4320px;
+  transform-origin: 0 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.drawing-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
 }
 
 .cards-layer {
@@ -406,6 +556,260 @@ input[type="color"]::-webkit-color-swatch {
   inset: 0;
   pointer-events: none;
   z-index: 60000;
+}
+
+.hand-tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46vh;
+  max-height: 360px;
+  pointer-events: none;
+  z-index: 62000;
+  overflow: visible;
+}
+
+.hand-card {
+  position: absolute;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 9px 18px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  transform-origin: center bottom;
+  transform: translateY(0) scale(1);
+  transition:
+    transform 130ms ease,
+    box-shadow 130ms ease,
+    filter 130ms ease;
+  pointer-events: auto;
+}
+
+.hand-card img {
+  display: block;
+  width: 100%;
+  height: calc(100% - 12px);
+  margin: 6px 0;
+  object-fit: fill;
+  object-position: center;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+.hand-card.is-front-pending img {
+  opacity: 0;
+}
+
+.hand-card.is-preview {
+  opacity: 0.94;
+  pointer-events: none;
+}
+
+.hand-card.is-reordering-active {
+  cursor: grabbing;
+  transform: translateY(-108px) scale(1.12);
+  box-shadow: 0 20px 30px rgba(0, 0, 0, 0.44);
+  z-index: 99999 !important;
+}
+
+.hand-card.is-hovered,
+.hand-card:focus-visible {
+  transform: translateY(-132px) scale(1.588);
+  box-shadow: 0 16px 26px rgba(0, 0, 0, 0.4);
+  z-index: 999 !important;
+}
+
+.table-shell.is-card-dragging .hand-card {
+  pointer-events: none;
+}
+
+.table-shell.is-card-dragging .hand-card.is-hovered,
+.table-shell.is-card-dragging .hand-card:focus-visible {
+  transform: translateY(0) scale(1);
+  box-shadow: 0 9px 18px rgba(0, 0, 0, 0.3);
+  z-index: auto !important;
+}
+
+.hand-drop-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  pointer-events: none;
+  z-index: 61500;
+  opacity: 0;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.48) 0%,
+    rgba(255, 255, 255, 0.24) 28%,
+    rgba(255, 255, 255, 0) 82%
+  );
+  transition: opacity 180ms ease;
+}
+
+.hand-drop-glow.is-visible {
+  opacity: 1;
+}
+
+.auction-bid-board {
+  position: absolute;
+  top: 0.9rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 62520;
+  min-width: min(52vw, 260px);
+  max-width: min(84vw, 440px);
+  padding: 0.46rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(10, 17, 15, 0.58);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.24rem;
+  pointer-events: none;
+}
+
+.auction-bid-empty {
+  font-size: 0.68rem;
+  color: rgba(247, 243, 232, 0.58);
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.auction-bid-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0.32rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.auction-bid-player {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+}
+
+.auction-bid-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.48);
+  flex: 0 0 auto;
+}
+
+.auction-bid-name {
+  min-width: 0;
+  max-width: min(46vw, 240px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: rgba(247, 243, 232, 0.94);
+  text-transform: lowercase;
+}
+
+.auction-bid-value {
+  font-size: 0.76rem;
+  line-height: 1;
+  font-weight: 700;
+  color: rgba(247, 243, 232, 0.98);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.auction-bid-entry {
+  position: absolute;
+  left: 50%;
+  top: calc(0.9rem + 4.2rem);
+  bottom: auto;
+  transform: translateX(-50%);
+  z-index: 62530;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.38rem;
+  pointer-events: auto;
+}
+
+.auction-bid-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+}
+
+.auction-bid-label {
+  position: relative;
+  top: 1px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: rgba(247, 243, 232, 0.92);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+.auction-bid-input {
+  width: min(26.4vw, 132px);
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(10, 17, 15, 0.58);
+  color: #f7f3e8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  text-transform: lowercase;
+}
+
+.auction-bid-submit-button {
+  height: 1.66rem;
+  min-width: 2.05rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(10, 17, 15, 0.58);
+  color: #f7f3e8;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.auction-bid-submit-button svg {
+  display: block;
+  transform: translateX(1.6px);
+}
+
+.auction-bid-submit-button:hover,
+.auction-bid-submit-button:focus-visible {
+  background: rgba(10, 17, 15, 0.8);
+}
+
+.auction-bid-input::placeholder {
+  color: rgba(247, 243, 232, 0.7);
+}
+
+.auction-bid-input:focus {
+  background: rgba(10, 17, 15, 0.8);
+  border-color: rgba(255, 255, 255, 0.44);
+}
+
+.auction-bid-input.is-invalid {
+  border-color: rgba(255, 118, 118, 0.82);
+  box-shadow: 0 0 0 1px rgba(255, 88, 88, 0.3);
 }
 
 .selection-box {
@@ -440,7 +844,18 @@ input[type="color"]::-webkit-color-swatch {
   transition:
     transform 120ms ease,
     box-shadow 120ms ease,
-    filter 120ms ease;
+    filter 120ms ease,
+    background-color 180ms ease;
+}
+
+.table-card.is-discard-returning {
+  transition:
+    left 300ms cubic-bezier(0.2, 0.74, 0.24, 1),
+    top 300ms cubic-bezier(0.2, 0.74, 0.24, 1),
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease,
+    background-color 180ms ease;
 }
 
 .table-card.is-flipping {
@@ -459,6 +874,15 @@ input[type="color"]::-webkit-color-swatch {
   -webkit-backface-visibility: hidden;
   transform: none;
   pointer-events: none;
+  transition: filter 120ms ease;
+}
+
+.table-card.is-front-pending img {
+  opacity: 0;
+}
+
+.table-card.is-hand-preview-hidden {
+  opacity: 0;
 }
 
 .table-card.is-held-by-self {
@@ -476,6 +900,26 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow:
     0 0 0 2px rgba(255, 255, 255, 0.52),
     0 14px 24px rgba(0, 0, 0, 0.34);
+}
+
+.table-card.is-in-discard {
+  background: rgba(8, 10, 9, 0.62);
+  opacity: 0.5;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.table-card.is-in-discard img {
+  filter: blur(1.6px) brightness(0.62) saturate(0.8);
+}
+
+.table-card.is-in-auction {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.table-card.is-shuffle-darkening img {
+  animation: deckTopCardDarken 980ms ease both;
 }
 
 .deck-control-button {
@@ -520,15 +964,28 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(11, 18, 15, 0.84);
 }
 
-.deck-drop-indicator {
+.deck-control-button:disabled,
+.deck-control-button.is-disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+.deck-control-button:disabled:hover,
+.deck-control-button:disabled:focus-visible {
+  background: rgba(11, 18, 15, 0.72);
+}
+
+.deck-drop-indicator,
+.discard-drop-indicator,
+.auction-drop-indicator {
   position: absolute;
   transform: translate(-50%, -50%) scale(1);
-  z-index: 50001;
-  width: 18px;
-  height: 18px;
+  z-index: 65010;
+  width: 20px;
+  height: 20px;
   border: none;
   background: transparent;
-  color: rgba(247, 243, 232, 0.96);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -537,17 +994,135 @@ input[type="color"]::-webkit-color-swatch {
   visibility: hidden;
 }
 
-.deck-drop-indicator.is-visible {
-  transform: translate(-50%, -50%) scale(2.5);
+.deck-drop-indicator.is-visible,
+.discard-drop-indicator.is-visible,
+.auction-drop-indicator.is-visible {
+  transform: translate(-50%, -50%) scale(3);
   opacity: 1;
   visibility: visible;
 }
 
-.deck-drop-indicator svg {
+.deck-drop-indicator svg,
+.discard-drop-indicator svg,
+.auction-drop-indicator svg {
   width: 100%;
   height: 100%;
   display: block;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.34));
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.96)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.9));
+}
+
+.discard-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  border-radius: 9px;
+  border: 1px dashed rgba(247, 243, 232, 0.3);
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  box-shadow: none;
+  transition: border-color 120ms ease;
+}
+
+.discard-slot.is-hovered {
+  border-color: rgba(247, 243, 232, 0.54);
+}
+
+.discard-slot-label {
+  color: rgba(247, 243, 232, 0.54);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  user-select: none;
+  pointer-events: none;
+}
+
+.auction-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.auction-slot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px dashed rgba(247, 243, 232, 0.3);
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 180ms ease, border-color 120ms ease;
+}
+
+.auction-slot.is-hovered::before {
+  border-color: rgba(247, 243, 232, 0.54);
+}
+
+.auction-slot.is-occupied::before,
+.auction-slot.is-occupied.is-hovered::before {
+  opacity: 0;
+  border-color: transparent;
+}
+
+.auction-slot-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62%;
+  max-width: 132px;
+  height: auto;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0.2;
+  filter: brightness(0) invert(1);
+  user-select: none;
+  pointer-events: none;
+  transition: opacity 130ms ease;
+}
+
+.auction-slot.is-occupied .auction-slot-icon {
+  top: var(--auction-icon-occupied-top, calc(100% + 46px));
+  width: var(--auction-icon-occupied-size, 24px);
+  max-width: none;
+  transform: translate(-50%, -50%);
+  animation: auctionIconSwapToOccupied 260ms ease both;
+}
+
+.deck-count-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 50000;
+  min-width: 1.6rem;
+  height: 1.3rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(11, 18, 15, 0.72);
+  color: rgba(247, 243, 232, 0.9);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  box-shadow: 0 4px 9px rgba(0, 0, 0, 0.22);
+}
+
+.discard-reset-button {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(11, 18, 15, 0.72);
 }
 
 .deck-shuffle-fx {
@@ -617,6 +1192,49 @@ input[type="color"]::-webkit-color-swatch {
   100% {
     transform: translate(-50%, -50%) rotate(382deg);
     opacity: 0.1;
+  }
+}
+
+@keyframes deckTopCardDarken {
+  0% {
+    filter: brightness(1);
+  }
+  42% {
+    filter: brightness(0.58);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes auctionIconSwapToOccupied {
+  0% {
+    top: 50%;
+    width: 62%;
+    max-width: 132px;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.2;
+  }
+  42% {
+    top: 50%;
+    width: 62%;
+    max-width: 132px;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+  43% {
+    top: var(--auction-icon-occupied-top, calc(100% + 46px));
+    width: var(--auction-icon-occupied-size, 24px);
+    max-width: none;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+  100% {
+    top: var(--auction-icon-occupied-top, calc(100% + 46px));
+    width: var(--auction-icon-occupied-size, 24px);
+    max-width: none;
+    transform: translate(-50%, -50%);
+    opacity: 0.2;
   }
 }
 
@@ -762,28 +1380,95 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .mode-toggle-icon {
+  position: relative;
   width: 16px;
   height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: rgba(247, 243, 232, 0.95);
+  overflow: hidden;
+  transition: color 180ms ease;
 }
 
-.mode-toggle-icon svg {
+.mode-toggle-icon .mode-icon {
+  position: absolute;
+  inset: 0;
   width: 16px;
   height: 16px;
   display: block;
   stroke: currentColor;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  transition: opacity 170ms ease, transform 170ms ease;
+}
+
+.mode-toggle-icon .mode-icon-sun {
+  opacity: 0;
+  transform: scale(0.8) rotate(-18deg);
+}
+
+.mode-toggle-icon .mode-icon-moon {
+  opacity: 1;
+  transform: scaleX(-1) scale(1) rotate(0deg);
+}
+
+.mode-toggle-icon.is-light .mode-icon-sun {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.mode-toggle-icon.is-light .mode-icon-moon {
+  opacity: 0;
+  transform: scaleX(-1) scale(0.82) rotate(14deg);
 }
 
 .table-shell.light-mode .mode-toggle-icon {
   color: rgba(39, 35, 29, 0.9);
 }
 
+.table-shell.is-theme-transitioning,
+.table-shell.is-theme-transitioning .room-badge,
+.table-shell.is-theme-transitioning .room-title-input,
+.table-shell.is-theme-transitioning .status-badge,
+.table-shell.is-theme-transitioning .draw-mode-button,
+.table-shell.is-theme-transitioning .draw-clear-button,
+.table-shell.is-theme-transitioning .draw-undo-button,
+.table-shell.is-theme-transitioning .player-name-button,
+.table-shell.is-theme-transitioning .player-name-input,
+.table-shell.is-theme-transitioning .player-color-wrap,
+.table-shell.is-theme-transitioning .room-roster,
+.table-shell.is-theme-transitioning .auction-bid-board,
+.table-shell.is-theme-transitioning .auction-bid-input,
+.table-shell.is-theme-transitioning .auction-bid-submit-button,
+.table-shell.is-theme-transitioning .icon-pill-button,
+.table-shell.is-theme-transitioning .copy-link-button,
+.table-shell.is-theme-transitioning .home-link-button,
+.table-shell.is-theme-transitioning .deck-control-button,
+.table-shell.is-theme-transitioning .deck-count-badge,
+.table-shell.is-theme-transitioning .discard-slot,
+.table-shell.is-theme-transitioning .discard-slot-label,
+.table-shell.is-theme-transitioning .auction-slot::before,
+.table-shell.is-theme-transitioning .auction-slot-icon,
+.table-shell.is-theme-transitioning .mode-toggle-switch,
+.table-shell.is-theme-transitioning .mode-toggle-switch::after,
+.table-shell.is-theme-transitioning .mode-toggle-icon {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
 .table-shell.light-mode .table-card {
   background: rgba(255, 255, 255, 0.6);
   box-shadow: 0 7px 13px rgba(46, 38, 25, 0.22);
+}
+
+.table-shell.light-mode .table-card.is-in-discard {
+  background: rgba(11, 13, 12, 0.56);
 }
 
 .table-shell.light-mode .selection-box {
@@ -799,12 +1484,53 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 5px 10px rgba(46, 38, 25, 0.16);
 }
 
-.table-shell.light-mode .deck-drop-indicator {
-  color: rgba(34, 29, 23, 0.86);
+.table-shell.light-mode .deck-drop-indicator,
+.table-shell.light-mode .discard-drop-indicator,
+.table-shell.light-mode .auction-drop-indicator {
+  color: #fff;
 }
 
-.table-shell.light-mode .deck-drop-indicator svg {
-  filter: drop-shadow(0 3px 8px rgba(46, 38, 25, 0.24));
+.table-shell.light-mode .deck-drop-indicator svg,
+.table-shell.light-mode .discard-drop-indicator svg,
+.table-shell.light-mode .auction-drop-indicator svg {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.96)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.9));
+}
+
+.table-shell.light-mode .discard-slot {
+  border-color: rgba(34, 29, 23, 0.26);
+}
+
+.table-shell.light-mode .discard-slot.is-hovered {
+  border-color: rgba(34, 29, 23, 0.46);
+}
+
+.table-shell.light-mode .discard-slot-label {
+  color: rgba(34, 29, 23, 0.56);
+}
+
+.table-shell.light-mode .auction-slot::before {
+  border-color: rgba(34, 29, 23, 0.26);
+}
+
+.table-shell.light-mode .auction-slot.is-hovered::before {
+  border-color: rgba(34, 29, 23, 0.46);
+}
+
+.table-shell.light-mode .auction-slot-icon {
+  opacity: 0.2;
+  filter: none;
+}
+
+
+.table-shell.light-mode .deck-count-badge {
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(34, 29, 23, 0.88);
+  border-color: rgba(34, 29, 23, 0.24);
+}
+
+.table-shell.light-mode .discard-reset-button {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .table-shell.light-mode .deck-move-button {
@@ -821,20 +1547,68 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(255, 255, 255, 0.98);
 }
 
+.table-shell.light-mode .deck-control-button:disabled:hover,
+.table-shell.light-mode .deck-control-button:disabled:focus-visible {
+  background: rgba(255, 255, 255, 0.86);
+}
+
 .table-shell.light-mode .room-badge {
   background: rgba(255, 255, 255, 0.82);
   color: #27231d;
   border-color: rgba(36, 31, 24, 0.2);
 }
 
+.table-shell.light-mode .room-badge.is-editable:hover,
+.table-shell.light-mode .room-badge.is-editable:focus-visible {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .room-title-input {
+  background: rgba(255, 255, 255, 0.98);
+  color: #27231d;
+  border-color: rgba(36, 31, 24, 0.26);
+}
+
 .table-shell.light-mode .status-badge {
   color: rgba(27, 24, 20, 0.86);
+}
+
+.table-shell.light-mode .draw-mode-button {
+  background: rgba(255, 255, 255, 0.86);
+  color: rgba(34, 29, 23, 0.84);
+  border-color: rgba(34, 29, 23, 0.22);
+}
+
+.table-shell.light-mode .draw-mode-button:hover,
+.table-shell.light-mode .draw-mode-button:focus-visible {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .draw-mode-button.is-active {
+  background: rgba(234, 95, 49, 0.9);
+  border-color: rgba(177, 63, 29, 0.52);
+  color: #fff6ed;
+}
+
+.table-shell.light-mode .draw-clear-button,
+.table-shell.light-mode .draw-undo-button {
+  color: rgba(34, 29, 23, 0.64);
+}
+
+.table-shell.light-mode .draw-clear-button:hover,
+.table-shell.light-mode .draw-clear-button:focus-visible,
+.table-shell.light-mode .draw-undo-button:hover,
+.table-shell.light-mode .draw-undo-button:focus-visible {
+  color: rgba(34, 29, 23, 0.92);
 }
 
 .table-shell.light-mode .player-name-button,
 .table-shell.light-mode .player-name-input,
 .table-shell.light-mode .player-color-wrap,
 .table-shell.light-mode .room-roster,
+.table-shell.light-mode .auction-bid-board,
+.table-shell.light-mode .auction-bid-input,
+.table-shell.light-mode .auction-bid-submit-button,
 .table-shell.light-mode .icon-pill-button,
 .table-shell.light-mode .copy-link-button,
 .table-shell.light-mode .home-link-button {
@@ -846,6 +1620,9 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.light-mode .player-name-button:hover,
 .table-shell.light-mode .player-name-button:focus-visible,
 .table-shell.light-mode .player-name-input:focus,
+.table-shell.light-mode .auction-bid-input:focus,
+.table-shell.light-mode .auction-bid-submit-button:hover,
+.table-shell.light-mode .auction-bid-submit-button:focus-visible,
 .table-shell.light-mode .room-roster:hover,
 .table-shell.light-mode .icon-pill-button:hover,
 .table-shell.light-mode .icon-pill-button:focus-visible,
@@ -862,6 +1639,56 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-shell.light-mode .room-roster-dot {
   box-shadow: 0 0 0 1px rgba(34, 29, 23, 0.34);
+}
+
+.table-shell.light-mode .player-hand-count {
+  color: rgba(34, 29, 23, 0.84);
+}
+
+.table-shell.light-mode .room-roster-count {
+  color: rgba(34, 29, 23, 0.72);
+}
+
+.table-shell.light-mode .auction-bid-item {
+  background: rgba(34, 29, 23, 0.07);
+}
+
+.table-shell.light-mode .auction-bid-dot {
+  box-shadow: 0 0 0 1px rgba(34, 29, 23, 0.34);
+}
+
+.table-shell.light-mode .auction-bid-empty {
+  color: rgba(34, 29, 23, 0.54);
+}
+
+.table-shell.light-mode .auction-bid-label {
+  color: rgba(34, 29, 23, 0.88);
+}
+
+.table-shell.light-mode .auction-bid-name {
+  color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .auction-bid-value {
+  color: rgba(34, 29, 23, 0.95);
+}
+
+.table-shell.light-mode .hand-card {
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 9px 17px rgba(46, 38, 25, 0.24);
+}
+
+.table-shell.light-mode .hand-drop-glow {
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.32) 30%,
+    rgba(255, 255, 255, 0) 84%
+  );
+}
+
+.table-shell.is-draw-mode {
+  cursor: crosshair;
 }
 
 .icon-pill-button:hover,
@@ -910,10 +1737,20 @@ input[type="color"]::-webkit-color-swatch {
 
 .asset-menu-header h2 {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
   font-size: 1rem;
   letter-spacing: 0.01em;
   text-transform: lowercase;
   color: #f7f3e8;
+}
+
+.asset-menu-title-icon {
+  width: 0.88rem;
+  height: 0.88rem;
+  display: block;
+  opacity: 0.9;
 }
 
 .asset-menu-close {
@@ -1139,16 +1976,21 @@ input[type="color"]::-webkit-color-swatch {
   .asset-gallery-item,
   .asset-preview-gloss,
   .table-card,
+  .hand-card,
+  .hand-drop-glow,
   .deck-control-button,
-  .deck-shuffle-fx {
+  .deck-shuffle-fx,
+  .auction-slot-icon {
     transition: none;
   }
 
   .table-card.is-flipping,
+  .table-card.is-shuffle-darkening img,
   .deck-control-button.is-pressing,
   .deck-shuffle-fx.is-active,
   .deck-shuffle-fx-1.is-active,
-  .deck-shuffle-fx-2.is-active {
+  .deck-shuffle-fx-2.is-active,
+  .auction-slot.is-occupied .auction-slot-icon {
     animation: none;
   }
 }
@@ -1183,5 +2025,21 @@ input[type="color"]::-webkit-color-swatch {
   .bottom-left-controls {
     left: 0.7rem;
     bottom: 0.7rem;
+  }
+
+  .auction-bid-board {
+    top: 0.7rem;
+    min-width: min(70vw, 240px);
+  }
+
+  .auction-bid-entry {
+    left: 50%;
+    top: calc(0.7rem + 4.2rem);
+    bottom: auto;
+    transform: translateX(-50%);
+  }
+
+  .auction-bid-input {
+    width: min(37.2vw, 126px);
   }
 }

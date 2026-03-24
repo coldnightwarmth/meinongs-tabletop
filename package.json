@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "start": "python3 -m http.server 4273 --bind 127.0.0.1",
-    "start:lan": "python3 -m http.server 4273 --bind 0.0.0.0"
+    "start:lan": "python3 -m http.server 4273 --bind 0.0.0.0",
+    "build:cards-low": "./scripts/generate-card-variants.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
   }
 }
