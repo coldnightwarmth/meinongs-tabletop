@@ -510,6 +510,54 @@ function resolveFrontVariantSources(frontSrc, cardScreenWidth) {
   };
 }
 
+function normalizeSrcForCompare(src) {
+  if (!src || typeof src !== 'string') {
+    return '';
+  }
+  try {
+    return new URL(src, window.location.href).href;
+  } catch {
+    return src;
+  }
+}
+
+function srcMatchesVariant(candidateSrc, variantSrc) {
+  if (!candidateSrc || !variantSrc) {
+    return false;
+  }
+  if (candidateSrc === variantSrc) {
+    return true;
+  }
+  return normalizeSrcForCompare(candidateSrc) === normalizeSrcForCompare(variantSrc);
+}
+
+function imageHasSource(image, src) {
+  if (!(image instanceof HTMLImageElement) || !src) {
+    return false;
+  }
+  const attributeSrc = image.getAttribute('src') || '';
+  if (srcMatchesVariant(attributeSrc, src)) {
+    return true;
+  }
+  return srcMatchesVariant(image.currentSrc || image.src || '', src);
+}
+
+function chooseLoadedFrontDisplaySrc(preferredSrc, fallbackSrc, currentSrc) {
+  if (preferredSrc && srcMatchesVariant(currentSrc, preferredSrc) && isFrontImageLoaded(preferredSrc)) {
+    return preferredSrc;
+  }
+  if (fallbackSrc && srcMatchesVariant(currentSrc, fallbackSrc) && isFrontImageLoaded(fallbackSrc)) {
+    return fallbackSrc;
+  }
+  if (preferredSrc && isFrontImageLoaded(preferredSrc)) {
+    return preferredSrc;
+  }
+  if (fallbackSrc && isFrontImageLoaded(fallbackSrc)) {
+    return fallbackSrc;
+  }
+  return '';
+}
+
 function isFrontImageLoaded(src) {
   return frontImageLoadState.get(src) === 'loaded';
 }
@@ -1571,12 +1619,9 @@ function renderLocalHandCards() {
     }
 
     const variants = resolveFrontVariantSources(cardState.frontSrc, HAND_CARD_WIDTH);
-    let displaySrc = '';
-    if (isFrontImageLoaded(variants.preferredSrc)) {
-      displaySrc = variants.preferredSrc;
-    } else if (variants.fallbackSrc && isFrontImageLoaded(variants.fallbackSrc)) {
-      displaySrc = variants.fallbackSrc;
-    } else {
+    const currentSrc = image.getAttribute('src') || image.currentSrc || image.src || '';
+    let displaySrc = chooseLoadedFrontDisplaySrc(variants.preferredSrc, variants.fallbackSrc, currentSrc);
+    if (!displaySrc) {
       const pendingKey = `${variants.preferredSrc}|${variants.fallbackSrc}|${cardState.frontSrc}`;
       if (handDisplayPendingByCard.get(cardId) !== pendingKey) {
         handDisplayPendingByCard.set(cardId, pendingKey);
@@ -1616,7 +1661,7 @@ function renderLocalHandCards() {
 
     handCard.classList.toggle('is-front-pending', !displaySrc);
     if (displaySrc) {
-      if (image.getAttribute('src') !== displaySrc) {
+      if (!imageHasSource(image, displaySrc)) {
         image.src = displaySrc;
       }
     } else if (image.getAttribute('src')) {
@@ -1746,12 +1791,9 @@ function renderCardElement(cardId) {
       const variants = resolveFrontVariantSources(cardState.frontSrc, cardScreenWidth);
       preferredFrontSrc = variants.preferredSrc;
       fallbackFrontSrc = variants.fallbackSrc;
-
-      if (isFrontImageLoaded(preferredFrontSrc)) {
-        displaySrc = preferredFrontSrc;
-      } else if (fallbackFrontSrc && isFrontImageLoaded(fallbackFrontSrc)) {
-        displaySrc = fallbackFrontSrc;
-      } else {
+      const currentSrc = image.getAttribute('src') || image.currentSrc || image.src || '';
+      displaySrc = chooseLoadedFrontDisplaySrc(preferredFrontSrc, fallbackFrontSrc, currentSrc);
+      if (!displaySrc) {
         displaySrc = '';
         const pendingKey = `${preferredFrontSrc}|${fallbackFrontSrc}|${cardState.frontSrc}`;
         if (frontDisplayPendingByCard.get(cardId) !== pendingKey) {
@@ -1806,7 +1848,7 @@ function renderCardElement(cardId) {
     if (previousFace && previousFace !== cardState.face && hasLoadedImage) {
       animateCardFlip(cardId, card, image, displaySrc);
     } else if (displaySrc) {
-      if (image.getAttribute('src') !== displaySrc) {
+      if (!imageHasSource(image, displaySrc)) {
         image.src = displaySrc;
       }
     } else if (image.getAttribute('src')) {
@@ -2675,7 +2717,17 @@ function renderRoomRoster(allCursors, localId) {
   const handCountsByOwner = getHandCountsByOwner();
   setLocalHandCountLabel();
   roomRoster.textContent = '';
-  const entries = Object.entries(allCursors || {}).filter(([id]) => id !== localId);
+  const entries = Object.entries(allCursors || {}).filter(([id, payload]) => {
+    if (id === localId) {
+      return false;
+    }
+    const entryToken =
+      typeof payload?.playerToken === 'string' && payload.playerToken ? payload.playerToken : '';
+    if (localPlayerToken && entryToken && entryToken === localPlayerToken) {
+      return false;
+    }
+    return true;
+  });
   if (entries.length === 0) {
     roomRoster.classList.add('hidden');
     return;
@@ -3087,6 +3139,19 @@ async function startRealtimeSession() {
 
     recentTouchTapByCardId.delete(cardId);
     return true;
+  }
+
+  function rememberTouchTapCandidate(cardId, event) {
+    if ((event.pointerType !== 'touch' && event.pointerType !== 'pen') || !cardId) {
+      return;
+    }
+    const now = Date.now();
+    pruneRecentTouchTaps(now);
+    recentTouchTapByCardId.set(cardId, {
+      time: now,
+      x: event.clientX,
+      y: event.clientY
+    });
   }
 
   function pruneRecentMouseClicks(now = Date.now()) {
@@ -4813,6 +4878,7 @@ async function startRealtimeSession() {
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
+    rememberTouchTapCandidate(cardId, event);
 
     if (cardDragState || groupDragState || handReorderState) {
       return;
@@ -5173,8 +5239,12 @@ async function startRealtimeSession() {
     const movedDistance = Math.hypot(event.clientX - cardDragState.startClientX, event.clientY - cardDragState.startClientY);
     const movedThreshold =
       cardDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    const wasMoved = cardDragState.moved;
     if (movedDistance > movedThreshold) {
       cardDragState.moved = true;
+    }
+    if (!wasMoved && cardDragState.moved && (cardDragState.pointerType === 'touch' || cardDragState.pointerType === 'pen')) {
+      recentTouchTapByCardId.delete(cardDragState.cardId);
     }
     const overHandDropRegion = isClientInHandDropRegion(event.clientY);
     setHandDropGlow(overHandDropRegion);
