@@ -274,8 +274,29 @@ input[type="color"]::-webkit-color-swatch {
   cursor: pointer;
 }
 
+.home-link-button {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.7rem 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(10, 17, 15, 0.58);
+  color: #f7f3e8;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  text-decoration: none;
+}
+
 .copy-link-button:hover,
-.copy-link-button:focus-visible {
+.copy-link-button:focus-visible,
+.home-link-button:hover,
+.home-link-button:focus-visible {
   background: rgba(10, 17, 15, 0.8);
 }
 
@@ -296,6 +317,11 @@ input[type="color"]::-webkit-color-swatch {
 
   .copy-link-button {
     right: 0.7rem;
+    bottom: 0.7rem;
+  }
+
+  .home-link-button {
+    left: 0.7rem;
     bottom: 0.7rem;
   }
 }

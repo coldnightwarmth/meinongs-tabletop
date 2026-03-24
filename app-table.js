@@ -205,7 +205,7 @@ function shouldIgnorePointerEvent(event) {
   if (!(event.target instanceof Element)) {
     return false;
   }
-  return Boolean(event.target.closest('#copyLinkButton, #playerControls'));
+  return Boolean(event.target.closest('#copyLinkButton, #playerControls, #homeButton'));
 }
 
 function upsertDot(id, payload) {
