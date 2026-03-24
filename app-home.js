@@ -26,6 +26,60 @@ function generateRoomId() {
   return `${randomPart}-${timePart}`;
 }
 
+function shouldUseCleanRoomPaths() {
+  const host = window.location.hostname.toLowerCase();
+  return host !== 'localhost' && host !== '127.0.0.1';
+}
+
+function getHomeBasePath() {
+  let basePath = window.location.pathname;
+  if (basePath.toLowerCase().endsWith('/index.html')) {
+    basePath = basePath.slice(0, -'/index.html'.length);
+  }
+  if (!basePath) {
+    basePath = '/';
+  }
+  if (!basePath.endsWith('/')) {
+    basePath += '/';
+  }
+  return basePath;
+}
+
+function getTableUrlForRoom(roomId) {
+  if (!roomId) {
+    return null;
+  }
+  if (shouldUseCleanRoomPaths()) {
+    const cleanUrl = new URL(window.location.origin);
+    cleanUrl.pathname = `${getHomeBasePath()}${encodeURIComponent(roomId)}`;
+    return cleanUrl.toString();
+  }
+  const legacyUrl = new URL('./table.html', window.location.href);
+  legacyUrl.searchParams.set('room', roomId);
+  return legacyUrl.toString();
+}
+
+function extractRoomIdFromUrl(candidate) {
+  const queryRoomId = String(candidate.searchParams.get('room') || '').trim();
+  if (queryRoomId) {
+    return queryRoomId;
+  }
+  const pathSegments = candidate.pathname.split('/').filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1] || '';
+  if (!lastSegment || lastSegment.includes('.')) {
+    return '';
+  }
+  const homeBasePath = getHomeBasePath();
+  if (candidate.pathname === homeBasePath || candidate.pathname === `${homeBasePath}index.html`) {
+    return '';
+  }
+  try {
+    return decodeURIComponent(lastSegment).trim();
+  } catch {
+    return lastSegment.trim();
+  }
+}
+
 function getLastGameUrl() {
   const stored = localStorage.getItem(LAST_GAME_URL_KEY);
   if (!stored) {
@@ -34,13 +88,11 @@ function getLastGameUrl() {
 
   try {
     const candidate = new URL(stored, window.location.href);
-    const roomParam = candidate.searchParams.get('room');
-    if (!roomParam) {
+    const roomId = extractRoomIdFromUrl(candidate);
+    if (!roomId) {
       return null;
     }
-    const normalized = new URL('./table.html', window.location.href);
-    normalized.searchParams.set('room', roomParam);
-    return normalized.toString();
+    return getTableUrlForRoom(roomId);
   } catch {
     return null;
   }
@@ -83,8 +135,9 @@ createRoomButton?.addEventListener('click', () => {
   }
   localStorage.setItem('tabletop-player-color', playerColor);
 
-  const url = new URL('./table.html', window.location.href);
-  url.searchParams.set('room', roomId);
-
-  window.location.href = url.toString();
+  const nextUrl = getTableUrlForRoom(roomId);
+  if (!nextUrl) {
+    return;
+  }
+  window.location.href = nextUrl;
 });

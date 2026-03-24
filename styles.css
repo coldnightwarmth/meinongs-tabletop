@@ -195,6 +195,7 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-shell {
   --playspace-grid-color: rgba(255, 255, 255, 0.08);
+  --room-badge-width: 84px;
   position: relative;
   min-height: 100vh;
   width: 100%;
@@ -303,6 +304,49 @@ input[type="color"]::-webkit-color-swatch {
   opacity: 0.5;
 }
 
+.asset-loading-status {
+  position: absolute;
+  top: 0.9rem;
+  left: calc(0.9rem + var(--room-badge-width, 84px) + 8px);
+  z-index: 10;
+  height: 2.02rem;
+  padding: 0 0.58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(10, 17, 15, 0.5);
+  color: rgba(247, 243, 232, 0.88);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.44rem;
+  pointer-events: none;
+}
+
+.asset-loading-spinner {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  border: 1.6px solid rgba(247, 243, 232, 0.24);
+  border-top-color: rgba(247, 243, 232, 0.9);
+  animation: assetLoadingSpin 700ms linear infinite;
+}
+
+.asset-loading-text {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+@keyframes assetLoadingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .draw-mode-button {
   position: absolute;
   top: calc(3.95rem + 5px);
@@ -374,6 +418,47 @@ input[type="color"]::-webkit-color-swatch {
 
 .draw-clear-button svg,
 .draw-undo-button svg {
+  display: block;
+}
+
+.draw-tool-row {
+  position: absolute;
+  top: calc(3.95rem + 5px + 2.16rem);
+  left: calc(0.9rem + 2.18rem);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.draw-tool-button {
+  width: 1.76rem;
+  height: 1.76rem;
+  border: none;
+  border-radius: 8px;
+  background: rgba(10, 17, 15, 0.16);
+  color: rgba(247, 243, 232, 0.74);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease, opacity 120ms ease;
+}
+
+.draw-tool-button:hover,
+.draw-tool-button:focus-visible {
+  color: rgba(255, 255, 255, 0.94);
+  background: rgba(10, 17, 15, 0.34);
+  transform: translateY(-1px);
+}
+
+.draw-tool-button.is-active {
+  color: #fff5ea;
+  background: rgba(234, 95, 49, 0.84);
+}
+
+.draw-tool-button svg {
   display: block;
 }
 
@@ -534,7 +619,286 @@ input[type="color"]::-webkit-color-swatch {
   height: 4320px;
   transform-origin: 0 0;
   pointer-events: none;
-  z-index: 6;
+  z-index: 8;
+}
+
+.game-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.mons-game-shell {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(9, 14, 12, 0.9);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.36);
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.mons-game-shell.hidden {
+  display: none;
+}
+
+.mons-game-shell.is-drag-floating {
+  z-index: 61000 !important;
+}
+
+.mons-board-ghost {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.24);
+  background: rgba(10, 14, 13, 0.44);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+  padding: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 0.82;
+  transition: opacity 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.mons-board-ghost:hover,
+.mons-board-ghost:focus-visible {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.46);
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.28);
+}
+
+.mons-board-ghost img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.mons-board-svg {
+  position: relative;
+  width: 100%;
+  height: auto;
+  border: 0;
+  display: block;
+  background: #d7d7d2;
+}
+
+.mons-board-tile {
+  stroke: rgba(106, 106, 100, 0.58);
+  stroke-width: 0.03;
+}
+
+.mons-board-coordinate {
+  font-family: monospace;
+  font-size: 0.24px;
+  fill: rgba(24, 24, 21, 0.66);
+  user-select: none;
+  pointer-events: none;
+}
+
+.mons-hud {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding: 0 14px;
+  box-sizing: border-box;
+  color: rgba(236, 236, 229, 0.85);
+  background: rgba(9, 14, 12, 0.72);
+}
+
+.mons-hud-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  position: relative;
+}
+
+.mons-hud-player-white {
+  justify-self: start;
+}
+
+.mons-hud-player-black {
+  justify-self: end;
+}
+
+.mons-hud-center {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mons-hud-avatar {
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  image-rendering: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+.mons-hud-avatar-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+}
+
+.mons-hud-avatar-button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.96;
+  transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.mons-hud-avatar-button:hover,
+.mons-hud-avatar-button:focus-visible {
+  opacity: 1;
+  filter: brightness(1.08);
+}
+
+.mons-hud-avatar-button.is-claimed {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(132, 198, 255, 0.72));
+}
+
+.mons-hud-avatar-button.is-side-full {
+  opacity: 0.46;
+}
+
+.mons-hud-avatar-button:disabled {
+  cursor: default;
+}
+
+.mons-side-claims {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  pointer-events: none;
+  min-width: max-content;
+  z-index: 56000;
+}
+
+.mons-side-claim-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.mons-side-claim-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  flex: 0 0 5px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.mons-side-claim-name {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+}
+
+.mons-hud-score {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(242, 242, 237, 0.92);
+}
+
+.mons-hud-potions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 18px;
+}
+
+.mons-hud-potions.is-hidden {
+  display: none;
+}
+
+.mons-hud-potions.mons-hud-potions-black {
+  flex-direction: row-reverse;
+}
+
+.mons-hud-potion {
+  width: 16px;
+  height: 16px;
+  display: block;
+  object-fit: contain;
+  image-rendering: auto;
+  opacity: 0.94;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mons-undo-button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(11, 18, 15, 0.72);
+  color: rgba(247, 243, 232, 0.8);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+.mons-undo-button svg {
+  width: 54%;
+  height: 54%;
+  display: block;
+}
+
+.mons-undo-button:hover,
+.mons-undo-button:focus-visible {
+  background: rgba(11, 18, 15, 0.84);
+  color: rgba(247, 243, 232, 0.95);
+}
+
+.mons-undo-button.is-disabled,
+.mons-undo-button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.mons-move-button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 50000;
 }
 
 .drawing-stroke {
@@ -542,6 +906,16 @@ input[type="color"]::-webkit-color-swatch {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.9;
+}
+
+.drawing-shape-preview {
+  opacity: 0.78;
+}
+
+.drawing-anchor-dot {
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 2.2;
+  opacity: 0.92;
 }
 
 .cards-layer {
@@ -954,9 +1328,39 @@ input[type="color"]::-webkit-color-swatch {
   color: rgba(247, 243, 232, 0.32);
 }
 
+.deck-move-button.is-group-selected,
+.mons-move-button.is-group-selected {
+  color: rgba(196, 230, 255, 0.96);
+  border-color: rgba(120, 186, 255, 0.74);
+  background: rgba(56, 126, 208, 0.28);
+}
+
+.deck-move-button.is-group-selected:hover,
+.deck-move-button.is-group-selected:focus-visible,
+.mons-move-button.is-group-selected:hover,
+.mons-move-button.is-group-selected:focus-visible {
+  background: rgba(64, 141, 232, 0.34);
+}
+
 .deck-move-button.is-held-by-self {
   color: rgba(247, 243, 232, 0.6);
   border-color: rgba(255, 255, 255, 0.34);
+}
+
+.deck-move-button.is-group-selected.is-held-by-self,
+.mons-move-button.is-group-selected.is-held-by-self {
+  color: rgba(212, 238, 255, 0.98);
+  border-color: rgba(132, 195, 255, 0.8);
+}
+
+.deck-options-button {
+  color: rgba(247, 243, 232, 0.54);
+}
+
+.deck-options-button svg {
+  width: 56%;
+  height: 56%;
+  display: block;
 }
 
 .deck-control-button:hover,
@@ -1248,6 +1652,40 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 
+.remote-cursor .cursor-pencil {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  color: #d5d9df;
+  transform: translate(-30%, -74%);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
+}
+
+.remote-cursor .cursor-pencil svg {
+  display: block;
+}
+
+.remote-cursor.is-drawing {
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+}
+
+.remote-cursor.is-drawing .cursor-pencil {
+  display: block;
+}
+
+.remote-cursor.is-drawing .cursor-name {
+  top: 20px;
+  left: 10px;
+}
+
 .remote-cursor .cursor-name {
   position: absolute;
   top: 16px;
@@ -1259,6 +1697,22 @@ input[type="color"]::-webkit-color-swatch {
   color: #f9f3e0;
   font-size: 0.73rem;
   line-height: 1;
+}
+
+.local-draw-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  transform: translate(-30%, -74%);
+  color: #d5d9df;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.24));
+}
+
+.local-draw-cursor svg {
+  display: block;
 }
 
 .bottom-right-controls {
@@ -1429,11 +1883,14 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-shell.is-theme-transitioning,
 .table-shell.is-theme-transitioning .room-badge,
+.table-shell.is-theme-transitioning .asset-loading-status,
+.table-shell.is-theme-transitioning .asset-loading-spinner,
 .table-shell.is-theme-transitioning .room-title-input,
 .table-shell.is-theme-transitioning .status-badge,
 .table-shell.is-theme-transitioning .draw-mode-button,
 .table-shell.is-theme-transitioning .draw-clear-button,
 .table-shell.is-theme-transitioning .draw-undo-button,
+.table-shell.is-theme-transitioning .draw-tool-button,
 .table-shell.is-theme-transitioning .player-name-button,
 .table-shell.is-theme-transitioning .player-name-input,
 .table-shell.is-theme-transitioning .player-color-wrap,
@@ -1450,6 +1907,8 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.is-theme-transitioning .discard-slot-label,
 .table-shell.is-theme-transitioning .auction-slot::before,
 .table-shell.is-theme-transitioning .auction-slot-icon,
+.table-shell.is-theme-transitioning .mons-game-shell,
+.table-shell.is-theme-transitioning .mons-move-button,
 .table-shell.is-theme-transitioning .mode-toggle-switch,
 .table-shell.is-theme-transitioning .mode-toggle-switch::after,
 .table-shell.is-theme-transitioning .mode-toggle-icon {
@@ -1537,9 +1996,33 @@ input[type="color"]::-webkit-color-swatch {
   color: rgba(34, 29, 23, 0.36);
 }
 
+.table-shell.light-mode .deck-move-button.is-group-selected,
+.table-shell.light-mode .mons-move-button.is-group-selected {
+  color: rgba(18, 73, 138, 0.94);
+  border-color: rgba(53, 133, 220, 0.52);
+  background: rgba(76, 154, 240, 0.2);
+}
+
+.table-shell.light-mode .deck-move-button.is-group-selected:hover,
+.table-shell.light-mode .deck-move-button.is-group-selected:focus-visible,
+.table-shell.light-mode .mons-move-button.is-group-selected:hover,
+.table-shell.light-mode .mons-move-button.is-group-selected:focus-visible {
+  background: rgba(76, 154, 240, 0.3);
+}
+
 .table-shell.light-mode .deck-move-button.is-held-by-self {
   color: rgba(34, 29, 23, 0.64);
   border-color: rgba(34, 29, 23, 0.34);
+}
+
+.table-shell.light-mode .deck-move-button.is-group-selected.is-held-by-self,
+.table-shell.light-mode .mons-move-button.is-group-selected.is-held-by-self {
+  color: rgba(12, 66, 128, 0.98);
+  border-color: rgba(44, 122, 204, 0.62);
+}
+
+.table-shell.light-mode .deck-options-button {
+  color: rgba(34, 29, 23, 0.56);
 }
 
 .table-shell.light-mode .deck-control-button:hover,
@@ -1573,6 +2056,17 @@ input[type="color"]::-webkit-color-swatch {
   color: rgba(27, 24, 20, 0.86);
 }
 
+.table-shell.light-mode .asset-loading-status {
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(34, 29, 23, 0.86);
+  border-color: rgba(34, 29, 23, 0.24);
+}
+
+.table-shell.light-mode .asset-loading-spinner {
+  border-color: rgba(34, 29, 23, 0.2);
+  border-top-color: rgba(34, 29, 23, 0.86);
+}
+
 .table-shell.light-mode .draw-mode-button {
   background: rgba(255, 255, 255, 0.86);
   color: rgba(34, 29, 23, 0.84);
@@ -1600,6 +2094,27 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.light-mode .draw-undo-button:hover,
 .table-shell.light-mode .draw-undo-button:focus-visible {
   color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .draw-tool-button {
+  background: rgba(255, 255, 255, 0.58);
+  color: rgba(34, 29, 23, 0.66);
+}
+
+.table-shell.light-mode .draw-tool-button:hover,
+.table-shell.light-mode .draw-tool-button:focus-visible {
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .draw-tool-button.is-active {
+  background: rgba(234, 95, 49, 0.9);
+  color: #fff6ed;
+}
+
+.table-shell.light-mode .local-draw-cursor,
+.table-shell.light-mode .remote-cursor .cursor-pencil {
+  color: #444a4f;
 }
 
 .table-shell.light-mode .player-name-button,
@@ -1688,7 +2203,16 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .table-shell.is-draw-mode {
-  cursor: crosshair;
+  cursor: none;
+}
+
+.table-shell.is-draw-mode .cards-layer,
+.table-shell.is-draw-mode .cards-layer *,
+.table-shell.is-draw-mode .game-layer,
+.table-shell.is-draw-mode .game-layer *,
+.table-shell.is-draw-mode .deck-control-button,
+.table-shell.is-draw-mode .deck-control-button * {
+  cursor: none !important;
 }
 
 .icon-pill-button:hover,
@@ -1715,12 +2239,206 @@ input[type="color"]::-webkit-color-swatch {
   backdrop-filter: blur(2px);
 }
 
+.table-shell.is-mons-item-choice-open .mons-game-shell,
+.table-shell.is-mons-item-choice-open .mons-board-ghost {
+  filter: blur(2px) saturate(0.9);
+}
+
+.mons-item-choice-dialog {
+  width: min(92vw, 270px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(10, 17, 15, 0.92);
+  box-shadow: 0 22px 34px rgba(0, 0, 0, 0.34);
+  padding: 0.8rem;
+}
+
+.mons-item-choice-title {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  color: rgba(248, 243, 232, 0.92);
+}
+
+.mons-item-choice-actions {
+  margin-top: 0.64rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.54rem;
+}
+
+.mons-item-choice-button {
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(248, 243, 232, 0.94);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.56rem 0.42rem;
+  cursor: pointer;
+  text-transform: lowercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mons-item-choice-button img {
+  width: 36px;
+  height: 36px;
+  display: block;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+.mons-item-choice-button:hover,
+.mons-item-choice-button:focus-visible {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.mons-item-choice-button:disabled,
+.mons-item-choice-button.is-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .asset-menu-modal.hidden {
   display: none;
 }
 
+.game-options-dialog {
+  width: min(92vw, 260px);
+}
+
+.game-options-dialog .asset-menu-header {
+  position: relative;
+  justify-content: center;
+}
+
+.game-options-dialog .asset-menu-close {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.game-options-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  text-align: center;
+}
+
+.game-options-title-icon {
+  width: 0.88rem;
+  height: 0.88rem;
+  display: block;
+  opacity: 0.9;
+}
+
+.game-options-actions {
+  display: grid;
+  gap: 0.52rem;
+}
+
+.game-options-action {
+  margin-top: 0;
+}
+
+.game-options-action-reset {
+  border-color: rgba(126, 181, 255, 0.46);
+  color: rgba(222, 239, 255, 0.95);
+  background: rgba(82, 146, 230, 0.16);
+}
+
+.game-options-action-reset:hover,
+.game-options-action-reset:focus-visible {
+  background: rgba(92, 159, 248, 0.24);
+  border-color: rgba(149, 198, 255, 0.68);
+}
+
+.game-options-action-put-away {
+  border-color: rgba(246, 142, 142, 0.45);
+  color: rgba(255, 213, 213, 0.96);
+  background: rgba(176, 48, 48, 0.16);
+}
+
+.game-options-action-put-away:hover,
+.game-options-action-put-away:focus-visible {
+  background: rgba(198, 58, 58, 0.24);
+  border-color: rgba(255, 176, 176, 0.66);
+}
+
+.instance-warning-dialog {
+  width: min(92vw, 180px);
+  padding: 1rem;
+}
+
+.clear-table-warning-dialog {
+  width: min(92vw, 240px);
+}
+
+.instance-warning-title {
+  margin: 0;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgba(255, 214, 160, 0.96);
+}
+
+.instance-warning-text {
+  margin: 0.5rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(247, 243, 232, 0.9);
+  text-transform: lowercase;
+}
+
+.instance-warning-actions {
+  margin-top: 0.76rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.54rem;
+}
+
+.instance-warning-actions .asset-clear-button {
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.34rem;
+}
+
+.instance-warning-actions .asset-clear-button svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 auto;
+}
+
+.instance-warning-continue {
+  border-color: rgba(255, 190, 108, 0.5);
+  background: rgba(180, 110, 32, 0.2);
+  color: rgba(255, 232, 198, 0.98);
+}
+
+.instance-warning-continue:hover,
+.instance-warning-continue:focus-visible {
+  background: rgba(204, 128, 36, 0.3);
+  border-color: rgba(255, 208, 144, 0.76);
+}
+
+.instance-warning-cancel {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .asset-menu-dialog {
-  width: min(92vw, 520px);
+  width: min(94vw, 760px);
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.24);
   background: rgba(12, 20, 17, 0.94);
@@ -1735,22 +2453,72 @@ input[type="color"]::-webkit-color-swatch {
   margin-bottom: 0.7rem;
 }
 
-.asset-menu-header h2 {
-  margin: 0;
+.asset-menu-header-main {
   display: inline-flex;
   align-items: center;
-  gap: 0.36rem;
-  font-size: 1rem;
-  letter-spacing: 0.01em;
-  text-transform: lowercase;
-  color: #f7f3e8;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-.asset-menu-title-icon {
-  width: 0.88rem;
-  height: 0.88rem;
+.asset-menu-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.asset-menu-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.asset-menu-tab {
+  height: 1.9rem;
+  min-width: 122px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(247, 243, 232, 0.9);
+  padding: 0 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.34rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.asset-menu-tab-icon {
+  width: 0.84rem;
+  height: 0.84rem;
   display: block;
-  opacity: 0.9;
+  flex: 0 0 auto;
+}
+
+.asset-menu-tab:hover,
+.asset-menu-tab:focus-visible {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.asset-menu-tab.is-active {
+  background: rgba(98, 166, 252, 0.25);
+  border-color: rgba(148, 202, 255, 0.6);
+  color: rgba(228, 243, 255, 0.96);
 }
 
 .asset-menu-close {
@@ -1769,8 +2537,26 @@ input[type="color"]::-webkit-color-swatch {
 
 .asset-gallery-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.7rem;
+}
+
+.asset-component-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.58rem;
+}
+
+.asset-component-item {
+  gap: 0.34rem;
+  padding: 0.42rem;
+}
+
+.asset-component-item .asset-placeholder-box {
+  border-radius: 8px;
+}
+
+.asset-component-item .asset-label {
+  font-size: 0.76rem;
 }
 
 .asset-clear-button {
@@ -1910,6 +2696,27 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(28, 24, 18, 0.22);
 }
 
+.table-shell.light-mode .mons-item-choice-dialog {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(249, 245, 236, 0.95);
+  box-shadow: 0 22px 34px rgba(43, 35, 21, 0.2);
+}
+
+.table-shell.light-mode .mons-item-choice-title {
+  color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .mons-item-choice-button {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .mons-item-choice-button:hover,
+.table-shell.light-mode .mons-item-choice-button:focus-visible {
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .table-shell.light-mode .asset-menu-dialog {
   background: rgba(249, 245, 236, 0.95);
   border-color: rgba(34, 29, 23, 0.22);
@@ -1918,7 +2725,8 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-shell.light-mode .asset-menu-header h2,
 .table-shell.light-mode .asset-gallery-item,
-.table-shell.light-mode .asset-menu-close {
+.table-shell.light-mode .asset-menu-close,
+.table-shell.light-mode .asset-menu-tab {
   color: #2a241d;
 }
 
@@ -1965,6 +2773,139 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(255, 255, 255, 0.78);
 }
 
+.table-shell.light-mode .asset-menu-tab {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.table-shell.light-mode .asset-menu-tab:hover,
+.table-shell.light-mode .asset-menu-tab:focus-visible {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.table-shell.light-mode .asset-menu-tab.is-active {
+  background: rgba(111, 174, 255, 0.28);
+  border-color: rgba(84, 143, 222, 0.56);
+  color: rgba(24, 53, 84, 0.95);
+}
+
+.table-shell.light-mode .instance-warning-title {
+  color: rgba(122, 70, 14, 0.92);
+}
+
+.table-shell.light-mode .instance-warning-text {
+  color: rgba(40, 33, 24, 0.82);
+}
+
+.table-shell.light-mode .instance-warning-continue {
+  border-color: rgba(165, 108, 28, 0.45);
+  background: rgba(230, 166, 80, 0.2);
+  color: rgba(86, 51, 15, 0.95);
+}
+
+.table-shell.light-mode .instance-warning-continue:hover,
+.table-shell.light-mode .instance-warning-continue:focus-visible {
+  background: rgba(230, 166, 80, 0.34);
+  border-color: rgba(165, 108, 28, 0.62);
+}
+
+.table-shell.light-mode .mons-game-shell {
+  background: rgba(245, 241, 232, 0.95);
+  border-color: rgba(34, 29, 23, 0.22);
+  box-shadow: 0 16px 28px rgba(45, 36, 20, 0.24);
+}
+
+.table-shell.light-mode .mons-board-ghost {
+  border-color: rgba(94, 117, 109, 0.3);
+  background: rgba(246, 247, 241, 0.56);
+  box-shadow: 0 10px 18px rgba(58, 72, 66, 0.14);
+}
+
+.table-shell.light-mode .mons-board-ghost:hover,
+.table-shell.light-mode .mons-board-ghost:focus-visible {
+  border-color: rgba(94, 117, 109, 0.52);
+  box-shadow: 0 14px 22px rgba(58, 72, 66, 0.18);
+}
+
+.table-shell.light-mode .mons-board-svg {
+  background: #d7d2c4;
+}
+
+.table-shell.light-mode .mons-board-coordinate {
+  fill: rgba(34, 29, 23, 0.7);
+}
+
+.table-shell.light-mode .mons-hud {
+  background: rgba(248, 244, 235, 0.84);
+  color: rgba(34, 29, 23, 0.76);
+}
+
+.table-shell.light-mode .mons-hud-score {
+  color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .mons-hud-potion {
+  opacity: 0.9;
+}
+
+.table-shell.light-mode .mons-hud-avatar-button {
+  background: transparent;
+  border: none;
+}
+
+.table-shell.light-mode .mons-hud-avatar-button:hover,
+.table-shell.light-mode .mons-hud-avatar-button:focus-visible {
+  filter: brightness(1.06);
+}
+
+.table-shell.light-mode .mons-hud-avatar-button.is-claimed {
+  filter: drop-shadow(0 0 6px rgba(88, 150, 216, 0.72));
+}
+
+.table-shell.light-mode .mons-side-claim-dot {
+  box-shadow: 0 0 0 1px rgba(34, 29, 23, 0.2);
+}
+
+.table-shell.light-mode .mons-side-claim-name {
+  text-shadow: none;
+}
+
+.table-shell.light-mode .mons-undo-button {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.86);
+  color: rgba(34, 29, 23, 0.5);
+}
+
+.table-shell.light-mode .mons-undo-button:hover,
+.table-shell.light-mode .mons-undo-button:focus-visible {
+  background: rgba(255, 255, 255, 0.98);
+  color: rgba(34, 29, 23, 0.82);
+}
+
+.table-shell.light-mode .game-options-action-put-away {
+  border-color: rgba(176, 48, 48, 0.3);
+  color: rgba(148, 35, 35, 0.9);
+  background: rgba(176, 48, 48, 0.08);
+}
+
+.table-shell.light-mode .game-options-action-reset {
+  border-color: rgba(51, 113, 197, 0.28);
+  color: rgba(24, 58, 102, 0.92);
+  background: rgba(54, 118, 207, 0.12);
+}
+
+.table-shell.light-mode .game-options-action-reset:hover,
+.table-shell.light-mode .game-options-action-reset:focus-visible {
+  background: rgba(54, 118, 207, 0.2);
+  border-color: rgba(43, 101, 181, 0.46);
+}
+
+.table-shell.light-mode .game-options-action-put-away:hover,
+.table-shell.light-mode .game-options-action-put-away:focus-visible {
+  background: rgba(176, 48, 48, 0.16);
+  border-color: rgba(176, 48, 48, 0.42);
+}
+
 .table-shell.light-mode .asset-placeholder-box {
   border-color: rgba(34, 29, 23, 0.28);
   background:
@@ -1978,6 +2919,7 @@ input[type="color"]::-webkit-color-swatch {
   .table-card,
   .hand-card,
   .hand-drop-glow,
+  .asset-loading-spinner,
   .deck-control-button,
   .deck-shuffle-fx,
   .auction-slot-icon {
@@ -1986,6 +2928,7 @@ input[type="color"]::-webkit-color-swatch {
 
   .table-card.is-flipping,
   .table-card.is-shuffle-darkening img,
+  .asset-loading-spinner,
   .deck-control-button.is-pressing,
   .deck-shuffle-fx.is-active,
   .deck-shuffle-fx-1.is-active,
@@ -2017,6 +2960,14 @@ input[type="color"]::-webkit-color-swatch {
     right: 0.7rem;
   }
 
+  .asset-loading-status {
+    top: 0.7rem;
+  }
+
+  .asset-gallery-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .bottom-right-controls {
     right: 0.7rem;
     bottom: 0.7rem;
@@ -2041,5 +2992,15 @@ input[type="color"]::-webkit-color-swatch {
 
   .auction-bid-input {
     width: min(37.2vw, 126px);
+  }
+}
+
+@media (max-width: 920px) {
+  .asset-menu-dialog {
+    width: min(94vw, 580px);
+  }
+
+  .asset-gallery-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }

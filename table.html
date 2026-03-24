@@ -10,6 +10,10 @@
   <body>
     <main id="tableRoot" class="table-shell" aria-label="Live tabletop">
       <div class="room-badge" id="roomBadge">room: --</div>
+      <div id="assetLoadingStatus" class="asset-loading-status hidden" aria-live="polite">
+        <span class="asset-loading-spinner" aria-hidden="true"></span>
+        <span class="asset-loading-text">loading assets</span>
+      </div>
       <input
         id="roomTitleInput"
         class="room-title-input hidden"
@@ -67,6 +71,44 @@
           <path d="M4 12C4.7 7.7 8.55 4.5 13 4.5C17.95 4.5 22 8.55 22 13.5C22 18.45 17.95 22.5 13 22.5C10.08 22.5 7.49 21.09 5.85 18.91" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
+      <div id="drawToolRow" class="draw-tool-row hidden" role="group" aria-label="drawing tools">
+        <button id="drawToolFreeButton" class="draw-tool-button is-active" type="button" aria-label="freeform drawing" aria-pressed="true">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M2.5 14C5.5 9.7 8.2 10.2 10.5 12.1C12.8 14 15.1 14.7 17.2 12.4C19.3 10.1 21.1 10.4 22.5 12.1" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <button id="drawToolLineButton" class="draw-tool-button" type="button" aria-label="line drawing" aria-pressed="false">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M5 19L19 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+          </svg>
+        </button>
+        <button id="drawToolBoxButton" class="draw-tool-button" type="button" aria-label="box drawing" aria-pressed="false">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <rect x="5" y="5" width="14" height="14" rx="1.6" stroke="currentColor" stroke-width="1.9" />
+          </svg>
+        </button>
+      </div>
       <div class="player-controls" id="playerControls">
         <div class="player-main-row">
           <span id="playerHandCount" class="player-hand-count" aria-live="polite">0</span>
@@ -86,6 +128,7 @@
         <div id="roomRoster" class="room-roster hidden" aria-live="polite"></div>
       </div>
       <div id="playspaceLayer" class="playspace-layer" aria-hidden="true"></div>
+      <div id="gameLayer" class="game-layer" aria-hidden="true"></div>
       <svg id="drawingLayer" class="drawing-layer" viewBox="0 0 7680 4320" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div id="cardLayer" class="cards-layer" aria-hidden="true"></div>
       <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
@@ -182,20 +225,55 @@
       <div id="assetMenuModal" class="asset-menu-modal hidden" role="dialog" aria-modal="true" aria-labelledby="assetMenuTitle">
         <div class="asset-menu-dialog">
           <div class="asset-menu-header">
-            <h2 id="assetMenuTitle">
-              <span>add game</span>
-              <svg
-                class="asset-menu-title-icon"
-                viewBox="0 0 24 24"
-                width="14"
-                height="14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-              </svg>
-            </h2>
+            <div class="asset-menu-header-main">
+              <h2 id="assetMenuTitle" class="asset-menu-visually-hidden">add menu</h2>
+              <div class="asset-menu-tabs" role="tablist" aria-label="add menu tabs">
+                <button
+                  id="assetMenuTabGameButton"
+                  class="asset-menu-tab is-active"
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  aria-controls="assetGameGallery"
+                >
+                  <svg
+                    class="asset-menu-tab-icon"
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                  </svg>
+                  <span>add game</span>
+                </button>
+                <button
+                  id="assetMenuTabComponentButton"
+                  class="asset-menu-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  aria-controls="assetComponentGallery"
+                >
+                  <svg
+                    class="asset-menu-tab-icon"
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3.2L19.3 7.3V16.7L12 20.8L4.7 16.7V7.3L12 3.2Z" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M12 12V20.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    <path d="M4.7 7.3L12 11.4L19.3 7.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                  </svg>
+                  <span>add component</span>
+                </button>
+              </div>
+            </div>
             <button id="assetMenuCloseButton" class="asset-menu-close" type="button" aria-label="close menu">
               <svg
                 viewBox="0 0 24 24"
@@ -210,7 +288,7 @@
             </button>
           </div>
 
-          <div class="asset-gallery-grid">
+          <div id="assetGameGallery" class="asset-gallery-grid">
             <button id="coolJpegsTile" class="asset-gallery-item asset-gallery-item-cool" type="button">
               <span class="asset-placeholder-box asset-preview-box" aria-hidden="true">
                 <img class="asset-preview-image" src="./assets/back-preview.jpg" alt="" loading="lazy" decoding="async" />
@@ -218,13 +296,207 @@
               </span>
               <span class="asset-label">cool jpegs</span>
             </button>
+            <button id="superMetalMonsTile" class="asset-gallery-item asset-gallery-item-cool asset-gallery-item-mons" type="button">
+              <span class="asset-placeholder-box asset-preview-box" aria-hidden="true">
+                <img class="asset-preview-image" src="./assets/smm.png" alt="" loading="lazy" decoding="async" />
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">super metal mons!</span>
+            </button>
             <button class="asset-gallery-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">house show <span class="asset-label-meta">(coming soon)</span></span>
             </button>
           </div>
 
+          <div id="assetComponentGallery" class="asset-gallery-grid asset-component-grid hidden">
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">dice</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">spinner</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">image</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">media</span>
+            </button>
+          </div>
+
           <button id="clearTableButton" class="asset-clear-button" type="button">clear table</button>
+        </div>
+      </div>
+
+      <div
+        id="instanceWarningModal"
+        class="asset-menu-modal instance-warning-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="instanceWarningTitle"
+      >
+        <div class="asset-menu-dialog instance-warning-dialog">
+          <h2 id="instanceWarningTitle" class="instance-warning-title">warning</h2>
+          <p class="instance-warning-text">multiple instance of a game can cause lag</p>
+          <div class="instance-warning-actions">
+            <button
+              id="instanceWarningContinueButton"
+              class="asset-clear-button instance-warning-continue"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M5 12.5L9.1 16.6L19 7.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>continue</span>
+            </button>
+            <button
+              id="instanceWarningCancelButton"
+              class="asset-clear-button instance-warning-cancel"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              <span>cancel</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="clearTableWarningModal"
+        class="asset-menu-modal instance-warning-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clearTableWarningTitle"
+      >
+        <div class="asset-menu-dialog instance-warning-dialog clear-table-warning-dialog">
+          <h2 id="clearTableWarningTitle" class="instance-warning-title">warning</h2>
+          <p class="instance-warning-text">are you sure? this cannot be undone.</p>
+          <div class="instance-warning-actions">
+            <button
+              id="clearTableWarningYesButton"
+              class="asset-clear-button instance-warning-continue"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M5 12.5L9.1 16.6L19 7.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>yes</span>
+            </button>
+            <button
+              id="clearTableWarningNoButton"
+              class="asset-clear-button instance-warning-cancel"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              <span>no</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gameOptionsModal" class="asset-menu-modal game-options-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameOptionsTitle">
+        <div class="asset-menu-dialog game-options-dialog">
+          <div class="asset-menu-header">
+            <h2 id="gameOptionsTitle" class="game-options-title">
+              <span id="gameOptionsTitleText">game</span>
+              <svg
+                class="game-options-title-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19.4 13.5V10.5L17.65 10.03C17.5 9.5 17.28 9 17 8.55L17.95 6.98L15.82 4.85L14.25 5.8C13.8 5.52 13.3 5.3 12.77 5.15L12.3 3.4H9.3L8.83 5.15C8.3 5.3 7.8 5.52 7.35 5.8L5.78 4.85L3.65 6.98L4.6 8.55C4.32 9 4.1 9.5 3.95 10.03L2.2 10.5V13.5L3.95 13.97C4.1 14.5 4.32 15 4.6 15.45L3.65 17.02L5.78 19.15L7.35 18.2C7.8 18.48 8.3 18.7 8.83 18.85L9.3 20.6H12.3L12.77 18.85C13.3 18.7 13.8 18.48 14.25 18.2L15.82 19.15L17.95 17.02L17 15.45C17.28 15 17.5 14.5 17.65 13.97L19.4 13.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            </h2>
+            <button id="gameOptionsCloseButton" class="asset-menu-close" type="button" aria-label="close game options">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="game-options-actions">
+            <button id="gameOptionsResetButton" class="asset-clear-button game-options-action game-options-action-reset" type="button">
+              reset game
+            </button>
+            <button id="gameOptionsPutAwayButton" class="asset-clear-button game-options-action game-options-action-put-away" type="button">
+              put game away
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="monsItemChoiceModal"
+        class="asset-menu-modal mons-item-choice-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="monsItemChoiceTitle"
+      >
+        <div class="mons-item-choice-dialog">
+          <h2 id="monsItemChoiceTitle" class="mons-item-choice-title">choose item</h2>
+          <div class="mons-item-choice-actions">
+            <button id="monsItemChoiceBombButton" class="mons-item-choice-button" type="button" aria-label="choose bomb">
+              <img src="./assets/mons/bomb.png" alt="" draggable="false" />
+              <span>bomb</span>
+            </button>
+            <button id="monsItemChoicePotionButton" class="mons-item-choice-button" type="button" aria-label="choose potion">
+              <img src="./assets/mons/potion.png" alt="" draggable="false" />
+              <span>potion</span>
+            </button>
+          </div>
         </div>
       </div>
     </main>
