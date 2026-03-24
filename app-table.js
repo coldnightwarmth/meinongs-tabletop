@@ -15,6 +15,7 @@ const cursorLayer = document.getElementById('cursorLayer');
 const roomBadge = document.getElementById('roomBadge');
 const copyLinkButton = document.getElementById('copyLinkButton');
 const copyLabel = document.getElementById('copyLabel');
+const statusBadge = document.createElement('div');
 
 const query = new URLSearchParams(window.location.search);
 const roomId = query.get('room');
@@ -32,6 +33,12 @@ const roomPath = `rooms/${roomId}`;
 if (roomBadge) {
   roomBadge.textContent = `room: ${roomId}`;
 }
+
+statusBadge.className = 'room-badge';
+statusBadge.style.left = 'auto';
+statusBadge.style.right = '0.9rem';
+statusBadge.textContent = 'firebase: starting';
+tableRoot?.appendChild(statusBadge);
 
 copyLinkButton?.addEventListener('click', async () => {
   try {
@@ -96,6 +103,13 @@ function showStatusMessage(text) {
   tableRoot.appendChild(message);
 }
 
+function setRealtimeStatus(text) {
+  if (!statusBadge) {
+    return;
+  }
+  statusBadge.textContent = text;
+}
+
 if (hasPlaceholderConfig(firebaseConfig)) {
   showConfigMessage();
 } else {
@@ -120,6 +134,7 @@ async function startRealtimeSession() {
   const cursorsRef = ref(db, `${roomPath}/cursors`);
   const myCursorRef = ref(db, `${roomPath}/cursors/${clientId}`);
   const roomMetaRef = ref(db, `${roomPath}/meta`);
+  const connectedRef = ref(db, '.info/connected');
 
   await update(roomMetaRef, {
     updatedAt: serverTimestamp()
@@ -136,42 +151,57 @@ async function startRealtimeSession() {
   onDisconnect(myCursorRef).remove();
 
   const dots = new Map();
+  setRealtimeStatus('firebase: connected');
+
+  function upsertDot(id, payload) {
+    if (typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
+      return;
+    }
+
+    let dot = dots.get(id);
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.className = 'remote-cursor';
+      dot.dataset.clientId = id;
+
+      const label = document.createElement('span');
+      label.className = 'cursor-name';
+      dot.appendChild(label);
+
+      cursorLayer.appendChild(dot);
+      dots.set(id, dot);
+    }
+
+    dot.style.left = `${clamp(payload.x, 0, 1) * 100}%`;
+    dot.style.top = `${clamp(payload.y, 0, 1) * 100}%`;
+    dot.style.background = payload.color || colorFromId(id);
+
+    const nameElement = dot.querySelector('.cursor-name');
+    if (nameElement) {
+      nameElement.textContent = payload.name || 'player';
+    }
+
+    if (id === clientId) {
+      dot.style.opacity = '0.85';
+    }
+  }
+
+  upsertDot(clientId, { x: 0.5, y: 0.5, color: playerColor, name: playerName });
+
+  onValue(connectedRef, (snapshot) => {
+    if (snapshot.val() === true) {
+      setRealtimeStatus('firebase: connected');
+      return;
+    }
+    setRealtimeStatus('firebase: reconnecting');
+  });
 
   onValue(cursorsRef, (snapshot) => {
     const allCursors = snapshot.val() || {};
     const activeIds = new Set(Object.keys(allCursors));
 
     for (const [id, payload] of Object.entries(allCursors)) {
-      if (typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
-        continue;
-      }
-
-      let dot = dots.get(id);
-      if (!dot) {
-        dot = document.createElement('div');
-        dot.className = 'remote-cursor';
-        dot.dataset.clientId = id;
-
-        const label = document.createElement('span');
-        label.className = 'cursor-name';
-        dot.appendChild(label);
-
-        cursorLayer.appendChild(dot);
-        dots.set(id, dot);
-      }
-
-      dot.style.left = `${clamp(payload.x, 0, 1) * 100}%`;
-      dot.style.top = `${clamp(payload.y, 0, 1) * 100}%`;
-      dot.style.background = payload.color || colorFromId(id);
-
-      const nameElement = dot.querySelector('.cursor-name');
-      if (nameElement) {
-        nameElement.textContent = payload.name || 'player';
-      }
-
-      if (id === clientId) {
-        dot.style.opacity = '0.85';
-      }
+      upsertDot(id, payload);
     }
 
     for (const [id, dot] of dots.entries()) {
@@ -180,6 +210,11 @@ async function startRealtimeSession() {
         dots.delete(id);
       }
     }
+    setRealtimeStatus(`firebase: connected • cursors: ${activeIds.size}`);
+  }, (error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: read blocked');
+    showStatusMessage('Realtime read failed. Check Realtime Database rules for room path access.');
   });
 
   let rafScheduled = false;
@@ -207,6 +242,7 @@ async function startRealtimeSession() {
       rafScheduled = false;
 
       if (next) {
+        upsertDot(clientId, { ...next, color: playerColor, name: playerName });
         update(myCursorRef, {
           x: next.x,
           y: next.y,
