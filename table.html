@@ -12,59 +12,122 @@
       <div class="room-badge" id="roomBadge">room: --</div>
       <div class="status-badge" id="statusBadge">firebase: starting</div>
       <div class="player-controls" id="playerControls">
-        <button id="nameToggleButton" class="player-name-button" type="button">enter name</button>
-        <input
-          id="nameInput"
-          class="player-name-input hidden"
-          type="text"
-          maxlength="24"
-          placeholder="your name"
-          autocomplete="name"
-        />
-        <label class="player-color-wrap" for="cursorColorInput" title="cursor color">
-          <input id="cursorColorInput" type="color" value="#ff7a59" />
+        <div class="player-main-row">
+          <button id="nameToggleButton" class="player-name-button" type="button">enter name</button>
+          <input
+            id="nameInput"
+            class="player-name-input hidden"
+            type="text"
+            maxlength="24"
+            placeholder="your name"
+            autocomplete="name"
+          />
+          <label class="player-color-wrap" for="cursorColorInput" title="cursor color">
+            <input id="cursorColorInput" type="color" value="#ff7a59" />
+          </label>
+        </div>
+        <div id="roomRoster" class="room-roster hidden" aria-live="polite"></div>
+      </div>
+      <div id="playspaceLayer" class="playspace-layer" aria-hidden="true"></div>
+      <div id="cardLayer" class="cards-layer" aria-hidden="true"></div>
+      <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
+      <div id="bottomLeftControls" class="bottom-left-controls">
+        <a id="homeButton" class="home-link-button" href="./index.html" aria-label="home" title="home">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M3 10.5L12 3L21 10.5V20C21 20.5523 20.5523 21 20 21H15V14.5H9V21H4C3.44772 21 3 20.5523 3 20V10.5Z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+
+        <label id="lightModeControl" class="mode-toggle" title="toggle light mode">
+          <input id="lightModeToggle" type="checkbox" aria-label="toggle light mode" />
+          <span class="mode-toggle-switch" aria-hidden="true"></span>
+          <span id="modeIcon" class="mode-toggle-icon" aria-hidden="true"></span>
         </label>
       </div>
-      <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
-      <a id="homeButton" class="home-link-button" href="./index.html">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M3 10.5L12 3L21 10.5V20C21 20.5523 20.5523 21 20 21H15V14.5H9V21H4C3.44772 21 3 20.5523 3 20V10.5Z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span>home</span>
-      </a>
 
-      <button id="copyLinkButton" class="copy-link-button" type="button" aria-live="polite">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-        >
-          <path
-            d="M10 14L14 10M8.5 7.5L6 10C4.34315 11.6569 4.34315 14.3431 6 16C7.65685 17.6569 10.3431 17.6569 12 16L14.5 13.5M15.5 10.5L18 8C19.6569 6.34315 19.6569 3.65685 18 2C16.3431 0.343146 13.6569 0.343146 12 2L9.5 4.5"
+      <div id="bottomRightControls" class="bottom-right-controls">
+        <button id="assetMenuButton" class="icon-pill-button" type="button" aria-label="open asset gallery">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </button>
+
+        <button id="copyLinkButton" class="copy-link-button" type="button" aria-live="polite">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-          />
-        </svg>
-        <span id="copyLabel">copy link</span>
-      </button>
+            aria-hidden="true"
+          >
+            <path d="M9 17H7A5 5 0 0 1 7 7h2" />
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
+            <line x1="8" x2="16" y1="12" y2="12" />
+          </svg>
+          <span id="copyLabel">copy link</span>
+        </button>
+      </div>
+
+      <div id="assetMenuModal" class="asset-menu-modal hidden" role="dialog" aria-modal="true" aria-labelledby="assetMenuTitle">
+        <div class="asset-menu-dialog">
+          <div class="asset-menu-header">
+            <h2 id="assetMenuTitle">add game</h2>
+            <button id="assetMenuCloseButton" class="asset-menu-close" type="button" aria-label="close menu">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="asset-gallery-grid">
+            <button id="coolJpegsTile" class="asset-gallery-item asset-gallery-item-cool" type="button">
+              <span class="asset-placeholder-box asset-preview-box" aria-hidden="true">
+                <img class="asset-preview-image" src="./assets/back.png" alt="" loading="lazy" decoding="async" />
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">cool jpegs</span>
+            </button>
+            <button class="asset-gallery-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">house show <span class="asset-label-meta">(coming soon)</span></span>
+            </button>
+          </div>
+
+          <button id="clearTableButton" class="asset-clear-button" type="button">clear table</button>
+        </div>
+      </div>
     </main>
 
     <script type="module" src="./app-table.js"></script>

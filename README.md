@@ -11,13 +11,21 @@ A static multiplayer tabletop starter with Firebase Realtime Database cursor pre
 
 ## Local preview
 
-Run any static web server from this folder, for example:
+From this repo folder:
 
 ```bash
-python3 -m http.server 4173 --bind 127.0.0.1
+npm run start
 ```
 
-Then open `http://127.0.0.1:4173/index.html`.
+Then open `http://127.0.0.1:4273/index.html`.
+
+For local multiplayer testing across multiple devices on your network:
+
+```bash
+npm run start:lan
+```
+
+Then open `http://<your-computer-lan-ip>:4273/index.html` on other devices and join the same room URL.
 
 ## Firebase setup (free Spark plan)
 
@@ -52,3 +60,4 @@ Recommended prototype database rules:
 
 - Firebase web config values are safe to ship client-side.
 - If `firebase-config.js` still has `REPLACE_ME`, the room page shows a setup message instead of syncing.
+- If the browser appears stale after edits, hard refresh (`Cmd+Shift+R`) to bypass cache.

@@ -11,20 +11,34 @@
     <main class="home-shell">
       <section class="home-card" aria-label="Room setup">
         <h1>meinong's game room</h1>
-        <label class="input-label" for="playerName">Your name (optional)</label>
-        <input
-          id="playerName"
-          name="playerName"
-          type="text"
-          maxlength="24"
-          placeholder="Player name"
-          autocomplete="name"
-        />
-        <label class="input-label" for="playerColor">Cursor color</label>
-        <input id="playerColor" name="playerColor" type="color" value="#ff7a59" />
+        <div class="home-profile-row">
+          <input
+            id="playerName"
+            class="home-name-input"
+            name="playerName"
+            type="text"
+            maxlength="24"
+            placeholder="enter name (optional)"
+            autocomplete="name"
+          />
+          <label class="home-color-wrap" for="playerColor" title="cursor color">
+            <input
+              id="playerColor"
+              class="home-color-input"
+              name="playerColor"
+              type="color"
+              value="#ff7a59"
+              aria-label="cursor color"
+            />
+          </label>
+        </div>
         <button id="createRoomButton" class="primary-button" type="button">
           generate new tabletop
         </button>
+        <div class="home-actions-grid">
+          <button id="myGamesButton" class="secondary-button" type="button">my games</button>
+          <button id="lastGameButton" class="secondary-button" type="button">last game</button>
+        </div>
       </section>
     </main>
 

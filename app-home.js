@@ -1,6 +1,10 @@
 const createRoomButton = document.getElementById('createRoomButton');
 const playerNameInput = document.getElementById('playerName');
 const playerColorInput = document.getElementById('playerColor');
+const myGamesButton = document.getElementById('myGamesButton');
+const lastGameButton = document.getElementById('lastGameButton');
+
+const LAST_GAME_URL_KEY = 'tabletop-last-room-url';
 
 const savedName = localStorage.getItem('tabletop-player-name');
 const savedColor = localStorage.getItem('tabletop-player-color');
@@ -22,6 +26,51 @@ function generateRoomId() {
   return `${randomPart}-${timePart}`;
 }
 
+function getLastGameUrl() {
+  const stored = localStorage.getItem(LAST_GAME_URL_KEY);
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const candidate = new URL(stored, window.location.href);
+    const roomParam = candidate.searchParams.get('room');
+    if (!roomParam) {
+      return null;
+    }
+    const normalized = new URL('./table.html', window.location.href);
+    normalized.searchParams.set('room', roomParam);
+    return normalized.toString();
+  } catch {
+    return null;
+  }
+}
+
+function setLastGameButtonState() {
+  if (!lastGameButton) {
+    return;
+  }
+
+  const lastGameUrl = getLastGameUrl();
+  const isEnabled = Boolean(lastGameUrl);
+  lastGameButton.disabled = !isEnabled;
+  lastGameButton.classList.toggle('is-disabled', !isEnabled);
+}
+
+lastGameButton?.addEventListener('click', () => {
+  const lastGameUrl = getLastGameUrl();
+  if (!lastGameUrl) {
+    return;
+  }
+  window.location.href = lastGameUrl;
+});
+
+myGamesButton?.addEventListener('click', () => {
+  // Placeholder for future "my games" experience.
+});
+
+setLastGameButtonState();
+
 createRoomButton?.addEventListener('click', () => {
   const roomId = generateRoomId();
   const playerName = playerNameInput.value.trim();
@@ -36,11 +85,6 @@ createRoomButton?.addEventListener('click', () => {
 
   const url = new URL('./table.html', window.location.href);
   url.searchParams.set('room', roomId);
-  url.searchParams.set('color', playerColor);
-
-  if (playerName) {
-    url.searchParams.set('name', playerName);
-  }
 
   window.location.href = url.toString();
 });
