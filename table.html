@@ -9,6 +9,21 @@
   <body>
     <main id="tableRoot" class="table-shell" aria-label="Live tabletop">
       <div class="room-badge" id="roomBadge">room: --</div>
+      <div class="status-badge" id="statusBadge">firebase: starting</div>
+      <div class="player-controls" id="playerControls">
+        <button id="nameToggleButton" class="player-name-button" type="button">enter name</button>
+        <input
+          id="nameInput"
+          class="player-name-input hidden"
+          type="text"
+          maxlength="24"
+          placeholder="your name"
+          autocomplete="name"
+        />
+        <label class="player-color-wrap" for="cursorColorInput" title="cursor color">
+          <input id="cursorColorInput" type="color" value="#ff7a59" />
+        </label>
+      </div>
       <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
 
       <button id="copyLinkButton" class="copy-link-button" type="button" aria-live="polite">

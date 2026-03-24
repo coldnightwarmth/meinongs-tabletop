@@ -3,6 +3,7 @@ import {
   getDatabase,
   onDisconnect,
   onValue,
+  push,
   ref,
   serverTimestamp,
   set,
@@ -13,9 +14,13 @@ import { firebaseConfig } from './firebase-config.js';
 const tableRoot = document.getElementById('tableRoot');
 const cursorLayer = document.getElementById('cursorLayer');
 const roomBadge = document.getElementById('roomBadge');
+const statusBadge = document.getElementById('statusBadge');
 const copyLinkButton = document.getElementById('copyLinkButton');
 const copyLabel = document.getElementById('copyLabel');
-const statusBadge = document.createElement('div');
+const nameToggleButton = document.getElementById('nameToggleButton');
+const nameInput = document.getElementById('nameInput');
+const cursorColorInput = document.getElementById('cursorColorInput');
+const playerControls = document.getElementById('playerControls');
 
 const query = new URLSearchParams(window.location.search);
 const roomId = query.get('room');
@@ -24,21 +29,62 @@ if (!roomId) {
   throw new Error('Missing room id in URL');
 }
 
-const rawName = query.get('name')?.trim() || localStorage.getItem('tabletop-player-name') || 'player';
-const playerName = rawName.slice(0, 24);
-const clientId = self.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-const playerColor = colorFromId(clientId);
+const playerState = {
+  name: (query.get('name') || localStorage.getItem('tabletop-player-name') || '').trim().slice(0, 24),
+  color: normalizeHexColor(query.get('color') || localStorage.getItem('tabletop-player-color') || '#ff7a59')
+};
+
 const roomPath = `rooms/${roomId}`;
+const dots = new Map();
+
+let localPosition = { x: 0.5, y: 0.5 };
+let syncCursorState = () => {};
 
 if (roomBadge) {
   roomBadge.textContent = `room: ${roomId}`;
 }
 
-statusBadge.className = 'room-badge';
-statusBadge.style.left = 'auto';
-statusBadge.style.right = '0.9rem';
-statusBadge.textContent = 'firebase: starting';
-tableRoot?.appendChild(statusBadge);
+if (cursorColorInput) {
+  cursorColorInput.value = playerState.color;
+}
+
+if (nameInput) {
+  nameInput.value = playerState.name;
+}
+
+setNameButtonLabel();
+
+nameToggleButton?.addEventListener('click', () => {
+  openNameEditor();
+});
+
+nameInput?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    applyNameInput();
+    closeNameEditor();
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    if (nameInput) {
+      nameInput.value = playerState.name;
+    }
+    closeNameEditor();
+  }
+});
+
+nameInput?.addEventListener('blur', () => {
+  applyNameInput();
+  closeNameEditor();
+});
+
+cursorColorInput?.addEventListener('input', () => {
+  playerState.color = normalizeHexColor(cursorColorInput.value);
+  localStorage.setItem('tabletop-player-color', playerState.color);
+  syncCursorState();
+});
 
 copyLinkButton?.addEventListener('click', async () => {
   try {
@@ -66,6 +112,11 @@ copyLinkButton?.addEventListener('click', async () => {
   }, 1300);
 });
 
+function normalizeHexColor(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : '#ff7a59';
+}
+
 function colorFromId(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i += 1) {
@@ -83,8 +134,55 @@ function hasPlaceholderConfig(config) {
   return Object.values(config).some((value) => String(value).includes('REPLACE_ME'));
 }
 
-function showConfigMessage() {
-  showStatusMessage('Add your Firebase config in firebase-config.js to enable realtime syncing.');
+function setRealtimeStatus(text) {
+  if (!statusBadge) {
+    return;
+  }
+  statusBadge.textContent = text;
+}
+
+function setNameButtonLabel() {
+  if (!nameToggleButton) {
+    return;
+  }
+  nameToggleButton.textContent = playerState.name || 'enter name';
+}
+
+function openNameEditor() {
+  if (!nameToggleButton || !nameInput) {
+    return;
+  }
+  nameToggleButton.classList.add('hidden');
+  nameInput.classList.remove('hidden');
+  nameInput.value = playerState.name;
+  nameInput.focus();
+  nameInput.select();
+}
+
+function closeNameEditor() {
+  if (!nameToggleButton || !nameInput) {
+    return;
+  }
+  nameInput.classList.add('hidden');
+  nameToggleButton.classList.remove('hidden');
+}
+
+function applyNameInput() {
+  if (!nameInput) {
+    return;
+  }
+
+  const nextName = nameInput.value.trim().slice(0, 24);
+  playerState.name = nextName;
+
+  if (nextName) {
+    localStorage.setItem('tabletop-player-name', nextName);
+  } else {
+    localStorage.removeItem('tabletop-player-name');
+  }
+
+  setNameButtonLabel();
+  syncCursorState();
 }
 
 function showStatusMessage(text) {
@@ -103,28 +201,61 @@ function showStatusMessage(text) {
   tableRoot.appendChild(message);
 }
 
-function setRealtimeStatus(text) {
-  if (!statusBadge) {
+function shouldIgnorePointerEvent(event) {
+  if (!(event.target instanceof Element)) {
+    return false;
+  }
+  return Boolean(event.target.closest('#copyLinkButton, #playerControls'));
+}
+
+function upsertDot(id, payload) {
+  if (!cursorLayer || typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
     return;
   }
-  statusBadge.textContent = text;
+
+  let dot = dots.get(id);
+  if (!dot) {
+    dot = document.createElement('div');
+    dot.className = 'remote-cursor';
+    dot.dataset.clientId = id;
+
+    const label = document.createElement('span');
+    label.className = 'cursor-name';
+    dot.appendChild(label);
+
+    cursorLayer.appendChild(dot);
+    dots.set(id, dot);
+  }
+
+  dot.style.left = `${clamp(payload.x, 0, 1) * 100}%`;
+  dot.style.top = `${clamp(payload.y, 0, 1) * 100}%`;
+  dot.style.background = payload.color || colorFromId(id);
+
+  const nameElement = dot.querySelector('.cursor-name');
+  if (nameElement) {
+    const trimmedName = String(payload.name || '').trim();
+    nameElement.textContent = trimmedName;
+    nameElement.style.display = trimmedName ? 'inline-block' : 'none';
+  }
 }
 
 if (hasPlaceholderConfig(firebaseConfig)) {
-  showConfigMessage();
+  showStatusMessage('Add your Firebase config in firebase-config.js to enable realtime syncing.');
 } else {
   startRealtimeSession().catch((error) => {
     console.error(error);
     if (String(error?.code || '').includes('PERMISSION_DENIED')) {
+      setRealtimeStatus('firebase: read blocked');
       showStatusMessage('Realtime Database denied access. Update database rules to allow reads/writes for rooms.');
       return;
     }
+    setRealtimeStatus('firebase: setup issue');
     showStatusMessage('Firebase setup is incomplete. Check firebase-config.js and Realtime Database settings.');
   });
 }
 
 async function startRealtimeSession() {
-  if (!tableRoot || !cursorLayer) {
+  if (!tableRoot || !cursorLayer || !playerControls) {
     throw new Error('Missing required DOM nodes');
   }
 
@@ -132,61 +263,46 @@ async function startRealtimeSession() {
   const db = getDatabase(app);
 
   const cursorsRef = ref(db, `${roomPath}/cursors`);
-  const myCursorRef = ref(db, `${roomPath}/cursors/${clientId}`);
   const roomMetaRef = ref(db, `${roomPath}/meta`);
   const connectedRef = ref(db, '.info/connected');
+
+  const myCursorRef = push(cursorsRef);
+  const clientId = myCursorRef.key;
+  if (!clientId) {
+    throw new Error('Failed to create unique cursor ID');
+  }
+
+  function buildPayload(position = localPosition) {
+    return {
+      x: clamp(position.x, 0, 1),
+      y: clamp(position.y, 0, 1),
+      name: playerState.name,
+      color: playerState.color,
+      updatedAt: serverTimestamp()
+    };
+  }
+
+  syncCursorState = (position = localPosition) => {
+    localPosition = {
+      x: clamp(position.x, 0, 1),
+      y: clamp(position.y, 0, 1)
+    };
+    const payload = buildPayload(localPosition);
+    upsertDot(clientId, payload);
+    update(myCursorRef, payload).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
 
   await update(roomMetaRef, {
     updatedAt: serverTimestamp()
   });
 
-  await set(myCursorRef, {
-    x: 0.5,
-    y: 0.5,
-    name: playerName,
-    color: playerColor,
-    updatedAt: serverTimestamp()
-  });
-
+  await set(myCursorRef, buildPayload(localPosition));
   onDisconnect(myCursorRef).remove();
-
-  const dots = new Map();
+  upsertDot(clientId, buildPayload(localPosition));
   setRealtimeStatus('firebase: connected');
-
-  function upsertDot(id, payload) {
-    if (typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
-      return;
-    }
-
-    let dot = dots.get(id);
-    if (!dot) {
-      dot = document.createElement('div');
-      dot.className = 'remote-cursor';
-      dot.dataset.clientId = id;
-
-      const label = document.createElement('span');
-      label.className = 'cursor-name';
-      dot.appendChild(label);
-
-      cursorLayer.appendChild(dot);
-      dots.set(id, dot);
-    }
-
-    dot.style.left = `${clamp(payload.x, 0, 1) * 100}%`;
-    dot.style.top = `${clamp(payload.y, 0, 1) * 100}%`;
-    dot.style.background = payload.color || colorFromId(id);
-
-    const nameElement = dot.querySelector('.cursor-name');
-    if (nameElement) {
-      nameElement.textContent = payload.name || 'player';
-    }
-
-    if (id === clientId) {
-      dot.style.opacity = '0.85';
-    }
-  }
-
-  upsertDot(clientId, { x: 0.5, y: 0.5, color: playerColor, name: playerName });
 
   onValue(connectedRef, (snapshot) => {
     if (snapshot.val() === true) {
@@ -196,31 +312,42 @@ async function startRealtimeSession() {
     setRealtimeStatus('firebase: reconnecting');
   });
 
-  onValue(cursorsRef, (snapshot) => {
-    const allCursors = snapshot.val() || {};
-    const activeIds = new Set(Object.keys(allCursors));
+  onValue(
+    cursorsRef,
+    (snapshot) => {
+      const allCursors = snapshot.val() || {};
+      const activeIds = new Set(Object.keys(allCursors));
 
-    for (const [id, payload] of Object.entries(allCursors)) {
-      upsertDot(id, payload);
-    }
-
-    for (const [id, dot] of dots.entries()) {
-      if (!activeIds.has(id)) {
-        dot.remove();
-        dots.delete(id);
+      for (const [id, payload] of Object.entries(allCursors)) {
+        upsertDot(id, payload);
       }
-    }
-    setRealtimeStatus(`firebase: connected • cursors: ${activeIds.size}`);
-  }, (error) => {
-    console.error(error);
-    setRealtimeStatus('firebase: read blocked');
-    showStatusMessage('Realtime read failed. Check Realtime Database rules for room path access.');
-  });
 
+      if (!activeIds.has(clientId)) {
+        upsertDot(clientId, buildPayload(localPosition));
+      }
+
+      for (const [id, dot] of dots.entries()) {
+        if (!activeIds.has(id) && id !== clientId) {
+          dot.remove();
+          dots.delete(id);
+        }
+      }
+
+      const displayCount = activeIds.has(clientId) ? activeIds.size : activeIds.size + 1;
+      setRealtimeStatus(`firebase: connected • cursors: ${displayCount}`);
+    },
+    (error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: read blocked');
+      showStatusMessage('Realtime read failed. Check Realtime Database rules for room path access.');
+    }
+  );
+
+  const activePointers = new Set();
   let rafScheduled = false;
   let pendingPosition = null;
 
-  function schedulePublish(event) {
+  function schedulePublishFromEvent(event) {
     const rect = tableRoot.getBoundingClientRect();
     if (!rect.width || !rect.height) {
       return;
@@ -237,22 +364,39 @@ async function startRealtimeSession() {
 
     rafScheduled = true;
     window.requestAnimationFrame(() => {
+      rafScheduled = false;
       const next = pendingPosition;
       pendingPosition = null;
-      rafScheduled = false;
 
       if (next) {
-        upsertDot(clientId, { ...next, color: playerColor, name: playerName });
-        update(myCursorRef, {
-          x: next.x,
-          y: next.y,
-          name: playerName,
-          color: playerColor,
-          updatedAt: serverTimestamp()
-        });
+        syncCursorState(next);
       }
     });
   }
 
-  tableRoot.addEventListener('pointermove', schedulePublish);
+  tableRoot.addEventListener('pointerdown', (event) => {
+    if (shouldIgnorePointerEvent(event)) {
+      return;
+    }
+    activePointers.add(event.pointerId);
+    tableRoot.setPointerCapture?.(event.pointerId);
+    schedulePublishFromEvent(event);
+  });
+
+  tableRoot.addEventListener('pointermove', (event) => {
+    if (!activePointers.has(event.pointerId)) {
+      return;
+    }
+    schedulePublishFromEvent(event);
+  });
+
+  function handlePointerEnd(event) {
+    activePointers.delete(event.pointerId);
+    if (tableRoot.hasPointerCapture?.(event.pointerId)) {
+      tableRoot.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  tableRoot.addEventListener('pointerup', handlePointerEnd);
+  tableRoot.addEventListener('pointercancel', handlePointerEnd);
 }
