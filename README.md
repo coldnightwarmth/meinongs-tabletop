@@ -43,11 +43,10 @@ Recommended prototype database rules:
 
 ## Deploy to GitHub Pages
 
-This repo includes `.github/workflows/deploy-pages.yml`.
-
 1. Push to the `main` branch.
-2. In GitHub repo settings, set **Pages > Build and deployment > Source** to **GitHub Actions**.
-3. The workflow deploys everything in the repository root as a static site.
+2. In GitHub repo settings, open **Pages**.
+3. Set **Source** to **Deploy from a branch**.
+4. Select branch `main` and folder `/ (root)`.
 
 ## Notes
 
