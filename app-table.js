@@ -77,6 +77,10 @@ function hasPlaceholderConfig(config) {
 }
 
 function showConfigMessage() {
+  showStatusMessage('Add your Firebase config in firebase-config.js to enable realtime syncing.');
+}
+
+function showStatusMessage(text) {
   if (!tableRoot) {
     return;
   }
@@ -88,7 +92,7 @@ function showConfigMessage() {
   message.style.transform = 'translate(-50%, -50%)';
   message.style.maxWidth = 'min(92vw, 520px)';
   message.style.padding = '0.85rem 1rem';
-  message.textContent = 'Add your Firebase config in firebase-config.js to enable realtime syncing.';
+  message.textContent = text;
   tableRoot.appendChild(message);
 }
 
@@ -97,7 +101,11 @@ if (hasPlaceholderConfig(firebaseConfig)) {
 } else {
   startRealtimeSession().catch((error) => {
     console.error(error);
-    showConfigMessage();
+    if (String(error?.code || '').includes('PERMISSION_DENIED')) {
+      showStatusMessage('Realtime Database denied access. Update database rules to allow reads/writes for rooms.');
+      return;
+    }
+    showStatusMessage('Firebase setup is incomplete. Check firebase-config.js and Realtime Database settings.');
   });
 }
 
