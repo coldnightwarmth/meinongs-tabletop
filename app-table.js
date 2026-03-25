@@ -15,7 +15,10 @@ import { firebaseConfig } from './firebase-config.js';
 const tableRoot = document.getElementById('tableRoot');
 const playspaceLayer = document.getElementById('playspaceLayer');
 const gameLayer = document.getElementById('gameLayer');
+const drawingBackLayer = document.getElementById('drawingBackLayer');
+const promotedCardLayer = document.getElementById('promotedCardLayer');
 const drawingLayer = document.getElementById('drawingLayer');
+const coverCardLayer = document.getElementById('coverCardLayer');
 const cardLayer = document.getElementById('cardLayer');
 const cursorLayer = document.getElementById('cursorLayer');
 const roomBadge = document.getElementById('roomBadge');
@@ -36,6 +39,7 @@ const auctionBidSubmitButton = document.getElementById('auctionBidSubmitButton')
 const copyLinkButton = document.getElementById('copyLinkButton');
 const copyLabel = document.getElementById('copyLabel');
 const bottomRightControls = document.getElementById('bottomRightControls');
+const deleteModeUndoButton = document.getElementById('deleteModeUndoButton');
 const deleteModeCancelButton = document.getElementById('deleteModeCancelButton');
 const assetMenuButton = document.getElementById('assetMenuButton');
 const assetMenuModal = document.getElementById('assetMenuModal');
@@ -50,21 +54,42 @@ const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const labelComponentTile = document.getElementById('labelComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
+const stickerComponentTile = document.getElementById('stickerComponentTile');
+const mediaComponentTile = document.getElementById('mediaComponentTile');
 const diceAddModal = document.getElementById('diceAddModal');
+const diceAddBackButton = document.getElementById('diceAddBackButton');
 const diceAddCloseButton = document.getElementById('diceAddCloseButton');
 const diceTypeD6Button = document.getElementById('diceTypeD6Button');
 const diceTypeD20Button = document.getElementById('diceTypeD20Button');
 const diceCountRow = document.getElementById('diceCountRow');
 const diceAddConfirmButton = document.getElementById('diceAddConfirmButton');
 const imageAddModal = document.getElementById('imageAddModal');
+const imageAddBackButton = document.getElementById('imageAddBackButton');
 const imageAddCloseButton = document.getElementById('imageAddCloseButton');
 const imageAddFrontInput = document.getElementById('imageAddFrontInput');
 const imageAddBackInput = document.getElementById('imageAddBackInput');
 const imageAddCardCheckbox = document.getElementById('imageAddCardCheckbox');
 const imageAddTwoSidedCheckbox = document.getElementById('imageAddTwoSidedCheckbox');
+const imageAddFrontBlankCheckbox = document.getElementById('imageAddFrontBlankCheckbox');
+const imageAddFrontBlankColorInput = document.getElementById('imageAddFrontBlankColorInput');
+const imageAddBackBlankRow = document.getElementById('imageAddBackBlankRow');
+const imageAddBackBlankCheckbox = document.getElementById('imageAddBackBlankCheckbox');
+const imageAddBackBlankColorInput = document.getElementById('imageAddBackBlankColorInput');
 const imageAddBackField = document.getElementById('imageAddBackField');
 const imageAddError = document.getElementById('imageAddError');
 const imageAddConfirmButton = document.getElementById('imageAddConfirmButton');
+const stickerAddModal = document.getElementById('stickerAddModal');
+const stickerAddBackButton = document.getElementById('stickerAddBackButton');
+const stickerAddCloseButton = document.getElementById('stickerAddCloseButton');
+const stickerAddGallery = document.getElementById('stickerAddGallery');
+const stickerAddConfirmButton = document.getElementById('stickerAddConfirmButton');
+const stickerAddRandomButton = document.getElementById('stickerAddRandomButton');
+const mediaAddModal = document.getElementById('mediaAddModal');
+const mediaAddBackButton = document.getElementById('mediaAddBackButton');
+const mediaAddCloseButton = document.getElementById('mediaAddCloseButton');
+const mediaAddInput = document.getElementById('mediaAddInput');
+const mediaAddError = document.getElementById('mediaAddError');
+const mediaAddConfirmButton = document.getElementById('mediaAddConfirmButton');
 const removeComponentsButton = document.getElementById('removeComponentsButton');
 const tableResetRow = document.getElementById('tableResetRow');
 const clearTableButton = document.getElementById('clearTableButton');
@@ -82,6 +107,7 @@ const gameOptionsModal = document.getElementById('gameOptionsModal');
 const gameOptionsTitle = document.getElementById('gameOptionsTitle');
 const gameOptionsTitleText = document.getElementById('gameOptionsTitleText');
 const gameOptionsCloseButton = document.getElementById('gameOptionsCloseButton');
+const gameOptionsCoverDrawingsToggle = document.getElementById('gameOptionsCoverDrawingsToggle');
 const gameOptionsResetButton = document.getElementById('gameOptionsResetButton');
 const gameOptionsPutAwayButton = document.getElementById('gameOptionsPutAwayButton');
 const monsItemChoiceModal = document.getElementById('monsItemChoiceModal');
@@ -136,9 +162,10 @@ const AUCTION_STACK_OFFSET_X = CARD_WIDTH + STACK_SLOT_GAP + AUCTION_SHIFT_X;
 const DISCARD_RETURN_ANIMATION_MS = 300;
 const DECK_COUNT_OFFSET_Y = 18;
 const FRONT_IMAGE_PRELOAD_CONCURRENCY = 4;
-const TOUCH_TAP_MAX_MOVE_PX = 10;
-const TOUCH_DOUBLE_TAP_MS = 320;
-const TOUCH_DOUBLE_TAP_MAX_DISTANCE_PX = 28;
+const DELETE_MODE_UNDO_HISTORY_LIMIT = 10;
+const TOUCH_TAP_MAX_MOVE_PX = 16;
+const TOUCH_DOUBLE_TAP_MS = 460;
+const TOUCH_DOUBLE_TAP_MAX_DISTANCE_PX = 42;
 const MOUSE_CLICK_MAX_MOVE_PX = 6;
 const MOUSE_DOUBLE_CLICK_MS = 320;
 const MOUSE_DOUBLE_CLICK_MAX_DISTANCE_PX = 20;
@@ -146,11 +173,14 @@ const RIGHT_CLICK_SELECTED_FLIP_COOLDOWN_MS = 1000;
 const RIGHT_CLICK_FLIP_REST_MS = 120;
 const DRAW_STROKE_WORLD_WIDTH = 9;
 const DRAW_POINT_MIN_DISTANCE = 3;
+const DELETE_STROKE_HIT_PADDING_PX = 5;
+const DRAWINGS_LIFT_CUTOFF_WRITE_COOLDOWN_MS = 220;
 const DRAW_TOOL_FREE = 'free';
 const DRAW_TOOL_LINE = 'line';
 const DRAW_TOOL_BOX = 'box';
 const DRAW_TOOL_DRAG_MIN_DISTANCE = 3;
 const DELETE_FADE_DURATION_MS = 170;
+const ROOM_LINK_COPY_FEEDBACK_MS = 1300;
 const CURSOR_PENCIL_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20L8.8 18.8L19.2 8.4C19.8 7.8 19.8 6.9 19.2 6.3L17.7 4.8C17.1 4.2 16.2 4.2 15.6 4.8L5.2 15.2L4 20Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.8 6.6L17.4 10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>';
 const HAND_DROP_REGION_HEIGHT = 110;
@@ -168,6 +198,8 @@ const HAND_RECLAIM_CHECK_INTERVAL_MS = 15000;
 const CURSOR_HEARTBEAT_INTERVAL_MS = 12000;
 const CURSOR_STALE_TIMEOUT_MS = 35000;
 const PRESENCE_STALE_TIMEOUT_MS = 45000;
+const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
+const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
 const DECK_KEY = 'cool-jpegs';
 const MONS_GAME_KEY = 'super-metal-mons';
 const CARD_BACK_IMAGE_SRC = './assets/back.png';
@@ -186,13 +218,26 @@ const MONS_UNDO_HISTORY_LIMIT = 30;
 const DIE_SIZE_D6 = 84;
 const DIE_SIZE_D20 = 92;
 const DIE_SIZE_COIN = 114;
+const MEDIA_DEFAULT_WIDTH = 560;
+const MEDIA_DEFAULT_HEIGHT_YOUTUBE = 315;
+const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = 166;
+const MEDIA_MIN_WORLD_WIDTH = 220;
+const MEDIA_MIN_WORLD_HEIGHT = 124;
+const MEDIA_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 3.2;
+const MEDIA_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 2.4;
 const IMAGE_COMPONENT_MIN_WORLD_SIZE = DIE_SIZE_D20;
-const IMAGE_COMPONENT_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 2;
-const IMAGE_COMPONENT_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 2;
+const IMAGE_COMPONENT_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 4.5;
+const IMAGE_COMPONENT_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 3;
+const STICKER_COMPONENT_MIN_WORLD_SIZE = 72;
+const STICKER_COMPONENT_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 2;
+const STICKER_COMPONENT_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 2;
+const STICKER_SMOOTH_MAX_SCREEN_SIZE = 72;
+const STICKER_EDGE_OVERFLOW = 350;
+const STICKER_ROTATE_MIN_RADIUS_WORLD = 8;
 const DIE_ROLL_DURATION_MS = 850;
 const DIE_ROLL_STEP_MS = 72;
 const DICE_SPAWN_GAP = 108;
-const LABEL_DEFAULT_TEXT = 'double click to type';
+const LABEL_DEFAULT_TEXT = 'double click\nto type';
 const LABEL_MIN_WORLD_WIDTH = 110;
 const LABEL_MIN_WORLD_HEIGHT = 34;
 const LABEL_MAX_WORLD_WIDTH = 3600;
@@ -204,12 +249,98 @@ const LABEL_PADDING_WORLD_X = 28;
 const LABEL_PADDING_WORLD_Y = 18;
 const LABEL_TEXT_MAX_LENGTH = 1200;
 const LABEL_TEXT_SCALE_DEFAULT = 1;
+const LABEL_TEXT_SCALE_SPAWN = 3;
 const LABEL_TEXT_SCALE_MIN = 0.58;
 const LABEL_TEXT_SCALE_MAX = 24;
 const LABEL_FONT_SIZE_FACTOR = 0.58;
 const LABEL_DEFAULT_SPAWN_WIDTH = 332;
 const LABEL_MEASURE_BUFFER_X = 8;
 const LABEL_MEASURE_BUFFER_Y = 6;
+const STICKER_ASSET_FILE_NAMES = [
+  '777.png',
+  'ace of spades.png',
+  'acorn.png',
+  'arcade cabinet.png',
+  'basketball.png',
+  'binoculars.png',
+  'bowling pins.png',
+  'boxing glove.png',
+  'brown box.png',
+  'bubbles.png',
+  'bull figurine.png',
+  'cherries.png',
+  'chessboard.png',
+  'chest.png',
+  'clan banner.png',
+  'claw machine.png',
+  'coin.png',
+  'colosseum.png',
+  'crosshair.png',
+  'd20.png',
+  'digivice.png',
+  'drainer.png',
+  'dreidel.png',
+  'energy sword.png',
+  'esrb e.png',
+  'fishing rod.png',
+  'flopy disk.png',
+  'foam finger.png',
+  'football helmet.png',
+  'gacha balls.png',
+  'go table.png',
+  'gundam.png',
+  'health bar.png',
+  'health potion.png',
+  'hopscotch.png',
+  'horned beetle.png',
+  'hot air balloon.png',
+  'kite.png',
+  'kokopelli.png',
+  'lego brick.png',
+  'lego head.png',
+  'magician.png',
+  'mahjong tile.png',
+  'master sword.png',
+  'medal.png',
+  'microchip.png',
+  'milady eyes.png',
+  'mouse cursor.png',
+  'nascar car.png',
+  'nerf gun.png',
+  'nes controller.png',
+  'nesting doll.png',
+  'nokia.png',
+  'olympic torch.png',
+  'paper airplane.png',
+  'pawn.png',
+  'pinball flippers.png',
+  'playstation buttons.png',
+  'psp.png',
+  'puzzle piece.png',
+  'royal game of ur.png',
+  "rubik's cube.png",
+  'scrabble tile.png',
+  'shine.png',
+  'skateboard.png',
+  'sling shot.png',
+  'snorkel mask.png',
+  'spaceship.png',
+  'stick.png',
+  'tennis ball.png',
+  'tent.png',
+  'tetromino.png',
+  'ticket.png',
+  'wasd.png',
+  'xbox 360 controller.png'
+];
+const STICKER_ASSET_ITEMS = STICKER_ASSET_FILE_NAMES.map((fileName) => {
+  const safeFileName = String(fileName || '').trim();
+  return {
+    fileName: safeFileName,
+    src: `./assets/play%20things/${encodeURIComponent(safeFileName)}`,
+    label: safeFileName.replace(/\.[a-z0-9]+$/i, '')
+  };
+});
 const D6_PIP_LAYOUTS = {
   1: [[50, 50]],
   2: [[30, 30], [70, 70]],
@@ -476,6 +607,11 @@ const discardReturnAnimatingCardIds = new Set();
 const discardReturnAnimationTimers = new Map();
 const drawingStrokes = new Map();
 const drawingStrokeElements = new Map();
+const mediaControllerByDieId = new Map();
+const mediaSignalKeyByDieId = new Map();
+const mediaStartBroadcastInFlight = new Set();
+let youtubeIframeApiPromise = null;
+let soundCloudWidgetApiPromise = null;
 let roomBadgeWidthSyncRafId = 0;
 let frontImagePendingLoadCount = 0;
 
@@ -533,6 +669,7 @@ let auctionDropIndicatorDeckId = '';
 let handTray = null;
 let handDropGlow = null;
 let handDropGlowVisible = false;
+let drawingsLiftCutoffAt = 0;
 let handReorderState = null;
 let handDropPreview = null;
 let handHoverLayout = null;
@@ -540,7 +677,9 @@ let hoveredHandCardId = null;
 let lastHandHoverClientX = Number.NaN;
 let lastHandHoverClientY = Number.NaN;
 let resizingImageCardId = '';
+let rotatingStickerCardId = '';
 let resizingLabelDieId = '';
+let resizingMediaDieId = '';
 let latestRoomCursors = {};
 let heldCardLayer = null;
 let selectionBoxElement = null;
@@ -553,6 +692,7 @@ let cameraPersistTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
+let gameOptionsCoverDrawingsToggleSyncing = false;
 let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
 let clearTableWarningResolver = null;
 let drawClearWarningResolver = null;
@@ -560,9 +700,13 @@ let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
 let activeDiceAddType = 'd6';
 let activeDiceAddCount = 1;
+let activeStickerAssetFileName = STICKER_ASSET_ITEMS[0]?.fileName || '';
 let roomTitleValue = defaultRoomTitle;
 let isRoomTitleEditing = false;
 let isRoomOwner = false;
+let roomShareUrl = '';
+let copyLinkFeedbackTimerId = 0;
+let roomBadgeCopyFeedbackTimerId = 0;
 let spawnCoolJpegsDeck = async () => {
   showStatusMessage('Firebase connection is required before adding a deck.');
 };
@@ -581,6 +725,9 @@ let resetSuperMetalMonsGame = async () => {
 let putAwaySuperMetalMonsGame = async () => {
   showStatusMessage('Firebase connection is required before putting super metal mons away.');
 };
+let setGameCoverDrawingsPreference = async () => {
+  showStatusMessage('Firebase connection is required before updating game options.');
+};
 let spawnDice = async () => {
   showStatusMessage('Firebase connection is required before adding dice.');
 };
@@ -590,9 +737,16 @@ let spawnCoin = async () => {
 let spawnImageComponent = async () => {
   showStatusMessage('Firebase connection is required before adding images.');
 };
+let spawnStickerComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding stickers.');
+};
 let spawnLabelComponent = async () => {
   showStatusMessage('Firebase connection is required before adding labels.');
 };
+let spawnMediaComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding media.');
+};
+let announceMediaStartForRoom = async () => false;
 let renameRoomTitle = async () => {
   showStatusMessage('Firebase connection is required before renaming the room.');
 };
@@ -608,6 +762,9 @@ let clearOwnDrawings = async () => {
 let undoOwnDrawing = async () => {
   showStatusMessage('Firebase connection is required before undoing drawings.');
 };
+let undoDeleteModeAction = async () => {
+  showStatusMessage('Firebase connection is required before undoing deletions.');
+};
 let submitMonsItemChoice = async () => {
   showStatusMessage('Firebase connection is required before choosing an item.');
 };
@@ -619,7 +776,9 @@ let dealOneCardEach = async () => {};
 let reclaimDiscardToDeck = async () => {};
 let onCardPointerDown = () => {};
 let onCardResizePointerDown = () => {};
+let onCardRotatePointerDown = () => {};
 let onCardContextMenu = () => {};
+let onStickerLockControlPointerDown = () => {};
 let onHandCardPointerDown = () => {};
 let onDiePointerDown = () => {};
 let onDieContextMenu = () => {};
@@ -635,6 +794,30 @@ let drawModeEnabled = false;
 let deleteModeEnabled = false;
 let activeDrawTool = DRAW_TOOL_FREE;
 let onDrawToolModeChanged = () => {};
+let syncDeleteModeActionsUi = () => {
+  deleteModeCancelButton?.classList.toggle('hidden', !deleteModeEnabled);
+  if (deleteModeUndoButton) {
+    deleteModeUndoButton.classList.toggle('hidden', !deleteModeEnabled);
+    deleteModeUndoButton.disabled = true;
+    deleteModeUndoButton.classList.add('is-disabled');
+    deleteModeUndoButton.setAttribute('title', deleteModeEnabled ? 'no deletions to undo' : 'undo last deletion');
+  }
+};
+function syncDeleteCursorLock() {
+  const shouldHide = Boolean(deleteModeEnabled);
+  const lockTargets = [document.documentElement, document.body, tableRoot];
+  for (const target of lockTargets) {
+    if (!(target instanceof HTMLElement)) {
+      continue;
+    }
+    target.classList.toggle('tabletop-delete-cursor-hidden', shouldHide);
+    if (shouldHide) {
+      target.style.setProperty('cursor', 'none', 'important');
+    } else {
+      target.style.removeProperty('cursor');
+    }
+  }
+}
 let setDrawModeEnabled = (enabled) => {
   drawModeEnabled = Boolean(enabled);
   syncDrawModeUi();
@@ -646,7 +829,8 @@ let setDeleteModeEnabled = (enabled) => {
     setDrawModeEnabled(false);
   }
   tableRoot?.classList.toggle('is-delete-mode', deleteModeEnabled);
-  deleteModeCancelButton?.classList.toggle('hidden', !deleteModeEnabled);
+  syncDeleteModeActionsUi();
+  syncDeleteCursorLock();
 };
 
 const camera = {
@@ -950,6 +1134,42 @@ function getMonsGameStateById(gameId = activeMonsGameId) {
   return monsGameStatesById.get(normalizedMonsGameId) || null;
 }
 
+function patchTouchesPosition(patch) {
+  if (!patch || typeof patch !== 'object') {
+    return false;
+  }
+  return (
+    Object.prototype.hasOwnProperty.call(patch, 'x') ||
+    Object.prototype.hasOwnProperty.call(patch, 'y')
+  );
+}
+
+function isDeckCoverDrawingsEnabled(deckId = activeDeckId) {
+  return Boolean(getDeckStateById(deckId)?.coverDrawings === true);
+}
+
+function isMonsCoverDrawingsEnabled(gameId = activeMonsGameId) {
+  return Boolean(getMonsGameStateById(gameId)?.coverDrawings === true);
+}
+
+function hasAnyCoverDrawingsGames() {
+  for (const deckState of deckStatesById.values()) {
+    if (deckState?.coverDrawings === true) {
+      return true;
+    }
+  }
+  for (const gameState of monsGameStatesById.values()) {
+    if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function syncCoverDrawingsGamesLayerState() {
+  tableRoot?.classList.toggle('has-cover-drawings-games', hasAnyCoverDrawingsGames());
+}
+
 function getDeckIdsInRoom() {
   const deckIds = new Set(deckStatesById.keys());
   for (const cardState of cards.values()) {
@@ -995,6 +1215,9 @@ function normalizeDieType(type) {
   if (type === 'label') {
     return 'label';
   }
+  if (type === 'media') {
+    return 'media';
+  }
   if (type === 'coin') {
     return 'coin';
   }
@@ -1003,7 +1226,7 @@ function normalizeDieType(type) {
 
 function getDieSides(type) {
   const normalizedType = normalizeDieType(type);
-  if (normalizedType === 'label') {
+  if (normalizedType === 'label' || normalizedType === 'media') {
     return 1;
   }
   if (normalizedType === 'coin') {
@@ -1017,10 +1240,40 @@ function getDieSize(type) {
   if (normalizedType === 'label') {
     return LABEL_MIN_WORLD_WIDTH;
   }
+  if (normalizedType === 'media') {
+    return MEDIA_DEFAULT_WIDTH;
+  }
   if (normalizedType === 'coin') {
     return DIE_SIZE_COIN;
   }
   return normalizedType === 'd20' ? DIE_SIZE_D20 : DIE_SIZE_D6;
+}
+
+function getDefaultMediaDimensions(provider = '') {
+  const normalizedProvider = normalizeMediaProvider(provider);
+  if (normalizedProvider === 'soundcloud') {
+    return { width: 500, height: MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD };
+  }
+  return { width: MEDIA_DEFAULT_WIDTH, height: MEDIA_DEFAULT_HEIGHT_YOUTUBE };
+}
+
+function clampMediaDimensions(widthValue, heightValue, provider = '') {
+  const defaultDimensions = getDefaultMediaDimensions(provider);
+  let width = Number(widthValue);
+  let height = Number(heightValue);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+    width = defaultDimensions.width;
+    height = defaultDimensions.height;
+  }
+  width = Math.max(MEDIA_MIN_WORLD_WIDTH, width);
+  height = Math.max(MEDIA_MIN_WORLD_HEIGHT, height);
+  const maxWidth = Math.max(MEDIA_MIN_WORLD_WIDTH, Math.min(MEDIA_MAX_WORLD_WIDTH, WORLD_WIDTH - 20));
+  const maxHeight = Math.max(MEDIA_MIN_WORLD_HEIGHT, Math.min(MEDIA_MAX_WORLD_HEIGHT, WORLD_HEIGHT - 20));
+  const scale = Math.min(1, maxWidth / width, maxHeight / height);
+  return {
+    width: clamp(width * scale, MEDIA_MIN_WORLD_WIDTH, maxWidth),
+    height: clamp(height * scale, MEDIA_MIN_WORLD_HEIGHT, maxHeight)
+  };
 }
 
 function normalizeLabelText(value) {
@@ -1149,6 +1402,13 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
     typeof typeOrPayload === 'string'
       ? normalizeDieType(typeOrPayload)
       : normalizeDieType(typeOrPayload?.type);
+  if (dieType === 'media') {
+    return clampMediaDimensions(
+      payload?.mediaWidth,
+      payload?.mediaHeight,
+      payload?.mediaProvider
+    );
+  }
   if (dieType !== 'label') {
     const size = getDieSize(dieType);
     return { width: size, height: size };
@@ -1228,12 +1488,48 @@ function normalizeDicePayload(payload) {
   const nextValue = Number(payload?.value);
   const nextZ = Math.round(Number(payload?.z) || 1);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const drawLifted = payload?.drawLifted === true;
   const rollStartedAt = Number(payload?.rollStartedAt);
   const rollDurationMs = Number(payload?.rollDurationMs);
   const rollSeed = Math.floor(Number(payload?.rollSeed) || 0);
   const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
   const text = normalizeLabelText(payload?.text);
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
+  let mediaProvider = type === 'media' ? normalizeMediaProvider(payload?.mediaProvider) : '';
+  let mediaSourceUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaSourceUrl) : '';
+  let mediaEmbedUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaEmbedUrl) : '';
+  if (type === 'media' && mediaSourceUrl) {
+    const parsedFromSource = parseEmbeddableMediaUrl(mediaSourceUrl);
+    if (parsedFromSource) {
+      mediaProvider = mediaProvider || normalizeMediaProvider(parsedFromSource.provider);
+      mediaSourceUrl = normalizeMediaSourceUrl(parsedFromSource.sourceUrl) || mediaSourceUrl;
+      mediaEmbedUrl = normalizeMediaSourceUrl(parsedFromSource.embedUrl) || mediaEmbedUrl;
+    }
+  }
+  if (type === 'media' && !mediaSourceUrl && mediaEmbedUrl) {
+    const parsedFromEmbed = parseEmbeddableMediaUrl(mediaEmbedUrl);
+    if (parsedFromEmbed) {
+      mediaProvider = mediaProvider || normalizeMediaProvider(parsedFromEmbed.provider);
+      mediaSourceUrl = normalizeMediaSourceUrl(parsedFromEmbed.sourceUrl) || mediaSourceUrl;
+      mediaEmbedUrl = normalizeMediaSourceUrl(parsedFromEmbed.embedUrl) || mediaEmbedUrl;
+    }
+  }
+  if (type === 'media' && !mediaProvider && mediaEmbedUrl) {
+    try {
+      const embedHost = new URL(mediaEmbedUrl).hostname.toLowerCase();
+      if (embedHost === 'www.youtube.com' || embedHost.endsWith('.youtube.com') || embedHost.endsWith('youtube-nocookie.com')) {
+        mediaProvider = 'youtube';
+      } else if (embedHost === 'w.soundcloud.com' || embedHost.endsWith('.soundcloud.com')) {
+        mediaProvider = 'soundcloud';
+      }
+    } catch {
+      // Ignore malformed embed URLs from legacy payloads.
+    }
+  }
+  const mediaStartedAtRaw = type === 'media' ? Number(payload?.mediaStartedAt) : 0;
+  const mediaStartNonceRaw = type === 'media' ? Number(payload?.mediaStartNonce) : 0;
+  const mediaStartedAt = Number.isFinite(mediaStartedAtRaw) && mediaStartedAtRaw > 0 ? Math.floor(mediaStartedAtRaw) : 0;
+  const mediaStartNonce = Number.isFinite(mediaStartNonceRaw) ? Math.floor(mediaStartNonceRaw) : 0;
   return {
     type,
     x: Number.isFinite(nextX)
@@ -1249,8 +1545,16 @@ function normalizeDicePayload(payload) {
     textScale,
     labelWidth: dimensions.width,
     labelHeight: dimensions.height,
+    mediaProvider,
+    mediaSourceUrl,
+    mediaEmbedUrl,
+    mediaStartedAt,
+    mediaStartNonce,
+    mediaWidth: dimensions.width,
+    mediaHeight: dimensions.height,
+    drawLifted,
     holderClientId,
-    rollStartedAt: type === 'label' ? 0 : Number.isFinite(rollStartedAt) ? Math.max(0, rollStartedAt) : 0,
+    rollStartedAt: type === 'label' || type === 'media' ? 0 : Number.isFinite(rollStartedAt) ? Math.max(0, rollStartedAt) : 0,
     rollDurationMs: Number.isFinite(rollDurationMs) ? clamp(Math.round(rollDurationMs), 120, 3000) : DIE_ROLL_DURATION_MS,
     rollSeed: Number.isFinite(rollSeed) ? rollSeed : 0
   };
@@ -1260,7 +1564,8 @@ function isDieRolling(dieState, now = Date.now()) {
   if (!dieState || typeof dieState !== 'object') {
     return false;
   }
-  if (normalizeDieType(dieState.type) === 'label') {
+  const dieType = normalizeDieType(dieState.type);
+  if (dieType === 'label' || dieType === 'media') {
     return false;
   }
   const startedAt = Number(dieState.rollStartedAt);
@@ -1330,6 +1635,7 @@ function buildCoolJpegsDeck(options = {}) {
       inDeck: startInDeck,
       inDiscard: false,
       inAuction: false,
+      drawLifted: false,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: null,
@@ -1359,11 +1665,13 @@ function normalizeDeckPayload(payload) {
   const nextY = Number(payload?.y);
   const nextShuffleTick = Number(payload?.shuffleTick);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const coverDrawings = payload?.coverDrawings === true;
   return {
     x: Number.isFinite(nextX) ? clamp(nextX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2) : WORLD_HEIGHT / 2,
     shuffleTick: Number.isFinite(nextShuffleTick) ? nextShuffleTick : 0,
-    holderClientId
+    holderClientId,
+    coverDrawings
   };
 }
 
@@ -1716,6 +2024,8 @@ function canCurrentPlayerUndoMonsEntry(entryPayload) {
 }
 
 function normalizeMonsGamePayload(payload) {
+  const hasPayloadObject = Boolean(payload && typeof payload === 'object');
+  const hasPiecesField = hasPayloadObject && Object.prototype.hasOwnProperty.call(payload, 'pieces');
   const nextWidth = Number(payload?.width);
   const nextHeight = Number(payload?.height);
   const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : MONS_BOARD_WORLD_WIDTH;
@@ -1725,13 +2035,18 @@ function normalizeMonsGamePayload(payload) {
   const nextMoveTick = Number(payload?.moveTick);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const flipped = payload?.flipped === true;
+  const coverDrawings = payload?.coverDrawings === true;
+  const pieces =
+    hasPiecesField
+      ? normalizeMonsPiecesPayload(payload?.pieces)
+      : (hasPayloadObject ? {} : buildDefaultMonsPieces());
   return {
     enabled: payload?.enabled !== false,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
     width,
     height,
-    pieces: normalizeMonsPiecesPayload(payload?.pieces),
+    pieces,
     scores: normalizeMonsScoresPayload(payload?.scores),
     potions: normalizeMonsPotionsPayload(payload?.potions),
     claims: normalizeMonsClaimsPayload(payload?.claims),
@@ -1739,7 +2054,8 @@ function normalizeMonsGamePayload(payload) {
     lastMove: normalizeMonsLastMovePayload(payload?.lastMove),
     undoHistory: normalizeMonsUndoHistoryPayload(payload?.undoHistory),
     holderClientId,
-    flipped
+    flipped,
+    coverDrawings
   };
 }
 
@@ -1751,6 +2067,7 @@ function buildFreshMonsGamePayload(options = {}) {
   const nextX = Number(options?.x);
   const nextY = Number(options?.y);
   const flipped = options?.flipped === true;
+  const coverDrawings = options?.coverDrawings === true;
   return {
     enabled: true,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
@@ -1772,6 +2089,7 @@ function buildFreshMonsGamePayload(options = {}) {
     undoHistory: [],
     holderClientId: null,
     flipped,
+    coverDrawings,
     updatedAt: Date.now()
   };
 }
@@ -2101,6 +2419,8 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
     setDeckShuffleFxActive(false);
     return;
   }
+  const shouldCoverDrawings = targetDeckState.coverDrawings === true;
+  const preferredLayer = shouldCoverDrawings && coverCardLayer ? coverCardLayer : cardLayer;
 
   const topDeckZ = getDeckTopZ(targetDeckId);
   const baseZ = Math.max(1, topDeckZ - 2);
@@ -2113,6 +2433,9 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
 
   for (let index = 0; index < deckShuffleFxCards.length; index += 1) {
     const cardBack = deckShuffleFxCards[index];
+    if (preferredLayer && cardBack.parentElement !== preferredLayer) {
+      preferredLayer.appendChild(cardBack);
+    }
     const offset = offsets[index] || offsets[offsets.length - 1];
     cardBack.style.left = `${deckScreen.x + offset.x}px`;
     cardBack.style.top = `${deckScreen.y + offset.y}px`;
@@ -2170,6 +2493,7 @@ function removeDeckUi(deckId) {
     deckUi.moveButton,
     deckUi.optionsButton,
     deckUi.discardResetButton,
+    deckUi.deckSlot,
     deckUi.discardSlot,
     deckUi.auctionSlot,
     deckUi.deckCountBadge
@@ -2198,6 +2522,7 @@ function hideDeckUi(deckUi) {
     control?.classList.remove('is-held-by-self');
     control?.classList.remove('is-group-selected');
   }
+  deckUi.deckSlot?.classList.add('hidden');
   deckUi.discardSlot?.classList.add('hidden');
   deckUi.auctionSlot?.classList.add('hidden');
   deckUi.deckCountBadge?.classList.add('hidden');
@@ -2213,6 +2538,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   if (existingDeckUi) {
     if (
       existingDeckUi.shuffleButton?.isConnected &&
+      existingDeckUi.deckSlot?.isConnected &&
       existingDeckUi.discardSlot?.isConnected &&
       existingDeckUi.auctionSlot?.isConnected
     ) {
@@ -2331,6 +2657,12 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   shieldPointerEvents(discardResetButton);
   tableRoot.appendChild(discardResetButton);
 
+  const deckSlot = document.createElement('div');
+  deckSlot.className = 'deck-slot hidden';
+  deckSlot.dataset.deckId = normalizedDeckId;
+  deckSlot.setAttribute('aria-hidden', 'true');
+  tableRoot.appendChild(deckSlot);
+
   const discardSlot = document.createElement('div');
   discardSlot.className = 'discard-slot hidden';
   discardSlot.dataset.deckId = normalizedDeckId;
@@ -2369,6 +2701,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
     moveButton,
     optionsButton,
     discardResetButton,
+    deckSlot,
     discardSlot,
     discardLabel,
     auctionSlot,
@@ -2406,7 +2739,7 @@ function removeAllDeckUiArtifacts() {
   auctionDropIndicator?.remove();
   auctionDropIndicator = null;
   if (tableRoot) {
-    for (const node of tableRoot.querySelectorAll('.deck-control-button[data-stack-scope="deck"], .discard-slot, .auction-slot, .deck-count-badge, .deck-drop-indicator, .discard-drop-indicator, .auction-drop-indicator')) {
+    for (const node of tableRoot.querySelectorAll('.deck-control-button[data-stack-scope="deck"], .deck-slot, .discard-slot, .auction-slot, .deck-count-badge, .deck-drop-indicator, .discard-drop-indicator, .auction-drop-indicator')) {
       node.remove();
     }
   }
@@ -2451,14 +2784,10 @@ function renderDeckControls() {
     const inDeckCount = getDeckCardIds(deckId).length;
     const inDiscardCount = getDiscardCardIds(deckId).length;
     const inAuctionCount = getAuctionCardIds(deckId).length;
-    const hasCards = inDeckCount > 0 || inDiscardCount > 0 || inAuctionCount > 0;
-    if (!targetDeckState || !hasCards) {
+    if (!targetDeckState) {
       const staleDeckUi = deckUiById.get(deckId);
       if (staleDeckUi) {
         hideDeckUi(staleDeckUi);
-      }
-      if (!hasCards && getDeckIdFromGameOptionsTarget(activeGameOptionsTarget) === deckId) {
-        closeGameOptionsMenu();
       }
       if (!targetDeckState && staleDeckUi) {
         removeDeckUi(deckId);
@@ -2478,6 +2807,18 @@ function renderDeckControls() {
     const discardScreen = worldToScreen(getDiscardCenterPosition(deckId));
     const auctionScreen = worldToScreen(getAuctionCenterPosition(deckId));
     const controlsY = deckScreen.y + cardScreenHeight / 2 + DECK_COUNT_OFFSET_Y;
+    const deckHovered = deckDropIndicatorVisible && deckDropIndicatorDeckId === deckId;
+
+    deckUi.deckSlot.classList.toggle('hidden', inDeckCount > 0);
+    if (inDeckCount <= 0) {
+      deckUi.deckSlot.style.left = `${deckScreen.x}px`;
+      deckUi.deckSlot.style.top = `${deckScreen.y}px`;
+      deckUi.deckSlot.style.width = `${cardScreenWidth}px`;
+      deckUi.deckSlot.style.height = `${cardScreenHeight}px`;
+      deckUi.deckSlot.classList.toggle('is-hovered', deckHovered);
+    } else {
+      deckUi.deckSlot.classList.remove('is-hovered');
+    }
 
     deckUi.shuffleButton.classList.remove('hidden');
     deckUi.shuffleButton.style.left = `${deckScreen.x - controlsXOffset}px`;
@@ -2968,16 +3309,26 @@ function setMonsBoardDragFloating(shouldFloat) {
   if (!monsGameShell || !tableRoot || !gameLayer) {
     return;
   }
+  const shouldCoverDrawings = isMonsCoverDrawingsEnabled(activeMonsGameId);
   const nextFloat = Boolean(shouldFloat);
   if (nextFloat) {
     if (monsGameShell.parentElement !== tableRoot) {
       tableRoot.appendChild(monsGameShell);
     }
+    monsGameShell.classList.toggle('is-cover-drawings', shouldCoverDrawings);
     monsGameShell.classList.add('is-drag-floating');
     return;
   }
-  if (monsGameShell.parentElement !== gameLayer) {
-    gameLayer.appendChild(monsGameShell);
+  if (shouldCoverDrawings) {
+    if (monsGameShell.parentElement !== tableRoot) {
+      tableRoot.appendChild(monsGameShell);
+    }
+    monsGameShell.classList.add('is-cover-drawings');
+  } else {
+    if (monsGameShell.parentElement !== gameLayer) {
+      gameLayer.appendChild(monsGameShell);
+    }
+    monsGameShell.classList.remove('is-cover-drawings');
   }
   monsGameShell.classList.remove('is-drag-floating');
 }
@@ -3285,6 +3636,7 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
       }
 
       const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      image.classList.add('mons-piece-sprite');
       image.setAttribute('href', href);
       image.setAttribute('x', String(piece.col));
       image.setAttribute('y', String(piece.row));
@@ -3642,6 +3994,19 @@ function renderInactiveMonsBoardGhosts() {
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
     const hudScreenHeight = snapToDevicePixel(Math.max(24, boardScreenHeight - boardScreenWidth), 24);
+    const boardShouldCoverDrawings = gameState.coverDrawings === true;
+
+    if (boardShouldCoverDrawings) {
+      if (ghostBoardUi.shell.parentElement !== tableRoot) {
+        tableRoot.appendChild(ghostBoardUi.shell);
+      }
+      ghostBoardUi.shell.classList.add('is-cover-drawings');
+    } else {
+      if (ghostBoardUi.shell.parentElement !== gameLayer) {
+        gameLayer.appendChild(ghostBoardUi.shell);
+      }
+      ghostBoardUi.shell.classList.remove('is-cover-drawings');
+    }
 
     ghostBoardUi.shell.classList.remove('hidden');
     ghostBoardUi.shell.style.left = `${boardScreen.x}px`;
@@ -5075,6 +5440,7 @@ function renderMonsPieces() {
     }
 
     const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    image.classList.add('mons-piece-sprite');
     image.setAttribute('href', href);
     image.setAttribute('x', String(piece.col));
     image.setAttribute('y', String(piece.row));
@@ -5140,6 +5506,7 @@ function renderMonsSpawnGhosts() {
 }
 
 function renderMonsBoard() {
+  syncCoverDrawingsGamesLayerState();
   monsGameState = getMonsGameStateById(activeMonsGameId);
   if (!monsGameState || monsGameState.enabled === false) {
     hideMonsBoardElements();
@@ -5167,6 +5534,21 @@ function renderMonsBoard() {
   const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
   const controlSize = MONS_MOVE_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
+  const boardShouldCoverDrawings = monsGameState.coverDrawings === true;
+
+  if (monsGameShell.classList.contains('is-drag-floating')) {
+    monsGameShell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
+  } else if (boardShouldCoverDrawings) {
+    if (monsGameShell.parentElement !== tableRoot) {
+      tableRoot?.appendChild(monsGameShell);
+    }
+    monsGameShell.classList.add('is-cover-drawings');
+  } else {
+    if (monsGameShell.parentElement !== gameLayer) {
+      gameLayer?.appendChild(monsGameShell);
+    }
+    monsGameShell.classList.remove('is-cover-drawings');
+  }
 
   monsGameShell.classList.remove('hidden');
   monsGameShell.style.left = `${boardScreen.x}px`;
@@ -5284,33 +5666,811 @@ function normalizeImageComponentSrc(src) {
   return typeof src === 'string' ? src.trim() : '';
 }
 
+function normalizeMediaProvider(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'youtube' || normalized === 'soundcloud') {
+    return normalized;
+  }
+  return '';
+}
+
+function normalizeMediaSourceUrl(value) {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) {
+    return '';
+  }
+  try {
+    const parsed = new URL(raw);
+    if (!/^https?:$/i.test(parsed.protocol || '')) {
+      return '';
+    }
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
+function parseEmbeddableMediaUrl(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) {
+    return null;
+  }
+  let parsedUrl = null;
+  try {
+    parsedUrl = new URL(raw);
+  } catch {
+    try {
+      parsedUrl = new URL(`https://${raw}`);
+    } catch {
+      return null;
+    }
+  }
+  if (!parsedUrl || !/^https?:$/i.test(parsedUrl.protocol || '')) {
+    return null;
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+  const sanitizeVideoId = (candidate) => {
+    const normalized = String(candidate || '').trim();
+    return /^[A-Za-z0-9_-]{6,20}$/.test(normalized) ? normalized : '';
+  };
+
+  const isYouTubeHost =
+    host === 'youtu.be' ||
+    host === 'youtube.com' ||
+    host.endsWith('.youtube.com') ||
+    host === 'youtube-nocookie.com' ||
+    host.endsWith('.youtube-nocookie.com');
+  if (isYouTubeHost) {
+    let videoId = '';
+    if (host === 'youtu.be') {
+      videoId = sanitizeVideoId(pathSegments[0]);
+    } else {
+      if (pathSegments[0] === 'watch') {
+        videoId = sanitizeVideoId(parsedUrl.searchParams.get('v'));
+      } else if (pathSegments[0] === 'embed' || pathSegments[0] === 'shorts' || pathSegments[0] === 'live' || pathSegments[0] === 'v') {
+        videoId = sanitizeVideoId(pathSegments[1]);
+      }
+      if (!videoId) {
+        videoId = sanitizeVideoId(parsedUrl.searchParams.get('v'));
+      }
+    }
+    if (!videoId) {
+      return null;
+    }
+    const embedUrl = new URL(`https://www.youtube.com/embed/${videoId}`);
+    embedUrl.searchParams.set('rel', '0');
+    embedUrl.searchParams.set('modestbranding', '1');
+    embedUrl.searchParams.set('enablejsapi', '1');
+    embedUrl.searchParams.set('playsinline', '1');
+    if (/^https?:$/i.test(window.location.protocol || '')) {
+      embedUrl.searchParams.set('origin', window.location.origin);
+    }
+    return {
+      provider: 'youtube',
+      sourceUrl: `https://www.youtube.com/watch?v=${videoId}`,
+      embedUrl: embedUrl.toString(),
+      width: MEDIA_DEFAULT_WIDTH,
+      height: MEDIA_DEFAULT_HEIGHT_YOUTUBE
+    };
+  }
+
+  const isSoundCloudHost =
+    host === 'soundcloud.com' ||
+    host.endsWith('.soundcloud.com') ||
+    host === 'snd.sc';
+  if (isSoundCloudHost) {
+    if (host === 'w.soundcloud.com' && pathSegments[0] !== 'player') {
+      return null;
+    }
+    if (host !== 'w.soundcloud.com' && pathSegments.length === 0) {
+      return null;
+    }
+    let sourceUrl = parsedUrl.toString();
+    if (host === 'w.soundcloud.com' && pathSegments[0] === 'player') {
+      const nestedUrl = normalizeMediaSourceUrl(parsedUrl.searchParams.get('url'));
+      if (!nestedUrl) {
+        return null;
+      }
+      try {
+        const nestedParsed = new URL(nestedUrl);
+        const nestedHost = nestedParsed.hostname.toLowerCase();
+        const nestedIsSoundCloud =
+          nestedHost === 'soundcloud.com' ||
+          nestedHost.endsWith('.soundcloud.com') ||
+          nestedHost === 'snd.sc';
+        if (!nestedIsSoundCloud || !/^https?:$/i.test(nestedParsed.protocol || '')) {
+          return null;
+        }
+        sourceUrl = nestedParsed.toString();
+      } catch {
+        return null;
+      }
+    }
+    return {
+      provider: 'soundcloud',
+      sourceUrl,
+      embedUrl:
+        `https://w.soundcloud.com/player/?url=${encodeURIComponent(sourceUrl)}` +
+        '&color=%23ff5500&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=true&visual=false',
+      width: 500,
+      height: MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD
+    };
+  }
+
+  return null;
+}
+
+function getMediaSignalKeyFromState(dieState) {
+  if (normalizeDieType(dieState?.type) !== 'media') {
+    return '';
+  }
+  const startedAtRaw = Number(dieState?.mediaStartedAt);
+  if (!Number.isFinite(startedAtRaw) || startedAtRaw <= 0) {
+    return '';
+  }
+  const startedAt = Math.floor(startedAtRaw);
+  const startNonceRaw = Number(dieState?.mediaStartNonce);
+  const startNonce = Number.isFinite(startNonceRaw) ? Math.floor(startNonceRaw) : 0;
+  return `${startedAt}:${startNonce}`;
+}
+
+function teardownMediaController(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller) {
+    return;
+  }
+  controller.disposed = true;
+  if (controller.provider === 'youtube' && controller.player && typeof controller.player.destroy === 'function') {
+    try {
+      controller.player.destroy();
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
+  if (controller.provider === 'soundcloud' && controller.widget && typeof controller.widget.unbind === 'function') {
+    const events = window.SC?.Widget?.Events;
+    if (events) {
+      try {
+        controller.widget.unbind(events.READY);
+      } catch {
+        // Best-effort cleanup.
+      }
+      try {
+        controller.widget.unbind(events.PLAY);
+      } catch {
+        // Best-effort cleanup.
+      }
+    }
+  }
+  mediaControllerByDieId.delete(normalizedDieId);
+}
+
+function clearMediaPlaybackTrackingForDie(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  mediaSignalKeyByDieId.delete(normalizedDieId);
+  mediaStartBroadcastInFlight.delete(normalizedDieId);
+  teardownMediaController(normalizedDieId);
+}
+
+function ensureYouTubeIframeApi() {
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+  if (youtubeIframeApiPromise) {
+    return youtubeIframeApiPromise;
+  }
+  youtubeIframeApiPromise = new Promise((resolve, reject) => {
+    let settled = false;
+    let script = document.querySelector('script[data-media-youtube-api="1"]');
+    let timeoutId = 0;
+    const onError = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (script instanceof HTMLScriptElement) {
+        script.removeEventListener('error', onError);
+      }
+      reject(new Error('Failed to load YouTube iframe API.'));
+    };
+    const finish = (withError) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      window.clearTimeout(timeoutId);
+      if (script instanceof HTMLScriptElement) {
+        script.removeEventListener('error', onError);
+      }
+      if (withError) {
+        reject(withError);
+        return;
+      }
+      resolve(window.YT);
+    };
+    const maybeFinish = () => {
+      if (window.YT?.Player) {
+        finish(null);
+        return true;
+      }
+      return false;
+    };
+    if (maybeFinish()) {
+      return;
+    }
+
+    const previousReadyHandler = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof previousReadyHandler === 'function') {
+        try {
+          previousReadyHandler();
+        } catch {
+          // Keep the new handler resilient.
+        }
+      }
+      if (!maybeFinish()) {
+        finish(new Error('YouTube iframe API loaded without Player.'));
+      }
+    };
+
+    if (!(script instanceof HTMLScriptElement)) {
+      script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      script.defer = true;
+      script.dataset.mediaYoutubeApi = '1';
+      document.head.appendChild(script);
+    }
+    script.addEventListener('error', onError, { once: true });
+
+    timeoutId = window.setTimeout(() => {
+      if (maybeFinish()) {
+        return;
+      }
+      finish(new Error('Timed out loading YouTube iframe API.'));
+    }, 12000);
+  }).catch((error) => {
+    youtubeIframeApiPromise = null;
+    throw error;
+  });
+  return youtubeIframeApiPromise;
+}
+
+function ensureSoundCloudWidgetApi() {
+  if (window.SC?.Widget) {
+    return Promise.resolve(window.SC);
+  }
+  if (soundCloudWidgetApiPromise) {
+    return soundCloudWidgetApiPromise;
+  }
+  soundCloudWidgetApiPromise = new Promise((resolve, reject) => {
+    let script = document.querySelector('script[data-media-soundcloud-api="1"]');
+    let timeoutId = 0;
+    const finish = (withError) => {
+      window.clearTimeout(timeoutId);
+      if (script instanceof HTMLScriptElement) {
+        script.removeEventListener('load', onLoad);
+        script.removeEventListener('error', onError);
+      }
+      if (withError) {
+        reject(withError);
+        return;
+      }
+      resolve(window.SC);
+    };
+    const onLoad = () => {
+      if (window.SC?.Widget) {
+        finish(null);
+      } else {
+        finish(new Error('SoundCloud widget API loaded without Widget.'));
+      }
+    };
+    const onError = () => {
+      finish(new Error('Failed to load SoundCloud widget API.'));
+    };
+    if (!(script instanceof HTMLScriptElement)) {
+      script = document.createElement('script');
+      script.src = 'https://w.soundcloud.com/player/api.js';
+      script.async = true;
+      script.defer = true;
+      script.dataset.mediaSoundcloudApi = '1';
+      document.head.appendChild(script);
+    }
+    if (window.SC?.Widget) {
+      finish(null);
+      return;
+    }
+    script.addEventListener('load', onLoad, { once: true });
+    script.addEventListener('error', onError, { once: true });
+    timeoutId = window.setTimeout(() => {
+      if (window.SC?.Widget) {
+        finish(null);
+        return;
+      }
+      finish(new Error('Timed out loading SoundCloud widget API.'));
+    }, 12000);
+  }).catch((error) => {
+    soundCloudWidgetApiPromise = null;
+    throw error;
+  });
+  return soundCloudWidgetApiPromise;
+}
+
+function requestMediaStartBroadcast(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  if (mediaStartBroadcastInFlight.has(normalizedDieId)) {
+    return;
+  }
+  const dieState = diceById.get(normalizedDieId);
+  if (normalizeDieType(dieState?.type) !== 'media') {
+    return;
+  }
+  if (getMediaSignalKeyFromState(dieState)) {
+    return;
+  }
+  mediaStartBroadcastInFlight.add(normalizedDieId);
+  announceMediaStartForRoom(normalizedDieId)
+    .catch((error) => {
+      console.error(error);
+    })
+    .finally(() => {
+      mediaStartBroadcastInFlight.delete(normalizedDieId);
+    });
+}
+
+function tryAutoplayMediaController(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller || controller.disposed || !controller.pendingAutoStart || !controller.ready) {
+    return;
+  }
+  controller.pendingAutoStart = false;
+  if (controller.provider === 'youtube' && controller.player && typeof controller.player.playVideo === 'function') {
+    try {
+      controller.player.playVideo();
+    } catch {
+      // Autoplay can be blocked by browser policy.
+    }
+    return;
+  }
+  if (controller.provider === 'soundcloud' && controller.widget && typeof controller.widget.play === 'function') {
+    try {
+      controller.widget.play();
+    } catch {
+      // Autoplay can be blocked by browser policy.
+    }
+  }
+}
+
+function ensureYouTubeMediaController(dieId, controller) {
+  ensureYouTubeIframeApi()
+    .then((YT) => {
+      const activeController = mediaControllerByDieId.get(dieId);
+      if (!activeController || activeController !== controller || activeController.disposed || activeController.provider !== 'youtube') {
+        return;
+      }
+      if (activeController.player) {
+        return;
+      }
+      const player = new YT.Player(activeController.iframe, {
+        events: {
+          onReady: () => {
+            const latest = mediaControllerByDieId.get(dieId);
+            if (!latest || latest !== activeController || latest.disposed) {
+              return;
+            }
+            latest.ready = true;
+            tryAutoplayMediaController(dieId);
+          },
+          onStateChange: (event) => {
+            if (event?.data === YT.PlayerState.PLAYING) {
+              requestMediaStartBroadcast(dieId);
+            }
+          }
+        }
+      });
+      activeController.player = player;
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+}
+
+function ensureSoundCloudMediaController(dieId, controller) {
+  ensureSoundCloudWidgetApi()
+    .then((SC) => {
+      const activeController = mediaControllerByDieId.get(dieId);
+      if (!activeController || activeController !== controller || activeController.disposed || activeController.provider !== 'soundcloud') {
+        return;
+      }
+      if (activeController.widget || typeof SC?.Widget !== 'function') {
+        return;
+      }
+      const widget = SC.Widget(activeController.iframe);
+      activeController.widget = widget;
+      const events = SC.Widget?.Events;
+      if (!events) {
+        activeController.ready = true;
+        tryAutoplayMediaController(dieId);
+        return;
+      }
+      widget.bind(events.READY, () => {
+        const latest = mediaControllerByDieId.get(dieId);
+        if (!latest || latest !== activeController || latest.disposed) {
+          return;
+        }
+        latest.ready = true;
+        tryAutoplayMediaController(dieId);
+      });
+      widget.bind(events.PLAY, () => {
+        requestMediaStartBroadcast(dieId);
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+}
+
+function registerMediaEmbedController(dieId, provider, sourceUrl, iframe) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId || !(iframe instanceof HTMLIFrameElement)) {
+    return;
+  }
+  const normalizedProvider = normalizeMediaProvider(provider);
+  const normalizedSourceUrl = normalizeMediaSourceUrl(sourceUrl || '');
+  if (!normalizedProvider || !normalizedSourceUrl) {
+    teardownMediaController(normalizedDieId);
+    return;
+  }
+
+  const existingController = mediaControllerByDieId.get(normalizedDieId);
+  if (
+    existingController &&
+    existingController.provider === normalizedProvider &&
+    existingController.sourceUrl === normalizedSourceUrl &&
+    existingController.iframe === iframe &&
+    !existingController.disposed
+  ) {
+    tryAutoplayMediaController(normalizedDieId);
+    return;
+  }
+  if (existingController) {
+    teardownMediaController(normalizedDieId);
+  }
+
+  const controller = {
+    dieId: normalizedDieId,
+    provider: normalizedProvider,
+    sourceUrl: normalizedSourceUrl,
+    iframe,
+    disposed: false,
+    ready: false,
+    pendingAutoStart: Boolean(getMediaSignalKeyFromState(diceById.get(normalizedDieId))),
+    player: null,
+    widget: null
+  };
+  mediaControllerByDieId.set(normalizedDieId, controller);
+
+  if (normalizedProvider === 'youtube') {
+    ensureYouTubeMediaController(normalizedDieId, controller);
+  } else {
+    ensureSoundCloudMediaController(normalizedDieId, controller);
+  }
+}
+
+function syncMediaStartSignalFromState(dieId, previousDieState, nextDieState) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  if (normalizeDieType(nextDieState?.type) !== 'media') {
+    clearMediaPlaybackTrackingForDie(normalizedDieId);
+    return;
+  }
+  const nextSignalKey = getMediaSignalKeyFromState(nextDieState);
+  if (!nextSignalKey) {
+    mediaSignalKeyByDieId.delete(normalizedDieId);
+    return;
+  }
+  const previousSignalKey = getMediaSignalKeyFromState(previousDieState);
+  const handledSignalKey = mediaSignalKeyByDieId.get(normalizedDieId);
+  if (handledSignalKey === nextSignalKey && previousSignalKey === nextSignalKey) {
+    return;
+  }
+  mediaSignalKeyByDieId.set(normalizedDieId, nextSignalKey);
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (controller) {
+    controller.pendingAutoStart = true;
+    tryAutoplayMediaController(normalizedDieId);
+  }
+}
+
+function getCardComponentType(cardState) {
+  const rawType = String(cardState?.componentType || '').trim().toLowerCase();
+  if (rawType === 'image' || rawType === 'sticker') {
+    return rawType;
+  }
+  return '';
+}
+
 function isImageComponentCard(cardState) {
-  return Boolean(cardState && typeof cardState === 'object' && cardState.componentType === 'image');
+  return getCardComponentType(cardState) === 'image';
+}
+
+function isStickerComponentCard(cardState) {
+  return getCardComponentType(cardState) === 'sticker';
+}
+
+function isNativeImageComponentCard(cardState) {
+  return isVisualImageComponentCard(cardState) && cardState?.componentCardSized === false;
+}
+
+function isNonCardImageComponentCard(cardState) {
+  return isImageComponentCard(cardState) && cardState?.componentCardSized === false;
+}
+
+function isNativeImageComponentLocked(cardState) {
+  return isNativeImageComponentCard(cardState) && cardState?.componentLocked === true;
+}
+
+function isStickerCardLocked(cardState) {
+  return isStickerComponentCard(cardState) && isNativeImageComponentLocked(cardState);
+}
+
+function isVisualImageComponentCard(cardState) {
+  const componentType = getCardComponentType(cardState);
+  return componentType === 'image' || componentType === 'sticker';
 }
 
 function canCardUseDeckZones(cardState) {
-  return !isImageComponentCard(cardState) || cardState.componentCardSized !== false;
+  return !isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false;
+}
+
+function canCardEnterHand(cardState) {
+  if (!cardState) {
+    return false;
+  }
+  return !isNonCardImageComponentCard(cardState);
+}
+
+function getCardPositionOverflow(cardState) {
+  return isStickerComponentCard(cardState) &&
+    cardState?.componentCardSized === false &&
+    !cardState?.inDeck &&
+    !cardState?.inDiscard &&
+    !cardState?.inAuction
+    ? STICKER_EDGE_OVERFLOW
+    : 0;
+}
+
+function getCardPositionBounds(cardState, widthValue, heightValue) {
+  const width = Math.max(1, Number(widthValue) || CARD_WIDTH);
+  const height = Math.max(1, Number(heightValue) || CARD_HEIGHT);
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  const overflow = getCardPositionOverflow(cardState);
+  let minX = halfWidth - overflow;
+  let maxX = WORLD_WIDTH - halfWidth + overflow;
+  let minY = halfHeight - overflow;
+  let maxY = WORLD_HEIGHT - halfHeight + overflow;
+  if (minX > maxX) {
+    const midpointX = (minX + maxX) / 2;
+    minX = midpointX;
+    maxX = midpointX;
+  }
+  if (minY > maxY) {
+    const midpointY = (minY + maxY) / 2;
+    minY = midpointY;
+    maxY = midpointY;
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+function getNativeImageAspectRatio(cardState, fallbackWidth = CARD_WIDTH, fallbackHeight = CARD_HEIGHT) {
+  if (!isNativeImageComponentCard(cardState)) {
+    return 1;
+  }
+  if (isStickerComponentCard(cardState)) {
+    return 1;
+  }
+  const explicitRatio = Number(cardState?.componentAspectRatio);
+  if (Number.isFinite(explicitRatio) && explicitRatio > 0.0001) {
+    return explicitRatio;
+  }
+  const width = Math.max(1, Number(cardState?.componentWidth) || fallbackWidth);
+  const height = Math.max(1, Number(cardState?.componentHeight) || fallbackHeight);
+  return width / height;
+}
+
+function fitSizeToAspectWithinBounds(preferredWidth, preferredHeight, bounds, aspectRatio) {
+  const ratio = Math.max(0.0001, Number(aspectRatio) || 1);
+  const minWidth = Math.max(1, Number(bounds?.minWidth) || IMAGE_COMPONENT_MIN_WORLD_SIZE);
+  const maxWidth = Math.max(minWidth, Number(bounds?.maxWidth) || minWidth);
+  const minHeight = Math.max(1, Number(bounds?.minHeight) || IMAGE_COMPONENT_MIN_WORLD_SIZE);
+  const maxHeight = Math.max(minHeight, Number(bounds?.maxHeight) || minHeight);
+
+  const clampCandidate = (candidateWidth, candidateHeight) => {
+    let width = clamp(Number(candidateWidth) || minWidth, minWidth, maxWidth);
+    let height = clamp(Number(candidateHeight) || minHeight, minHeight, maxHeight);
+    for (let index = 0; index < 3; index += 1) {
+      height = width / ratio;
+      if (height < minHeight) {
+        height = minHeight;
+        width = height * ratio;
+      } else if (height > maxHeight) {
+        height = maxHeight;
+        width = height * ratio;
+      }
+      if (width < minWidth) {
+        width = minWidth;
+        height = width / ratio;
+      } else if (width > maxWidth) {
+        width = maxWidth;
+        height = width / ratio;
+      }
+    }
+    return {
+      width: clamp(width, minWidth, maxWidth),
+      height: clamp(height, minHeight, maxHeight)
+    };
+  };
+
+  const preferredW = clamp(Number(preferredWidth) || minWidth, minWidth, maxWidth);
+  const preferredH = clamp(Number(preferredHeight) || minHeight, minHeight, maxHeight);
+  const candidateFromWidth = clampCandidate(preferredW, preferredW / ratio);
+  const candidateFromHeight = clampCandidate(preferredH * ratio, preferredH);
+  const widthDistance =
+    Math.abs(candidateFromWidth.width - preferredW) + Math.abs(candidateFromWidth.height - preferredH);
+  const heightDistance =
+    Math.abs(candidateFromHeight.width - preferredW) + Math.abs(candidateFromHeight.height - preferredH);
+  return widthDistance <= heightDistance ? candidateFromWidth : candidateFromHeight;
 }
 
 function getFaceWhenEnteringHand(cardState) {
-  if (!isImageComponentCard(cardState)) {
+  if (!isVisualImageComponentCard(cardState)) {
     return 'front';
   }
   return cardState?.face === 'back' ? 'back' : 'front';
 }
 
 function isResizableImageComponentCard(cardState) {
+  const componentType = getCardComponentType(cardState);
+  const isResizableComponentType = componentType === 'image' || componentType === 'sticker';
   const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
   return Boolean(
     cardState &&
-    isImageComponentCard(cardState) &&
+    isResizableComponentType &&
     cardState.componentCardSized === false &&
+    !isNativeImageComponentLocked(cardState) &&
     !heldByOther &&
     !cardState.inDeck &&
     !cardState.inDiscard &&
     !cardState.inAuction &&
     !getCardHandOwnerId(cardState)
   );
+}
+
+function normalizeStickerRotationDegrees(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return 0;
+  }
+  return Math.round(numericValue * 100) / 100;
+}
+
+function normalizeAngleDeltaDegrees(value) {
+  let normalized = Number(value);
+  if (!Number.isFinite(normalized)) {
+    return 0;
+  }
+  while (normalized > 180) {
+    normalized -= 360;
+  }
+  while (normalized < -180) {
+    normalized += 360;
+  }
+  return normalized;
+}
+
+function isRotatableNativeImageCard(cardState) {
+  const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
+  return Boolean(
+    cardState &&
+    isNativeImageComponentCard(cardState) &&
+    !isNativeImageComponentLocked(cardState) &&
+    !heldByOther &&
+    !cardState.inDeck &&
+    !cardState.inDiscard &&
+    !cardState.inAuction &&
+    !getCardHandOwnerId(cardState)
+  );
+}
+
+function getStickerPointerAngleDegrees(cardCenterX, cardCenterY, clientX, clientY) {
+  const worldPoint = screenToWorldFromClient(clientX, clientY);
+  if (!worldPoint) {
+    return null;
+  }
+  const dx = worldPoint.x - cardCenterX;
+  const dy = worldPoint.y - cardCenterY;
+  const radius = Math.hypot(dx, dy);
+  if (!Number.isFinite(radius) || radius < STICKER_ROTATE_MIN_RADIUS_WORLD) {
+    return null;
+  }
+  return (Math.atan2(dy, dx) * 180) / Math.PI + 90;
+}
+
+function clampStickerSquareSize(widthValue, heightValue) {
+  let width = Number(widthValue);
+  let height = Number(heightValue);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+    width = CARD_WIDTH;
+    height = CARD_HEIGHT;
+  }
+  const maxWidth = Math.max(
+    STICKER_COMPONENT_MIN_WORLD_SIZE,
+    Math.min(STICKER_COMPONENT_MAX_WORLD_WIDTH, WORLD_WIDTH - 20)
+  );
+  const maxHeight = Math.max(
+    STICKER_COMPONENT_MIN_WORLD_SIZE,
+    Math.min(STICKER_COMPONENT_MAX_WORLD_HEIGHT, WORLD_HEIGHT - 20)
+  );
+  const scale = Math.min(1, maxWidth / width, maxHeight / height);
+  const clamped = {
+    width: clamp(width * scale, STICKER_COMPONENT_MIN_WORLD_SIZE, maxWidth),
+    height: clamp(height * scale, STICKER_COMPONENT_MIN_WORLD_SIZE, maxHeight)
+  };
+  const maxSquare = Math.max(
+    STICKER_COMPONENT_MIN_WORLD_SIZE,
+    Math.min(
+      STICKER_COMPONENT_MAX_WORLD_WIDTH,
+      STICKER_COMPONENT_MAX_WORLD_HEIGHT,
+      WORLD_WIDTH - 20,
+      WORLD_HEIGHT - 20
+    )
+  );
+  const side = clamp(
+    Math.max(clamped.width, clamped.height),
+    STICKER_COMPONENT_MIN_WORLD_SIZE,
+    maxSquare
+  );
+  return {
+    width: side,
+    height: side
+  };
+}
+
+function getStickerImageRenderingMode(screenWidth, screenHeight) {
+  const width = Math.max(0, Number(screenWidth) || 0);
+  const height = Math.max(0, Number(screenHeight) || 0);
+  const minDimension = Math.min(width, height);
+  return minDimension <= STICKER_SMOOTH_MAX_SCREEN_SIZE ? 'auto' : 'pixelated';
+}
+
+function getStickerImageRenderingModeForCard(cardState, cameraScale) {
+  const scale = Math.max(0, Number(cameraScale) || 0);
+  if (scale <= 0) {
+    return 'auto';
+  }
+  const baseCardSize = getCardTableDimensions(cardState);
+  const worldWidth = (cardState?.inAuction ? baseCardSize.width * AUCTION_CARD_SCALE : baseCardSize.width) * scale;
+  const worldHeight = (cardState?.inAuction ? baseCardSize.height * AUCTION_CARD_SCALE : baseCardSize.height) * scale;
+  return getStickerImageRenderingMode(worldWidth, worldHeight);
 }
 
 function clampImageComponentSize(widthValue, heightValue) {
@@ -5334,22 +6494,52 @@ function getCardTableDimensions(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
   }
-  if (!isImageComponentCard(cardState) || cardState.componentCardSized !== false) {
+  if (!isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false) {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
+  }
+  if (isStickerComponentCard(cardState)) {
+    return clampStickerSquareSize(cardState.componentWidth, cardState.componentHeight);
   }
   return clampImageComponentSize(cardState.componentWidth, cardState.componentHeight);
 }
 
 function getCardBackDisplaySrc(cardState) {
+  if (isStickerComponentCard(cardState)) {
+    return normalizeImageComponentSrc(cardState.frontSrc || '');
+  }
   if (isImageComponentCard(cardState)) {
+    if (cardState.componentBackBlank === true) {
+      return '';
+    }
     const explicitBackSrc = normalizeImageComponentSrc(cardState.backSrc);
     if (explicitBackSrc) {
       return explicitBackSrc;
+    }
+    if (cardState.componentFrontBlank === true) {
+      return '';
     }
     const fallbackFrontSrc = normalizeImageComponentSrc(cardState.frontSrc);
     return fallbackFrontSrc || CARD_BACK_IMAGE_SRC;
   }
   return CARD_BACK_IMAGE_SRC;
+}
+
+function getImageComponentFaceBlankColor(cardState, face = 'front') {
+  if (!isImageComponentCard(cardState)) {
+    return '';
+  }
+  if (face === 'front') {
+    return cardState.componentFrontBlank === true
+      ? normalizeHexColor(cardState.componentFrontColor || '#ffffff')
+      : '';
+  }
+  if (cardState.componentBackBlank === true) {
+    return normalizeHexColor(cardState.componentBackColor || '#ffffff');
+  }
+  if (cardState.componentFrontBlank === true && !normalizeImageComponentSrc(cardState.backSrc)) {
+    return normalizeHexColor(cardState.componentFrontColor || '#ffffff');
+  }
+  return '';
 }
 
 function normalizeCardPayload(payload) {
@@ -5360,33 +6550,75 @@ function normalizeCardPayload(payload) {
   const handOwnerClientId = typeof payload?.handOwnerClientId === 'string' && payload.handOwnerClientId ? payload.handOwnerClientId : null;
   const handOwnerPlayerToken =
     typeof payload?.handOwnerPlayerToken === 'string' && payload.handOwnerPlayerToken ? payload.handOwnerPlayerToken : null;
-  const normalizedFrontSrc = toHighResFrontSrc(String(payload?.frontSrc || '').trim());
+  const rawFrontSrc = String(payload?.frontSrc || '').trim();
   const deckId = normalizeDeckId(payload?.deckId || DECK_KEY);
-  const componentType = payload?.componentType === 'image' ? 'image' : '';
-  const componentCardSized = componentType === 'image' ? payload?.componentCardSized !== false : true;
-  const backSrc = componentType === 'image' ? normalizeImageComponentSrc(payload?.backSrc || '') : '';
-  const componentSize = componentType === 'image' && !componentCardSized
-    ? clampImageComponentSize(payload?.componentWidth, payload?.componentHeight)
+  const rawComponentType = String(payload?.componentType || '').trim().toLowerCase();
+  const componentType = rawComponentType === 'image' || rawComponentType === 'sticker' ? rawComponentType : '';
+  const isImageComponent = componentType === 'image';
+  const isStickerComponent = componentType === 'sticker';
+  const componentCardSized = componentType ? (isStickerComponent ? false : payload?.componentCardSized !== false) : true;
+  const componentLocked = componentType && componentCardSized === false ? payload?.componentLocked === true : false;
+  const componentRotation = componentType && componentCardSized === false ? normalizeStickerRotationDegrees(payload?.componentRotation) : 0;
+  const componentFrontBlank = isImageComponent ? payload?.componentFrontBlank === true : false;
+  const componentBackBlank = isImageComponent ? payload?.componentBackBlank === true : false;
+  const componentFrontColor = isImageComponent ? normalizeHexColor(payload?.componentFrontColor || '#ffffff') : '#ffffff';
+  const componentBackColor = isImageComponent ? normalizeHexColor(payload?.componentBackColor || '#ffffff') : '#ffffff';
+  const normalizedFrontSrc = componentType
+    ? (isImageComponent && componentFrontBlank ? '' : normalizeImageComponentSrc(rawFrontSrc))
+    : toHighResFrontSrc(rawFrontSrc);
+  const backSrc = isImageComponent ? normalizeImageComponentSrc(payload?.backSrc || '') : '';
+  const componentSize = componentType && !componentCardSized
+    ? (isStickerComponent
+      ? clampStickerSquareSize(payload?.componentWidth, payload?.componentHeight)
+      : clampImageComponentSize(payload?.componentWidth, payload?.componentHeight))
     : { width: CARD_WIDTH, height: CARD_HEIGHT };
+  const componentAspectRatio = componentType && componentCardSized === false
+    ? (isStickerComponent
+      ? 1
+      : (() => {
+        const explicitRatio = Number(payload?.componentAspectRatio);
+        if (Number.isFinite(explicitRatio) && explicitRatio > 0.0001) {
+          return explicitRatio;
+        }
+        const fallbackHeight = Math.max(1, componentSize.height);
+        return componentSize.width / fallbackHeight;
+      })())
+    : 0;
+  const drawLifted = payload?.drawLifted === true;
+  const inDeck = Boolean(payload?.inDeck);
+  const inDiscard = Boolean(payload?.inDiscard);
   const inAuction = Boolean(payload?.inAuction);
-  const face = inAuction ? 'front' : payload?.face === 'front' ? 'front' : 'back';
-  const boundsWidth = inAuction || Boolean(payload?.inDeck) || Boolean(payload?.inDiscard) ? CARD_WIDTH : componentSize.width;
-  const boundsHeight = inAuction || Boolean(payload?.inDeck) || Boolean(payload?.inDiscard) ? CARD_HEIGHT : componentSize.height;
+  const face = inAuction || isStickerComponent ? 'front' : payload?.face === 'front' ? 'front' : 'back';
+  const boundsWidth = inAuction || inDeck || inDiscard ? CARD_WIDTH : componentSize.width;
+  const boundsHeight = inAuction || inDeck || inDiscard ? CARD_HEIGHT : componentSize.height;
+  const overflow = isStickerComponent && !inDeck && !inDiscard && !inAuction ? STICKER_EDGE_OVERFLOW : 0;
+  const minX = boundsWidth / 2 - overflow;
+  const maxX = WORLD_WIDTH - boundsWidth / 2 + overflow;
+  const minY = boundsHeight / 2 - overflow;
+  const maxY = WORLD_HEIGHT - boundsHeight / 2 + overflow;
   return {
-    x: Number.isFinite(nextX) ? clamp(nextX, boundsWidth / 2, WORLD_WIDTH - boundsWidth / 2) : WORLD_WIDTH / 2,
-    y: Number.isFinite(nextY) ? clamp(nextY, boundsHeight / 2, WORLD_HEIGHT - boundsHeight / 2) : WORLD_HEIGHT / 2,
+    x: Number.isFinite(nextX) ? clamp(nextX, minX, maxX) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, minY, maxY) : WORLD_HEIGHT / 2,
     z: Number.isFinite(nextZ) ? nextZ : 1,
     face,
     frontSrc: normalizedFrontSrc,
     backSrc,
     componentType,
     componentCardSized,
+    componentFrontBlank,
+    componentBackBlank,
+    componentFrontColor,
+    componentBackColor,
+    componentLocked,
+    componentRotation,
+    componentAspectRatio,
     componentWidth: componentSize.width,
     componentHeight: componentSize.height,
     deckId,
-    inDeck: Boolean(payload?.inDeck),
-    inDiscard: Boolean(payload?.inDiscard),
+    inDeck,
+    inDiscard,
     inAuction,
+    drawLifted,
     holderClientId,
     handOwnerClientId,
     handOwnerPlayerToken
@@ -5396,10 +6628,12 @@ function normalizeCardPayload(payload) {
 function removeDieElement(dieId) {
   const die = diceElements.get(dieId);
   if (!die) {
+    clearMediaPlaybackTrackingForDie(dieId);
     return;
   }
   die.remove();
   diceElements.delete(dieId);
+  clearMediaPlaybackTrackingForDie(dieId);
 }
 
 function ensureDieElement(dieId) {
@@ -5427,10 +6661,10 @@ function ensureDieElement(dieId) {
       onLabelResizePointerDown(event, dieId);
     });
     resizeHandle.addEventListener('pointerenter', () => {
-      die.classList.add('is-label-resize-hovered');
+      die.classList.add('is-die-resize-hovered');
     });
     resizeHandle.addEventListener('pointerleave', () => {
-      die.classList.remove('is-label-resize-hovered');
+      die.classList.remove('is-die-resize-hovered');
     });
     die.appendChild(resizeHandle);
 
@@ -5461,7 +6695,7 @@ function ensureDieElement(dieId) {
   return die;
 }
 
-function renderDieFace(die, dieType, faceValue, dieState) {
+function renderDieFace(dieId, die, dieType, faceValue, dieState) {
   if (!(die instanceof HTMLElement)) {
     return;
   }
@@ -5470,7 +6704,9 @@ function renderDieFace(die, dieType, faceValue, dieState) {
     return;
   }
   const isLabel = dieType === 'label';
+  const isMedia = dieType === 'media';
   if (isLabel) {
+    teardownMediaController(dieId);
     if (die.dataset.labelEditing === '1') {
       return;
     }
@@ -5478,6 +6714,50 @@ function renderDieFace(die, dieType, faceValue, dieState) {
     face.textContent = normalizeLabelText(dieState?.text || '');
     return;
   }
+  if (isMedia) {
+    face.classList.remove('table-label-text');
+    let mediaFrame = face.querySelector('.table-media-frame');
+    if (!(mediaFrame instanceof HTMLElement)) {
+      face.textContent = '';
+      mediaFrame = document.createElement('div');
+      mediaFrame.className = 'table-media-frame';
+      face.appendChild(mediaFrame);
+    }
+    const embedUrl = normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '');
+    const provider = normalizeMediaProvider(dieState?.mediaProvider);
+    const sourceUrl = normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '') || embedUrl;
+    if (!embedUrl) {
+      mediaFrame.textContent = '';
+      const placeholder = document.createElement('div');
+      placeholder.className = 'table-media-placeholder';
+      placeholder.textContent = 'media unavailable';
+      mediaFrame.appendChild(placeholder);
+      teardownMediaController(dieId);
+      return;
+    }
+    let iframe = mediaFrame.querySelector('.table-media-embed');
+    if (!(iframe instanceof HTMLIFrameElement)) {
+      mediaFrame.textContent = '';
+      iframe = document.createElement('iframe');
+      iframe.className = 'table-media-embed';
+      iframe.allow = 'autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture';
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      iframe.loading = 'lazy';
+      iframe.setAttribute('allowfullscreen', '');
+      mediaFrame.appendChild(iframe);
+    }
+    const nextTitle = provider === 'soundcloud' ? 'soundcloud media' : 'youtube media';
+    iframe.title = nextTitle;
+    const mediaIdentity = `${provider}:${sourceUrl}`;
+    if (iframe.dataset.mediaIdentity !== mediaIdentity) {
+      iframe.src = embedUrl;
+      iframe.dataset.mediaIdentity = mediaIdentity;
+      iframe.dataset.embedSrc = embedUrl;
+    }
+    registerMediaEmbedController(dieId, provider, sourceUrl, iframe);
+    return;
+  }
+  teardownMediaController(dieId);
   face.classList.remove('table-label-text');
   face.textContent = '';
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -5582,8 +6862,11 @@ function renderDieElement(dieId) {
     if (overlayLayer && die.parentElement !== overlayLayer) {
       overlayLayer.appendChild(die);
     }
-  } else if (cardLayer && die.parentElement !== cardLayer) {
-    cardLayer.appendChild(die);
+  } else {
+    const nextLayer = dieState.drawLifted === true && promotedCardLayer ? promotedCardLayer : cardLayer;
+    if (nextLayer && die.parentElement !== nextLayer) {
+      nextLayer.appendChild(die);
+    }
   }
   const baseZ = clamp(Math.round(dieState.z || 1), 1, DECK_UI_Z_INDEX - 1);
   const renderZ = isHeld ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
@@ -5592,7 +6875,9 @@ function renderDieElement(dieId) {
   const now = Date.now();
   const rolling = isDieRolling(dieState, now);
   const isLabel = dieType === 'label';
+  const isMedia = dieType === 'media';
   const isResizingLabel = resizingLabelDieId === dieId;
+  const isResizingMedia = resizingMediaDieId === dieId;
   const isLabelEditing = die.dataset.labelEditing === '1';
   const canResizeLabel =
     isLabel &&
@@ -5600,24 +6885,39 @@ function renderDieElement(dieId) {
     !drawModeEnabled &&
     !deleteModeEnabled &&
     !isLabelEditing;
+  const canResizeMedia =
+    isMedia &&
+    !heldByOther &&
+    !drawModeEnabled &&
+    !deleteModeEnabled;
+  const canResizeDie = canResizeLabel || canResizeMedia;
   die.classList.toggle('table-die-d20', dieType === 'd20');
   die.classList.toggle('table-die-d6', dieType === 'd6');
   die.classList.toggle('table-die-coin', dieType === 'coin');
   die.classList.toggle('table-die-label', isLabel);
+  die.classList.toggle('table-die-media', isMedia);
   die.classList.toggle('is-held-by-self', heldBySelf);
   die.classList.toggle('is-held-by-other', heldByOther);
   die.classList.toggle('is-group-selected', selectedDiceIds.has(dieId));
   die.classList.toggle('is-rolling', rolling);
   die.classList.toggle('is-resizable-label', canResizeLabel);
   die.classList.toggle('is-resizing-label', isResizingLabel);
-  if (!isResizingLabel && !canResizeLabel) {
-    die.classList.remove('is-label-resize-hovered');
+  die.classList.toggle('is-resizable-media', canResizeMedia);
+  die.classList.toggle('is-resizing-media', isResizingMedia);
+  if (!isResizingLabel && !isResizingMedia && !canResizeDie) {
+    die.classList.remove('is-die-resize-hovered');
   }
   const labelResizeHandle = die.querySelector('.table-label-resize-handle');
   if (labelResizeHandle instanceof HTMLElement) {
-    labelResizeHandle.classList.toggle('hidden', !canResizeLabel);
+    labelResizeHandle.classList.toggle('hidden', !canResizeDie);
   }
-  die.setAttribute('aria-label', dieType === 'label' ? 'label' : 'dice');
+  if (dieType === 'label') {
+    die.setAttribute('aria-label', 'label');
+  } else if (dieType === 'media') {
+    die.setAttribute('aria-label', 'media');
+  } else {
+    die.setAttribute('aria-label', 'dice');
+  }
   if (dieType === 'label') {
     const face = die.querySelector('.table-die-face');
     if (face instanceof HTMLElement) {
@@ -5630,7 +6930,7 @@ function renderDieElement(dieId) {
       }
     }
   }
-  renderDieFace(die, dieType, getRenderedDieValue(dieState, now), dieState);
+  renderDieFace(dieId, die, dieType, getRenderedDieValue(dieState, now), dieState);
   return rolling;
 }
 
@@ -5701,6 +7001,42 @@ function ensureCardElement(cardId) {
       card.classList.remove('is-resize-hovered');
     });
     card.appendChild(resizeHandle);
+
+    const lockControl = document.createElement('button');
+    lockControl.type = 'button';
+    lockControl.className = 'table-card-lock-control hidden';
+    lockControl.setAttribute('aria-label', 'lock sticker');
+    lockControl.innerHTML =
+      '<svg class="lock-icon lock-icon-closed" viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.4 11V8.8C7.4 6.28 9.48 4.2 12 4.2C14.52 4.2 16.6 6.28 16.6 8.8V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="6.2" y="10.6" width="11.6" height="9.2" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 14.4V16.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="lock-icon lock-icon-open" viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 10.8V8.8C15.5 6.28 13.52 4.2 11 4.2C8.48 4.2 6.5 6.28 6.5 8.8V10.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="6.2" y="10.6" width="11.6" height="9.2" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 14.4V16.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    lockControl.addEventListener('pointerdown', (event) => {
+      onStickerLockControlPointerDown(event, cardId);
+    });
+    lockControl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    card.appendChild(lockControl);
+
+    const rotateControl = document.createElement('button');
+    rotateControl.type = 'button';
+    rotateControl.className = 'table-card-rotate-control hidden';
+    rotateControl.setAttribute('aria-label', 'rotate sticker');
+    rotateControl.innerHTML =
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M20 4V10H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 10A8 8 0 1 1 17 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    rotateControl.addEventListener('pointerdown', (event) => {
+      onCardRotatePointerDown(event, cardId);
+    });
+    rotateControl.addEventListener('pointerenter', () => {
+      card.classList.add('is-rotate-hovered');
+    });
+    rotateControl.addEventListener('pointerleave', () => {
+      card.classList.remove('is-rotate-hovered');
+    });
+    rotateControl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    card.appendChild(rotateControl);
 
     card.addEventListener('pointerdown', (event) => {
       onCardPointerDown(event, cardId);
@@ -6099,6 +7435,26 @@ function renderLocalHandCards() {
       continue;
     }
 
+    const handBlankFaceColor = getImageComponentFaceBlankColor(cardState, 'front');
+    handCard.classList.toggle('is-image-component-blank-face', Boolean(handBlankFaceColor));
+    if (handBlankFaceColor) {
+      handCard.style.setProperty('--image-card-blank-color', handBlankFaceColor);
+      handDisplayPendingByCard.delete(cardId);
+      handCard.classList.remove('is-front-pending');
+      if (image.getAttribute('src')) {
+        image.removeAttribute('src');
+      }
+      continue;
+    }
+    handCard.style.removeProperty('--image-card-blank-color');
+
+    const isStickerNativeHandCard = isStickerComponentCard(cardState) && cardState.componentCardSized === false;
+    if (isStickerNativeHandCard) {
+      image.style.imageRendering = getStickerImageRenderingMode(HAND_CARD_WIDTH, HAND_CARD_HEIGHT);
+    } else {
+      image.style.removeProperty('image-rendering');
+    }
+
     const variants = resolveFrontVariantSources(cardState.frontSrc, HAND_CARD_WIDTH);
     const currentSrc = image.getAttribute('src') || image.currentSrc || image.src || '';
     let displaySrc = chooseLoadedFrontDisplaySrc(variants.preferredSrc, variants.fallbackSrc, currentSrc);
@@ -6217,6 +7573,8 @@ function renderCardElement(cardId) {
 
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
+  const shouldAlwaysCoverDrawings = cardDeckState?.coverDrawings === true;
+  const shouldLiftAboveOldDrawings = cardState.drawLifted === true;
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
   const baseCardSize = getCardTableDimensions(cardState);
@@ -6246,8 +7604,16 @@ function renderCardElement(cardId) {
     if (overlayLayer && card.parentElement !== overlayLayer) {
       overlayLayer.appendChild(card);
     }
-  } else if (cardLayer && card.parentElement !== cardLayer) {
-    cardLayer.appendChild(card);
+  } else {
+    let tableCardLayer = cardLayer;
+    if (shouldAlwaysCoverDrawings && coverCardLayer) {
+      tableCardLayer = coverCardLayer;
+    } else if (shouldLiftAboveOldDrawings && promotedCardLayer) {
+      tableCardLayer = promotedCardLayer;
+    }
+    if (tableCardLayer && card.parentElement !== tableCardLayer) {
+      tableCardLayer.appendChild(card);
+    }
   }
 
   const rawBaseZ = Math.round(cardState.z || 1);
@@ -6262,35 +7628,84 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-in-discard', cardState.inDiscard);
   card.classList.toggle('is-in-auction', cardState.inAuction);
   card.classList.toggle('is-discard-returning', discardReturnAnimatingCardIds.has(cardId));
+  card.classList.toggle('is-cover-drawings', !isHeld && shouldAlwaysCoverDrawings);
   const isImageComponent = isImageComponentCard(cardState);
+  const isStickerComponent = isStickerComponentCard(cardState);
+  const isComponentLocked = isNativeImageComponentLocked(cardState);
+  const isStickerLocked = isStickerComponent && isComponentLocked;
+  const componentRotationDeg = isNativeImageComponentCard(cardState) ? normalizeStickerRotationDegrees(cardState.componentRotation) : 0;
   const isImageComponentCardMode = isImageComponent && cardState.componentCardSized !== false;
   const isImageComponentNativeMode = isImageComponent && cardState.componentCardSized === false;
+  const isStickerComponentNativeMode = isStickerComponent && cardState.componentCardSized === false;
+  const isNativeImageMode = isImageComponentNativeMode || isStickerComponentNativeMode;
+  const isRotatableNativeImage = isRotatableNativeImageCard(cardState);
+  const stickerImageRenderingMode = isStickerComponentNativeMode
+    ? getStickerImageRenderingModeForCard(cardState, camera.scale)
+    : 'auto';
+  if (isComponentLocked && selectedCardIds.has(cardId)) {
+    selectedCardIds.delete(cardId);
+  }
   const isResizableImage = isResizableImageComponentCard(cardState);
   const isResizingThisCard = resizingImageCardId === cardId;
+  const isRotatingThisCard = rotatingStickerCardId === cardId;
   card.classList.toggle('is-image-component', isImageComponent);
+  card.classList.toggle('is-sticker-component', isStickerComponent);
+  card.classList.toggle('is-sticker-locked', isStickerLocked);
+  card.classList.toggle('is-component-locked', isComponentLocked);
   card.classList.toggle('is-image-component-card', isImageComponentCardMode);
   card.classList.toggle('is-image-component-native', isImageComponentNativeMode);
+  card.classList.toggle('is-sticker-component-native', isStickerComponentNativeMode);
+  card.classList.toggle('is-rotatable-native-image', isRotatableNativeImage);
   card.classList.toggle('is-resizable-image', isResizableImage);
   card.classList.toggle('is-resizing', isResizingThisCard);
+  card.classList.toggle('is-rotating', isRotatingThisCard);
+  card.style.setProperty('--card-rotation-deg', `${componentRotationDeg}deg`);
   if (!isResizingThisCard && !isResizableImage) {
     card.classList.remove('is-resize-hovered');
+  }
+  if (!isRotatingThisCard && !isRotatableNativeImage) {
+    card.classList.remove('is-rotate-hovered');
   }
 
   const resizeHandle = card.querySelector('.table-card-resize-handle');
   if (resizeHandle instanceof HTMLElement) {
     resizeHandle.classList.toggle('hidden', !isResizableImage);
   }
+  const lockControl = card.querySelector('.table-card-lock-control');
+  if (lockControl instanceof HTMLElement) {
+    lockControl.classList.toggle('hidden', !isNativeImageMode);
+    lockControl.classList.toggle('is-locked', isComponentLocked);
+    lockControl.setAttribute('aria-label', isComponentLocked ? 'unlock image' : 'lock image');
+  }
+  const rotateControl = card.querySelector('.table-card-rotate-control');
+  if (rotateControl instanceof HTMLElement) {
+    const canShowImageRotateControl = isNativeImageMode && !isComponentLocked;
+    rotateControl.classList.toggle('hidden', !canShowImageRotateControl);
+    rotateControl.setAttribute('aria-label', 'rotate image');
+  }
 
   const image = card.querySelector('img');
   if (image) {
+    if (isStickerComponentNativeMode) {
+      image.style.imageRendering = stickerImageRenderingMode;
+    } else {
+      image.style.removeProperty('image-rendering');
+    }
     const previousFace = cardFaces.get(cardId);
     const showingFront = cardState.face === 'front';
+    const blankFaceColor = getImageComponentFaceBlankColor(cardState, showingFront ? 'front' : 'back');
     const hasLoadedImage = Boolean(image.getAttribute('src'));
+    card.classList.toggle('is-image-component-blank-face', Boolean(blankFaceColor));
+    if (blankFaceColor) {
+      card.style.setProperty('--image-card-blank-color', blankFaceColor);
+    } else {
+      card.style.removeProperty('--image-card-blank-color');
+    }
 
     let preferredFrontSrc = '';
     let fallbackFrontSrc = '';
     let displaySrc = getCardBackDisplaySrc(cardState);
-    if (showingFront) {
+    if (showingFront && !blankFaceColor) {
       const variants = resolveFrontVariantSources(cardState.frontSrc, cardScreenWidth);
       preferredFrontSrc = variants.preferredSrc;
       fallbackFrontSrc = variants.fallbackSrc;
@@ -6340,6 +7755,9 @@ function renderCardElement(cardId) {
       }
     } else {
       frontDisplayPendingByCard.delete(cardId);
+      if (blankFaceColor) {
+        displaySrc = '';
+      }
     }
 
     if (showingFront && preferredFrontSrc && !isFrontImageLoaded(preferredFrontSrc)) {
@@ -6362,8 +7780,12 @@ function renderCardElement(cardId) {
 }
 
 function renderAllCards() {
+  syncCoverDrawingsGamesLayerState();
   if (resizingImageCardId && !cards.has(resizingImageCardId)) {
     resizingImageCardId = '';
+  }
+  if (rotatingStickerCardId && !cards.has(rotatingStickerCardId)) {
+    rotatingStickerCardId = '';
   }
   for (const cardId of cards.keys()) {
     renderCardElement(cardId);
@@ -6536,8 +7958,30 @@ function removeDrawingStrokeElement(strokeId) {
   drawingStrokeElements.delete(strokeId);
 }
 
-function ensureDrawingStrokeElement(strokeId) {
-  if (!(drawingLayer instanceof SVGElement)) {
+function getDrawingStrokeTimestamp(strokeState) {
+  if (!strokeState || typeof strokeState !== 'object') {
+    return 0;
+  }
+  const updatedAt = Number(strokeState.updatedAt);
+  if (Number.isFinite(updatedAt) && updatedAt > 0) {
+    return updatedAt;
+  }
+  const createdAt = Number(strokeState.createdAt);
+  if (Number.isFinite(createdAt) && createdAt > 0) {
+    return createdAt;
+  }
+  return 0;
+}
+
+function getDrawingStrokeTargetLayer(strokeState) {
+  const strokeTimestamp = getDrawingStrokeTimestamp(strokeState);
+  const isNewStroke = drawingsLiftCutoffAt > 0 && strokeTimestamp > drawingsLiftCutoffAt;
+  const targetLayer = isNewStroke ? drawingLayer : drawingBackLayer;
+  return targetLayer instanceof SVGElement ? targetLayer : drawingLayer;
+}
+
+function ensureDrawingStrokeElement(strokeId, targetLayer = drawingLayer) {
+  if (!(targetLayer instanceof SVGElement)) {
     return null;
   }
   let stroke = drawingStrokeElements.get(strokeId);
@@ -6550,8 +7994,10 @@ function ensureDrawingStrokeElement(strokeId) {
     stroke.addEventListener('pointerdown', (event) => {
       onDrawingStrokePointerDown(event, strokeId);
     });
-    drawingLayer.appendChild(stroke);
+    targetLayer.appendChild(stroke);
     drawingStrokeElements.set(strokeId, stroke);
+  } else if (stroke.parentElement !== targetLayer) {
+    targetLayer.appendChild(stroke);
   }
   return stroke;
 }
@@ -6562,7 +8008,7 @@ function renderDrawingStroke(strokeId) {
     removeDrawingStrokeElement(strokeId);
     return;
   }
-  const stroke = ensureDrawingStrokeElement(strokeId);
+  const stroke = ensureDrawingStrokeElement(strokeId, getDrawingStrokeTargetLayer(strokeState));
   if (!stroke) {
     return;
   }
@@ -6602,6 +8048,9 @@ function applyCamera() {
   }
   if (drawingLayer) {
     drawingLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
+  }
+  if (drawingBackLayer) {
+    drawingBackLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
   }
   renderAllDice();
   renderAllCards();
@@ -6644,6 +8093,13 @@ function initializeCamera() {
     drawingLayer.style.height = `${WORLD_HEIGHT}px`;
     if (drawingLayer instanceof SVGElement) {
       drawingLayer.setAttribute('viewBox', `0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`);
+    }
+  }
+  if (drawingBackLayer) {
+    drawingBackLayer.style.width = `${WORLD_WIDTH}px`;
+    drawingBackLayer.style.height = `${WORLD_HEIGHT}px`;
+    if (drawingBackLayer instanceof SVGElement) {
+      drawingBackLayer.setAttribute('viewBox', `0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`);
     }
   }
 
@@ -6772,14 +8228,52 @@ setRoomBadgeText(defaultRoomTitle);
 setRoomOwnerState(false);
 scheduleRoomBadgeWidthSync();
 
+async function copyRoomLink(options = {}) {
+  const fromRoomBadge = options?.fromRoomBadge === true;
+  const shareText = roomShareUrl || buildRoomShareUrl(roomId).toString();
+  const copied = await copyTextToClipboard(shareText);
+  if (!copied) {
+    setRealtimeStatus('clipboard: blocked');
+    return false;
+  }
+  if (isRoomOwner) {
+    if (copyLinkFeedbackTimerId) {
+      window.clearTimeout(copyLinkFeedbackTimerId);
+    }
+    setCopyLinkButtonVisualState({ copied: true });
+    copyLinkFeedbackTimerId = window.setTimeout(() => {
+      copyLinkFeedbackTimerId = 0;
+      setCopyLinkButtonVisualState({ copied: false });
+    }, ROOM_LINK_COPY_FEEDBACK_MS);
+  }
+  if (fromRoomBadge || isRoomOwner) {
+    showRoomBadgeCopyFeedback();
+  }
+  return true;
+}
+
 roomBadge?.addEventListener('click', () => {
-  openRoomTitleEditor();
+  if (isRoomOwner) {
+    openRoomTitleEditor();
+    return;
+  }
+  copyRoomLink({ fromRoomBadge: true }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('clipboard: blocked');
+  });
 });
 
 roomBadge?.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    openRoomTitleEditor();
+    if (isRoomOwner) {
+      openRoomTitleEditor();
+      return;
+    }
+    copyRoomLink({ fromRoomBadge: true }).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('clipboard: blocked');
+    });
   }
 });
 
@@ -6825,6 +8319,7 @@ roomTitleInput?.addEventListener('blur', () => {
 const shareUrl = buildRoomShareUrl(roomId);
 shareUrl.searchParams.delete('name');
 shareUrl.searchParams.delete('color');
+roomShareUrl = shareUrl.toString();
 const canonicalPathAndSearch = `${shareUrl.pathname}${shareUrl.search}`;
 const currentPathAndSearch = `${window.location.pathname}${window.location.search}`;
 if (canonicalPathAndSearch !== currentPathAndSearch) {
@@ -6923,29 +8418,15 @@ auctionBidSubmitButton?.addEventListener('click', (event) => {
 });
 
 copyLinkButton?.addEventListener('click', async () => {
+  if (!isRoomOwner) {
+    return;
+  }
   try {
-    await navigator.clipboard.writeText(shareUrl.toString());
-  } catch {
-    const fallback = document.createElement('textarea');
-    fallback.value = shareUrl.toString();
-    fallback.style.position = 'fixed';
-    fallback.style.opacity = '0';
-    document.body.appendChild(fallback);
-    fallback.select();
-    document.execCommand('copy');
-    fallback.remove();
+    await copyRoomLink();
+  } catch (error) {
+    console.error(error);
+    setRealtimeStatus('clipboard: blocked');
   }
-
-  copyLinkButton.classList.add('copied');
-  if (copyLabel) {
-    copyLabel.textContent = 'copied';
-  }
-  window.setTimeout(() => {
-    copyLinkButton.classList.remove('copied');
-    if (copyLabel) {
-      copyLabel.textContent = 'copy link';
-    }
-  }, 1300);
 });
 
 function isMonsItemChoiceModalOpen() {
@@ -6993,6 +8474,76 @@ function isImageAddModalOpen() {
   return Boolean(imageAddModal && !imageAddModal.classList.contains('hidden'));
 }
 
+function isStickerAddModalOpen() {
+  return Boolean(stickerAddModal && !stickerAddModal.classList.contains('hidden'));
+}
+
+function isMediaAddModalOpen() {
+  return Boolean(mediaAddModal && !mediaAddModal.classList.contains('hidden'));
+}
+
+function setMediaAddValidationMessage(message = '', options = {}) {
+  const normalizedMessage = String(message || '').trim();
+  if (mediaAddError) {
+    mediaAddError.textContent = normalizedMessage;
+    mediaAddError.classList.toggle('hidden', !normalizedMessage);
+  }
+  const markInvalid = options.urlInvalid === true;
+  mediaAddInput?.classList.toggle('is-invalid', markInvalid);
+}
+
+function setActiveStickerAsset(fileName) {
+  const normalizedFileName = String(fileName || '').trim();
+  const hasMatch = STICKER_ASSET_ITEMS.some((item) => item.fileName === normalizedFileName);
+  activeStickerAssetFileName = hasMatch
+    ? normalizedFileName
+    : STICKER_ASSET_ITEMS[0]?.fileName || '';
+  if (!(stickerAddGallery instanceof HTMLElement)) {
+    return;
+  }
+  const itemButtons = stickerAddGallery.querySelectorAll('.sticker-add-item');
+  for (const itemButton of itemButtons) {
+    const isActive = itemButton.getAttribute('data-sticker-file') === activeStickerAssetFileName;
+    itemButton.classList.toggle('is-active', isActive);
+    itemButton.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
+}
+
+function ensureStickerAddGallery() {
+  if (!(stickerAddGallery instanceof HTMLElement)) {
+    return;
+  }
+  if (stickerAddGallery.dataset.initialized === '1') {
+    setActiveStickerAsset(activeStickerAssetFileName);
+    return;
+  }
+  stickerAddGallery.textContent = '';
+  for (const stickerItem of STICKER_ASSET_ITEMS) {
+    const itemButton = document.createElement('button');
+    itemButton.type = 'button';
+    itemButton.className = 'sticker-add-item';
+    itemButton.setAttribute('data-sticker-file', stickerItem.fileName);
+    itemButton.setAttribute('role', 'option');
+    itemButton.setAttribute('aria-selected', 'false');
+
+    const itemImage = document.createElement('img');
+    itemImage.src = stickerItem.src;
+    itemImage.alt = stickerItem.label;
+    itemImage.loading = 'lazy';
+    itemImage.decoding = 'async';
+    itemImage.draggable = false;
+    itemButton.appendChild(itemImage);
+
+    itemButton.addEventListener('click', () => {
+      setActiveStickerAsset(stickerItem.fileName);
+    });
+
+    stickerAddGallery.appendChild(itemButton);
+  }
+  stickerAddGallery.dataset.initialized = '1';
+  setActiveStickerAsset(activeStickerAssetFileName);
+}
+
 function syncDiceAddModalUi() {
   const isD20 = activeDiceAddType === 'd20';
   diceTypeD6Button?.classList.toggle('is-active', !isD20);
@@ -7027,6 +8578,8 @@ function openDiceAddModal() {
     return;
   }
   closeMonsItemChoiceModal();
+  closeMediaAddModal();
+  closeStickerAddModal();
   closeImageAddModal();
   closeGameOptionsMenu();
   closeAssetMenu();
@@ -7043,7 +8596,19 @@ function closeDiceAddModal() {
 
 function syncImageAddModalUi() {
   const twoSidedEnabled = Boolean(imageAddTwoSidedCheckbox?.checked);
+  const frontBlankEnabled = Boolean(imageAddFrontBlankCheckbox?.checked);
+  const backBlankEnabled = twoSidedEnabled && Boolean(imageAddBackBlankCheckbox?.checked);
   imageAddBackField?.classList.toggle('hidden', !twoSidedEnabled);
+  imageAddBackBlankRow?.classList.toggle('hidden', !twoSidedEnabled);
+  if (imageAddFrontInput) {
+    imageAddFrontInput.disabled = frontBlankEnabled;
+  }
+  if (imageAddBackInput) {
+    imageAddBackInput.disabled = !twoSidedEnabled || backBlankEnabled;
+  }
+  if (imageAddBackBlankCheckbox && !twoSidedEnabled) {
+    imageAddBackBlankCheckbox.checked = false;
+  }
 }
 
 function setImageAddValidationMessage(message = '', options = {}) {
@@ -7054,8 +8619,12 @@ function setImageAddValidationMessage(message = '', options = {}) {
   }
   const markFrontInvalid = options.frontInvalid === true;
   const markBackInvalid = options.backInvalid === true;
-  imageAddFrontInput?.classList.toggle('is-invalid', markFrontInvalid);
-  imageAddBackInput?.classList.toggle('is-invalid', markBackInvalid);
+  if (imageAddFrontInput) {
+    imageAddFrontInput.classList.toggle('is-invalid', markFrontInvalid && !imageAddFrontInput.disabled);
+  }
+  if (imageAddBackInput) {
+    imageAddBackInput.classList.toggle('is-invalid', markBackInvalid && !imageAddBackInput.disabled);
+  }
 }
 
 function openImageAddModal() {
@@ -7064,9 +8633,17 @@ function openImageAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeMediaAddModal();
+  closeStickerAddModal();
   closeGameOptionsMenu();
   closeAssetMenu();
   setImageAddValidationMessage('');
+  if (imageAddFrontBlankColorInput) {
+    imageAddFrontBlankColorInput.value = normalizeHexColor(imageAddFrontBlankColorInput.value || '#ffffff');
+  }
+  if (imageAddBackBlankColorInput) {
+    imageAddBackBlankColorInput.value = normalizeHexColor(imageAddBackBlankColorInput.value || '#ffffff');
+  }
   syncImageAddModalUi();
   imageAddModal.classList.remove('hidden');
 }
@@ -7079,12 +8656,73 @@ function closeImageAddModal() {
   imageAddModal.classList.add('hidden');
 }
 
+function openStickerAddModal() {
+  if (!stickerAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeImageAddModal();
+  closeMediaAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  ensureStickerAddGallery();
+  setActiveStickerAsset(activeStickerAssetFileName);
+  stickerAddModal.classList.remove('hidden');
+}
+
+function closeStickerAddModal() {
+  if (!stickerAddModal) {
+    return;
+  }
+  stickerAddModal.classList.add('hidden');
+}
+
+function openMediaAddModal() {
+  if (!mediaAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeImageAddModal();
+  closeStickerAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  setMediaAddValidationMessage('');
+  if (mediaAddInput) {
+    mediaAddInput.value = '';
+  }
+  mediaAddModal.classList.remove('hidden');
+}
+
+function closeMediaAddModal() {
+  if (!mediaAddModal) {
+    return;
+  }
+  setMediaAddValidationMessage('');
+  mediaAddModal.classList.add('hidden');
+}
+
+function returnToAssetComponentMenuFromSubmenu() {
+  closeDiceAddModal();
+  closeImageAddModal();
+  closeStickerAddModal();
+  closeMediaAddModal();
+  setAssetMenuView('component');
+  openAssetMenu();
+}
+
 function openAssetMenu() {
   if (!assetMenuModal) {
     return;
   }
+  if (deleteModeEnabled) {
+    setDeleteModeEnabled(false);
+  }
   closeDiceAddModal();
   closeImageAddModal();
+  closeStickerAddModal();
+  closeMediaAddModal();
   closeMonsItemChoiceModal();
   closeGameOptionsMenu();
   setAssetMenuView(activeAssetMenuView);
@@ -7122,14 +8760,34 @@ function isTabletopCompletelyEmpty() {
   return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasDrawings;
 }
 
+function hasRemovableDeleteTargets() {
+  const hasCards = cards.size > 0;
+  const hasDice = diceById.size > 0;
+  const hasDecks = deckStatesById.size > 0;
+  const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasDrawings = drawingStrokes.size > 0;
+  return hasCards || hasDice || hasDecks || hasMonsBoards || hasDrawings;
+}
+
+function syncRemoveComponentsButtonState() {
+  if (!removeComponentsButton) {
+    return;
+  }
+  const isDisabled = !hasRemovableDeleteTargets();
+  removeComponentsButton.disabled = isDisabled;
+  removeComponentsButton.classList.toggle('is-disabled', isDisabled);
+}
+
 function syncClearTableButtonState() {
   if (!clearTableButton) {
+    syncRemoveComponentsButtonState();
     syncWipeAllDrawingsButtonState();
     return;
   }
   const isEmpty = isTabletopCompletelyEmpty();
   clearTableButton.disabled = isEmpty;
   clearTableButton.classList.toggle('is-disabled', isEmpty);
+  syncRemoveComponentsButtonState();
   syncWipeAllDrawingsButtonState();
 }
 
@@ -7176,6 +8834,29 @@ function getMonsGameIdFromGameOptionsTarget(target) {
   return normalizeMonsGameId(raw.slice('mons:'.length));
 }
 
+function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
+  const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
+  if (targetMonsGameId) {
+    return isMonsCoverDrawingsEnabled(targetMonsGameId);
+  }
+  const targetDeckId = getDeckIdFromGameOptionsTarget(target);
+  if (targetDeckId) {
+    return isDeckCoverDrawingsEnabled(targetDeckId);
+  }
+  return false;
+}
+
+function syncGameOptionsCoverDrawingsToggleState() {
+  if (!gameOptionsCoverDrawingsToggle) {
+    return;
+  }
+  const hasTarget = Boolean(activeGameOptionsTarget);
+  gameOptionsCoverDrawingsToggleSyncing = true;
+  gameOptionsCoverDrawingsToggle.checked = hasTarget && isCoverDrawingsEnabledForGameOptionsTarget(activeGameOptionsTarget);
+  gameOptionsCoverDrawingsToggle.disabled = !hasTarget;
+  gameOptionsCoverDrawingsToggleSyncing = false;
+}
+
 function openGameOptionsMenu(targetKey, targetId = '') {
   if (!gameOptionsModal) {
     return;
@@ -7194,6 +8875,7 @@ function openGameOptionsMenu(targetKey, targetId = '') {
   } else if (gameOptionsTitle) {
     gameOptionsTitle.textContent = titleText;
   }
+  syncGameOptionsCoverDrawingsToggleState();
   gameOptionsModal.classList.remove('hidden');
 }
 
@@ -7203,7 +8885,10 @@ function closeGameOptionsMenu() {
   }
   gameOptionsModal.classList.add('hidden');
   activeGameOptionsTarget = '';
+  syncGameOptionsCoverDrawingsToggleState();
 }
+
+syncGameOptionsCoverDrawingsToggleState();
 
 function closeClearTableWarningModal(shouldContinue = false) {
   if (clearTableWarningModal) {
@@ -7332,16 +9017,41 @@ assetMenuTabGameButton?.addEventListener('click', () => {
 assetMenuTabComponentButton?.addEventListener('click', () => {
   setAssetMenuView('component');
 });
-removeComponentsButton?.addEventListener('click', () => {
+removeComponentsButton?.addEventListener('click', (event) => {
+  if (removeComponentsButton.disabled) {
+    return;
+  }
+  if (event instanceof MouseEvent && typeof updateLocalMouseCursor === 'function') {
+    updateLocalMouseCursor(event.clientX, event.clientY);
+  }
   closeAssetMenu();
   setDeleteModeEnabled(true);
 });
 deleteModeCancelButton?.addEventListener('click', () => {
   setDeleteModeEnabled(false);
 });
+deleteModeUndoButton?.addEventListener('click', () => {
+  if (deleteModeUndoButton.disabled) {
+    return;
+  }
+  undoDeleteModeAction().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
 
 gameOptionsCloseButton?.addEventListener('click', () => {
   closeGameOptionsMenu();
+});
+gameOptionsCoverDrawingsToggle?.addEventListener('change', () => {
+  if (gameOptionsCoverDrawingsToggleSyncing || !activeGameOptionsTarget) {
+    return;
+  }
+  setGameCoverDrawingsPreference(activeGameOptionsTarget, gameOptionsCoverDrawingsToggle.checked).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+    syncGameOptionsCoverDrawingsToggleState();
+  });
 });
 monsItemChoiceBombButton?.addEventListener('click', () => {
   if (monsItemChoiceBombButton.disabled) {
@@ -7421,9 +9131,18 @@ labelComponentTile?.addEventListener('click', () => {
 imageComponentTile?.addEventListener('click', () => {
   openImageAddModal();
 });
+stickerComponentTile?.addEventListener('click', () => {
+  openStickerAddModal();
+});
+mediaComponentTile?.addEventListener('click', () => {
+  openMediaAddModal();
+});
 
 diceAddCloseButton?.addEventListener('click', () => {
   closeDiceAddModal();
+});
+diceAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
 });
 
 diceTypeD6Button?.addEventListener('click', () => {
@@ -7452,11 +9171,22 @@ diceAddConfirmButton?.addEventListener('click', () => {
 imageAddCloseButton?.addEventListener('click', () => {
   closeImageAddModal();
 });
+imageAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
 imageAddTwoSidedCheckbox?.addEventListener('change', () => {
   syncImageAddModalUi();
   setImageAddValidationMessage('');
 });
 imageAddCardCheckbox?.addEventListener('change', () => {
+  setImageAddValidationMessage('');
+});
+imageAddFrontBlankCheckbox?.addEventListener('change', () => {
+  syncImageAddModalUi();
+  setImageAddValidationMessage('');
+});
+imageAddBackBlankCheckbox?.addEventListener('change', () => {
+  syncImageAddModalUi();
   setImageAddValidationMessage('');
 });
 imageAddFrontInput?.addEventListener('input', () => {
@@ -7465,26 +9195,100 @@ imageAddFrontInput?.addEventListener('input', () => {
 imageAddBackInput?.addEventListener('input', () => {
   setImageAddValidationMessage('');
 });
+imageAddFrontBlankColorInput?.addEventListener('input', () => {
+  imageAddFrontBlankColorInput.value = normalizeHexColor(imageAddFrontBlankColorInput.value || '#ffffff');
+});
+imageAddBackBlankColorInput?.addEventListener('input', () => {
+  imageAddBackBlankColorInput.value = normalizeHexColor(imageAddBackBlankColorInput.value || '#ffffff');
+});
 imageAddConfirmButton?.addEventListener('click', () => {
+  const frontBlank = Boolean(imageAddFrontBlankCheckbox?.checked);
+  const twoSided = Boolean(imageAddTwoSidedCheckbox?.checked);
+  const backBlank = twoSided && Boolean(imageAddBackBlankCheckbox?.checked);
   const frontSrc = normalizeImageComponentSrc(imageAddFrontInput?.value || '');
-  if (!frontSrc) {
+  if (!frontBlank && !frontSrc) {
     setImageAddValidationMessage('enter a valid image URL first.', { frontInvalid: true });
     return;
   }
-  const twoSided = Boolean(imageAddTwoSidedCheckbox?.checked);
   const backSrc = normalizeImageComponentSrc(imageAddBackInput?.value || '');
-  if (twoSided && !backSrc) {
-    setImageAddValidationMessage('enter a back URL or disable 2-sided.', { backInvalid: true });
+  if (twoSided && !backBlank && !backSrc) {
+    setImageAddValidationMessage('enter a back URL or enable blank back.', { backInvalid: true });
     return;
   }
   setImageAddValidationMessage('');
   const cardSized = Boolean(imageAddCardCheckbox?.checked);
+  const frontBlankColor = normalizeHexColor(imageAddFrontBlankColorInput?.value || '#ffffff');
+  const backBlankColor = normalizeHexColor(imageAddBackBlankColorInput?.value || '#ffffff');
   closeImageAddModal();
   spawnImageComponent(frontSrc, {
     cardSized,
     twoSided,
-    backSrc
+    backSrc,
+    frontBlank,
+    frontBlankColor,
+    backBlank,
+    backBlankColor
   }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+stickerAddCloseButton?.addEventListener('click', () => {
+  closeStickerAddModal();
+});
+stickerAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+stickerAddConfirmButton?.addEventListener('click', () => {
+  const selectedSticker = STICKER_ASSET_ITEMS.find((item) => item.fileName === activeStickerAssetFileName) || STICKER_ASSET_ITEMS[0];
+  if (!selectedSticker?.src) {
+    return;
+  }
+  closeStickerAddModal();
+  spawnStickerComponent(selectedSticker.src).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+stickerAddRandomButton?.addEventListener('click', () => {
+  if (!Array.isArray(STICKER_ASSET_ITEMS) || STICKER_ASSET_ITEMS.length === 0) {
+    return;
+  }
+  const randomSticker = STICKER_ASSET_ITEMS[Math.floor(Math.random() * STICKER_ASSET_ITEMS.length)];
+  if (!randomSticker?.src) {
+    return;
+  }
+  setActiveStickerAsset(randomSticker.fileName);
+  closeStickerAddModal();
+  spawnStickerComponent(randomSticker.src).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+mediaAddCloseButton?.addEventListener('click', () => {
+  closeMediaAddModal();
+});
+mediaAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+mediaAddInput?.addEventListener('input', () => {
+  setMediaAddValidationMessage('');
+});
+mediaAddInput?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    mediaAddConfirmButton?.click();
+  }
+});
+mediaAddConfirmButton?.addEventListener('click', () => {
+  const parsed = parseEmbeddableMediaUrl(mediaAddInput?.value || '');
+  if (!parsed) {
+    setMediaAddValidationMessage('enter a valid YouTube or SoundCloud URL.', { urlInvalid: true });
+    return;
+  }
+  setMediaAddValidationMessage('');
+  closeMediaAddModal();
+  spawnMediaComponent(parsed).catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -7556,6 +9360,16 @@ imageAddModal?.addEventListener('pointerdown', (event) => {
     closeImageAddModal();
   }
 });
+stickerAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === stickerAddModal) {
+    closeStickerAddModal();
+  }
+});
+mediaAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === mediaAddModal) {
+    closeMediaAddModal();
+  }
+});
 
 gameOptionsModal?.addEventListener('pointerdown', (event) => {
   if (event.target === gameOptionsModal) {
@@ -7595,6 +9409,14 @@ window.addEventListener('keydown', (event) => {
     closeImageAddModal();
     return;
   }
+  if (isStickerAddModalOpen()) {
+    closeStickerAddModal();
+    return;
+  }
+  if (isMediaAddModalOpen()) {
+    closeMediaAddModal();
+    return;
+  }
   if (isMonsItemChoiceModalOpen()) {
     closeMonsItemChoiceModal();
     return;
@@ -7617,6 +9439,14 @@ window.addEventListener('keydown', (event) => {
   }
   if (assetMenuModal && !assetMenuModal.classList.contains('hidden')) {
     closeAssetMenu();
+    return;
+  }
+  if (deleteModeEnabled) {
+    setDeleteModeEnabled(false);
+    return;
+  }
+  if (drawModeEnabled) {
+    setDrawModeEnabled(false);
   }
 });
 
@@ -7696,7 +9526,258 @@ function initializeDiceTilePipShuffle(tile) {
     lastPointerX = Number.NaN;
     lastPointerY = Number.NaN;
     accumulatedDistance = 0;
-    setDiceTileIconFace(4);
+  });
+}
+
+function initializeLabelTileLetterShuffle(tile) {
+  if (!tile) {
+    return;
+  }
+  const labelTextNode = tile.querySelector('.asset-component-icon-label text');
+  if (!(labelTextNode instanceof SVGTextElement)) {
+    return;
+  }
+  const baseLabelText = 'Abc';
+  const shuffleDurationMs = 500;
+  const shuffleStepMs = 55;
+  let shuffleIntervalId = 0;
+  let shuffleTimeoutId = 0;
+  let shuffleActive = false;
+
+  const randomLetter = (uppercase = false) => {
+    const codePoint = 97 + Math.floor(Math.random() * 26);
+    const letter = String.fromCharCode(codePoint);
+    return uppercase ? letter.toUpperCase() : letter;
+  };
+
+  const buildShuffleText = () => `${randomLetter(true)}${randomLetter(false)}${randomLetter(false)}`;
+
+  const stopShuffle = () => {
+    if (shuffleIntervalId) {
+      window.clearInterval(shuffleIntervalId);
+      shuffleIntervalId = 0;
+    }
+    if (shuffleTimeoutId) {
+      window.clearTimeout(shuffleTimeoutId);
+      shuffleTimeoutId = 0;
+    }
+    shuffleActive = false;
+    labelTextNode.textContent = baseLabelText;
+  };
+
+  tile.dataset.labelTileShufflePlayed = '0';
+  labelTextNode.textContent = baseLabelText;
+
+  tile.addEventListener('pointerenter', () => {
+    if (shuffleActive || tile.dataset.labelTileShufflePlayed === '1') {
+      return;
+    }
+    tile.dataset.labelTileShufflePlayed = '1';
+    shuffleActive = true;
+    labelTextNode.textContent = buildShuffleText();
+    shuffleIntervalId = window.setInterval(() => {
+      labelTextNode.textContent = buildShuffleText();
+    }, shuffleStepMs);
+    shuffleTimeoutId = window.setTimeout(() => {
+      stopShuffle();
+    }, shuffleDurationMs);
+  });
+
+  tile.addEventListener('pointerleave', () => {
+    tile.dataset.labelTileShufflePlayed = '0';
+    stopShuffle();
+  });
+}
+
+function ensureStickerTileIconLayers(tile) {
+  if (!tile) {
+    return null;
+  }
+  const iconWrap = tile.querySelector('.asset-component-icon-wrap');
+  if (!(iconWrap instanceof HTMLElement)) {
+    return null;
+  }
+  let frontIcon = iconWrap.querySelector('.asset-component-icon-sticker[data-sticker-layer="front"]');
+  if (!(frontIcon instanceof HTMLImageElement)) {
+    const existingIcon = iconWrap.querySelector('.asset-component-icon-sticker');
+    if (!(existingIcon instanceof HTMLImageElement)) {
+      return null;
+    }
+    frontIcon = existingIcon;
+    frontIcon.dataset.stickerLayer = 'front';
+  }
+  let backIcon = iconWrap.querySelector('.asset-component-icon-sticker[data-sticker-layer="back"]');
+  if (!(backIcon instanceof HTMLImageElement)) {
+    backIcon = frontIcon.cloneNode(true);
+    backIcon.dataset.stickerLayer = 'back';
+    backIcon.dataset.stickerActive = '0';
+    backIcon.setAttribute('aria-hidden', 'true');
+    backIcon.draggable = false;
+    const gloss = iconWrap.querySelector('.asset-preview-gloss');
+    if (gloss) {
+      iconWrap.insertBefore(backIcon, gloss);
+    } else {
+      iconWrap.appendChild(backIcon);
+    }
+  }
+  if (frontIcon.dataset.stickerActive !== '1' && backIcon.dataset.stickerActive !== '1') {
+    frontIcon.dataset.stickerActive = '1';
+    backIcon.dataset.stickerActive = '0';
+  }
+  return { frontIcon, backIcon };
+}
+
+function getStickerTileActiveIcon(iconPair) {
+  if (!iconPair) {
+    return null;
+  }
+  if (iconPair.frontIcon.dataset.stickerActive === '1') {
+    return iconPair.frontIcon;
+  }
+  if (iconPair.backIcon.dataset.stickerActive === '1') {
+    return iconPair.backIcon;
+  }
+  iconPair.frontIcon.dataset.stickerActive = '1';
+  iconPair.backIcon.dataset.stickerActive = '0';
+  return iconPair.frontIcon;
+}
+
+function setStickerTileIconSrc(tile, nextSrc, options = {}) {
+  const iconPair = ensureStickerTileIconLayers(tile);
+  if (!iconPair) {
+    return;
+  }
+  const normalizedSrc = String(nextSrc || '').trim();
+  if (!normalizedSrc) {
+    return;
+  }
+  const shouldAnimate = options.animate !== false;
+  const activeIcon = getStickerTileActiveIcon(iconPair);
+  if (!(activeIcon instanceof HTMLImageElement)) {
+    return;
+  }
+  const inactiveIcon = activeIcon === iconPair.frontIcon ? iconPair.backIcon : iconPair.frontIcon;
+  const currentVisibleSrc = String(
+    tile.dataset.stickerCurrentSrc || activeIcon.getAttribute('src') || ''
+  ).trim();
+  if (currentVisibleSrc) {
+    tile.dataset.stickerCurrentSrc = currentVisibleSrc;
+  }
+
+  if (!shouldAnimate) {
+    activeIcon.setAttribute('src', normalizedSrc);
+    inactiveIcon.setAttribute('src', normalizedSrc);
+    activeIcon.dataset.stickerActive = '1';
+    inactiveIcon.dataset.stickerActive = '0';
+    activeIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+    inactiveIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+    tile.dataset.stickerCurrentSrc = normalizedSrc;
+    delete tile.dataset.stickerPendingSrc;
+    tile.dataset.stickerShuffleAnimating = '0';
+    return;
+  }
+
+  if (currentVisibleSrc === normalizedSrc) {
+    delete tile.dataset.stickerPendingSrc;
+    return;
+  }
+  if (tile.dataset.stickerShuffleAnimating === '1') {
+    tile.dataset.stickerPendingSrc = normalizedSrc;
+    return;
+  }
+  tile.dataset.stickerShuffleAnimating = '1';
+  tile.dataset.stickerPendingSrc = normalizedSrc;
+  inactiveIcon.setAttribute('src', normalizedSrc);
+  activeIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+  inactiveIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+  activeIcon.classList.add('is-sticker-shuffle-exit');
+  inactiveIcon.classList.add('is-sticker-shuffle-enter');
+
+  let settled = false;
+  const finalizeTransition = () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    activeIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+    inactiveIcon.classList.remove('is-sticker-shuffle-enter', 'is-sticker-shuffle-exit', 'is-sticker-shuffle-active');
+    activeIcon.dataset.stickerActive = '0';
+    inactiveIcon.dataset.stickerActive = '1';
+    tile.dataset.stickerShuffleAnimating = '0';
+    tile.dataset.stickerCurrentSrc = normalizedSrc;
+    const queuedSrc = String(tile.dataset.stickerPendingSrc || '').trim();
+    if (queuedSrc && queuedSrc !== normalizedSrc) {
+      window.requestAnimationFrame(() => {
+        setStickerTileIconSrc(tile, queuedSrc, { animate: true });
+      });
+      return;
+    }
+    delete tile.dataset.stickerPendingSrc;
+  };
+
+  inactiveIcon.addEventListener('transitionend', finalizeTransition, { once: true });
+  window.setTimeout(finalizeTransition, 260);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      activeIcon.classList.add('is-sticker-shuffle-active');
+      inactiveIcon.classList.add('is-sticker-shuffle-active');
+    });
+  });
+}
+
+function initializeStickerTileIconShuffle(tile) {
+  if (!tile) {
+    return;
+  }
+  const iconPair = ensureStickerTileIconLayers(tile);
+  if (!iconPair) {
+    return;
+  }
+  const stickerSources = STICKER_ASSET_ITEMS.map((item) => String(item?.src || '').trim()).filter(Boolean);
+  if (stickerSources.length === 0) {
+    return;
+  }
+  const activeIcon = getStickerTileActiveIcon(iconPair);
+  const defaultSrc = String(activeIcon?.getAttribute('src') || stickerSources[0]).trim();
+  let lastShuffleAt = 0;
+  let lastPointerX = Number.NaN;
+  let lastPointerY = Number.NaN;
+  let accumulatedDistance = 0;
+  const minDistanceBeforeShuffle = 20;
+  const shuffleIntervalMs = 420;
+
+  setStickerTileIconSrc(tile, defaultSrc, { animate: false });
+  tile.addEventListener('pointermove', (event) => {
+    if (Number.isFinite(lastPointerX) && Number.isFinite(lastPointerY)) {
+      accumulatedDistance += Math.hypot(event.clientX - lastPointerX, event.clientY - lastPointerY);
+    }
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    if (accumulatedDistance < minDistanceBeforeShuffle) {
+      return;
+    }
+    const now = Date.now();
+    if (now - lastShuffleAt < shuffleIntervalMs) {
+      return;
+    }
+    lastShuffleAt = now;
+    const currentPair = ensureStickerTileIconLayers(tile);
+    const currentIcon = getStickerTileActiveIcon(currentPair);
+    const currentSrc = String(currentIcon?.getAttribute('src') || '').trim();
+    let nextSrc = stickerSources[Math.floor(Math.random() * stickerSources.length)];
+    if (stickerSources.length > 1 && nextSrc === currentSrc) {
+      let guard = 0;
+      while (nextSrc === currentSrc && guard < 8) {
+        nextSrc = stickerSources[Math.floor(Math.random() * stickerSources.length)];
+        guard += 1;
+      }
+    }
+    setStickerTileIconSrc(tile, nextSrc, { animate: true });
+  });
+  tile.addEventListener('pointerleave', () => {
+    lastPointerX = Number.NaN;
+    lastPointerY = Number.NaN;
+    accumulatedDistance = 0;
   });
 }
 
@@ -7706,7 +9787,11 @@ initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(labelComponentTile);
 initializeTileTilt(imageComponentTile);
+initializeTileTilt(stickerComponentTile);
+initializeTileTilt(mediaComponentTile);
 initializeDiceTilePipShuffle(diceComponentTile);
+initializeLabelTileLetterShuffle(labelComponentTile);
+initializeStickerTileIconShuffle(stickerComponentTile);
 
 function normalizeHexColor(value) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -7852,13 +9937,75 @@ function setRoomBadgeText(title) {
   roomTitleValue = normalizeRoomTitle(title);
   setDocumentRoomTitle(roomTitleValue);
   if (roomBadge && !isRoomTitleEditing) {
+    if (roomBadgeCopyFeedbackTimerId) {
+      scheduleRoomBadgeWidthSync();
+      return;
+    }
     roomBadge.textContent = roomTitleValue;
     scheduleRoomBadgeWidthSync();
   }
 }
 
+function clearRoomBadgeCopyFeedback() {
+  if (roomBadgeCopyFeedbackTimerId) {
+    window.clearTimeout(roomBadgeCopyFeedbackTimerId);
+    roomBadgeCopyFeedbackTimerId = 0;
+  }
+  if (roomBadge && !isRoomTitleEditing) {
+    roomBadge.textContent = roomTitleValue;
+    scheduleRoomBadgeWidthSync();
+  }
+}
+
+function showRoomBadgeCopyFeedback() {
+  if (!roomBadge || isRoomTitleEditing) {
+    return;
+  }
+  if (roomBadgeCopyFeedbackTimerId) {
+    window.clearTimeout(roomBadgeCopyFeedbackTimerId);
+  }
+  roomBadge.textContent = 'room link copied';
+  scheduleRoomBadgeWidthSync();
+  roomBadgeCopyFeedbackTimerId = window.setTimeout(() => {
+    roomBadgeCopyFeedbackTimerId = 0;
+    if (!roomBadge || isRoomTitleEditing) {
+      return;
+    }
+    roomBadge.textContent = roomTitleValue;
+    scheduleRoomBadgeWidthSync();
+  }, ROOM_LINK_COPY_FEEDBACK_MS);
+}
+
+function setCopyLinkButtonVisualState({ copied = false } = {}) {
+  if (!copyLinkButton || !copyLabel) {
+    return;
+  }
+  if (!isRoomOwner) {
+    copyLinkButton.classList.add('hidden');
+    copyLinkButton.classList.remove('is-owner-anchor', 'copied');
+    copyLabel.textContent = 'copy link';
+    copyLabel.classList.remove('hidden');
+    return;
+  }
+  copyLinkButton.classList.remove('hidden');
+  copyLinkButton.classList.add('is-owner-anchor');
+  copyLinkButton.classList.toggle('copied', copied);
+  copyLabel.textContent = 'copy link';
+  copyLabel.classList.add('hidden');
+}
+
 function setRoomOwnerState(isOwner) {
+  const previousOwnerState = isRoomOwner;
   isRoomOwner = Boolean(isOwner);
+  tableRoot?.classList.toggle('is-room-owner', isRoomOwner);
+  if (previousOwnerState !== isRoomOwner) {
+    clearRoomBadgeCopyFeedback();
+  }
+  if (copyLinkFeedbackTimerId) {
+    window.clearTimeout(copyLinkFeedbackTimerId);
+    copyLinkFeedbackTimerId = 0;
+  }
+  setCopyLinkButtonVisualState({ copied: false });
   if (!roomBadge) {
     if (wipeAllDrawingsButton) {
       wipeAllDrawingsButton.classList.toggle('hidden', !isRoomOwner);
@@ -7867,13 +10014,39 @@ function setRoomOwnerState(isOwner) {
     return;
   }
   roomBadge.classList.toggle('is-editable', isRoomOwner);
-  roomBadge.tabIndex = isRoomOwner ? 0 : -1;
-  roomBadge.setAttribute('title', isRoomOwner ? 'rename room' : '');
+  roomBadge.classList.toggle('is-copyable', !isRoomOwner);
+  roomBadge.tabIndex = 0;
+  roomBadge.setAttribute('title', isRoomOwner ? 'rename room' : 'copy room link');
   if (wipeAllDrawingsButton) {
     wipeAllDrawingsButton.classList.toggle('hidden', !isRoomOwner);
     syncWipeAllDrawingsButtonState();
   }
   syncTableResetRowLayout();
+}
+
+async function copyTextToClipboard(text) {
+  const normalized = String(text || '');
+  if (!normalized) {
+    return false;
+  }
+  try {
+    await navigator.clipboard.writeText(normalized);
+    return true;
+  } catch {
+    try {
+      const fallback = document.createElement('textarea');
+      fallback.value = normalized;
+      fallback.style.position = 'fixed';
+      fallback.style.opacity = '0';
+      document.body.appendChild(fallback);
+      fallback.select();
+      document.execCommand('copy');
+      fallback.remove();
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }
 
 function openRoomTitleEditor() {
@@ -7968,7 +10141,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -7981,7 +10154,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -8261,6 +10434,7 @@ if (hasPlaceholderConfig(firebaseConfig)) {
 
 shieldPointerEvents(copyLinkButton);
 shieldPointerEvents(bottomRightControls);
+shieldPointerEvents(deleteModeUndoButton);
 shieldPointerEvents(deleteModeCancelButton);
 shieldPointerEvents(assetMenuButton);
 shieldPointerEvents(assetMenuModal);
@@ -8271,20 +10445,40 @@ shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
 shieldPointerEvents(labelComponentTile);
 shieldPointerEvents(imageComponentTile);
+shieldPointerEvents(stickerComponentTile);
+shieldPointerEvents(mediaComponentTile);
 shieldPointerEvents(diceAddModal);
+shieldPointerEvents(diceAddBackButton);
 shieldPointerEvents(diceAddCloseButton);
 shieldPointerEvents(diceTypeD6Button);
 shieldPointerEvents(diceTypeD20Button);
 shieldPointerEvents(diceCountRow);
 shieldPointerEvents(diceAddConfirmButton);
 shieldPointerEvents(imageAddModal);
+shieldPointerEvents(imageAddBackButton);
 shieldPointerEvents(imageAddCloseButton);
 shieldPointerEvents(imageAddFrontInput);
 shieldPointerEvents(imageAddBackInput);
 shieldPointerEvents(imageAddCardCheckbox);
 shieldPointerEvents(imageAddTwoSidedCheckbox);
+shieldPointerEvents(imageAddFrontBlankCheckbox);
+shieldPointerEvents(imageAddFrontBlankColorInput);
+shieldPointerEvents(imageAddBackBlankRow);
+shieldPointerEvents(imageAddBackBlankCheckbox);
+shieldPointerEvents(imageAddBackBlankColorInput);
 shieldPointerEvents(imageAddBackField);
 shieldPointerEvents(imageAddConfirmButton);
+shieldPointerEvents(stickerAddModal);
+shieldPointerEvents(stickerAddBackButton);
+shieldPointerEvents(stickerAddCloseButton);
+shieldPointerEvents(stickerAddGallery);
+shieldPointerEvents(stickerAddConfirmButton);
+shieldPointerEvents(stickerAddRandomButton);
+shieldPointerEvents(mediaAddModal);
+shieldPointerEvents(mediaAddBackButton);
+shieldPointerEvents(mediaAddCloseButton);
+shieldPointerEvents(mediaAddInput);
+shieldPointerEvents(mediaAddConfirmButton);
 shieldPointerEvents(removeComponentsButton);
 shieldPointerEvents(clearTableButton);
 shieldPointerEvents(wipeAllDrawingsButton);
@@ -8299,6 +10493,7 @@ shieldPointerEvents(instanceWarningContinueButton);
 shieldPointerEvents(instanceWarningCancelButton);
 shieldPointerEvents(gameOptionsModal);
 shieldPointerEvents(gameOptionsCloseButton);
+shieldPointerEvents(gameOptionsCoverDrawingsToggle);
 shieldPointerEvents(gameOptionsResetButton);
 shieldPointerEvents(gameOptionsPutAwayButton);
 shieldPointerEvents(monsItemChoiceModal);
@@ -8322,7 +10517,16 @@ shieldPointerEvents(auctionBidInput);
 shieldPointerEvents(auctionBidSubmitButton);
 
 async function startRealtimeSession() {
-  if (!tableRoot || !playspaceLayer || !gameLayer || !drawingLayer || !cardLayer || !cursorLayer || !playerControls) {
+  if (
+    !tableRoot ||
+    !playspaceLayer ||
+    !gameLayer ||
+    !drawingLayer ||
+    !drawingBackLayer ||
+    !cardLayer ||
+    !cursorLayer ||
+    !playerControls
+  ) {
     throw new Error('Missing required DOM nodes');
   }
 
@@ -8349,6 +10553,36 @@ async function startRealtimeSession() {
   }
   localClientId = clientId;
   const myPresenceRef = ref(db, `${roomPath}/presence/${localPlayerToken}`);
+
+  announceMediaStartForRoom = async (dieId) => {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return false;
+    }
+    const result = await runTransaction(
+      ref(db, `${roomPath}/dice/${targetDieId}`),
+      (currentDie) => {
+        if (!currentDie || typeof currentDie !== 'object') {
+          return;
+        }
+        if (normalizeDieType(currentDie.type) !== 'media') {
+          return currentDie;
+        }
+        const existingSignal = Number(currentDie.mediaStartedAt);
+        if (Number.isFinite(existingSignal) && existingSignal > 0) {
+          return currentDie;
+        }
+        return {
+          ...currentDie,
+          mediaStartedAt: Date.now(),
+          mediaStartNonce: getRandomIntInclusive(1, 0x7fffffff),
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    return Boolean(result?.committed);
+  };
 
   function buildPayload(position = localPosition) {
     return {
@@ -8380,10 +10614,15 @@ async function startRealtimeSession() {
     (currentMeta) => {
       const baseMeta = currentMeta && typeof currentMeta === 'object' ? { ...currentMeta } : {};
       const currentOwnerToken = typeof baseMeta.ownerToken === 'string' ? baseMeta.ownerToken : '';
+      const currentDrawingsLiftCutoffAt = Number(baseMeta.drawingsLiftCutoffAt);
       return {
         ...baseMeta,
         title: normalizeRoomTitle(baseMeta.title),
         ownerToken: currentOwnerToken || ownerToken,
+        drawingsLiftCutoffAt:
+          Number.isFinite(currentDrawingsLiftCutoffAt) && currentDrawingsLiftCutoffAt > 0
+            ? Math.floor(currentDrawingsLiftCutoffAt)
+            : 0,
         updatedAt: Date.now()
       };
     },
@@ -8416,6 +10655,44 @@ async function startRealtimeSession() {
     }
   };
 
+  let lastDrawingsLiftCutoffWriteAt = 0;
+  let pendingDrawingsLiftCutoffAt = 0;
+  let drawingsLiftCutoffFlushTimerId = 0;
+
+  const flushDrawingsLiftCutoffUpdate = () => {
+    drawingsLiftCutoffFlushTimerId = 0;
+    const requestedCutoffAt = Math.floor(Number(pendingDrawingsLiftCutoffAt) || 0);
+    if (requestedCutoffAt <= 0 || requestedCutoffAt <= drawingsLiftCutoffAt) {
+      pendingDrawingsLiftCutoffAt = 0;
+      return;
+    }
+    pendingDrawingsLiftCutoffAt = 0;
+    drawingsLiftCutoffAt = requestedCutoffAt;
+    renderAllDrawingStrokes();
+    lastDrawingsLiftCutoffWriteAt = Date.now();
+    update(roomMetaRef, {
+      drawingsLiftCutoffAt: requestedCutoffAt,
+      updatedAt: Date.now()
+    }).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+
+  const queueDrawingsLiftCutoffUpdate = (requestedAt = Date.now()) => {
+    const normalizedRequestedAt = Math.floor(Number(requestedAt) || Date.now());
+    if (!Number.isFinite(normalizedRequestedAt) || normalizedRequestedAt <= 0) {
+      return;
+    }
+    pendingDrawingsLiftCutoffAt = Math.max(pendingDrawingsLiftCutoffAt, normalizedRequestedAt);
+    if (drawingsLiftCutoffFlushTimerId) {
+      return;
+    }
+    const elapsedSinceLastWrite = Date.now() - lastDrawingsLiftCutoffWriteAt;
+    const delay = Math.max(0, DRAWINGS_LIFT_CUTOFF_WRITE_COOLDOWN_MS - elapsedSinceLastWrite);
+    drawingsLiftCutoffFlushTimerId = window.setTimeout(flushDrawingsLiftCutoffUpdate, delay);
+  };
+
   await set(myCursorRef, buildPayload(localPosition));
   onDisconnect(myCursorRef).remove();
   await update(myPresenceRef, {
@@ -8431,7 +10708,7 @@ async function startRealtimeSession() {
     updatedAt: serverTimestamp()
   });
   upsertDot(clientId, buildPayload(localPosition));
-  setRealtimeStatus('firebase: connected');
+  setRealtimeStatus('connected');
 
   let cardWriteScheduled = false;
   const pendingCardWrites = new Map();
@@ -8441,6 +10718,7 @@ async function startRealtimeSession() {
   let dieWriteGeneration = 0;
   let cardDragState = null;
   let cardResizeState = null;
+  let cardRotateState = null;
   let dieDragState = null;
   let labelResizeState = null;
   let groupDragState = null;
@@ -8480,8 +10758,16 @@ async function startRealtimeSession() {
   let activeAuctionCardIdForUi = '';
   let previousActiveAuctionCardId = '';
   const pendingDeleteKeys = new Set();
+  const deleteModeUndoHistory = [];
+  let deleteModeUndoPending = false;
   let labelEditState = null;
   latestPresenceByToken = {};
+  let latestRawCursorsById = {};
+  let hasLoadedPresenceSnapshot = false;
+  let hasLoadedCursorSnapshot = false;
+  const staleCardLockRecoveryAttemptAtById = new Map();
+  const staleCardLockRecoveryInFlight = new Set();
+  let staleCardLockSweepInProgress = false;
   let hasSignaledSessionLeave = false;
 
   function getMonsGameRef(gameId = activeMonsGameId) {
@@ -8527,10 +10813,10 @@ async function startRealtimeSession() {
   async function runDeleteWithFade(deleteKey, elements, deleteFn) {
     const normalizedKey = String(deleteKey || '').trim();
     if (!normalizedKey || typeof deleteFn !== 'function') {
-      return;
+      return false;
     }
     if (pendingDeleteKeys.has(normalizedKey)) {
-      return;
+      return false;
     }
     pendingDeleteKeys.add(normalizedKey);
     const fadeElements = applyDeleteFadeToElements(elements);
@@ -8539,6 +10825,7 @@ async function startRealtimeSession() {
     });
     try {
       await deleteFn();
+      return true;
     } catch (error) {
       clearDeleteFadeFromElements(fadeElements);
       throw error;
@@ -8546,6 +10833,177 @@ async function startRealtimeSession() {
       pendingDeleteKeys.delete(normalizedKey);
     }
   }
+
+  function cloneDeleteUndoPayload(payload) {
+    if (payload == null) {
+      return null;
+    }
+    if (typeof payload !== 'object') {
+      return payload;
+    }
+    if (typeof structuredClone === 'function') {
+      try {
+        return structuredClone(payload);
+      } catch {
+        // Fallback to JSON clone below.
+      }
+    }
+    try {
+      return JSON.parse(JSON.stringify(payload));
+    } catch {
+      return null;
+    }
+  }
+
+  function syncDeleteModeUndoUi() {
+    if (deleteModeCancelButton) {
+      deleteModeCancelButton.classList.toggle('hidden', !deleteModeEnabled);
+    }
+    if (!deleteModeUndoButton) {
+      return;
+    }
+    deleteModeUndoButton.classList.toggle('hidden', !deleteModeEnabled);
+    const canUndo = deleteModeEnabled && deleteModeUndoHistory.length > 0 && !deleteModeUndoPending;
+    deleteModeUndoButton.disabled = !canUndo;
+    deleteModeUndoButton.classList.toggle('is-disabled', !canUndo);
+    deleteModeUndoButton.setAttribute('title', canUndo ? 'undo last deletion' : 'no deletions to undo');
+  }
+
+  function pushDeleteModeUndoEntry(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return;
+    }
+    deleteModeUndoHistory.push(entry);
+    while (deleteModeUndoHistory.length > DELETE_MODE_UNDO_HISTORY_LIMIT) {
+      deleteModeUndoHistory.shift();
+    }
+    syncDeleteModeActionsUi();
+  }
+
+  function clearDeleteModeUndoHistory() {
+    deleteModeUndoHistory.length = 0;
+    syncDeleteModeActionsUi();
+  }
+
+  async function applyDeleteModeUndoEntry(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return;
+    }
+
+    const kind = String(entry.kind || '');
+    if (kind === 'card') {
+      const cardId = String(entry.cardId || '').trim();
+      const cardPayload = cloneDeleteUndoPayload(entry.cardPayload);
+      if (!cardId || !cardPayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/cards/${cardId}`), cardPayload);
+      return;
+    }
+
+    if (kind === 'die') {
+      const dieId = String(entry.dieId || '').trim();
+      const diePayload = cloneDeleteUndoPayload(entry.diePayload);
+      if (!dieId || !diePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/dice/${dieId}`), diePayload);
+      return;
+    }
+
+    if (kind === 'stroke') {
+      const strokeId = String(entry.strokeId || '').trim();
+      const strokePayload = cloneDeleteUndoPayload(entry.strokePayload);
+      if (!strokeId || !strokePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/drawings/${strokeId}`), strokePayload);
+      return;
+    }
+
+    if (kind === 'deck') {
+      const deckId = normalizeDeckId(entry.deckId || DECK_KEY);
+      const deckPayload = cloneDeleteUndoPayload(entry.deckPayload);
+      const cardsById = entry.cardsById && typeof entry.cardsById === 'object' ? entry.cardsById : {};
+      const updatesByPath = {};
+      if (deckPayload) {
+        updatesByPath[`decks/${deckId}`] = deckPayload;
+      }
+      for (const [cardId, cardPayload] of Object.entries(cardsById)) {
+        const normalizedCardId = String(cardId || '').trim();
+        const clonedCardPayload = cloneDeleteUndoPayload(cardPayload);
+        if (!normalizedCardId || !clonedCardPayload) {
+          continue;
+        }
+        updatesByPath[`cards/${normalizedCardId}`] = clonedCardPayload;
+      }
+      if (Object.keys(updatesByPath).length === 0) {
+        return;
+      }
+      await update(ref(db, roomPath), updatesByPath);
+      return;
+    }
+
+    if (kind === 'mons-game') {
+      const gameId = normalizeMonsGameId(entry.gameId || activeMonsGameId);
+      const gamePayload = cloneDeleteUndoPayload(entry.gamePayload);
+      if (!gameId || !gamePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/games/${gameId}`), gamePayload);
+      return;
+    }
+
+    if (kind === 'mons-piece') {
+      const gameId = normalizeMonsGameId(entry.gameId || activeMonsGameId);
+      const pieceId = String(entry.pieceId || '').trim();
+      const piecePayload = cloneDeleteUndoPayload(entry.piecePayload);
+      if (!gameId || !pieceId || !piecePayload) {
+        return;
+      }
+      const gamePayload = cloneDeleteUndoPayload(entry.gamePayload);
+      const currentGameState = getMonsGameStateById(gameId);
+      if (!currentGameState && gamePayload && typeof gamePayload === 'object') {
+        const restoredGamePayload = {
+          ...gamePayload,
+          pieces:
+            gamePayload.pieces && typeof gamePayload.pieces === 'object'
+              ? { ...gamePayload.pieces, [pieceId]: piecePayload }
+              : { [pieceId]: piecePayload }
+        };
+        await set(ref(db, `${roomPath}/games/${gameId}`), restoredGamePayload);
+        return;
+      }
+      await set(ref(db, `${roomPath}/games/${gameId}/pieces/${pieceId}`), piecePayload);
+    }
+  }
+
+  undoDeleteModeAction = async () => {
+    if (!deleteModeEnabled || deleteModeUndoPending) {
+      return;
+    }
+    const undoEntry = deleteModeUndoHistory.pop();
+    if (!undoEntry) {
+      syncDeleteModeActionsUi();
+      return;
+    }
+    deleteModeUndoPending = true;
+    syncDeleteModeActionsUi();
+    try {
+      await applyDeleteModeUndoEntry(undoEntry);
+    } catch (error) {
+      if (deleteModeEnabled) {
+        deleteModeUndoHistory.push(undoEntry);
+      }
+      throw error;
+    } finally {
+      deleteModeUndoPending = false;
+      syncDeleteModeActionsUi();
+    }
+  };
+
+  syncDeleteModeActionsUi = syncDeleteModeUndoUi;
+  syncDeleteModeActionsUi();
 
   function getDeckDeleteFadeElements(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
@@ -8558,6 +11016,7 @@ async function startRealtimeSession() {
         deckUi.moveButton,
         deckUi.optionsButton,
         deckUi.discardResetButton,
+        deckUi.deckSlot,
         deckUi.discardSlot,
         deckUi.auctionSlot,
         deckUi.deckCountBadge
@@ -8624,13 +11083,21 @@ async function startRealtimeSession() {
     if (!targetCardId) {
       return;
     }
-    await runDeleteWithFade(
+    const cardSnapshot = cloneDeleteUndoPayload(cards.get(targetCardId));
+    const didDelete = await runDeleteWithFade(
       `card:${targetCardId}`,
       [cardElements.get(targetCardId), handCardElements.get(targetCardId)],
       async () => {
         await set(ref(db, `${roomPath}/cards/${targetCardId}`), null);
       }
     );
+    if (didDelete && cardSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'card',
+        cardId: targetCardId,
+        cardPayload: cardSnapshot
+      });
+    }
   }
 
   async function deleteDieInRemoveMode(dieId) {
@@ -8638,13 +11105,21 @@ async function startRealtimeSession() {
     if (!targetDieId) {
       return;
     }
-    await runDeleteWithFade(
+    const dieSnapshot = cloneDeleteUndoPayload(diceById.get(targetDieId));
+    const didDelete = await runDeleteWithFade(
       `die:${targetDieId}`,
       [diceElements.get(targetDieId)],
       async () => {
         await set(ref(db, `${roomPath}/dice/${targetDieId}`), null);
       }
     );
+    if (didDelete && dieSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'die',
+        dieId: targetDieId,
+        diePayload: dieSnapshot
+      });
+    }
   }
 
   async function deleteDrawingStrokeInRemoveMode(strokeId) {
@@ -8652,35 +11127,70 @@ async function startRealtimeSession() {
     if (!targetStrokeId) {
       return;
     }
-    await runDeleteWithFade(
+    const strokeSnapshot = cloneDeleteUndoPayload(drawingStrokes.get(targetStrokeId));
+    const didDelete = await runDeleteWithFade(
       `stroke:${targetStrokeId}`,
       [drawingStrokeElements.get(targetStrokeId)],
       async () => {
         await set(ref(db, `${roomPath}/drawings/${targetStrokeId}`), null);
       }
     );
+    if (didDelete && strokeSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'stroke',
+        strokeId: targetStrokeId,
+        strokePayload: strokeSnapshot
+      });
+    }
   }
 
   async function deleteDeckInRemoveMode(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
-    await runDeleteWithFade(
+    const deckSnapshot = cloneDeleteUndoPayload(deckStatesById.get(targetDeckId));
+    const deckCardsSnapshot = {};
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!cardState || normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
+        continue;
+      }
+      const cardSnapshot = cloneDeleteUndoPayload(cardState);
+      if (cardSnapshot) {
+        deckCardsSnapshot[cardId] = cardSnapshot;
+      }
+    }
+    const didDelete = await runDeleteWithFade(
       `deck:${targetDeckId}`,
       getDeckDeleteFadeElements(targetDeckId),
       async () => {
         await putAwayCoolJpegsGame(targetDeckId);
       }
     );
+    if (didDelete && (deckSnapshot || Object.keys(deckCardsSnapshot).length > 0)) {
+      pushDeleteModeUndoEntry({
+        kind: 'deck',
+        deckId: targetDeckId,
+        deckPayload: deckSnapshot,
+        cardsById: deckCardsSnapshot
+      });
+    }
   }
 
   async function deleteMonsGameInRemoveMode(gameId = activeMonsGameId) {
     const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
-    await runDeleteWithFade(
+    const gameSnapshot = cloneDeleteUndoPayload(getMonsGameStateById(targetGameId));
+    const didDelete = await runDeleteWithFade(
       `mons-game:${targetGameId}`,
       getMonsGameDeleteFadeElements(targetGameId),
       async () => {
         await putAwaySuperMetalMonsGame(targetGameId);
       }
     );
+    if (didDelete && gameSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'mons-game',
+        gameId: targetGameId,
+        gamePayload: gameSnapshot
+      });
+    }
   }
 
   async function deleteMonsPieceInRemoveMode(pieceId, gameId = activeMonsGameId) {
@@ -8689,8 +11199,10 @@ async function startRealtimeSession() {
       return;
     }
     const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    const gameSnapshot = cloneDeleteUndoPayload(getMonsGameStateById(targetGameId));
+    const pieceSnapshot = cloneDeleteUndoPayload(gameSnapshot?.pieces?.[targetPieceId]);
     const pieceElement = getMonsPieceDeleteFadeElement(targetPieceId, targetGameId);
-    await runDeleteWithFade(
+    const didDelete = await runDeleteWithFade(
       `mons-piece:${targetGameId}:${targetPieceId}`,
       [pieceElement],
       async () => {
@@ -8721,6 +11233,15 @@ async function startRealtimeSession() {
         );
       }
     );
+    if (didDelete && pieceSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'mons-piece',
+        gameId: targetGameId,
+        pieceId: targetPieceId,
+        piecePayload: pieceSnapshot,
+        gamePayload: gameSnapshot
+      });
+    }
 
     if (monsSelectionPieceId === targetPieceId) {
       monsSelectionPieceId = '';
@@ -8735,6 +11256,10 @@ async function startRealtimeSession() {
 
   function isLabelDieState(dieState) {
     return normalizeDieType(dieState?.type) === 'label';
+  }
+
+  function isMediaDieState(dieState) {
+    return normalizeDieType(dieState?.type) === 'media';
   }
 
   function isLabelDieEditing(dieId) {
@@ -8846,6 +11371,7 @@ async function startRealtimeSession() {
     dieElement.dataset.labelEditing = '1';
     dieElement.classList.remove('is-resizable-label');
     dieElement.classList.remove('is-label-resize-hovered');
+    dieElement.classList.remove('is-die-resize-hovered');
     dieElement.classList.remove('is-resizing-label');
     const resizeHandle = dieElement.querySelector('.table-label-resize-handle');
     if (resizeHandle instanceof HTMLElement) {
@@ -8970,13 +11496,14 @@ async function startRealtimeSession() {
   }
 
   function syncHandHoverDragLock() {
-    setHandHoverDragLock(Boolean(cardDragState || cardResizeState || groupDragState || handReorderState));
+    setHandHoverDragLock(Boolean(cardDragState || cardResizeState || cardRotateState || groupDragState || handReorderState));
   }
 
   function hasActiveCardInteraction() {
     return Boolean(
       cardDragState ||
       cardResizeState ||
+      cardRotateState ||
       dieDragState ||
       labelResizeState ||
       groupDragState ||
@@ -8999,7 +11526,7 @@ async function startRealtimeSession() {
     if (labelEditState) {
       closeLabelEditor({ commit: true });
     }
-    const hasCardDrag = Boolean(cardDragState || cardResizeState || dieDragState || labelResizeState || groupDragState);
+    const hasCardDrag = Boolean(cardDragState || cardResizeState || cardRotateState || dieDragState || labelResizeState || groupDragState);
     const hasSelectedObjects = hasAnyGroupSelection();
     if (!hasCardDrag && !hasSelectedObjects) {
       return;
@@ -9012,6 +11539,9 @@ async function startRealtimeSession() {
     }
     if (cardResizeState?.cardId) {
       cardIdsToRelease.add(cardResizeState.cardId);
+    }
+    if (cardRotateState?.cardId) {
+      cardIdsToRelease.add(cardRotateState.cardId);
     }
     if (dieDragState?.dieId) {
       dieIdsToRelease.add(dieDragState.dieId);
@@ -9049,10 +11579,13 @@ async function startRealtimeSession() {
 
     cardDragState = null;
     cardResizeState = null;
+    cardRotateState = null;
     resizingImageCardId = '';
+    rotatingStickerCardId = '';
     dieDragState = null;
     labelResizeState = null;
     resizingLabelDieId = '';
+    resizingMediaDieId = '';
     groupDragState = null;
     selectionBoxState = null;
     setDeckDropIndicator(false);
@@ -9165,14 +11698,200 @@ async function startRealtimeSession() {
     }
   }
 
+  function isClientSessionLikelyActive(targetClientId, now = Date.now()) {
+    const normalizedClientId = String(targetClientId || '').trim();
+    if (!normalizedClientId) {
+      return false;
+    }
+    if (normalizedClientId === clientId) {
+      return true;
+    }
+
+    if (hasLoadedCursorSnapshot) {
+      const cursorPayload = latestRawCursorsById?.[normalizedClientId];
+      if (isCursorPayloadActive(normalizedClientId, cursorPayload, now)) {
+        return true;
+      }
+    }
+
+    if (hasLoadedPresenceSnapshot) {
+      for (const payload of Object.values(latestPresenceByToken || {})) {
+        if (!payload || typeof payload !== 'object') {
+          continue;
+        }
+        const presenceClientId = typeof payload.clientId === 'string' ? payload.clientId.trim() : '';
+        if (presenceClientId !== normalizedClientId) {
+          continue;
+        }
+        if (isPresencePayloadActive(payload, now) !== false) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  async function tryRecoverStaleCardLock(cardId, expectedHolderClientId = '') {
+    const targetCardId = String(cardId || '').trim();
+    if (!targetCardId) {
+      return false;
+    }
+    if (!hasLoadedPresenceSnapshot && !hasLoadedCursorSnapshot) {
+      return false;
+    }
+
+    const currentCard = cards.get(targetCardId);
+    if (!currentCard) {
+      return false;
+    }
+    if (getCardHandOwnerId(currentCard)) {
+      return false;
+    }
+
+    const currentHolder = typeof currentCard.holderClientId === 'string' ? currentCard.holderClientId : '';
+    const expectedHolder = String(expectedHolderClientId || '').trim();
+    const lockHolder = currentHolder || expectedHolder;
+    if (!lockHolder || lockHolder === clientId) {
+      return true;
+    }
+
+    const now = Date.now();
+    if (isClientSessionLikelyActive(lockHolder, now)) {
+      return false;
+    }
+
+    const lastAttemptAt = staleCardLockRecoveryAttemptAtById.get(targetCardId) || 0;
+    if (now - lastAttemptAt < CARD_STALE_LOCK_RECOVERY_RETRY_MS) {
+      return false;
+    }
+    if (staleCardLockRecoveryInFlight.has(targetCardId)) {
+      return false;
+    }
+
+    staleCardLockRecoveryAttemptAtById.set(targetCardId, now);
+    staleCardLockRecoveryInFlight.add(targetCardId);
+    try {
+      const cardRef = ref(db, `${roomPath}/cards/${targetCardId}`);
+      const result = await runTransaction(
+        cardRef,
+        (snapshotCard) => {
+          if (!snapshotCard || typeof snapshotCard !== 'object') {
+            return;
+          }
+          const snapshotHolder =
+            typeof snapshotCard.holderClientId === 'string' && snapshotCard.holderClientId
+              ? snapshotCard.holderClientId
+              : '';
+          if (!snapshotHolder) {
+            return snapshotCard;
+          }
+          if (snapshotHolder === clientId) {
+            return snapshotCard;
+          }
+          if (snapshotHolder !== lockHolder) {
+            return;
+          }
+          const handOwnerClientId =
+            typeof snapshotCard.handOwnerClientId === 'string' && snapshotCard.handOwnerClientId
+              ? snapshotCard.handOwnerClientId
+              : '';
+          const handOwnerPlayerToken =
+            typeof snapshotCard.handOwnerPlayerToken === 'string' && snapshotCard.handOwnerPlayerToken
+              ? snapshotCard.handOwnerPlayerToken
+              : '';
+          if (handOwnerClientId || handOwnerPlayerToken) {
+            return;
+          }
+          return {
+            ...snapshotCard,
+            holderClientId: null,
+            updatedAt: Date.now()
+          };
+        },
+        { applyLocally: false }
+      );
+      if (result.committed) {
+        const nextHolder =
+          typeof result.snapshot.val()?.holderClientId === 'string' && result.snapshot.val()?.holderClientId
+            ? result.snapshot.val().holderClientId
+            : '';
+        if (!nextHolder) {
+          patchLocalCard(targetCardId, { holderClientId: null });
+          renderCardElement(targetCardId);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      staleCardLockRecoveryInFlight.delete(targetCardId);
+    }
+
+    const latestCard = cards.get(targetCardId);
+    return Boolean(latestCard) && !latestCard.holderClientId;
+  }
+
+  async function sweepStaleRemoteCardLocks() {
+    if (staleCardLockSweepInProgress || hasActiveCardInteraction()) {
+      return;
+    }
+    if (!hasLoadedPresenceSnapshot && !hasLoadedCursorSnapshot) {
+      return;
+    }
+    staleCardLockSweepInProgress = true;
+    try {
+      const now = Date.now();
+      const candidates = [];
+      for (const [cardId, cardState] of cards.entries()) {
+        if (!cardState || !cardState.holderClientId || cardState.holderClientId === clientId) {
+          continue;
+        }
+        if (getCardHandOwnerId(cardState)) {
+          continue;
+        }
+        if (isClientSessionLikelyActive(cardState.holderClientId, now)) {
+          continue;
+        }
+        const lastAttemptAt = staleCardLockRecoveryAttemptAtById.get(cardId) || 0;
+        if (now - lastAttemptAt < CARD_STALE_LOCK_RECOVERY_RETRY_MS) {
+          continue;
+        }
+        candidates.push([cardId, cardState.holderClientId]);
+        if (candidates.length >= CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT) {
+          break;
+        }
+      }
+      for (const [cardId, holderClientId] of candidates) {
+        await tryRecoverStaleCardLock(cardId, holderClientId);
+      }
+    } finally {
+      staleCardLockSweepInProgress = false;
+    }
+  }
+
   function markTouchPointerEnded(event) {
-    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+    if (isTouchLikePointerEvent(event)) {
       endedTouchPointerIds.add(event.pointerId);
     }
   }
 
   function wasTouchPointerReleased(pointerType, pointerId) {
     return (pointerType === 'touch' || pointerType === 'pen') && endedTouchPointerIds.has(pointerId);
+  }
+
+  function isTouchLikePointerEvent(event) {
+    if (!(event instanceof PointerEvent)) {
+      return false;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      return true;
+    }
+    return event.pointerType === 'mouse' && Boolean(event.sourceCapabilities?.firesTouchEvents);
+  }
+
+  function getEffectivePointerType(event) {
+    return isTouchLikePointerEvent(event) ? 'touch' : event.pointerType;
   }
 
   function pruneRecentTouchTaps(now = Date.now()) {
@@ -9189,7 +11908,7 @@ async function startRealtimeSession() {
   }
 
   function consumeDoubleTapIfPresent(cardId, event) {
-    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+    if (!isTouchLikePointerEvent(event)) {
       return false;
     }
     const now = Date.now();
@@ -9210,7 +11929,7 @@ async function startRealtimeSession() {
   }
 
   function rememberTouchTapCandidate(cardId, event) {
-    if ((event.pointerType !== 'touch' && event.pointerType !== 'pen') || !cardId) {
+    if (!isTouchLikePointerEvent(event) || !cardId) {
       return;
     }
     const now = Date.now();
@@ -9257,7 +11976,7 @@ async function startRealtimeSession() {
   }
 
   function consumeDieDoubleTapIfPresent(dieId, event) {
-    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+    if (!isTouchLikePointerEvent(event)) {
       return false;
     }
     const now = Date.now();
@@ -9276,7 +11995,7 @@ async function startRealtimeSession() {
   }
 
   function rememberDieTouchTapCandidate(dieId, event) {
-    if ((event.pointerType !== 'touch' && event.pointerType !== 'pen') || !dieId) {
+    if (!isTouchLikePointerEvent(event) || !dieId) {
       return;
     }
     const now = Date.now();
@@ -9682,11 +12401,18 @@ async function startRealtimeSession() {
   };
 
   function queueCardPatch(cardId, patch) {
-    if (isTableResetting) {
+    if (isTableResetting || !cardId || !patch || typeof patch !== 'object') {
       return;
     }
+    const nextPatch =
+      patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch, 'drawLifted')
+        ? { ...patch, drawLifted: true }
+        : patch;
+    if (patchTouchesPosition(nextPatch)) {
+      queueDrawingsLiftCutoffUpdate(Date.now());
+    }
     const queuedPatch = pendingCardWrites.get(cardId) || {};
-    pendingCardWrites.set(cardId, { ...queuedPatch, ...patch });
+    pendingCardWrites.set(cardId, { ...queuedPatch, ...nextPatch });
     if (cardWriteScheduled) {
       return;
     }
@@ -9715,8 +12441,15 @@ async function startRealtimeSession() {
     if (isTableResetting || !dieId || !patch || typeof patch !== 'object') {
       return;
     }
+    const nextPatch =
+      patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch, 'drawLifted')
+        ? { ...patch, drawLifted: true }
+        : patch;
+    if (patchTouchesPosition(nextPatch)) {
+      queueDrawingsLiftCutoffUpdate(Date.now());
+    }
     const queuedPatch = pendingDieWrites.get(dieId) || {};
-    pendingDieWrites.set(dieId, { ...queuedPatch, ...patch });
+    pendingDieWrites.set(dieId, { ...queuedPatch, ...nextPatch });
     if (dieWriteScheduled) {
       return;
     }
@@ -10273,7 +13006,7 @@ async function startRealtimeSession() {
     }
     if (drawModeEnabled === nextEnabled) {
       syncDrawModeUi();
-      syncLocalDrawCursor();
+      syncLocalModeCursors();
       syncShapeDrawingAssistVisuals();
       return;
     }
@@ -10283,11 +13016,7 @@ async function startRealtimeSession() {
     if (drawModeEnabled) {
       closeLabelEditor({ commit: true });
     }
-    if (drawModeEnabled) {
-      syncLocalDrawCursor();
-    } else {
-      hideLocalDrawCursor();
-    }
+    syncLocalModeCursors();
     if (!drawModeEnabled) {
       drawPointerState = null;
       drawShapePointerState = null;
@@ -10358,7 +13087,9 @@ async function startRealtimeSession() {
     const nextEnabled = Boolean(enabled);
     if (deleteModeEnabled === nextEnabled) {
       tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
-      deleteModeCancelButton?.classList.toggle('hidden', !nextEnabled);
+      syncDeleteModeActionsUi();
+      syncDeleteCursorLock();
+      syncLocalModeCursors();
       return;
     }
     if (nextEnabled) {
@@ -10374,10 +13105,19 @@ async function startRealtimeSession() {
       closeDiceAddModal();
       closeImageAddModal();
       closeMonsItemChoiceModal();
+    } else if (deleteModeEnabled) {
+      clearDeleteModeUndoHistory();
     }
     deleteModeEnabled = nextEnabled;
     tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
-    deleteModeCancelButton?.classList.toggle('hidden', !nextEnabled);
+    syncDeleteModeActionsUi();
+    syncDeleteCursorLock();
+    syncLocalModeCursors();
+    if (nextEnabled) {
+      window.requestAnimationFrame(() => {
+        syncLocalModeCursors();
+      });
+    }
   };
   setDeleteModeEnabled(deleteModeEnabled);
   setDrawModeEnabled(drawModeEnabled);
@@ -10525,7 +13265,8 @@ async function startRealtimeSession() {
             x: center.x,
             y: center.y,
             shuffleTick: 0,
-            holderClientId: null
+            holderClientId: null,
+            coverDrawings: false
           };
           patchLocalDeck(nextDeck, targetDeckId);
           await update(ref(db, `${roomPath}/decks/${targetDeckId}`), {
@@ -10586,7 +13327,11 @@ async function startRealtimeSession() {
     if (!existingDie) {
       return;
     }
-    const nextState = normalizeDicePayload({ ...existingDie, ...patch });
+    const nextPatch =
+      patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch || {}, 'drawLifted')
+        ? { ...patch, drawLifted: true }
+        : patch;
+    const nextState = normalizeDicePayload({ ...existingDie, ...nextPatch });
     diceById.set(dieId, nextState);
     renderDieElement(dieId);
   }
@@ -10596,7 +13341,14 @@ async function startRealtimeSession() {
     if (!existingCard) {
       return;
     }
-    cards.set(cardId, normalizeCardPayload({ ...existingCard, ...patch }));
+    if (isNativeImageComponentLocked(existingCard)) {
+      return;
+    }
+    const nextPatch =
+      patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch || {}, 'drawLifted')
+        ? { ...patch, drawLifted: true }
+        : patch;
+    cards.set(cardId, normalizeCardPayload({ ...existingCard, ...nextPatch }));
     renderCardElement(cardId);
   }
 
@@ -10608,6 +13360,7 @@ async function startRealtimeSession() {
     if (normalizeDeckId(activeDeckId) === normalizedDeckId) {
       deckState = nextDeck;
     }
+    syncCoverDrawingsGamesLayerState();
     renderAllCards();
   }
 
@@ -10619,6 +13372,7 @@ async function startRealtimeSession() {
     if (normalizeMonsGameId(activeMonsGameId) === normalizedGameId) {
       monsGameState = nextGame;
     }
+    syncCoverDrawingsGamesLayerState();
     renderMonsBoard();
   }
 
@@ -10775,7 +13529,7 @@ async function startRealtimeSession() {
 
   function buildHandDropPatch(cardId, ownerToken, nextHandZ) {
     const cardState = cards.get(cardId);
-    if (!cardState) {
+    if (!cardState || !canCardEnterHand(cardState)) {
       return null;
     }
     const nextFace = getFaceWhenEnteringHand(cardState);
@@ -10932,16 +13686,31 @@ async function startRealtimeSession() {
 
   async function acquireCardLock(cardId) {
     const holderRef = ref(db, `${roomPath}/cards/${cardId}/holderClientId`);
-    const result = await runTransaction(
-      holderRef,
-      (currentHolder) => {
-        if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
-          return;
-        }
-        return clientId;
-      },
-      { applyLocally: false }
-    );
+    const lockReducer = (currentHolder) => {
+      if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
+        return;
+      }
+      return clientId;
+    };
+
+    let result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
+    if (result.committed && result.snapshot.val() === clientId) {
+      onDisconnect(holderRef).set(null);
+      return true;
+    }
+
+    const blockingHolder =
+      typeof result.snapshot?.val() === 'string' && result.snapshot.val() ? result.snapshot.val() : '';
+    if (!blockingHolder || blockingHolder === clientId) {
+      return false;
+    }
+
+    const recovered = await tryRecoverStaleCardLock(cardId, blockingHolder);
+    if (!recovered) {
+      return false;
+    }
+
+    result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
     if (!result.committed || result.snapshot.val() !== clientId) {
       return false;
     }
@@ -11001,6 +13770,7 @@ async function startRealtimeSession() {
       const cardState = cards.get(cardId);
       return (
         Boolean(cardState) &&
+        !isNativeImageComponentLocked(cardState) &&
         !cardState.inDeck &&
         !cardState.inDiscard &&
         !cardState.inAuction &&
@@ -11160,6 +13930,9 @@ async function startRealtimeSession() {
       if (cardState.inAuction) {
         continue;
       }
+      if (isNativeImageComponentLocked(cardState)) {
+        continue;
+      }
       if (getCardHandOwnerId(cardState)) {
         continue;
       }
@@ -11191,13 +13964,6 @@ async function startRealtimeSession() {
         continue;
       }
       if (deckState.holderClientId && deckState.holderClientId !== clientId) {
-        continue;
-      }
-      const hasCards =
-        getDeckCardIds(normalizedDeckId).length > 0 ||
-        getDiscardCardIds(normalizedDeckId).length > 0 ||
-        getAuctionCardIds(normalizedDeckId).length > 0;
-      if (!hasCards) {
         continue;
       }
       if (overlapsSelectionRect(deckState.x, deckState.y, CARD_WIDTH, CARD_HEIGHT)) {
@@ -11343,7 +14109,7 @@ async function startRealtimeSession() {
   }
 
   function beginGroupDrag(event, cardId) {
-    if (!selectedCardIds.has(cardId) || cardDragState || cardResizeState || labelResizeState || groupDragState) {
+    if (!selectedCardIds.has(cardId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -11360,7 +14126,7 @@ async function startRealtimeSession() {
 
     groupDragState = {
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
+      pointerType: getEffectivePointerType(event),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -11383,7 +14149,7 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromDeck(event, deckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    if (!selectedDeckIds.has(normalizedDeckId) || cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
+    if (!selectedDeckIds.has(normalizedDeckId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -11400,7 +14166,7 @@ async function startRealtimeSession() {
 
     groupDragState = {
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
+      pointerType: getEffectivePointerType(event),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -11423,7 +14189,7 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromMons(event, gameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
-    if (!selectedMonsGameIds.has(normalizedGameId) || cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
+    if (!selectedMonsGameIds.has(normalizedGameId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -11440,7 +14206,7 @@ async function startRealtimeSession() {
 
     groupDragState = {
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
+      pointerType: getEffectivePointerType(event),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -11462,7 +14228,7 @@ async function startRealtimeSession() {
   }
 
   function beginGroupDragFromDie(event, dieId) {
-    if (!selectedDiceIds.has(dieId) || cardDragState || cardResizeState || labelResizeState || dieDragState || groupDragState || handReorderState) {
+    if (!selectedDiceIds.has(dieId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || dieDragState || groupDragState || handReorderState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -11478,7 +14244,7 @@ async function startRealtimeSession() {
     }
     groupDragState = {
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
+      pointerType: getEffectivePointerType(event),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -11559,6 +14325,13 @@ async function startRealtimeSession() {
       anchorMaxX = anchorDieBounds.maxX;
       anchorMinY = anchorDieBounds.minY;
       anchorMaxY = anchorDieBounds.maxY;
+    } else if (groupDragState.anchorType === 'card') {
+      const anchorCardState = cards.get(groupDragState.anchorId);
+      const anchorCardBounds = getCardPositionBounds(anchorCardState, anchorWidth, anchorHeight);
+      anchorMinX = anchorCardBounds.minX;
+      anchorMaxX = anchorCardBounds.maxX;
+      anchorMinY = anchorCardBounds.minY;
+      anchorMaxY = anchorCardBounds.maxY;
     }
     const anchorNextX = clamp(worldPoint.x - groupDragState.anchorOffsetX, anchorMinX, anchorMaxX);
     const anchorNextY = clamp(worldPoint.y - groupDragState.anchorOffsetY, anchorMinY, anchorMaxY);
@@ -11574,15 +14347,18 @@ async function startRealtimeSession() {
     const selectedCardIdsInDrag = Array.from(groupDragState.basePositions.keys());
     const hasMovableCards = selectedCardIdsInDrag.length > 0;
     const hasDropEligibleCards = hasMovableCards && groupDragState.anchorType === 'card';
-    const overHandDropRegion = hasDropEligibleCards && isClientInHandDropRegion(event.clientY);
     const anchorAuctionDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorNextX, anchorNextY, 'auction') : '';
     const canPlaceGroupOnAuction =
       hasDropEligibleCards && canPlaceCardsOnAuction(selectedCardIdsInDrag, anchorAuctionDeckId);
     const anchorHalfWidth = Math.max(1, Number(anchorBase.width) || CARD_WIDTH) / 2;
     const anchorHalfHeight = Math.max(1, Number(anchorBase.height) || CARD_HEIGHT) / 2;
-    const anchorHoverX = clamp(anchorBase.x + deltaX, anchorHalfWidth, WORLD_WIDTH - anchorHalfWidth);
-    const anchorHoverY = clamp(anchorBase.y + deltaY, anchorHalfHeight, WORLD_HEIGHT - anchorHalfHeight);
-    const anchorCardState = hasDropEligibleCards && groupDragState.anchorCardId ? cards.get(groupDragState.anchorCardId) : null;
+    const anchorCardForHover = hasDropEligibleCards && groupDragState.anchorCardId ? cards.get(groupDragState.anchorCardId) : null;
+    const anchorHoverBounds = getCardPositionBounds(anchorCardForHover, anchorHalfWidth * 2, anchorHalfHeight * 2);
+    const anchorHoverX = clamp(anchorBase.x + deltaX, anchorHoverBounds.minX, anchorHoverBounds.maxX);
+    const anchorHoverY = clamp(anchorBase.y + deltaY, anchorHoverBounds.minY, anchorHoverBounds.maxY);
+    const anchorCardState = anchorCardForHover;
+    const canAnchorEnterHand = canCardEnterHand(anchorCardState);
+    const overHandDropRegion = hasDropEligibleCards && canAnchorEnterHand && isClientInHandDropRegion(event.clientY);
     const canAnchorUseDeckZones = canCardUseDeckZones(anchorCardState);
     const deckTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'deck') : '';
     const discardTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'discard') : '';
@@ -11594,8 +14370,10 @@ async function startRealtimeSession() {
     for (const [selectedCardId, base] of groupDragState.basePositions.entries()) {
       const halfWidth = Math.max(1, Number(base.width) || CARD_WIDTH) / 2;
       const halfHeight = Math.max(1, Number(base.height) || CARD_HEIGHT) / 2;
-      const nextX = clamp(base.x + deltaX, halfWidth, WORLD_WIDTH - halfWidth);
-      const nextY = clamp(base.y + deltaY, halfHeight, WORLD_HEIGHT - halfHeight);
+      const selectedCardState = cards.get(selectedCardId);
+      const selectedCardBounds = getCardPositionBounds(selectedCardState, halfWidth * 2, halfHeight * 2);
+      const nextX = clamp(base.x + deltaX, selectedCardBounds.minX, selectedCardBounds.maxX);
+      const nextY = clamp(base.y + deltaY, selectedCardBounds.minY, selectedCardBounds.maxY);
       if (canPlaceGroupOnAuction && auctionTargetDeckId && isPositionOverAuction(nextX, nextY, auctionTargetDeckId)) {
         overAuction = true;
       }
@@ -11726,16 +14504,34 @@ async function startRealtimeSession() {
       return true;
     }
 
-    if (finishedGroupDrag.anchorType === 'card' && isClientInHandDropRegion(event.clientY)) {
+    const anchorCardForHandDrop =
+      finishedGroupDrag.anchorType === 'card' && finishedGroupDrag.anchorCardId
+        ? cards.get(finishedGroupDrag.anchorCardId)
+        : null;
+    if (finishedGroupDrag.anchorType === 'card' && canCardEnterHand(anchorCardForHandDrop) && isClientInHandDropRegion(event.clientY)) {
       const orderedSelectedIds = getCardsSortedByZ(selectedIds);
       selectedCardIds.clear();
       let nextHandZ = getTopHandZ(localPlayerToken) + 1;
       for (const cardId of orderedSelectedIds) {
-        const patch = buildHandDropPatch(cardId, localPlayerToken, nextHandZ);
-        nextHandZ += 1;
-        if (!patch) {
+        const currentCard = cards.get(cardId);
+        if (!canCardEnterHand(currentCard)) {
+          const releasePatch = {
+            holderClientId: null,
+            inDeck: false,
+            inDiscard: false,
+            inAuction: false,
+            handOwnerClientId: null,
+            handOwnerPlayerToken: null
+          };
+          patchLocalCard(cardId, releasePatch);
+          queueCardPatch(cardId, releasePatch);
+          releaseCardLock(cardId).catch((error) => {
+            console.error(error);
+          });
           continue;
         }
+        const patch = buildHandDropPatch(cardId, localPlayerToken, nextHandZ);
+        nextHandZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
         releaseCardLock(cardId).catch((error) => {
@@ -11975,7 +14771,7 @@ async function startRealtimeSession() {
       setActiveMonsGameId(targetMonsGameId);
     }
 
-    if (monsDragState || cardResizeState || groupDragState || handReorderState) {
+    if (monsDragState || cardResizeState || cardRotateState || groupDragState || handReorderState) {
       return;
     }
     const targetMonsGameState = getMonsGameStateById(targetMonsGameId);
@@ -13884,7 +16680,7 @@ async function startRealtimeSession() {
             continue;
           }
           const normalized = normalizeDicePayload(currentDie);
-          if (normalized.type === 'label') {
+          if (normalized.type === 'label' || normalized.type === 'media') {
             continue;
           }
           if (normalized.holderClientId && normalized.holderClientId !== clientId) {
@@ -13917,6 +16713,9 @@ async function startRealtimeSession() {
       beginLabelEditing(anchorDieId);
       return;
     }
+    if (isMediaDieState(anchorDieState)) {
+      return;
+    }
     const targetDieIds = getDieRollTargetIds(anchorDieId);
     if (targetDieIds.length === 0) {
       return;
@@ -13932,6 +16731,7 @@ async function startRealtimeSession() {
   let rafScheduled = false;
   let pendingPosition = null;
   var localDrawCursor = null;
+  var localDeleteCursor = null;
   var localMouseClientX = Number.NaN;
   var localMouseClientY = Number.NaN;
   var isMouseInsideTable = false;
@@ -13951,6 +16751,25 @@ async function startRealtimeSession() {
   function hideLocalDrawCursor() {
     if (localDrawCursor) {
       localDrawCursor.classList.add('hidden');
+    }
+  }
+
+  function ensureLocalDeleteCursor() {
+    if (localDeleteCursor || !cursorLayer) {
+      return localDeleteCursor;
+    }
+    const cursor = document.createElement('div');
+    cursor.className = 'local-delete-cursor hidden';
+    cursor.setAttribute('aria-hidden', 'true');
+    cursor.textContent = '🗡️';
+    cursorLayer.appendChild(cursor);
+    localDeleteCursor = cursor;
+    return localDeleteCursor;
+  }
+
+  function hideLocalDeleteCursor() {
+    if (localDeleteCursor) {
+      localDeleteCursor.classList.add('hidden');
     }
   }
 
@@ -13999,6 +16818,30 @@ async function startRealtimeSession() {
     cursor.classList.remove('hidden');
   }
 
+  function syncLocalDeleteCursor() {
+    if (!deleteModeEnabled || drawModeEnabled || !isMouseInsideTable || !Number.isFinite(localMouseClientX) || !Number.isFinite(localMouseClientY)) {
+      hideLocalDeleteCursor();
+      return;
+    }
+    const cursor = ensureLocalDeleteCursor();
+    if (!cursor) {
+      return;
+    }
+    const screenPoint = getScreenPoint(localMouseClientX, localMouseClientY);
+    if (!screenPoint) {
+      hideLocalDeleteCursor();
+      return;
+    }
+    cursor.style.left = `${screenPoint.x}px`;
+    cursor.style.top = `${screenPoint.y}px`;
+    cursor.classList.remove('hidden');
+  }
+
+  function syncLocalModeCursors() {
+    syncLocalDrawCursor();
+    syncLocalDeleteCursor();
+  }
+
   function updateLocalMouseCursor(clientX, clientY) {
     localMouseClientX = clientX;
     localMouseClientY = clientY;
@@ -14010,7 +16853,7 @@ async function startRealtimeSession() {
       screenPoint.x <= screenPoint.rect.width &&
       screenPoint.y <= screenPoint.rect.height
     );
-    syncLocalDrawCursor();
+    syncLocalModeCursors();
   }
 
   function schedulePublishFromClient(clientX, clientY) {
@@ -14112,13 +16955,16 @@ async function startRealtimeSession() {
     return true;
   }
 
-  function getImageResizeBounds(cardLeft, cardTop) {
+  function getImageResizeBounds(cardLeft, cardTop, cardState = null) {
     const normalizedLeft = clamp(Number(cardLeft) || 0, 0, WORLD_WIDTH);
     const normalizedTop = clamp(Number(cardTop) || 0, 0, WORLD_HEIGHT);
-    const minWidth = IMAGE_COMPONENT_MIN_WORLD_SIZE;
-    const minHeight = IMAGE_COMPONENT_MIN_WORLD_SIZE;
-    const maxWidth = Math.max(minWidth, Math.min(IMAGE_COMPONENT_MAX_WORLD_WIDTH, WORLD_WIDTH - normalizedLeft));
-    const maxHeight = Math.max(minHeight, Math.min(IMAGE_COMPONENT_MAX_WORLD_HEIGHT, WORLD_HEIGHT - normalizedTop));
+    const isSticker = isStickerComponentCard(cardState);
+    const minWidth = isSticker ? STICKER_COMPONENT_MIN_WORLD_SIZE : IMAGE_COMPONENT_MIN_WORLD_SIZE;
+    const minHeight = isSticker ? STICKER_COMPONENT_MIN_WORLD_SIZE : IMAGE_COMPONENT_MIN_WORLD_SIZE;
+    const maxWidthLimit = isSticker ? STICKER_COMPONENT_MAX_WORLD_WIDTH : IMAGE_COMPONENT_MAX_WORLD_WIDTH;
+    const maxHeightLimit = isSticker ? STICKER_COMPONENT_MAX_WORLD_HEIGHT : IMAGE_COMPONENT_MAX_WORLD_HEIGHT;
+    const maxWidth = Math.max(minWidth, Math.min(maxWidthLimit, WORLD_WIDTH - normalizedLeft));
+    const maxHeight = Math.max(minHeight, Math.min(maxHeightLimit, WORLD_HEIGHT - normalizedTop));
     return {
       minWidth,
       minHeight,
@@ -14159,6 +17005,21 @@ async function startRealtimeSession() {
     };
   }
 
+  function getMediaResizeBounds(mediaLeft, mediaTop) {
+    const normalizedLeft = clamp(Number(mediaLeft) || 0, 0, WORLD_WIDTH);
+    const normalizedTop = clamp(Number(mediaTop) || 0, 0, WORLD_HEIGHT);
+    const minWidth = MEDIA_MIN_WORLD_WIDTH;
+    const minHeight = MEDIA_MIN_WORLD_HEIGHT;
+    const maxWidth = Math.max(minWidth, Math.min(MEDIA_MAX_WORLD_WIDTH, WORLD_WIDTH - normalizedLeft));
+    const maxHeight = Math.max(minHeight, Math.min(MEDIA_MAX_WORLD_HEIGHT, WORLD_HEIGHT - normalizedTop));
+    return {
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight
+    };
+  }
+
   async function handleLabelResizePointerDown(event, dieId) {
     if (drawModeEnabled) {
       return;
@@ -14181,7 +17042,7 @@ async function startRealtimeSession() {
     event.preventDefault();
     event.stopPropagation();
 
-    if (dieDragState || labelResizeState || cardDragState || cardResizeState || groupDragState || handReorderState) {
+    if (dieDragState || labelResizeState || cardDragState || cardResizeState || cardRotateState || groupDragState || handReorderState) {
       return;
     }
     if (hasAnyGroupSelection()) {
@@ -14189,10 +17050,11 @@ async function startRealtimeSession() {
     }
 
     const existingDie = diceById.get(dieId);
-    if (!isLabelDieState(existingDie)) {
+    const resizeKind = isLabelDieState(existingDie) ? 'label' : isMediaDieState(existingDie) ? 'media' : '';
+    if (!resizeKind) {
       return;
     }
-    if (isLabelDieEditing(dieId)) {
+    if (resizeKind === 'label' && isLabelDieEditing(dieId)) {
       return;
     }
     if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
@@ -14209,7 +17071,10 @@ async function startRealtimeSession() {
     }
 
     const latestDie = diceById.get(dieId) || existingDie;
-    if (!isLabelDieState(latestDie) || isLabelDieEditing(dieId)) {
+    if (
+      (resizeKind === 'label' && (!isLabelDieState(latestDie) || isLabelDieEditing(dieId))) ||
+      (resizeKind === 'media' && !isMediaDieState(latestDie))
+    ) {
       await releaseDieLock(dieId);
       return;
     }
@@ -14217,8 +17082,12 @@ async function startRealtimeSession() {
     const size = getDieWorldDimensions(latestDie);
     const labelLeft = latestDie.x - size.width / 2;
     const labelTop = latestDie.y - size.height / 2;
-    const bounds = getLabelResizeBounds(labelLeft, labelTop, latestDie);
+    const bounds =
+      resizeKind === 'label'
+        ? getLabelResizeBounds(labelLeft, labelTop, latestDie)
+        : getMediaResizeBounds(labelLeft, labelTop);
     labelResizeState = {
+      kind: resizeKind,
       dieId,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
@@ -14235,9 +17104,11 @@ async function startRealtimeSession() {
       lastMotionAt: 0,
       moved: false,
       text: normalizeLabelText(latestDie.text || ''),
-      textScale: getLabelTextScale(latestDie)
+      textScale: getLabelTextScale(latestDie),
+      aspectRatio: Math.max(0.0001, size.width / Math.max(1, size.height))
     };
-    resizingLabelDieId = dieId;
+    resizingLabelDieId = resizeKind === 'label' ? dieId : '';
+    resizingMediaDieId = resizeKind === 'media' ? dieId : '';
     renderDieElement(dieId);
 
     const startPatch = {
@@ -14284,43 +17155,64 @@ async function startRealtimeSession() {
       labelResizeState.moved = true;
     }
 
-    const proposedWidth = clamp(
-      worldPoint.x - labelResizeState.labelLeft,
-      labelResizeState.minWidth,
-      labelResizeState.maxWidth
-    );
-    const proposedHeight = clamp(
-      worldPoint.y - labelResizeState.labelTop,
-      labelResizeState.minHeight,
-      labelResizeState.maxHeight
-    );
-    const nextLayout = resolveLabelLayoutForBounds(
-      labelResizeState.text,
-      proposedWidth,
-      proposedHeight,
-      LABEL_TEXT_SCALE_MAX
-    );
-    const nextWidth = clamp(
-      Math.max(nextLayout.labelWidth, labelResizeState.minWidth),
-      labelResizeState.minWidth,
-      labelResizeState.maxWidth
-    );
-    const nextHeight = clamp(
-      Math.max(nextLayout.labelHeight, labelResizeState.minHeight),
-      labelResizeState.minHeight,
-      labelResizeState.maxHeight
-    );
+    const proposedWidth = clamp(worldPoint.x - labelResizeState.labelLeft, labelResizeState.minWidth, labelResizeState.maxWidth);
+    const proposedHeight = clamp(worldPoint.y - labelResizeState.labelTop, labelResizeState.minHeight, labelResizeState.maxHeight);
+    let nextWidth = proposedWidth;
+    let nextHeight = proposedHeight;
+    let nextTextScale = labelResizeState.textScale;
+
+    if (labelResizeState.kind === 'label') {
+      const nextLayout = resolveLabelLayoutForBounds(
+        labelResizeState.text,
+        proposedWidth,
+        proposedHeight,
+        LABEL_TEXT_SCALE_MAX
+      );
+      nextWidth = clamp(
+        Math.max(nextLayout.labelWidth, labelResizeState.minWidth),
+        labelResizeState.minWidth,
+        labelResizeState.maxWidth
+      );
+      nextHeight = clamp(
+        Math.max(nextLayout.labelHeight, labelResizeState.minHeight),
+        labelResizeState.minHeight,
+        labelResizeState.maxHeight
+      );
+      nextTextScale = nextLayout.textScale;
+    } else if (event.shiftKey) {
+      const fittedSize = fitSizeToAspectWithinBounds(
+        proposedWidth,
+        proposedHeight,
+        {
+          minWidth: labelResizeState.minWidth,
+          minHeight: labelResizeState.minHeight,
+          maxWidth: labelResizeState.maxWidth,
+          maxHeight: labelResizeState.maxHeight
+        },
+        labelResizeState.aspectRatio
+      );
+      nextWidth = fittedSize.width;
+      nextHeight = fittedSize.height;
+    }
     const nextX = labelResizeState.labelLeft + nextWidth / 2;
     const nextY = labelResizeState.labelTop + nextHeight / 2;
-    const resizePatch = {
+    const resizePatch = labelResizeState.kind === 'label'
+      ? {
+        x: nextX,
+        y: nextY,
+        labelWidth: nextWidth,
+        labelHeight: nextHeight,
+        textScale: nextTextScale,
+        holderClientId: clientId
+      }
+      : {
       x: nextX,
       y: nextY,
-      labelWidth: nextWidth,
-      labelHeight: nextHeight,
-      textScale: nextLayout.textScale,
+      mediaWidth: nextWidth,
+      mediaHeight: nextHeight,
       holderClientId: clientId
     };
-    labelResizeState.textScale = nextLayout.textScale;
+    labelResizeState.textScale = nextTextScale;
     patchLocalDie(labelResizeState.dieId, resizePatch);
     queueDiePatch(labelResizeState.dieId, resizePatch);
     schedulePublishFromClient(event.clientX, event.clientY);
@@ -14343,8 +17235,10 @@ async function startRealtimeSession() {
     const finishedResize = labelResizeState;
     labelResizeState = null;
     resizingLabelDieId = '';
+    resizingMediaDieId = '';
     renderDieElement(finishedResize.dieId);
     diceElements.get(finishedResize.dieId)?.classList.remove('is-label-resize-hovered');
+    diceElements.get(finishedResize.dieId)?.classList.remove('is-die-resize-hovered');
 
     const releasePatch = {
       holderClientId: null
@@ -14352,6 +17246,266 @@ async function startRealtimeSession() {
     patchLocalDie(finishedResize.dieId, releasePatch);
     queueDiePatch(finishedResize.dieId, releasePatch);
     releaseDieLock(finishedResize.dieId).catch((error) => {
+      console.error(error);
+    });
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function handleStickerLockControlPointerDown(event, cardId) {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (deleteModeEnabled) {
+      await deleteCardInRemoveMode(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+      return;
+    }
+
+    const existingCard = cards.get(cardId);
+    if (!isNativeImageComponentCard(existingCard)) {
+      return;
+    }
+    if (existingCard.holderClientId && existingCard.holderClientId !== clientId) {
+      const recovered = await tryRecoverStaleCardLock(cardId, existingCard.holderClientId);
+      if (!recovered) {
+        renderCardElement(cardId);
+        return;
+      }
+    }
+
+    const latestCard = cards.get(cardId) || existingCard;
+    const nextLocked = !isNativeImageComponentLocked(latestCard);
+    const patch = {
+      componentLocked: nextLocked
+    };
+    if (nextLocked) {
+      selectedCardIds.delete(cardId);
+      patch.holderClientId = null;
+      patch.handOwnerClientId = null;
+      patch.handOwnerPlayerToken = null;
+    }
+
+    patchLocalCard(cardId, patch);
+    queueCardPatch(cardId, patch);
+
+    if (nextLocked) {
+      cardElements.get(cardId)?.classList.remove('is-resize-hovered');
+      cardElements.get(cardId)?.classList.remove('is-rotate-hovered');
+      releaseCardLock(cardId).catch((error) => {
+        console.error(error);
+      });
+    }
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function handleCardRotatePointerDown(event, cardId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteCardInRemoveMode(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setDeckDropIndicator(false);
+    setDiscardDropIndicator(false);
+    setAuctionDropIndicator(false);
+    setHandDropGlow(false);
+    setHandDropPreview(null);
+
+    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+      return;
+    }
+
+    if (hasAnyGroupSelection()) {
+      releaseAllSelectedObjects();
+    }
+
+    const existingCard = cards.get(cardId);
+    if (!isRotatableNativeImageCard(existingCard)) {
+      return;
+    }
+    if (existingCard.holderClientId && existingCard.holderClientId !== clientId) {
+      const recovered = await tryRecoverStaleCardLock(cardId, existingCard.holderClientId);
+      if (!recovered) {
+        renderCardElement(cardId);
+        return;
+      }
+    }
+
+    const acquired = await acquireCardLock(cardId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseCardLock(cardId);
+      return;
+    }
+
+    const latestCard = cards.get(cardId) || existingCard;
+    if (!isRotatableNativeImageCard(latestCard)) {
+      await releaseCardLock(cardId);
+      return;
+    }
+    const pointerAngleDeg = getStickerPointerAngleDegrees(latestCard.x, latestCard.y, event.clientX, event.clientY);
+    if (!Number.isFinite(pointerAngleDeg)) {
+      await releaseCardLock(cardId);
+      return;
+    }
+    const currentRotationDeg = normalizeStickerRotationDegrees(latestCard.componentRotation);
+    cardRotateState = {
+      cardId,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      centerX: latestCard.x,
+      centerY: latestCard.y,
+      baseRotationDeg: currentRotationDeg,
+      startPointerAngleDeg: pointerAngleDeg,
+      lastPointerAngleDeg: pointerAngleDeg,
+      pointerAngleUnwrappedDeg: pointerAngleDeg,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      moved: false
+    };
+    rotatingStickerCardId = cardId;
+    syncHandHoverDragLock();
+    renderCardElement(cardId);
+
+    const startPatch = {
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: clientId,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    patchLocalCard(cardId, startPatch);
+    queueCardPatch(cardId, startPatch);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleCardRotateMove(event) {
+    if (!cardRotateState || event.pointerId !== cardRotateState.pointerId) {
+      return;
+    }
+    if (cardRotateState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+      handleCardRotateEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        pointerType: cardRotateState.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const moveSinceLastEvent = Math.hypot(event.clientX - cardRotateState.lastClientX, event.clientY - cardRotateState.lastClientY);
+    if (moveSinceLastEvent >= 0.5) {
+      cardRotateState.lastMotionAt = Date.now();
+    }
+    cardRotateState.lastClientX = event.clientX;
+    cardRotateState.lastClientY = event.clientY;
+
+    const movedDistance = Math.hypot(event.clientX - cardRotateState.startClientX, event.clientY - cardRotateState.startClientY);
+    const movedThreshold = cardRotateState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    if (movedDistance > movedThreshold) {
+      cardRotateState.moved = true;
+    }
+
+    const pointerAngleDeg = getStickerPointerAngleDegrees(
+      cardRotateState.centerX,
+      cardRotateState.centerY,
+      event.clientX,
+      event.clientY
+    );
+    if (!Number.isFinite(pointerAngleDeg)) {
+      return;
+    }
+    const pointerDeltaDeg = normalizeAngleDeltaDegrees(pointerAngleDeg - cardRotateState.lastPointerAngleDeg);
+    cardRotateState.pointerAngleUnwrappedDeg += pointerDeltaDeg;
+    cardRotateState.lastPointerAngleDeg = pointerAngleDeg;
+    let nextRotationDeg =
+      cardRotateState.baseRotationDeg +
+      (cardRotateState.pointerAngleUnwrappedDeg - cardRotateState.startPointerAngleDeg);
+    if (event.shiftKey) {
+      nextRotationDeg = Math.round(nextRotationDeg / 90) * 90;
+    }
+    nextRotationDeg = normalizeStickerRotationDegrees(nextRotationDeg);
+    const rotatePatch = {
+      componentRotation: nextRotationDeg,
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: clientId,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    patchLocalCard(cardRotateState.cardId, rotatePatch);
+    queueCardPatch(cardRotateState.cardId, rotatePatch);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleCardRotateEnd(event) {
+    if (!cardRotateState || event.pointerId !== cardRotateState.pointerId) {
+      return;
+    }
+    if (
+      event.type === 'pointerup' &&
+      cardRotateState.pointerType === 'mouse' &&
+      event.button !== 0 &&
+      (event.buttons & 1) !== 0
+    ) {
+      return;
+    }
+
+    const finishedRotate = cardRotateState;
+    cardRotateState = null;
+    rotatingStickerCardId = '';
+    syncHandHoverDragLock();
+    renderCardElement(finishedRotate.cardId);
+    cardElements.get(finishedRotate.cardId)?.classList.remove('is-rotate-hovered');
+
+    const releasePatch = {
+      holderClientId: null
+    };
+    patchLocalCard(finishedRotate.cardId, releasePatch);
+    queueCardPatch(finishedRotate.cardId, releasePatch);
+    releaseCardLock(finishedRotate.cardId).catch((error) => {
       console.error(error);
     });
 
@@ -14385,7 +17539,7 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
       return;
     }
 
@@ -14398,7 +17552,11 @@ async function startRealtimeSession() {
       return;
     }
     if (existingCard.holderClientId && existingCard.holderClientId !== clientId) {
-      return;
+      const recovered = await tryRecoverStaleCardLock(cardId, existingCard.holderClientId);
+      if (!recovered) {
+        renderCardElement(cardId);
+        return;
+      }
     }
 
     const acquired = await acquireCardLock(cardId);
@@ -14419,11 +17577,13 @@ async function startRealtimeSession() {
     const size = getCardTableDimensions(latestCard);
     const cardLeft = latestCard.x - size.width / 2;
     const cardTop = latestCard.y - size.height / 2;
-    const resizeBounds = getImageResizeBounds(cardLeft, cardTop);
+    const resizeBounds = getImageResizeBounds(cardLeft, cardTop, latestCard);
     cardResizeState = {
       cardId,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
+      lockSquare: isStickerComponentCard(latestCard),
+      aspectRatio: isNonCardImageComponentCard(latestCard) ? getNativeImageAspectRatio(latestCard, size.width, size.height) : 0,
       cardLeft,
       cardTop,
       minWidth: resizeBounds.minWidth,
@@ -14492,8 +17652,36 @@ async function startRealtimeSession() {
       cardResizeState.moved = true;
     }
 
-    const nextWidth = clamp(worldPoint.x - cardResizeState.cardLeft, cardResizeState.minWidth, cardResizeState.maxWidth);
-    const nextHeight = clamp(worldPoint.y - cardResizeState.cardTop, cardResizeState.minHeight, cardResizeState.maxHeight);
+    let nextWidth = clamp(worldPoint.x - cardResizeState.cardLeft, cardResizeState.minWidth, cardResizeState.maxWidth);
+    let nextHeight = clamp(worldPoint.y - cardResizeState.cardTop, cardResizeState.minHeight, cardResizeState.maxHeight);
+    if (cardResizeState.lockSquare) {
+      const minSide = Math.max(cardResizeState.minWidth, cardResizeState.minHeight);
+      const maxSide = Math.min(cardResizeState.maxWidth, cardResizeState.maxHeight);
+      const nextSide = clamp(
+        Math.max(worldPoint.x - cardResizeState.cardLeft, worldPoint.y - cardResizeState.cardTop),
+        minSide,
+        maxSide
+      );
+      nextWidth = nextSide;
+      nextHeight = nextSide;
+    } else if (event.shiftKey) {
+      const aspectRatio = Number(cardResizeState.aspectRatio);
+      if (Number.isFinite(aspectRatio) && aspectRatio > 0.0001) {
+        const fittedSize = fitSizeToAspectWithinBounds(
+          nextWidth,
+          nextHeight,
+          {
+            minWidth: cardResizeState.minWidth,
+            minHeight: cardResizeState.minHeight,
+            maxWidth: cardResizeState.maxWidth,
+            maxHeight: cardResizeState.maxHeight
+          },
+          aspectRatio
+        );
+        nextWidth = fittedSize.width;
+        nextHeight = fittedSize.height;
+      }
+    }
     const nextX = cardResizeState.cardLeft + nextWidth / 2;
     const nextY = cardResizeState.cardTop + nextHeight / 2;
     const resizePatch = {
@@ -14563,7 +17751,8 @@ async function startRealtimeSession() {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
-    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+    const effectivePointerType = getEffectivePointerType(event);
+    if (effectivePointerType === 'touch') {
       endedTouchPointerIds.delete(event.pointerId);
     }
     event.preventDefault();
@@ -14583,12 +17772,15 @@ async function startRealtimeSession() {
     }
     rememberTouchTapCandidate(cardId, event);
 
-    if (cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
+    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
       return;
     }
 
     const existingCard = cards.get(cardId);
     if (!existingCard) {
+      return;
+    }
+    if (isNativeImageComponentLocked(existingCard)) {
       return;
     }
 
@@ -14604,7 +17796,11 @@ async function startRealtimeSession() {
     }
 
     if (existingCard.holderClientId && existingCard.holderClientId !== clientId) {
-      return;
+      const recovered = await tryRecoverStaleCardLock(cardId, existingCard.holderClientId);
+      if (!recovered) {
+        renderCardElement(cardId);
+        return;
+      }
     }
 
     const acquired = await acquireCardLock(cardId);
@@ -14635,7 +17831,7 @@ async function startRealtimeSession() {
       pointerId: event.pointerId,
       offsetX: worldPoint.x - cardStartX,
       offsetY: worldPoint.y - cardStartY,
-      pointerType: event.pointerType,
+      pointerType: effectivePointerType,
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -14720,7 +17916,8 @@ async function startRealtimeSession() {
 
     const tableRect = tableRoot?.getBoundingClientRect();
     const releaseToTableY = tableRect ? tableRect.bottom - HAND_DROP_REGION_HEIGHT - 26 : window.innerHeight - HAND_DROP_REGION_HEIGHT - 26;
-    const overHandDropRegion = isClientInHandDropRegion(event.clientY);
+    const canEnterHand = canCardEnterHand(activeCard);
+    const overHandDropRegion = canEnterHand && isClientInHandDropRegion(event.clientY);
     handReorderState.releaseToTable = event.clientY < releaseToTableY;
     if (handReorderState.releaseToTable) {
       handReorderState.wasReleasedToTable = true;
@@ -14802,10 +17999,11 @@ async function startRealtimeSession() {
       if (worldPoint) {
         const droppedCard = cards.get(finishedState.cardId);
         const droppedSize = getCardTableDimensions(droppedCard);
-        const dropX = clamp(worldPoint.x, droppedSize.width / 2, WORLD_WIDTH - droppedSize.width / 2);
-        const dropY = clamp(worldPoint.y, droppedSize.height / 2, WORLD_HEIGHT - droppedSize.height / 2);
+        const droppedBounds = getCardPositionBounds(droppedCard, droppedSize.width, droppedSize.height);
+        const dropX = clamp(worldPoint.x, droppedBounds.minX, droppedBounds.maxX);
+        const dropY = clamp(worldPoint.y, droppedBounds.minY, droppedBounds.maxY);
         const topZ = getTopCardZ() + 1;
-        const releaseFace = isImageComponentCard(droppedCard)
+        const releaseFace = isVisualImageComponentCard(droppedCard)
           ? droppedCard?.face === 'back'
             ? 'back'
             : 'front'
@@ -14891,8 +18089,13 @@ async function startRealtimeSession() {
       return;
     }
     if (deleteModeEnabled) {
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
+      await deleteCardInRemoveMode(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
@@ -14909,7 +18112,7 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || cardResizeState || labelResizeState || groupDragState || deckDragState || handReorderState) {
+    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || deckDragState || handReorderState) {
       return;
     }
 
@@ -14964,8 +18167,9 @@ async function startRealtimeSession() {
 
     const activeCard = cards.get(cardDragState.cardId);
     const activeCardSize = getCardTableDimensions(activeCard);
-    const nextX = clamp(worldPoint.x - cardDragState.offsetX, activeCardSize.width / 2, WORLD_WIDTH - activeCardSize.width / 2);
-    const nextY = clamp(worldPoint.y - cardDragState.offsetY, activeCardSize.height / 2, WORLD_HEIGHT - activeCardSize.height / 2);
+    const activeCardBounds = getCardPositionBounds(activeCard, activeCardSize.width, activeCardSize.height);
+    const nextX = clamp(worldPoint.x - cardDragState.offsetX, activeCardBounds.minX, activeCardBounds.maxX);
+    const nextY = clamp(worldPoint.y - cardDragState.offsetY, activeCardBounds.minY, activeCardBounds.maxY);
     const movedDistance = Math.hypot(event.clientX - cardDragState.startClientX, event.clientY - cardDragState.startClientY);
     const movedThreshold =
       cardDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
@@ -15044,7 +18248,8 @@ async function startRealtimeSession() {
     setHandDropPreview(null);
 
     let finalPatch = null;
-    if (isClientInHandDropRegion(event.clientY)) {
+    const draggedCardState = cards.get(finishedDrag.cardId);
+    if (canCardEnterHand(draggedCardState) && isClientInHandDropRegion(event.clientY)) {
       finalPatch = buildHandDropPatch(finishedDrag.cardId, localPlayerToken);
       selectedCardIds.delete(finishedDrag.cardId);
     }
@@ -15100,6 +18305,16 @@ async function startRealtimeSession() {
   };
   onCardResizePointerDown = (event, cardId) => {
     handleCardResizePointerDown(event, cardId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onCardRotatePointerDown = (event, cardId) => {
+    handleCardRotatePointerDown(event, cardId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onStickerLockControlPointerDown = (event, cardId) => {
+    handleStickerLockControlPointerDown(event, cardId).catch((error) => {
       console.error(error);
     });
   };
@@ -15206,7 +18421,8 @@ async function startRealtimeSession() {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
-    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+    const effectivePointerType = getEffectivePointerType(event);
+    if (effectivePointerType === 'touch') {
       endedTouchPointerIds.delete(event.pointerId);
     }
     event.preventDefault();
@@ -15230,7 +18446,7 @@ async function startRealtimeSession() {
       }
     }
 
-    if (dieDragState || labelResizeState || cardDragState || cardResizeState || groupDragState || handReorderState) {
+    if (dieDragState || labelResizeState || cardDragState || cardResizeState || cardRotateState || groupDragState || handReorderState) {
       return;
     }
     const dieState = diceById.get(dieId);
@@ -15254,7 +18470,7 @@ async function startRealtimeSession() {
     dieDragState = {
       dieId,
       pointerId: event.pointerId,
-      pointerType: event.pointerType,
+      pointerType: effectivePointerType,
       type: normalizeDieType(dieState.type),
       startClientX: event.clientX,
       startClientY: event.clientY,
@@ -15392,7 +18608,7 @@ async function startRealtimeSession() {
       }
     }
     const targetDeckState = getDeckStateById(targetDeckId);
-    if (!targetDeckState || deckDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
+    if (!targetDeckState || deckDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
       return;
     }
 
@@ -15861,7 +19077,7 @@ async function startRealtimeSession() {
     const labelText = LABEL_DEFAULT_TEXT;
     const labelColor = normalizeHexColor(playerState.color);
     const baseDimensions = measureLabelWorldDimensions(labelText, {
-      textScale: LABEL_TEXT_SCALE_DEFAULT
+      textScale: LABEL_TEXT_SCALE_SPAWN
     });
     const targetSpawnWidth = clamp(
       Math.max(baseDimensions.width, LABEL_DEFAULT_SPAWN_WIDTH),
@@ -15872,7 +19088,7 @@ async function startRealtimeSession() {
       labelText,
       targetSpawnWidth,
       baseDimensions.height,
-      LABEL_TEXT_SCALE_DEFAULT
+      LABEL_TEXT_SCALE_SPAWN
     );
     const viewportCenter = getViewportWorldCenter();
     const labelCenterBounds = getDieCenterBounds('label', labelLayout.labelWidth, labelLayout.labelHeight);
@@ -15913,15 +19129,87 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
   };
+  spawnMediaComponent = async (mediaDetails = {}) => {
+    const provider = normalizeMediaProvider(mediaDetails.provider);
+    const sourceUrl = normalizeMediaSourceUrl(mediaDetails.sourceUrl);
+    const embedUrl = normalizeMediaSourceUrl(mediaDetails.embedUrl);
+    if (!provider || !sourceUrl || !embedUrl) {
+      throw new Error('Valid YouTube or SoundCloud media URL required');
+    }
+    const mediaSize = clampMediaDimensions(
+      mediaDetails.width,
+      mediaDetails.height,
+      provider
+    );
+    const viewportCenter = getViewportWorldCenter();
+    const mediaCenterBounds = getDieCenterBounds('media', mediaSize.width, mediaSize.height);
+    const spawnCenterX = clamp(viewportCenter.x, mediaCenterBounds.minX, mediaCenterBounds.maxX);
+    const spawnCenterY = clamp(viewportCenter.y, mediaCenterBounds.minY, mediaCenterBounds.maxY);
+    await runTransaction(
+      diceRef,
+      (currentDice) => {
+        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+        let nextTopZ = getTopObjectZ();
+        for (const payload of Object.values(baseDice)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+        }
+        nextTopZ += 1;
+        let nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+          nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        baseDice[nextDieId] = {
+          type: 'media',
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: nextTopZ,
+          value: 1,
+          mediaProvider: provider,
+          mediaSourceUrl: sourceUrl,
+          mediaEmbedUrl: embedUrl,
+          mediaStartedAt: 0,
+          mediaStartNonce: 0,
+          mediaWidth: mediaSize.width,
+          mediaHeight: mediaSize.height,
+          holderClientId: null,
+          rollStartedAt: 0,
+          rollDurationMs: DIE_ROLL_DURATION_MS,
+          rollSeed: 0,
+          updatedAt: Date.now()
+        };
+        return baseDice;
+      },
+      { applyLocally: false }
+    );
+  };
   spawnImageComponent = async (frontSrc, options = {}) => {
-    const normalizedFrontSrc = normalizeImageComponentSrc(frontSrc);
-    if (!normalizedFrontSrc) {
+    const requestedComponentType = String(options.componentType || 'image').trim().toLowerCase();
+    const componentType = requestedComponentType === 'sticker' ? 'sticker' : 'image';
+    const isStickerComponent = componentType === 'sticker';
+    const frontBlank = !isStickerComponent && options.frontBlank === true;
+    const normalizedFrontSrc = frontBlank ? '' : normalizeImageComponentSrc(frontSrc);
+    if (!frontBlank && !normalizedFrontSrc) {
       throw new Error('Image URL required');
     }
-    const useCardSize = options.cardSized !== false;
-    const twoSided = options.twoSided === true;
-    const normalizedBackSrc = twoSided ? normalizeImageComponentSrc(options.backSrc || '') : '';
-    const nativeSize = useCardSize ? { width: CARD_WIDTH, height: CARD_HEIGHT } : await loadImageNaturalSize(normalizedFrontSrc);
+    const useCardSize = isStickerComponent ? false : options.cardSized !== false;
+    const twoSided = !isStickerComponent && options.twoSided === true;
+    const backBlank = twoSided && options.backBlank === true;
+    const normalizedBackSrc = twoSided && !backBlank ? normalizeImageComponentSrc(options.backSrc || '') : '';
+    const frontBlankColor = normalizeHexColor(options.frontBlankColor || '#ffffff');
+    const backBlankColor = normalizeHexColor(options.backBlankColor || '#ffffff');
+    const nativeSizeBase = useCardSize
+      ? { width: CARD_WIDTH, height: CARD_HEIGHT }
+      : frontBlank
+        ? { width: CARD_WIDTH, height: CARD_HEIGHT }
+        : await loadImageNaturalSize(normalizedFrontSrc);
+    const nativeSize = isStickerComponent && !useCardSize
+      ? clampStickerSquareSize(nativeSizeBase.width, nativeSizeBase.height)
+      : nativeSizeBase;
+    const componentAspectRatio = !useCardSize
+      ? (isStickerComponent
+        ? 1
+        : Math.max(0.0001, nativeSize.width / Math.max(1, nativeSize.height)))
+      : 0;
     const viewportCenter = getViewportWorldCenter();
     const halfWidth = nativeSize.width / 2;
     const halfHeight = nativeSize.height / 2;
@@ -15947,8 +19235,15 @@ async function startRealtimeSession() {
           face: 'front',
           frontSrc: normalizedFrontSrc,
           backSrc: normalizedBackSrc,
-          componentType: 'image',
+          componentType,
           componentCardSized: useCardSize,
+          componentFrontBlank: frontBlank,
+          componentBackBlank: backBlank,
+          componentFrontColor: frontBlankColor,
+          componentBackColor: backBlankColor,
+          componentLocked: false,
+          componentRotation: 0,
+          componentAspectRatio,
           componentWidth: nativeSize.width,
           componentHeight: nativeSize.height,
           deckId: DECK_KEY,
@@ -15964,6 +19259,17 @@ async function startRealtimeSession() {
       },
       { applyLocally: false }
     );
+  };
+  spawnStickerComponent = async (stickerSrc) => {
+    const normalizedStickerSrc = normalizeImageComponentSrc(stickerSrc);
+    if (!normalizedStickerSrc) {
+      throw new Error('Sticker source required');
+    }
+    await spawnImageComponent(normalizedStickerSrc, {
+      componentType: 'sticker',
+      cardSized: false,
+      twoSided: false
+    });
   };
 
   spawnCoolJpegsDeck = async () => {
@@ -16002,6 +19308,7 @@ async function startRealtimeSession() {
       y: spawnCenter.y,
       shuffleTick: 0,
       holderClientId: null,
+      coverDrawings: false,
       updatedAt: serverTimestamp()
     });
     setActiveDeckId(nextDeckId);
@@ -16054,6 +19361,7 @@ async function startRealtimeSession() {
   resetCoolJpegsGame = async (deckId = activeDeckId) => {
     const targetDeckId = normalizeDeckId(deckId);
     const center = getDeckCenterPosition(targetDeckId);
+    const shouldCoverDrawings = isDeckCoverDrawingsEnabled(targetDeckId);
     await runTransaction(
       cardsRef,
       (currentCards) => {
@@ -16084,6 +19392,7 @@ async function startRealtimeSession() {
       y: center.y,
       shuffleTick: 0,
       holderClientId: null,
+      coverDrawings: shouldCoverDrawings,
       updatedAt: serverTimestamp()
     });
   };
@@ -16134,12 +19443,34 @@ async function startRealtimeSession() {
           y: normalized.y,
           width: normalized.width,
           height: normalized.height,
-          claims: normalized.claims
+          claims: normalized.claims,
+          coverDrawings: normalized.coverDrawings === true
         });
       },
       { applyLocally: false }
     );
     setActiveMonsGameId(targetMonsGameId);
+  };
+
+  setGameCoverDrawingsPreference = async (target, enabled) => {
+    const shouldCoverDrawings = enabled === true;
+    const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
+    if (targetMonsGameId) {
+      if (!getMonsGameStateById(targetMonsGameId)) {
+        return;
+      }
+      patchLocalMonsGame({ coverDrawings: shouldCoverDrawings }, targetMonsGameId);
+      queueMonsPatch({ coverDrawings: shouldCoverDrawings }, targetMonsGameId);
+      renderMonsBoard();
+      return;
+    }
+    const targetDeckId = getDeckIdFromGameOptionsTarget(target) || activeDeckId;
+    if (!targetDeckId || !getDeckStateById(targetDeckId)) {
+      return;
+    }
+    patchLocalDeck({ coverDrawings: shouldCoverDrawings }, targetDeckId);
+    queueDeckPatch({ coverDrawings: shouldCoverDrawings }, targetDeckId);
+    renderAllCards();
   };
 
   putAwaySuperMetalMonsGame = async (gameId = activeMonsGameId) => {
@@ -16192,10 +19523,13 @@ async function startRealtimeSession() {
     discardReturnAnimatingCardIds.clear();
     cardDragState = null;
     cardResizeState = null;
+    cardRotateState = null;
     resizingImageCardId = '';
+    rotatingStickerCardId = '';
     dieDragState = null;
     labelResizeState = null;
     resizingLabelDieId = '';
+    resizingMediaDieId = '';
     groupDragState = null;
     selectionBoxState = null;
     suppressNextCardContextMenu = false;
@@ -16230,6 +19564,7 @@ async function startRealtimeSession() {
     removeAllDeckUiArtifacts();
     removeMonsBoardElements();
     closeDiceAddModal();
+    closeStickerAddModal();
     closeMonsItemChoiceModal();
     closeGameOptionsMenu();
     deckShuffleFxCards = [];
@@ -16240,6 +19575,12 @@ async function startRealtimeSession() {
     }
     window.clearTimeout(deckShuffleFxTimerId);
     deckShuffleFxTimerId = 0;
+    if (drawingsLiftCutoffFlushTimerId) {
+      window.clearTimeout(drawingsLiftCutoffFlushTimerId);
+      drawingsLiftCutoffFlushTimerId = 0;
+    }
+    pendingDrawingsLiftCutoffAt = 0;
+    drawingsLiftCutoffAt = 0;
 
     for (const cardId of cardElements.keys()) {
       clearCardFlipTimer(cardId);
@@ -16251,6 +19592,9 @@ async function startRealtimeSession() {
     }
     for (const dieElement of diceElements.values()) {
       dieElement.remove();
+    }
+    for (const dieId of diceById.keys()) {
+      clearMediaPlaybackTrackingForDie(dieId);
     }
     for (const handCardId of handCardElements.keys()) {
       removeHandCardElement(handCardId);
@@ -16294,6 +19638,7 @@ async function startRealtimeSession() {
     monsGameState = null;
     monsGameStatesById.clear();
     activeMonsGameId = MONS_GAME_KEY;
+    syncCoverDrawingsGamesLayerState();
     setLocalHandCountLabel();
     setHandHoverDragLock(false);
     syncClearTableButtonState();
@@ -16360,7 +19705,6 @@ async function startRealtimeSession() {
     syncClearTableButtonState();
   };
 
-  let latestRawCursorsById = {};
   const refreshVisibleCursorState = () => {
     const visibleEntries = buildVisibleCursorEntries(latestRawCursorsById, clientId);
     latestRoomCursors = Object.fromEntries(
@@ -16404,12 +19748,12 @@ async function startRealtimeSession() {
     refreshMonsClaimLabelsOnly();
 
     const displayCount = visibleEntries.length + 1;
-    setRealtimeStatus(`firebase: connected • players: ${displayCount}`);
+    setRealtimeStatus(`connected • players: ${displayCount}`);
   };
 
   onValue(connectedRef, (snapshot) => {
     if (snapshot.val() === true) {
-      setRealtimeStatus('firebase: connected');
+      setRealtimeStatus('connected');
       return;
     }
     setRealtimeStatus('firebase: reconnecting');
@@ -16421,6 +19765,16 @@ async function startRealtimeSession() {
       const roomMeta = snapshot.val() || {};
       const syncedTitle = normalizeRoomTitle(roomMeta.title);
       setRoomBadgeText(syncedTitle);
+
+      const syncedDrawingsLiftCutoffAtRaw = Number(roomMeta.drawingsLiftCutoffAt);
+      const syncedDrawingsLiftCutoffAt =
+        Number.isFinite(syncedDrawingsLiftCutoffAtRaw) && syncedDrawingsLiftCutoffAtRaw > 0
+          ? Math.floor(syncedDrawingsLiftCutoffAtRaw)
+          : 0;
+      if (syncedDrawingsLiftCutoffAt !== drawingsLiftCutoffAt) {
+        drawingsLiftCutoffAt = syncedDrawingsLiftCutoffAt;
+        renderAllDrawingStrokes();
+      }
 
       const syncedOwnerToken = typeof roomMeta.ownerToken === 'string' ? roomMeta.ownerToken : '';
       setRoomOwnerState(Boolean(syncedOwnerToken) && syncedOwnerToken === ownerToken);
@@ -16441,6 +19795,7 @@ async function startRealtimeSession() {
   onValue(
     roomPresenceRef,
     (snapshot) => {
+      hasLoadedPresenceSnapshot = true;
       latestPresenceByToken = snapshot.val() || {};
       refreshVisibleCursorState();
       scheduleHandReclaimCheck();
@@ -16454,6 +19809,7 @@ async function startRealtimeSession() {
   onValue(
     cursorsRef,
     (snapshot) => {
+      hasLoadedCursorSnapshot = true;
       latestRawCursorsById = snapshot.val() || {};
       refreshVisibleCursorState();
       scheduleHandReclaimCheck();
@@ -16493,12 +19849,19 @@ async function startRealtimeSession() {
           resizingImageCardId = '';
           syncHandHoverDragLock();
         }
+        if (cardRotateState?.cardId === cardId) {
+          cardRotateState = null;
+          rotatingStickerCardId = '';
+          syncHandHoverDragLock();
+        }
         selectedCardIds.delete(cardId);
         frontDisplayPendingByCard.delete(cardId);
         removeHandCardElement(cardId);
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        staleCardLockRecoveryAttemptAtById.delete(cardId);
+        staleCardLockRecoveryInFlight.delete(cardId);
       }
       const nextActiveAuctionCardId = getActiveAuctionCardId();
       if (previousActiveAuctionCardId && previousActiveAuctionCardId !== nextActiveAuctionCardId) {
@@ -16508,6 +19871,9 @@ async function startRealtimeSession() {
       renderAllCards();
       renderRoomRoster(latestRoomCursors, clientId);
       scheduleHandReclaimCheck();
+      sweepStaleRemoteCardLocks().catch((error) => {
+        console.error(error);
+      });
       scheduleAuctionBidUiRender();
       syncClearTableButtonState();
     },
@@ -16528,7 +19894,10 @@ async function startRealtimeSession() {
       const activeDieIds = new Set();
       for (const [dieId, payload] of Object.entries(allDice)) {
         activeDieIds.add(dieId);
-        diceById.set(dieId, normalizeDicePayload(payload));
+        const previousDieState = diceById.get(dieId);
+        const nextDieState = normalizeDicePayload(payload);
+        diceById.set(dieId, nextDieState);
+        syncMediaStartSignalFromState(dieId, previousDieState, nextDieState);
       }
       if (labelEditState) {
         const editingState = diceById.get(labelEditState.dieId);
@@ -16549,8 +19918,10 @@ async function startRealtimeSession() {
         if (labelResizeState?.dieId === dieId) {
           labelResizeState = null;
           resizingLabelDieId = '';
+          resizingMediaDieId = '';
         }
         selectedDiceIds.delete(dieId);
+        clearMediaPlaybackTrackingForDie(dieId);
         diceById.delete(dieId);
       }
       renderAllDice();
@@ -16679,6 +20050,7 @@ async function startRealtimeSession() {
       } else {
         setActiveDeckId(activeDeckId);
       }
+      syncGameOptionsCoverDrawingsToggleState();
 
       if (deckStatesById.size === 0) {
         setDeckShuffleFxActive(false);
@@ -16741,6 +20113,7 @@ async function startRealtimeSession() {
       if (optionsMonsGameId && !nextMonsIds.has(optionsMonsGameId)) {
         closeGameOptionsMenu();
       }
+      syncGameOptionsCoverDrawingsToggleState();
 
       if (nextMonsIds.size === 0) {
         setActiveMonsGameId(MONS_GAME_KEY);
@@ -16771,6 +20144,9 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleCardResizeMove);
   window.addEventListener('pointerup', handleCardResizeEnd);
   window.addEventListener('pointercancel', handleCardResizeEnd);
+  window.addEventListener('pointermove', handleCardRotateMove);
+  window.addEventListener('pointerup', handleCardRotateEnd);
+  window.addEventListener('pointercancel', handleCardRotateEnd);
   window.addEventListener('pointermove', handleDieDragMove);
   window.addEventListener('pointerup', handleDieDragEnd);
   window.addEventListener('pointercancel', handleDieDragEnd);
@@ -16810,6 +20186,10 @@ async function startRealtimeSession() {
       window.cancelAnimationFrame(diceRollAnimationRafId);
       diceRollAnimationRafId = 0;
     }
+    if (drawingsLiftCutoffFlushTimerId) {
+      window.clearTimeout(drawingsLiftCutoffFlushTimerId);
+      drawingsLiftCutoffFlushTimerId = 0;
+    }
     persistCameraViewNow();
     if (handReclaimIntervalId) {
       window.clearInterval(handReclaimIntervalId);
@@ -16835,6 +20215,17 @@ async function startRealtimeSession() {
   window.addEventListener('blur', () => {
     cancelActiveCardInteractions();
     releaseUnexpectedLocalCardLocks();
+    if (deleteModeEnabled) {
+      hideLocalDeleteCursor();
+      syncDeleteCursorLock();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    if (deleteModeEnabled) {
+      syncDeleteCursorLock();
+      syncLocalModeCursors();
+    }
   });
 
   window.addEventListener('resize', () => {
@@ -16922,7 +20313,10 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   }
   let closestStrokeId = '';
   let closestDistance = Infinity;
-  const toleranceWorld = Math.max(DRAW_STROKE_WORLD_WIDTH * 0.8, 14 / Math.max(camera.scale, 0.001));
+  const toleranceWorld = Math.max(
+    DRAW_STROKE_WORLD_WIDTH * 0.8,
+    (14 + DELETE_STROKE_HIT_PADDING_PX) / Math.max(camera.scale, 0.001)
+  );
   for (const [strokeId, strokeState] of drawingStrokes.entries()) {
     const points = Array.isArray(strokeState?.points) ? strokeState.points : [];
     if (points.length === 0) {
@@ -17015,6 +20409,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
       } else {
         hideLocalDrawCursor();
+        hideLocalDeleteCursor();
       }
       if (event.pointerType === 'touch' || event.pointerType === 'pen') {
         endedTouchPointerIds.delete(event.pointerId);
@@ -17057,7 +20452,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         if (deleteModeEnabled) {
           return;
         }
-        if (cardDragState || cardResizeState || groupDragState) {
+        if (cardDragState || cardResizeState || cardRotateState || groupDragState) {
           if (isEventOnCard(event)) {
             // Allow card context menu flip while keeping the current drag alive.
             suppressNextCardContextMenu = false;
@@ -17117,10 +20512,14 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
 
   tableRoot.addEventListener('pointermove', (event) => {
     if (event.pointerType === 'mouse') {
+      if (deleteModeEnabled) {
+        syncDeleteCursorLock();
+      }
       updateLocalMouseCursor(event.clientX, event.clientY);
       updateHandHoverFromClient(event.clientX, event.clientY, event.pointerType);
     } else if (drawModeEnabled) {
       hideLocalDrawCursor();
+      hideLocalDeleteCursor();
     }
 
     if (drawModeEnabled) {
@@ -17212,6 +20611,22 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     }
   });
 
+  tableRoot.addEventListener('pointerover', (event) => {
+    if (event.pointerType === 'mouse' && deleteModeEnabled) {
+      syncDeleteCursorLock();
+      syncLocalDeleteCursor();
+    }
+  });
+
+  tableRoot.addEventListener('pointerenter', (event) => {
+    if (event.pointerType === 'mouse') {
+      if (deleteModeEnabled) {
+        syncDeleteCursorLock();
+      }
+      updateLocalMouseCursor(event.clientX, event.clientY);
+    }
+  });
+
   function handlePointerEnd(event) {
     activePointers.delete(event.pointerId);
 
@@ -17286,11 +20701,15 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     if (event.pointerType === 'mouse') {
       isMouseInsideTable = false;
       hideLocalDrawCursor();
+      hideLocalDeleteCursor();
       setHoveredHandCard(null);
     }
   });
 
   localLockWatchdogIntervalId = window.setInterval(() => {
     releaseUnexpectedLocalCardLocks();
+    sweepStaleRemoteCardLocks().catch((error) => {
+      console.error(error);
+    });
   }, 1200);
 }
