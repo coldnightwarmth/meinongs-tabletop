@@ -36,6 +36,7 @@ const auctionBidSubmitButton = document.getElementById('auctionBidSubmitButton')
 const copyLinkButton = document.getElementById('copyLinkButton');
 const copyLabel = document.getElementById('copyLabel');
 const bottomRightControls = document.getElementById('bottomRightControls');
+const deleteModeCancelButton = document.getElementById('deleteModeCancelButton');
 const assetMenuButton = document.getElementById('assetMenuButton');
 const assetMenuModal = document.getElementById('assetMenuModal');
 const assetMenuCloseButton = document.getElementById('assetMenuCloseButton');
@@ -45,10 +46,35 @@ const assetGameGallery = document.getElementById('assetGameGallery');
 const assetComponentGallery = document.getElementById('assetComponentGallery');
 const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
+const diceComponentTile = document.getElementById('diceComponentTile');
+const coinComponentTile = document.getElementById('coinComponentTile');
+const labelComponentTile = document.getElementById('labelComponentTile');
+const imageComponentTile = document.getElementById('imageComponentTile');
+const diceAddModal = document.getElementById('diceAddModal');
+const diceAddCloseButton = document.getElementById('diceAddCloseButton');
+const diceTypeD6Button = document.getElementById('diceTypeD6Button');
+const diceTypeD20Button = document.getElementById('diceTypeD20Button');
+const diceCountRow = document.getElementById('diceCountRow');
+const diceAddConfirmButton = document.getElementById('diceAddConfirmButton');
+const imageAddModal = document.getElementById('imageAddModal');
+const imageAddCloseButton = document.getElementById('imageAddCloseButton');
+const imageAddFrontInput = document.getElementById('imageAddFrontInput');
+const imageAddBackInput = document.getElementById('imageAddBackInput');
+const imageAddCardCheckbox = document.getElementById('imageAddCardCheckbox');
+const imageAddTwoSidedCheckbox = document.getElementById('imageAddTwoSidedCheckbox');
+const imageAddBackField = document.getElementById('imageAddBackField');
+const imageAddError = document.getElementById('imageAddError');
+const imageAddConfirmButton = document.getElementById('imageAddConfirmButton');
+const removeComponentsButton = document.getElementById('removeComponentsButton');
+const tableResetRow = document.getElementById('tableResetRow');
 const clearTableButton = document.getElementById('clearTableButton');
+const wipeAllDrawingsButton = document.getElementById('wipeAllDrawingsButton');
 const clearTableWarningModal = document.getElementById('clearTableWarningModal');
 const clearTableWarningYesButton = document.getElementById('clearTableWarningYesButton');
 const clearTableWarningNoButton = document.getElementById('clearTableWarningNoButton');
+const drawClearWarningModal = document.getElementById('drawClearWarningModal');
+const drawClearWarningYesButton = document.getElementById('drawClearWarningYesButton');
+const drawClearWarningNoButton = document.getElementById('drawClearWarningNoButton');
 const instanceWarningModal = document.getElementById('instanceWarningModal');
 const instanceWarningContinueButton = document.getElementById('instanceWarningContinueButton');
 const instanceWarningCancelButton = document.getElementById('instanceWarningCancelButton');
@@ -75,6 +101,7 @@ const modeIcon = document.getElementById('modeIcon');
 
 const LAST_GAME_URL_KEY = 'tabletop-last-room-url';
 const LIGHT_MODE_KEY = 'tabletop-light-mode-enabled';
+const ASSET_MENU_VIEW_KEY = 'tabletop-asset-menu-view';
 const CAMERA_VIEW_STORAGE_KEY_PREFIX = 'tabletop-camera-view';
 const OWNER_TOKEN_KEY = 'tabletop-owner-token';
 const PLAYER_TOKEN_KEY = 'tabletop-player-token';
@@ -123,6 +150,7 @@ const DRAW_TOOL_FREE = 'free';
 const DRAW_TOOL_LINE = 'line';
 const DRAW_TOOL_BOX = 'box';
 const DRAW_TOOL_DRAG_MIN_DISTANCE = 3;
+const DELETE_FADE_DURATION_MS = 170;
 const CURSOR_PENCIL_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20L8.8 18.8L19.2 8.4C19.8 7.8 19.8 6.9 19.2 6.3L17.7 4.8C17.1 4.2 16.2 4.2 15.6 4.8L5.2 15.2L4 20Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.8 6.6L17.4 10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>';
 const HAND_DROP_REGION_HEIGHT = 110;
@@ -144,15 +172,60 @@ const DECK_KEY = 'cool-jpegs';
 const MONS_GAME_KEY = 'super-metal-mons';
 const CARD_BACK_IMAGE_SRC = './assets/back.png';
 const MONS_BOARD_SIZE = 11;
+const MONS_BOARD_LABELS = 'ABCDEFGHIJK';
+const MONS_BOARD_CENTER = MONS_BOARD_SIZE / 2;
 const MONS_BOARD_WORLD_WIDTH = 680;
 const MONS_BOARD_WORLD_HEIGHT = 760;
-const MONS_PIECE_PIXELATE_SCALE = 1.35;
-const MONS_HUD_POTION_HIDE_SCREEN_WIDTH = 430;
+const MONS_PIECE_PIXELATE_SCALE = 1.2;
+const MONS_HUD_POTION_HIDE_SCREEN_WIDTH = 330;
 const MONS_BOMB_ATTACK_RANGE = 3;
 const MONS_MOVE_CONTROL_SIZE = 28;
 const MONS_SIDE_CLAIMS_EDGE_INSET = 27;
 const MONS_SIDE_CLAIMS_VERTICAL_OFFSET = 8;
 const MONS_UNDO_HISTORY_LIMIT = 30;
+const DIE_SIZE_D6 = 84;
+const DIE_SIZE_D20 = 92;
+const DIE_SIZE_COIN = 114;
+const IMAGE_COMPONENT_MIN_WORLD_SIZE = DIE_SIZE_D20;
+const IMAGE_COMPONENT_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 2;
+const IMAGE_COMPONENT_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 2;
+const DIE_ROLL_DURATION_MS = 850;
+const DIE_ROLL_STEP_MS = 72;
+const DICE_SPAWN_GAP = 108;
+const LABEL_DEFAULT_TEXT = 'double click to type';
+const LABEL_MIN_WORLD_WIDTH = 110;
+const LABEL_MIN_WORLD_HEIGHT = 34;
+const LABEL_MAX_WORLD_WIDTH = 3600;
+const LABEL_MAX_WORLD_HEIGHT = 2200;
+const LABEL_EDGE_OVERFLOW = 700;
+const LABEL_CHAR_WORLD_WIDTH = 11;
+const LABEL_LINE_WORLD_HEIGHT = 30;
+const LABEL_PADDING_WORLD_X = 28;
+const LABEL_PADDING_WORLD_Y = 18;
+const LABEL_TEXT_MAX_LENGTH = 1200;
+const LABEL_TEXT_SCALE_DEFAULT = 1;
+const LABEL_TEXT_SCALE_MIN = 0.58;
+const LABEL_TEXT_SCALE_MAX = 24;
+const LABEL_FONT_SIZE_FACTOR = 0.58;
+const LABEL_DEFAULT_SPAWN_WIDTH = 332;
+const LABEL_MEASURE_BUFFER_X = 8;
+const LABEL_MEASURE_BUFFER_Y = 6;
+const D6_PIP_LAYOUTS = {
+  1: [[50, 50]],
+  2: [[30, 30], [70, 70]],
+  3: [[30, 30], [50, 50], [70, 70]],
+  4: [[30, 30], [70, 30], [30, 70], [70, 70]],
+  5: [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  6: [[30, 30], [70, 30], [30, 50], [70, 50], [30, 70], [70, 70]]
+};
+const DICE_TILE_ICON_PIP_LAYOUTS = {
+  1: [6],
+  2: [0, 5],
+  3: [0, 6, 5],
+  4: [0, 1, 4, 5],
+  5: [0, 1, 6, 4, 5],
+  6: [0, 2, 4, 1, 3, 5]
+};
 const MONS_PARTICLE_DURATION_MS = 420;
 const MONS_ATTACK_EFFECT_DURATION_MS = 820;
 const MONS_SCORED_MANA_FADE_OUT_MS = 320;
@@ -382,12 +455,16 @@ const playerState = {
 
 const roomPath = `rooms/${roomId}`;
 const defaultRoomTitle = `room: ${roomId}`;
+setDocumentRoomTitle(defaultRoomTitle);
 const dots = new Map();
 const cards = new Map();
+const diceById = new Map();
 const cardElements = new Map();
+const diceElements = new Map();
 const cardFaces = new Map();
 const cardFlipTimers = new Map();
 const selectedCardIds = new Set();
+const selectedDiceIds = new Set();
 const selectedDeckIds = new Set();
 const selectedMonsGameIds = new Set();
 const frontImageLoadState = new Map();
@@ -418,6 +495,7 @@ let activeMonsGameId = MONS_GAME_KEY;
 let monsMoveButton = null;
 let monsOptionsButton = null;
 let monsUndoButton = null;
+let monsFlipButton = null;
 let monsGameShell = null;
 let monsBoardSvg = null;
 let monsBoardPiecesLayer = null;
@@ -437,6 +515,7 @@ let monsBlackClaimsList = null;
 let monsWhiteClaimsList = null;
 let monsSelectionPieceId = '';
 let monsPendingSpiritPush = null;
+let monsPendingDemonRebound = null;
 let lastRenderedMonsMoveTick = 0;
 let monsParticleAnimationRafId = 0;
 let monsWaveFrameIndex = 0;
@@ -460,6 +539,8 @@ let handHoverLayout = null;
 let hoveredHandCardId = null;
 let lastHandHoverClientX = Number.NaN;
 let lastHandHoverClientY = Number.NaN;
+let resizingImageCardId = '';
+let resizingLabelDieId = '';
 let latestRoomCursors = {};
 let heldCardLayer = null;
 let selectionBoxElement = null;
@@ -467,14 +548,18 @@ let deckShuffleFxCards = [];
 let deckShuffleFxActive = false;
 let deckShuffleFxTimerId = 0;
 let deckShuffleFxDeckId = DECK_KEY;
+let diceRollAnimationRafId = 0;
 let cameraPersistTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
-let activeAssetMenuView = 'game';
+let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
 let clearTableWarningResolver = null;
+let drawClearWarningResolver = null;
 let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
+let activeDiceAddType = 'd6';
+let activeDiceAddCount = 1;
 let roomTitleValue = defaultRoomTitle;
 let isRoomTitleEditing = false;
 let isRoomOwner = false;
@@ -496,11 +581,26 @@ let resetSuperMetalMonsGame = async () => {
 let putAwaySuperMetalMonsGame = async () => {
   showStatusMessage('Firebase connection is required before putting super metal mons away.');
 };
+let spawnDice = async () => {
+  showStatusMessage('Firebase connection is required before adding dice.');
+};
+let spawnCoin = async () => {
+  showStatusMessage('Firebase connection is required before adding coins.');
+};
+let spawnImageComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding images.');
+};
+let spawnLabelComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding labels.');
+};
 let renameRoomTitle = async () => {
   showStatusMessage('Firebase connection is required before renaming the room.');
 };
 let clearTabletop = async () => {
   showStatusMessage('Firebase connection is required before clearing the table.');
+};
+let wipeAllDrawings = async () => {
+  showStatusMessage('Firebase connection is required before wiping drawings.');
 };
 let clearOwnDrawings = async () => {
   showStatusMessage('Firebase connection is required before deleting drawings.');
@@ -518,19 +618,35 @@ let shuffleCoolJpegsDeck = async () => {};
 let dealOneCardEach = async () => {};
 let reclaimDiscardToDeck = async () => {};
 let onCardPointerDown = () => {};
+let onCardResizePointerDown = () => {};
 let onCardContextMenu = () => {};
 let onHandCardPointerDown = () => {};
+let onDiePointerDown = () => {};
+let onDieContextMenu = () => {};
+let onLabelResizePointerDown = () => {};
 let onDeckMovePointerDown = () => {};
 let onMonsMovePointerDown = () => {};
 let onMonsUndoButtonClick = () => {};
+let onMonsFlipButtonClick = () => {};
 let onMonsBoardTilePointerDown = () => {};
 let onMonsSideClaimClick = () => {};
+let onDrawingStrokePointerDown = () => {};
 let drawModeEnabled = false;
+let deleteModeEnabled = false;
 let activeDrawTool = DRAW_TOOL_FREE;
 let onDrawToolModeChanged = () => {};
 let setDrawModeEnabled = (enabled) => {
   drawModeEnabled = Boolean(enabled);
   syncDrawModeUi();
+};
+let setDeleteModeEnabled = (enabled) => {
+  const nextEnabled = Boolean(enabled);
+  deleteModeEnabled = nextEnabled;
+  if (nextEnabled && drawModeEnabled) {
+    setDrawModeEnabled(false);
+  }
+  tableRoot?.classList.toggle('is-delete-mode', deleteModeEnabled);
+  deleteModeCancelButton?.classList.toggle('hidden', !deleteModeEnabled);
 };
 
 const camera = {
@@ -541,6 +657,59 @@ const camera = {
 
 function getMonsPieceImageRendering() {
   return camera.scale >= MONS_PIECE_PIXELATE_SCALE ? 'pixelated' : 'auto';
+}
+
+function getMonsColumnLabelText(index, flipped = false) {
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, MONS_BOARD_SIZE - 1);
+  const labelIndex = flipped ? MONS_BOARD_SIZE - 1 - normalizedIndex : normalizedIndex;
+  return MONS_BOARD_LABELS[labelIndex] || '';
+}
+
+function getMonsRowLabelText(index, flipped = false) {
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, MONS_BOARD_SIZE - 1);
+  return flipped ? String(normalizedIndex + 1) : String(MONS_BOARD_SIZE - normalizedIndex);
+}
+
+function syncMonsBoardCoordinateLabels(boardSvgElement, flipped) {
+  if (!(boardSvgElement instanceof SVGElement)) {
+    return;
+  }
+  const labels = boardSvgElement.querySelectorAll('.mons-board-coordinate[data-mons-axis][data-mons-index]');
+  for (const label of labels) {
+    const axis = label.getAttribute('data-mons-axis');
+    const index = Number(label.getAttribute('data-mons-index'));
+    if (!Number.isFinite(index)) {
+      continue;
+    }
+    if (axis === 'col') {
+      label.textContent = getMonsColumnLabelText(index, flipped);
+    } else if (axis === 'row') {
+      label.textContent = getMonsRowLabelText(index, flipped);
+    }
+    if (flipped) {
+      label.setAttribute('transform', `rotate(180 ${MONS_BOARD_CENTER} ${MONS_BOARD_CENTER})`);
+    } else {
+      label.removeAttribute('transform');
+    }
+  }
+}
+
+function isMonsBoardFlipped(gamePayload = monsGameState) {
+  return gamePayload?.flipped === true;
+}
+
+function applyMonsBoardOrientation(boardSvgElement, flipped) {
+  if (!(boardSvgElement instanceof SVGElement)) {
+    return;
+  }
+  if (flipped) {
+    boardSvgElement.style.transformOrigin = '50% 50%';
+    boardSvgElement.style.transform = 'rotate(180deg)';
+  } else {
+    boardSvgElement.style.transform = '';
+    boardSvgElement.style.transformOrigin = '';
+  }
+  syncMonsBoardCoordinateLabels(boardSvgElement, flipped);
 }
 
 function normalizedToWorld(position) {
@@ -766,6 +935,7 @@ function setActiveMonsGameId(nextMonsGameId) {
   if (normalizedMonsGameId !== previousMonsGameId) {
     monsSelectionPieceId = '';
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     lastRenderedMonsMoveTick = Number(monsGameState?.moveTick) || 0;
   }
 }
@@ -819,6 +989,315 @@ function getAuctionCenterPosition(deckId = activeDeckId) {
     x: deckCenter.x + AUCTION_STACK_OFFSET_X,
     y: deckCenter.y
   };
+}
+
+function normalizeDieType(type) {
+  if (type === 'label') {
+    return 'label';
+  }
+  if (type === 'coin') {
+    return 'coin';
+  }
+  return type === 'd20' ? 'd20' : 'd6';
+}
+
+function getDieSides(type) {
+  const normalizedType = normalizeDieType(type);
+  if (normalizedType === 'label') {
+    return 1;
+  }
+  if (normalizedType === 'coin') {
+    return 2;
+  }
+  return normalizedType === 'd20' ? 20 : 6;
+}
+
+function getDieSize(type) {
+  const normalizedType = normalizeDieType(type);
+  if (normalizedType === 'label') {
+    return LABEL_MIN_WORLD_WIDTH;
+  }
+  if (normalizedType === 'coin') {
+    return DIE_SIZE_COIN;
+  }
+  return normalizedType === 'd20' ? DIE_SIZE_D20 : DIE_SIZE_D6;
+}
+
+function normalizeLabelText(value) {
+  const raw = String(value ?? '').replace(/\r\n?/g, '\n').slice(0, LABEL_TEXT_MAX_LENGTH);
+  return raw;
+}
+
+function getLabelTextScale(valueOrState, fallback = LABEL_TEXT_SCALE_DEFAULT) {
+  const rawValue =
+    valueOrState && typeof valueOrState === 'object'
+      ? Number(valueOrState.textScale)
+      : Number(valueOrState);
+  const fallbackValue = Number(fallback);
+  const normalized = Number.isFinite(rawValue)
+    ? rawValue
+    : Number.isFinite(fallbackValue)
+      ? fallbackValue
+      : LABEL_TEXT_SCALE_DEFAULT;
+  return clamp(normalized, LABEL_TEXT_SCALE_MIN, LABEL_TEXT_SCALE_MAX);
+}
+
+function getLabelFontSizePx(dieState) {
+  const textScale = getLabelTextScale(dieState);
+  const worldFontSize = LABEL_LINE_WORLD_HEIGHT * textScale * LABEL_FONT_SIZE_FACTOR;
+  return clamp(worldFontSize * camera.scale, 4, 1680);
+}
+
+function measureLabelWorldDimensions(textValue, options = {}) {
+  const normalizedText = normalizeLabelText(textValue);
+  const lines = normalizedText.length > 0 ? normalizedText.split('\n') : [''];
+  const textScale = getLabelTextScale(options.textScale, LABEL_TEXT_SCALE_DEFAULT);
+  const charWorldWidth = Math.max(1, LABEL_CHAR_WORLD_WIDTH * textScale);
+  const lineWorldHeight = Math.max(1, LABEL_LINE_WORLD_HEIGHT * textScale);
+  const paddingX = LABEL_PADDING_WORLD_X;
+  const paddingY = LABEL_PADDING_WORLD_Y;
+  const maxWidthConstraint = clamp(
+    Number.isFinite(Number(options.maxWidth)) ? Number(options.maxWidth) : LABEL_MAX_WORLD_WIDTH,
+    LABEL_MIN_WORLD_WIDTH,
+    LABEL_MAX_WORLD_WIDTH
+  );
+  const maxCharsPerWrappedLine = Math.max(
+    1,
+    Math.floor((maxWidthConstraint - paddingX * 2) / charWorldWidth)
+  );
+  let wrappedLineCount = 0;
+  let maxLineLength = 1;
+  for (const line of lines) {
+    const lineLength = Array.from(String(line || '')).length;
+    maxLineLength = Math.max(maxLineLength, lineLength);
+    wrappedLineCount += Math.max(1, Math.ceil(lineLength / maxCharsPerWrappedLine));
+  }
+  const measuredWidth =
+    Math.min(maxLineLength, maxCharsPerWrappedLine) * charWorldWidth + paddingX * 2 + LABEL_MEASURE_BUFFER_X;
+  const measuredHeight =
+    Math.max(1, wrappedLineCount) * lineWorldHeight + paddingY * 2 + LABEL_MEASURE_BUFFER_Y;
+  return {
+    width: clamp(measuredWidth, LABEL_MIN_WORLD_WIDTH, maxWidthConstraint),
+    height: clamp(measuredHeight, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT)
+  };
+}
+
+function findLabelTextScaleToFit(textValue, targetWidth, targetHeight, preferredScale = LABEL_TEXT_SCALE_DEFAULT) {
+  const normalizedText = normalizeLabelText(textValue);
+  const width = clamp(Number(targetWidth) || LABEL_MIN_WORLD_WIDTH, LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+  const height = clamp(Number(targetHeight) || LABEL_MIN_WORLD_HEIGHT, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+  const preferred = getLabelTextScale(preferredScale, LABEL_TEXT_SCALE_DEFAULT);
+  const minScale = LABEL_TEXT_SCALE_MIN;
+  const fitsAtScale = (scale) => {
+    const measured = measureLabelWorldDimensions(normalizedText, {
+      textScale: scale,
+      maxWidth: width
+    });
+    return measured.width <= width + 0.001 && measured.height <= height + 0.001;
+  };
+  if (fitsAtScale(preferred)) {
+    return preferred;
+  }
+  if (!fitsAtScale(minScale)) {
+    return minScale;
+  }
+  let low = minScale;
+  let high = preferred;
+  for (let iteration = 0; iteration < 18; iteration += 1) {
+    const midpoint = (low + high) / 2;
+    if (fitsAtScale(midpoint)) {
+      low = midpoint;
+    } else {
+      high = midpoint;
+    }
+  }
+  return getLabelTextScale(low);
+}
+
+function resolveLabelLayoutForBounds(textValue, targetWidth, targetHeight, preferredScale = LABEL_TEXT_SCALE_DEFAULT) {
+  const normalizedText = normalizeLabelText(textValue);
+  let width = clamp(Number(targetWidth) || LABEL_MIN_WORLD_WIDTH, LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+  let height = clamp(Number(targetHeight) || LABEL_MIN_WORLD_HEIGHT, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+  let textScale = findLabelTextScaleToFit(normalizedText, width, height, preferredScale);
+  let measured = measureLabelWorldDimensions(normalizedText, {
+    textScale,
+    maxWidth: width
+  });
+  width = clamp(Math.max(width, measured.width), LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+  height = clamp(Math.max(height, measured.height), LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+  if (textScale <= LABEL_TEXT_SCALE_MIN + 0.001) {
+    const minimumMeasured = measureLabelWorldDimensions(normalizedText, {
+      textScale: LABEL_TEXT_SCALE_MIN,
+      maxWidth: width
+    });
+    width = clamp(Math.max(width, minimumMeasured.width), LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+    height = clamp(Math.max(height, minimumMeasured.height), LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+    measured = minimumMeasured;
+  }
+  return {
+    text: normalizedText,
+    textScale: getLabelTextScale(textScale),
+    labelWidth: width,
+    labelHeight: height,
+    measuredWidth: measured.width,
+    measuredHeight: measured.height
+  };
+}
+
+function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
+  const dieType =
+    typeof typeOrPayload === 'string'
+      ? normalizeDieType(typeOrPayload)
+      : normalizeDieType(typeOrPayload?.type);
+  if (dieType !== 'label') {
+    const size = getDieSize(dieType);
+    return { width: size, height: size };
+  }
+  const normalizedText = normalizeLabelText(payload?.text);
+  const measured = measureLabelWorldDimensions(normalizedText, {
+    textScale: getLabelTextScale(payload, LABEL_TEXT_SCALE_DEFAULT)
+  });
+  const payloadWidth = Number(payload?.labelWidth);
+  const payloadHeight = Number(payload?.labelHeight);
+  return {
+    width: Number.isFinite(payloadWidth)
+      ? clamp(payloadWidth, LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH)
+      : measured.width,
+    height: Number.isFinite(payloadHeight)
+      ? clamp(payloadHeight, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT)
+      : measured.height
+  };
+}
+
+function getDieCenterBounds(dieType, width, height) {
+  const normalizedType = normalizeDieType(dieType);
+  const fallbackSize = getDieSize(normalizedType);
+  const resolvedWidth = Math.max(1, Number(width) || fallbackSize);
+  const resolvedHeight = Math.max(1, Number(height) || fallbackSize);
+  const edgeOverflow = normalizedType === 'label' ? LABEL_EDGE_OVERFLOW : 0;
+  const minX = resolvedWidth / 2 - edgeOverflow;
+  const maxX = WORLD_WIDTH - resolvedWidth / 2 + edgeOverflow;
+  const minY = resolvedHeight / 2 - edgeOverflow;
+  const maxY = WORLD_HEIGHT - resolvedHeight / 2 + edgeOverflow;
+  return {
+    minX: Math.min(minX, maxX),
+    maxX: Math.max(minX, maxX),
+    minY: Math.min(minY, maxY),
+    maxY: Math.max(minY, maxY)
+  };
+}
+
+function getSecureRandomUint32() {
+  if (typeof crypto?.getRandomValues === 'function') {
+    const randomBuffer = new Uint32Array(1);
+    crypto.getRandomValues(randomBuffer);
+    return randomBuffer[0] >>> 0;
+  }
+  return Math.floor(Math.random() * 0x100000000) >>> 0;
+}
+
+function getRandomIntInclusive(minValue, maxValue) {
+  const min = Math.ceil(Number(minValue));
+  const max = Math.floor(Number(maxValue));
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return 0;
+  }
+  if (max <= min) {
+    return min;
+  }
+  const span = max - min + 1;
+  const maxRandomExclusive = 0x100000000;
+  if (span > 0 && span <= maxRandomExclusive) {
+    const cutoff = maxRandomExclusive - (maxRandomExclusive % span);
+    let sample = 0;
+    do {
+      sample = getSecureRandomUint32();
+    } while (sample >= cutoff);
+    return min + (sample % span);
+  }
+  return min + Math.floor(Math.random() * span);
+}
+
+function normalizeDicePayload(payload) {
+  const type = normalizeDieType(payload?.type);
+  const dimensions = getDieWorldDimensions(type, payload);
+  const centerBounds = getDieCenterBounds(type, dimensions.width, dimensions.height);
+  const sides = getDieSides(type);
+  const nextX = Number(payload?.x);
+  const nextY = Number(payload?.y);
+  const nextValue = Number(payload?.value);
+  const nextZ = Math.round(Number(payload?.z) || 1);
+  const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const rollStartedAt = Number(payload?.rollStartedAt);
+  const rollDurationMs = Number(payload?.rollDurationMs);
+  const rollSeed = Math.floor(Number(payload?.rollSeed) || 0);
+  const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
+  const text = normalizeLabelText(payload?.text);
+  const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
+  return {
+    type,
+    x: Number.isFinite(nextX)
+      ? clamp(nextX, centerBounds.minX, centerBounds.maxX)
+      : clamp(WORLD_WIDTH / 2, centerBounds.minX, centerBounds.maxX),
+    y: Number.isFinite(nextY)
+      ? clamp(nextY, centerBounds.minY, centerBounds.maxY)
+      : clamp(WORLD_HEIGHT / 2, centerBounds.minY, centerBounds.maxY),
+    z: clamp(Number.isFinite(nextZ) ? nextZ : 1, 1, DECK_UI_Z_INDEX - 1),
+    value: clamp(Number.isFinite(nextValue) ? Math.round(nextValue) : 1, 1, sides),
+    text,
+    textColor,
+    textScale,
+    labelWidth: dimensions.width,
+    labelHeight: dimensions.height,
+    holderClientId,
+    rollStartedAt: type === 'label' ? 0 : Number.isFinite(rollStartedAt) ? Math.max(0, rollStartedAt) : 0,
+    rollDurationMs: Number.isFinite(rollDurationMs) ? clamp(Math.round(rollDurationMs), 120, 3000) : DIE_ROLL_DURATION_MS,
+    rollSeed: Number.isFinite(rollSeed) ? rollSeed : 0
+  };
+}
+
+function isDieRolling(dieState, now = Date.now()) {
+  if (!dieState || typeof dieState !== 'object') {
+    return false;
+  }
+  if (normalizeDieType(dieState.type) === 'label') {
+    return false;
+  }
+  const startedAt = Number(dieState.rollStartedAt);
+  const duration = Number(dieState.rollDurationMs);
+  if (!Number.isFinite(startedAt) || startedAt <= 0 || !Number.isFinite(duration) || duration <= 0) {
+    return false;
+  }
+  return now < startedAt + duration;
+}
+
+function getPseudoRandomFromSeed(seedValue) {
+  let seed = Math.floor(Number(seedValue) || 0) >>> 0;
+  seed ^= seed >>> 16;
+  seed = Math.imul(seed, 0x7feb352d) >>> 0;
+  seed ^= seed >>> 15;
+  seed = Math.imul(seed, 0x846ca68b) >>> 0;
+  seed ^= seed >>> 16;
+  return seed >>> 0;
+}
+
+function getRenderedDieValue(dieState, now = Date.now()) {
+  const normalized = normalizeDicePayload(dieState);
+  if (!isDieRolling(normalized, now)) {
+    return normalized.value;
+  }
+  const elapsed = Math.max(0, now - normalized.rollStartedAt);
+  const tick = Math.floor(elapsed / DIE_ROLL_STEP_MS);
+  const mixedSeed = getPseudoRandomFromSeed((normalized.rollSeed || 0) + tick * 2654435761);
+  return (mixedSeed % getDieSides(normalized.type)) + 1;
+}
+
+function getTopDieZ() {
+  let topZ = 0;
+  for (const dieState of diceById.values()) {
+    topZ = Math.max(topZ, Number(dieState?.z) || 0);
+  }
+  return topZ;
 }
 
 function buildCoolJpegsDeck(options = {}) {
@@ -1086,6 +1565,7 @@ function normalizeMonsPiecePayload(piecePayload, fallbackId) {
 
 function normalizeMonsPiecesPayload(payload) {
   const entries = [];
+  const hasExplicitObjectPayload = Boolean(payload && typeof payload === 'object');
   if (payload && typeof payload === 'object') {
     for (const [pieceId, piecePayload] of Object.entries(payload)) {
       if (!piecePayload || typeof piecePayload !== 'object') {
@@ -1093,6 +1573,9 @@ function normalizeMonsPiecesPayload(payload) {
       }
       entries.push(normalizeMonsPiecePayload(piecePayload, pieceId));
     }
+  }
+  if (hasExplicitObjectPayload && Object.keys(payload || {}).length === 0) {
+    return {};
   }
   if (entries.length === 0) {
     return buildDefaultMonsPieces();
@@ -1241,6 +1724,7 @@ function normalizeMonsGamePayload(payload) {
   const nextY = Number(payload?.y);
   const nextMoveTick = Number(payload?.moveTick);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const flipped = payload?.flipped === true;
   return {
     enabled: payload?.enabled !== false,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
@@ -1254,7 +1738,8 @@ function normalizeMonsGamePayload(payload) {
     moveTick: Number.isFinite(nextMoveTick) ? nextMoveTick : 0,
     lastMove: normalizeMonsLastMovePayload(payload?.lastMove),
     undoHistory: normalizeMonsUndoHistoryPayload(payload?.undoHistory),
-    holderClientId
+    holderClientId,
+    flipped
   };
 }
 
@@ -1265,6 +1750,7 @@ function buildFreshMonsGamePayload(options = {}) {
   const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : MONS_BOARD_WORLD_HEIGHT;
   const nextX = Number(options?.x);
   const nextY = Number(options?.y);
+  const flipped = options?.flipped === true;
   return {
     enabled: true,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
@@ -1285,6 +1771,7 @@ function buildFreshMonsGamePayload(options = {}) {
     lastMove: null,
     undoHistory: [],
     holderClientId: null,
+    flipped,
     updatedAt: Date.now()
   };
 }
@@ -1326,22 +1813,35 @@ function toHighResFrontSrc(src) {
   if (typeof src !== 'string') {
     return COOL_JPEGS_FRONT_IMAGES[0];
   }
-  if (src.startsWith(CARD_FRONT_HIGH_RES_PREFIX)) {
-    return src;
+  const trimmedSrc = src.trim();
+  if (!trimmedSrc) {
+    return COOL_JPEGS_FRONT_IMAGES[0];
   }
-  if (src.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
-    return `${CARD_FRONT_HIGH_RES_PREFIX}${src.slice(CARD_FRONT_LOW_RES_PREFIX.length)}`;
+  if (trimmedSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX)) {
+    return trimmedSrc;
   }
-  return COOL_JPEGS_FRONT_IMAGES[0];
+  if (trimmedSrc.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
+    return `${CARD_FRONT_HIGH_RES_PREFIX}${trimmedSrc.slice(CARD_FRONT_LOW_RES_PREFIX.length)}`;
+  }
+  return trimmedSrc;
 }
 
 function toLowResFrontSrc(src) {
   const highResSrc = toHighResFrontSrc(src);
-  return highResSrc.replace(CARD_FRONT_HIGH_RES_PREFIX, CARD_FRONT_LOW_RES_PREFIX);
+  if (highResSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX)) {
+    return highResSrc.replace(CARD_FRONT_HIGH_RES_PREFIX, CARD_FRONT_LOW_RES_PREFIX);
+  }
+  return highResSrc;
 }
 
 function resolveFrontVariantSources(frontSrc, cardScreenWidth) {
   const highResSrc = toHighResFrontSrc(frontSrc);
+  if (!highResSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX)) {
+    return {
+      preferredSrc: highResSrc,
+      fallbackSrc: ''
+    };
+  }
   const lowResSrc = toLowResFrontSrc(highResSrc);
   const preferLowRes = cardScreenWidth <= LOW_RES_FRONT_SWITCH_SCREEN_WIDTH;
   return {
@@ -1732,6 +2232,9 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   shuffleButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
     shuffleButton.classList.remove('is-pressing');
     void shuffleButton.offsetWidth;
     shuffleButton.classList.add('is-pressing');
@@ -1759,6 +2262,9 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   dealOneButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
     if (dealOneButton.disabled) {
       return;
     }
@@ -1795,6 +2301,9 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   optionsButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
     openGameOptionsMenu(DECK_KEY, normalizedDeckId);
   });
   shieldPointerEvents(optionsButton);
@@ -1811,6 +2320,9 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   discardResetButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
     reclaimDiscardToDeck(normalizedDeckId).catch((error) => {
       console.error(error);
       setRealtimeStatus('firebase: write blocked');
@@ -2172,7 +2684,6 @@ function ensureMonsBoardElements() {
     monsBoardParticlesLayer.setAttribute('aria-hidden', 'true');
     monsBoardSvg.appendChild(monsBoardParticlesLayer);
 
-    const letters = 'ABCDEFGHIJK';
     for (let row = 0; row < MONS_BOARD_SIZE; row += 1) {
       for (let col = 0; col < MONS_BOARD_SIZE; col += 1) {
         const tile = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -2195,7 +2706,9 @@ function ensureMonsBoardElements() {
       label.setAttribute('y', '11.26');
       label.setAttribute('text-anchor', 'middle');
       label.classList.add('mons-board-coordinate');
-      label.textContent = letters[col] || '';
+      label.setAttribute('data-mons-axis', 'col');
+      label.setAttribute('data-mons-index', String(col));
+      label.textContent = getMonsColumnLabelText(col, false);
       monsBoardTilesLayer.appendChild(label);
     }
     for (let row = 0; row < MONS_BOARD_SIZE; row += 1) {
@@ -2204,7 +2717,9 @@ function ensureMonsBoardElements() {
       label.setAttribute('y', String(row + 0.58));
       label.setAttribute('text-anchor', 'middle');
       label.classList.add('mons-board-coordinate');
-      label.textContent = String(11 - row);
+      label.setAttribute('data-mons-axis', 'row');
+      label.setAttribute('data-mons-index', String(row));
+      label.textContent = getMonsRowLabelText(row, false);
       monsBoardTilesLayer.appendChild(label);
     }
 
@@ -2290,6 +2805,18 @@ function ensureMonsBoardElements() {
     shieldPointerEvents(monsUndoButton);
     centerCluster.appendChild(monsUndoButton);
 
+    monsFlipButton = document.createElement('button');
+    monsFlipButton.type = 'button';
+    monsFlipButton.className = 'mons-flip-button';
+    monsFlipButton.setAttribute('aria-label', 'flip super metal mons board');
+    monsFlipButton.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.8 7.2L9 5L11.2 7.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14.8 16.8L17 19L19.2 16.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    monsFlipButton.addEventListener('click', (event) => {
+      onMonsFlipButtonClick(event);
+    });
+    shieldPointerEvents(monsFlipButton);
+    centerCluster.appendChild(monsFlipButton);
+
     monsHud.appendChild(whiteCluster);
     monsHud.appendChild(centerCluster);
     monsHud.appendChild(blackCluster);
@@ -2339,6 +2866,9 @@ function ensureMonsBoardElements() {
     monsOptionsButton.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (deleteModeEnabled) {
+        return;
+      }
       openGameOptionsMenu(MONS_GAME_KEY, activeMonsGameId);
     });
     shieldPointerEvents(monsOptionsButton);
@@ -2371,6 +2901,7 @@ function hideMonsBoardElements() {
   }
   monsSelectionPieceId = '';
   monsPendingSpiritPush = null;
+  monsPendingDemonRebound = null;
   lastRenderedMonsMoveTick = 0;
   stopMonsParticleAnimation();
   stopMonsCornerWaveAnimation();
@@ -2406,6 +2937,7 @@ function removeMonsBoardElements() {
   monsBoardParticlesLayer = null;
   monsHud = null;
   monsUndoButton = null;
+  monsFlipButton = null;
   monsScoreBlackLabel = null;
   monsScoreWhiteLabel = null;
   monsPotionsBlackTray = null;
@@ -2416,6 +2948,7 @@ function removeMonsBoardElements() {
   monsWhiteClaimsList = null;
   monsSelectionPieceId = '';
   monsPendingSpiritPush = null;
+  monsPendingDemonRebound = null;
   lastRenderedMonsMoveTick = 0;
   stopMonsParticleAnimation();
   stopMonsCornerWaveAnimation();
@@ -2684,6 +3217,7 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
     return;
   }
   const piecesPayload = gameState.pieces && typeof gameState.pieces === 'object' ? gameState.pieces : {};
+  const boardFlipped = isMonsBoardFlipped(gameState);
   const ghostsLayer = ghostBoardUi.boardGhostsLayer;
   const piecesLayer = ghostBoardUi.boardPiecesLayer;
   const pieceImageRendering = getMonsPieceImageRendering();
@@ -2717,6 +3251,9 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
       ghost.setAttribute('y', String(spawnPiece.row + ghostInset));
       ghost.setAttribute('width', String(ghostSize));
       ghost.setAttribute('height', String(ghostSize));
+      if (boardFlipped) {
+        ghost.setAttribute('transform', `rotate(180 ${spawnPiece.col + 0.5} ${spawnPiece.row + 0.5})`);
+      }
       ghost.setAttribute('opacity', String(MONS_SPAWN_GHOST_OPACITY));
       ghost.setAttribute('style', `image-rendering: ${pieceImageRendering}; pointer-events: none;`);
       ghostsLayer.appendChild(ghost);
@@ -2743,6 +3280,9 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
       group.setAttribute('data-mons-piece-id', String(piece.id));
       group.setAttribute('data-mons-row', String(piece.row));
       group.setAttribute('data-mons-col', String(piece.col));
+      if (boardFlipped) {
+        group.setAttribute('transform', `rotate(180 ${piece.col + 0.5} ${piece.row + 0.5})`);
+      }
 
       const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       image.setAttribute('href', href);
@@ -2772,8 +3312,22 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
   if (ghostBoardUi.potionsWhiteTray) {
     renderMonsPotionTray(ghostBoardUi.potionsWhiteTray, gameState.potions?.white, 'white', showHudPotions);
   }
+  if (ghostBoardUi.undoButton) {
+    ghostBoardUi.undoButton.classList.toggle('hidden', !showHudPotions);
+  }
+  if (ghostBoardUi.flipButton) {
+    ghostBoardUi.flipButton.classList.toggle('hidden', !showHudPotions);
+    ghostBoardUi.flipButton.classList.toggle('is-flipped', boardFlipped);
+  }
   renderMonsSideClaimsList(ghostBoardUi.claimsBlackList, gameState.claims?.black, 'black', ghostBoardUi.blackClaimButton);
   renderMonsSideClaimsList(ghostBoardUi.claimsWhiteList, gameState.claims?.white, 'white', ghostBoardUi.whiteClaimButton);
+  if (ghostBoardUi.undoButton) {
+    const undoHistory = Array.isArray(gameState.undoHistory) ? gameState.undoHistory : [];
+    const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
+    const canUndo = canCurrentPlayerUndoMonsEntry(topUndoEntry);
+    ghostBoardUi.undoButton.disabled = !canUndo;
+    ghostBoardUi.undoButton.classList.toggle('is-disabled', !canUndo);
+  }
 }
 
 function removeMonsGhostBoardUi(ghostBoardUi) {
@@ -2795,6 +3349,8 @@ function ensureMonsGhostBoardElement(gameId) {
   let ghostBoardUi = monsGhostBoardElementsById.get(normalizedGameId) || null;
   if (
     ghostBoardUi?.shell?.isConnected &&
+    ghostBoardUi?.undoButton?.isConnected &&
+    ghostBoardUi?.flipButton?.isConnected &&
     ghostBoardUi?.moveButton?.isConnected &&
     ghostBoardUi?.optionsButton?.isConnected &&
     ghostBoardUi?.claimsBlackList?.isConnected &&
@@ -2862,7 +3418,6 @@ function ensureMonsGhostBoardElement(gameId) {
   boardPiecesLayer.setAttribute('aria-hidden', 'true');
   boardSvg.appendChild(boardPiecesLayer);
 
-  const letters = 'ABCDEFGHIJK';
   for (let row = 0; row < MONS_BOARD_SIZE; row += 1) {
     for (let col = 0; col < MONS_BOARD_SIZE; col += 1) {
       const tile = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -2884,7 +3439,9 @@ function ensureMonsGhostBoardElement(gameId) {
     label.setAttribute('y', '11.26');
     label.setAttribute('text-anchor', 'middle');
     label.classList.add('mons-board-coordinate');
-    label.textContent = letters[col] || '';
+    label.setAttribute('data-mons-axis', 'col');
+    label.setAttribute('data-mons-index', String(col));
+    label.textContent = getMonsColumnLabelText(col, false);
     boardTilesLayer.appendChild(label);
   }
   for (let row = 0; row < MONS_BOARD_SIZE; row += 1) {
@@ -2893,7 +3450,9 @@ function ensureMonsGhostBoardElement(gameId) {
     label.setAttribute('y', String(row + 0.58));
     label.setAttribute('text-anchor', 'middle');
     label.classList.add('mons-board-coordinate');
-    label.textContent = String(11 - row);
+    label.setAttribute('data-mons-axis', 'row');
+    label.setAttribute('data-mons-index', String(row));
+    label.textContent = getMonsRowLabelText(row, false);
     boardTilesLayer.appendChild(label);
   }
 
@@ -2967,6 +3526,31 @@ function ensureMonsGhostBoardElement(gameId) {
 
   const centerCluster = document.createElement('div');
   centerCluster.className = 'mons-hud-center';
+  const undoButton = document.createElement('button');
+  undoButton.type = 'button';
+  undoButton.className = 'mons-undo-button';
+  undoButton.dataset.monsGameId = normalizedGameId;
+  undoButton.setAttribute('aria-label', 'undo last mons move');
+  undoButton.innerHTML =
+    '<svg viewBox="0 0 512 512" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M125.7 160H176c17.7 0 32 14.3 32 32s-14.3 32-32 32H48c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32v51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z" fill="currentColor"/></svg>';
+  undoButton.addEventListener('click', (event) => {
+    onMonsUndoButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(undoButton);
+  centerCluster.appendChild(undoButton);
+
+  const flipButton = document.createElement('button');
+  flipButton.type = 'button';
+  flipButton.className = 'mons-flip-button';
+  flipButton.dataset.monsGameId = normalizedGameId;
+  flipButton.setAttribute('aria-label', 'flip super metal mons board');
+  flipButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.8 7.2L9 5L11.2 7.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14.8 16.8L17 19L19.2 16.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  flipButton.addEventListener('click', (event) => {
+    onMonsFlipButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(flipButton);
+  centerCluster.appendChild(flipButton);
   hud.appendChild(whiteCluster);
   hud.appendChild(centerCluster);
   hud.appendChild(blackCluster);
@@ -2998,6 +3582,9 @@ function ensureMonsGhostBoardElement(gameId) {
   optionsButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
     openGameOptionsMenu(MONS_GAME_KEY, normalizedGameId);
   });
   shieldPointerEvents(optionsButton);
@@ -3021,6 +3608,8 @@ function ensureMonsGhostBoardElement(gameId) {
     claimsWhiteList,
     blackClaimButton,
     whiteClaimButton,
+    undoButton,
+    flipButton,
     moveButton,
     optionsButton
   };
@@ -3061,6 +3650,7 @@ function renderInactiveMonsBoardGhosts() {
     ghostBoardUi.shell.style.height = `${boardScreenHeight}px`;
     ghostBoardUi.boardSvg.style.width = `${boardScreenWidth}px`;
     ghostBoardUi.boardSvg.style.height = `${boardScreenWidth}px`;
+    applyMonsBoardOrientation(ghostBoardUi.boardSvg, isMonsBoardFlipped(gameState));
     ghostBoardUi.hud.style.width = `${boardScreenWidth}px`;
     ghostBoardUi.hud.style.height = `${hudScreenHeight}px`;
     renderMonsCornerWavesIntoLayer(ghostBoardUi.boardWavesLayer);
@@ -3813,7 +4403,9 @@ function renderMonsAbilityHints() {
   }
   monsBoardHintsLayer.textContent = '';
   if (monsBoardTilesLayer) {
-    for (const staleUnderlay of monsBoardTilesLayer.querySelectorAll('.mons-spirit-push-underlay')) {
+    for (const staleUnderlay of monsBoardTilesLayer.querySelectorAll(
+      '.mons-spirit-push-underlay, .mons-demon-rebound-underlay'
+    )) {
       staleUnderlay.remove();
     }
   }
@@ -4199,7 +4791,7 @@ function renderMonsAbilityHints() {
     monsBoardHintsLayer.appendChild(outline);
   }
 
-  if (!monsPendingSpiritPush && selectedPiece && typeof selectedPiece === 'object') {
+  if (!monsPendingSpiritPush && !monsPendingDemonRebound && selectedPiece && typeof selectedPiece === 'object') {
     const occupiedTileKeySet = new Set(
       pieces.filter((piece) => !isMonsItemPiece(piece)).map((piece) => `${piece.row}-${piece.col}`)
     );
@@ -4361,28 +4953,62 @@ function renderMonsAbilityHints() {
     }
   }
 
-  if (!monsPendingSpiritPush || !Array.isArray(monsPendingSpiritPush.options) || monsPendingSpiritPush.options.length === 0) {
+  if (monsPendingSpiritPush && Array.isArray(monsPendingSpiritPush.options) && monsPendingSpiritPush.options.length > 0) {
+    const targetRow = Number(monsPendingSpiritPush.targetRow);
+    const targetCol = Number(monsPendingSpiritPush.targetCol);
+    if (Number.isFinite(targetRow) && Number.isFinite(targetCol) && monsBoardTilesLayer) {
+      const targetRing = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      targetRing.classList.add('mons-spirit-push-underlay');
+      targetRing.setAttribute('x', String(targetCol + 0.06));
+      targetRing.setAttribute('y', String(targetRow + 0.06));
+      targetRing.setAttribute('width', '0.88');
+      targetRing.setAttribute('height', '0.88');
+      targetRing.setAttribute('fill', 'none');
+      targetRing.setAttribute('stroke', MONS_SPIRIT_INDICATOR_COLOR);
+      targetRing.setAttribute('stroke-width', '0.06');
+      targetRing.setAttribute('rx', '0.12');
+      targetRing.setAttribute('pointer-events', 'none');
+      monsBoardTilesLayer.appendChild(targetRing);
+    }
+
+    for (const option of monsPendingSpiritPush.options) {
+      if (!option || !Number.isFinite(option.row) || !Number.isFinite(option.col)) {
+        continue;
+      }
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      marker.setAttribute('cx', String(option.col + 0.5));
+      marker.setAttribute('cy', String(option.row + 0.5));
+      marker.setAttribute('r', '0.13');
+      marker.setAttribute('fill', 'rgba(177, 76, 255, 0.44)');
+      marker.setAttribute('data-mons-row', String(option.row));
+      marker.setAttribute('data-mons-col', String(option.col));
+      marker.style.cursor = 'pointer';
+      monsBoardHintsLayer.appendChild(marker);
+    }
+  }
+
+  if (!monsPendingDemonRebound || !Array.isArray(monsPendingDemonRebound.options) || monsPendingDemonRebound.options.length === 0) {
     return;
   }
 
-  const targetRow = Number(monsPendingSpiritPush.targetRow);
-  const targetCol = Number(monsPendingSpiritPush.targetCol);
-  if (Number.isFinite(targetRow) && Number.isFinite(targetCol) && monsBoardTilesLayer) {
+  const reboundTargetRow = Number(monsPendingDemonRebound.targetRow);
+  const reboundTargetCol = Number(monsPendingDemonRebound.targetCol);
+  if (Number.isFinite(reboundTargetRow) && Number.isFinite(reboundTargetCol) && monsBoardTilesLayer) {
     const targetRing = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    targetRing.classList.add('mons-spirit-push-underlay');
-    targetRing.setAttribute('x', String(targetCol + 0.06));
-    targetRing.setAttribute('y', String(targetRow + 0.06));
+    targetRing.classList.add('mons-demon-rebound-underlay');
+    targetRing.setAttribute('x', String(reboundTargetCol + 0.06));
+    targetRing.setAttribute('y', String(reboundTargetRow + 0.06));
     targetRing.setAttribute('width', '0.88');
     targetRing.setAttribute('height', '0.88');
     targetRing.setAttribute('fill', 'none');
-    targetRing.setAttribute('stroke', MONS_SPIRIT_INDICATOR_COLOR);
+    targetRing.setAttribute('stroke', MONS_ATTACK_INDICATOR_COLOR);
     targetRing.setAttribute('stroke-width', '0.06');
     targetRing.setAttribute('rx', '0.12');
     targetRing.setAttribute('pointer-events', 'none');
     monsBoardTilesLayer.appendChild(targetRing);
   }
 
-  for (const option of monsPendingSpiritPush.options) {
+  for (const option of monsPendingDemonRebound.options) {
     if (!option || !Number.isFinite(option.row) || !Number.isFinite(option.col)) {
       continue;
     }
@@ -4390,7 +5016,7 @@ function renderMonsAbilityHints() {
     marker.setAttribute('cx', String(option.col + 0.5));
     marker.setAttribute('cy', String(option.row + 0.5));
     marker.setAttribute('r', '0.13');
-    marker.setAttribute('fill', 'rgba(177, 76, 255, 0.44)');
+    marker.setAttribute('fill', 'rgba(255, 122, 89, 0.48)');
     marker.setAttribute('data-mons-row', String(option.row));
     marker.setAttribute('data-mons-col', String(option.col));
     marker.style.cursor = 'pointer';
@@ -4403,6 +5029,7 @@ function renderMonsPieces() {
     return;
   }
   monsBoardPiecesLayer.textContent = '';
+  const boardFlipped = isMonsBoardFlipped(monsGameState);
   const pieceImageRendering = getMonsPieceImageRendering();
   const pieces = Object.values(monsGameState.pieces);
   let selectedPieceStillPresent = false;
@@ -4427,6 +5054,9 @@ function renderMonsPieces() {
     group.setAttribute('data-mons-row', String(piece.row));
     group.setAttribute('data-mons-col', String(piece.col));
     group.style.cursor = 'pointer';
+    if (boardFlipped) {
+      group.setAttribute('transform', `rotate(180 ${piece.col + 0.5} ${piece.row + 0.5})`);
+    }
 
     if (monsSelectionPieceId && piece.id === monsSelectionPieceId) {
       selectedPieceStillPresent = true;
@@ -4439,6 +5069,8 @@ function renderMonsPieces() {
       ring.setAttribute('stroke', 'rgba(255, 255, 255, 0.95)');
       ring.setAttribute('stroke-width', '0.08');
       ring.setAttribute('rx', '0.12');
+      ring.style.filter =
+        'drop-shadow(0 0 0.12px rgba(9, 12, 16, 0.38)) drop-shadow(0 0 0.22px rgba(9, 12, 16, 0.24))';
       group.appendChild(ring);
     }
 
@@ -4460,6 +5092,7 @@ function renderMonsPieces() {
   if (monsSelectionPieceId && !selectedPieceStillPresent) {
     monsSelectionPieceId = '';
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
   }
 }
 
@@ -4468,6 +5101,7 @@ function renderMonsSpawnGhosts() {
     return;
   }
   monsBoardGhostsLayer.textContent = '';
+  const boardFlipped = isMonsBoardFlipped(monsGameState);
   const pieceImageRendering = getMonsPieceImageRendering();
   const occupiedTileKeys = new Set();
   for (const piece of Object.values(monsGameState.pieces)) {
@@ -4496,6 +5130,9 @@ function renderMonsSpawnGhosts() {
     ghost.setAttribute('y', String(spawnPiece.row + ghostInset));
     ghost.setAttribute('width', String(ghostSize));
     ghost.setAttribute('height', String(ghostSize));
+    if (boardFlipped) {
+      ghost.setAttribute('transform', `rotate(180 ${spawnPiece.col + 0.5} ${spawnPiece.row + 0.5})`);
+    }
     ghost.setAttribute('opacity', String(MONS_SPAWN_GHOST_OPACITY));
     ghost.setAttribute('style', `image-rendering: ${pieceImageRendering}; pointer-events: none;`);
     monsBoardGhostsLayer.appendChild(ghost);
@@ -4519,6 +5156,7 @@ function renderMonsBoard() {
     if (!selectedPiece || !canCurrentPlayerControlMonsPieceFromPayload(monsGameState, selectedPiece)) {
       monsSelectionPieceId = '';
       monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
     }
   }
 
@@ -4537,6 +5175,7 @@ function renderMonsBoard() {
   monsGameShell.style.height = `${boardScreenHeight}px`;
   monsBoardSvg.style.width = `${boardScreenWidth}px`;
   monsBoardSvg.style.height = `${boardScreenWidth}px`;
+  applyMonsBoardOrientation(monsBoardSvg, isMonsBoardFlipped(monsGameState));
   monsHud.style.width = `${boardScreenWidth}px`;
   monsHud.style.height = `${hudScreenHeight}px`;
 
@@ -4554,6 +5193,13 @@ function renderMonsBoard() {
   }
   if (monsPotionsWhiteTray) {
     renderMonsPotionTray(monsPotionsWhiteTray, monsGameState.potions?.white, 'white', showHudPotions);
+  }
+  if (monsUndoButton) {
+    monsUndoButton.classList.toggle('hidden', !showHudPotions);
+  }
+  if (monsFlipButton) {
+    monsFlipButton.classList.toggle('hidden', !showHudPotions);
+    monsFlipButton.classList.toggle('is-flipped', isMonsBoardFlipped(monsGameState));
   }
   renderMonsSideClaimsList(monsBlackClaimsList, monsGameState.claims?.black, 'black', monsBlackClaimButton);
   renderMonsSideClaimsList(monsWhiteClaimsList, monsGameState.claims?.white, 'white', monsWhiteClaimButton);
@@ -4634,6 +5280,78 @@ function setLocalHandCountLabel() {
   playerHandCount.textContent = String(count);
 }
 
+function normalizeImageComponentSrc(src) {
+  return typeof src === 'string' ? src.trim() : '';
+}
+
+function isImageComponentCard(cardState) {
+  return Boolean(cardState && typeof cardState === 'object' && cardState.componentType === 'image');
+}
+
+function canCardUseDeckZones(cardState) {
+  return !isImageComponentCard(cardState) || cardState.componentCardSized !== false;
+}
+
+function getFaceWhenEnteringHand(cardState) {
+  if (!isImageComponentCard(cardState)) {
+    return 'front';
+  }
+  return cardState?.face === 'back' ? 'back' : 'front';
+}
+
+function isResizableImageComponentCard(cardState) {
+  const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
+  return Boolean(
+    cardState &&
+    isImageComponentCard(cardState) &&
+    cardState.componentCardSized === false &&
+    !heldByOther &&
+    !cardState.inDeck &&
+    !cardState.inDiscard &&
+    !cardState.inAuction &&
+    !getCardHandOwnerId(cardState)
+  );
+}
+
+function clampImageComponentSize(widthValue, heightValue) {
+  let width = Number(widthValue);
+  let height = Number(heightValue);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+    return { width: CARD_WIDTH, height: CARD_HEIGHT };
+  }
+  width = Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, width);
+  height = Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, height);
+  const maxWidth = Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, Math.min(IMAGE_COMPONENT_MAX_WORLD_WIDTH, WORLD_WIDTH - 20));
+  const maxHeight = Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, Math.min(IMAGE_COMPONENT_MAX_WORLD_HEIGHT, WORLD_HEIGHT - 20));
+  const scale = Math.min(1, maxWidth / width, maxHeight / height);
+  return {
+    width: clamp(width * scale, IMAGE_COMPONENT_MIN_WORLD_SIZE, maxWidth),
+    height: clamp(height * scale, IMAGE_COMPONENT_MIN_WORLD_SIZE, maxHeight)
+  };
+}
+
+function getCardTableDimensions(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return { width: CARD_WIDTH, height: CARD_HEIGHT };
+  }
+  if (!isImageComponentCard(cardState) || cardState.componentCardSized !== false) {
+    return { width: CARD_WIDTH, height: CARD_HEIGHT };
+  }
+  return clampImageComponentSize(cardState.componentWidth, cardState.componentHeight);
+}
+
+function getCardBackDisplaySrc(cardState) {
+  if (isImageComponentCard(cardState)) {
+    const explicitBackSrc = normalizeImageComponentSrc(cardState.backSrc);
+    if (explicitBackSrc) {
+      return explicitBackSrc;
+    }
+    const fallbackFrontSrc = normalizeImageComponentSrc(cardState.frontSrc);
+    return fallbackFrontSrc || CARD_BACK_IMAGE_SRC;
+  }
+  return CARD_BACK_IMAGE_SRC;
+}
+
 function normalizeCardPayload(payload) {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
@@ -4644,14 +5362,27 @@ function normalizeCardPayload(payload) {
     typeof payload?.handOwnerPlayerToken === 'string' && payload.handOwnerPlayerToken ? payload.handOwnerPlayerToken : null;
   const normalizedFrontSrc = toHighResFrontSrc(String(payload?.frontSrc || '').trim());
   const deckId = normalizeDeckId(payload?.deckId || DECK_KEY);
+  const componentType = payload?.componentType === 'image' ? 'image' : '';
+  const componentCardSized = componentType === 'image' ? payload?.componentCardSized !== false : true;
+  const backSrc = componentType === 'image' ? normalizeImageComponentSrc(payload?.backSrc || '') : '';
+  const componentSize = componentType === 'image' && !componentCardSized
+    ? clampImageComponentSize(payload?.componentWidth, payload?.componentHeight)
+    : { width: CARD_WIDTH, height: CARD_HEIGHT };
   const inAuction = Boolean(payload?.inAuction);
   const face = inAuction ? 'front' : payload?.face === 'front' ? 'front' : 'back';
+  const boundsWidth = inAuction || Boolean(payload?.inDeck) || Boolean(payload?.inDiscard) ? CARD_WIDTH : componentSize.width;
+  const boundsHeight = inAuction || Boolean(payload?.inDeck) || Boolean(payload?.inDiscard) ? CARD_HEIGHT : componentSize.height;
   return {
-    x: Number.isFinite(nextX) ? clamp(nextX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2) : WORLD_WIDTH / 2,
-    y: Number.isFinite(nextY) ? clamp(nextY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2) : WORLD_HEIGHT / 2,
+    x: Number.isFinite(nextX) ? clamp(nextX, boundsWidth / 2, WORLD_WIDTH - boundsWidth / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, boundsHeight / 2, WORLD_HEIGHT - boundsHeight / 2) : WORLD_HEIGHT / 2,
     z: Number.isFinite(nextZ) ? nextZ : 1,
     face,
     frontSrc: normalizedFrontSrc,
+    backSrc,
+    componentType,
+    componentCardSized,
+    componentWidth: componentSize.width,
+    componentHeight: componentSize.height,
     deckId,
     inDeck: Boolean(payload?.inDeck),
     inDiscard: Boolean(payload?.inDiscard),
@@ -4660,6 +5391,268 @@ function normalizeCardPayload(payload) {
     handOwnerClientId,
     handOwnerPlayerToken
   };
+}
+
+function removeDieElement(dieId) {
+  const die = diceElements.get(dieId);
+  if (!die) {
+    return;
+  }
+  die.remove();
+  diceElements.delete(dieId);
+}
+
+function ensureDieElement(dieId) {
+  if (!cardLayer) {
+    return null;
+  }
+  let die = diceElements.get(dieId);
+  if (!die) {
+    die = document.createElement('button');
+    die.type = 'button';
+    die.className = 'table-die';
+    die.dataset.dieId = dieId;
+    die.setAttribute('aria-label', 'dice');
+
+    const face = document.createElement('div');
+    face.className = 'table-die-face';
+    die.appendChild(face);
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'table-label-resize-handle hidden';
+    resizeHandle.setAttribute('aria-hidden', 'true');
+    resizeHandle.innerHTML =
+      '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 13L13 3M7 13L13 7M11 13L13 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+    resizeHandle.addEventListener('pointerdown', (event) => {
+      onLabelResizePointerDown(event, dieId);
+    });
+    resizeHandle.addEventListener('pointerenter', () => {
+      die.classList.add('is-label-resize-hovered');
+    });
+    resizeHandle.addEventListener('pointerleave', () => {
+      die.classList.remove('is-label-resize-hovered');
+    });
+    die.appendChild(resizeHandle);
+
+    die.addEventListener('pointerdown', (event) => {
+      onDiePointerDown(event, dieId);
+    });
+    die.addEventListener('contextmenu', (event) => {
+      onDieContextMenu(event, dieId);
+    });
+    die.addEventListener('dblclick', (event) => {
+      const eventTarget = event.target instanceof Element ? event.target : null;
+      if (eventTarget?.closest('.table-label-editor')) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (drawModeEnabled) {
+        return;
+      }
+      handleDieRollIntent(dieId).catch((error) => {
+        console.error(error);
+      });
+    });
+
+    cardLayer.appendChild(die);
+    diceElements.set(dieId, die);
+  }
+  return die;
+}
+
+function renderDieFace(die, dieType, faceValue, dieState) {
+  if (!(die instanceof HTMLElement)) {
+    return;
+  }
+  const face = die.querySelector('.table-die-face');
+  if (!(face instanceof HTMLElement)) {
+    return;
+  }
+  const isLabel = dieType === 'label';
+  if (isLabel) {
+    if (die.dataset.labelEditing === '1') {
+      return;
+    }
+    face.classList.add('table-label-text');
+    face.textContent = normalizeLabelText(dieState?.text || '');
+    return;
+  }
+  face.classList.remove('table-label-text');
+  face.textContent = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add('table-die-svg');
+  face.appendChild(svg);
+
+  if (dieType === 'coin') {
+    const shell = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shell.setAttribute('cx', '50');
+    shell.setAttribute('cy', '50');
+    shell.setAttribute('r', '40');
+    shell.setAttribute('class', 'table-coin-shell');
+    svg.appendChild(shell);
+
+    const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    inner.setAttribute('cx', '50');
+    inner.setAttribute('cy', '50');
+    inner.setAttribute('r', '31');
+    inner.setAttribute('class', 'table-coin-inner');
+    svg.appendChild(inner);
+
+    const sideImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    sideImage.setAttribute('x', '24');
+    sideImage.setAttribute('y', '24');
+    sideImage.setAttribute('width', '52');
+    sideImage.setAttribute('height', '52');
+    sideImage.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    sideImage.setAttribute('href', Number(faceValue) === 2 ? MONS_PIECE_ASSET_BY_TYPE.demon : MONS_PIECE_ASSET_BY_TYPE.angel);
+    sideImage.setAttribute('class', 'table-coin-sprite');
+    sideImage.setAttribute('style', `image-rendering: ${getMonsPieceImageRendering()}; pointer-events: none;`);
+    svg.appendChild(sideImage);
+    return;
+  }
+
+  if (dieType === 'd20') {
+    const shell = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    shell.setAttribute('points', '50,10 84.64,30 84.64,70 50,90 15.36,70 15.36,30');
+    shell.setAttribute('class', 'table-die-d20-shell');
+    svg.appendChild(shell);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', '50');
+    text.setAttribute('y', '50.5');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('class', 'table-die-number table-die-d20-number');
+    text.textContent = String(clamp(Math.round(faceValue), 1, 20));
+    svg.appendChild(text);
+    return;
+  }
+
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', '10');
+  rect.setAttribute('y', '10');
+  rect.setAttribute('width', '80');
+  rect.setAttribute('height', '80');
+  rect.setAttribute('rx', '18');
+  rect.setAttribute('class', 'table-die-outline');
+  svg.appendChild(rect);
+
+  const pips = D6_PIP_LAYOUTS[clamp(Math.round(faceValue), 1, 6)] || D6_PIP_LAYOUTS[1];
+  for (const [pipX, pipY] of pips) {
+    const pip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    pip.setAttribute('cx', String(pipX));
+    pip.setAttribute('cy', String(pipY));
+    pip.setAttribute('r', '5.6');
+    pip.setAttribute('class', 'table-die-pip');
+    svg.appendChild(pip);
+  }
+}
+
+function renderDieElement(dieId) {
+  const dieState = diceById.get(dieId);
+  if (!dieState) {
+    removeDieElement(dieId);
+    return false;
+  }
+  const die = ensureDieElement(dieId);
+  if (!die) {
+    return false;
+  }
+  const dieType = normalizeDieType(dieState.type);
+  const dimensions = getDieWorldDimensions(dieState);
+  const screen = worldToScreen({ x: dieState.x, y: dieState.y });
+  const screenWidth = snapToDevicePixel(dimensions.width * camera.scale, 2);
+  const screenHeight = snapToDevicePixel(dimensions.height * camera.scale, 2);
+  die.style.left = `${screen.x}px`;
+  die.style.top = `${screen.y}px`;
+  die.style.width = `${screenWidth}px`;
+  die.style.height = `${screenHeight}px`;
+
+  const isHeld = Boolean(dieState.holderClientId);
+  const heldBySelf = Boolean(localClientId) && dieState.holderClientId === localClientId;
+  const heldByOther = Boolean(dieState.holderClientId) && dieState.holderClientId !== localClientId;
+  if (selectedDiceIds.has(dieId) && dieState.holderClientId !== localClientId) {
+    selectedDiceIds.delete(dieId);
+  }
+  if (isHeld) {
+    const overlayLayer = ensureHeldCardLayer();
+    if (overlayLayer && die.parentElement !== overlayLayer) {
+      overlayLayer.appendChild(die);
+    }
+  } else if (cardLayer && die.parentElement !== cardLayer) {
+    cardLayer.appendChild(die);
+  }
+  const baseZ = clamp(Math.round(dieState.z || 1), 1, DECK_UI_Z_INDEX - 1);
+  const renderZ = isHeld ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
+  die.style.zIndex = String(renderZ);
+
+  const now = Date.now();
+  const rolling = isDieRolling(dieState, now);
+  const isLabel = dieType === 'label';
+  const isResizingLabel = resizingLabelDieId === dieId;
+  const isLabelEditing = die.dataset.labelEditing === '1';
+  const canResizeLabel =
+    isLabel &&
+    !heldByOther &&
+    !drawModeEnabled &&
+    !deleteModeEnabled &&
+    !isLabelEditing;
+  die.classList.toggle('table-die-d20', dieType === 'd20');
+  die.classList.toggle('table-die-d6', dieType === 'd6');
+  die.classList.toggle('table-die-coin', dieType === 'coin');
+  die.classList.toggle('table-die-label', isLabel);
+  die.classList.toggle('is-held-by-self', heldBySelf);
+  die.classList.toggle('is-held-by-other', heldByOther);
+  die.classList.toggle('is-group-selected', selectedDiceIds.has(dieId));
+  die.classList.toggle('is-rolling', rolling);
+  die.classList.toggle('is-resizable-label', canResizeLabel);
+  die.classList.toggle('is-resizing-label', isResizingLabel);
+  if (!isResizingLabel && !canResizeLabel) {
+    die.classList.remove('is-label-resize-hovered');
+  }
+  const labelResizeHandle = die.querySelector('.table-label-resize-handle');
+  if (labelResizeHandle instanceof HTMLElement) {
+    labelResizeHandle.classList.toggle('hidden', !canResizeLabel);
+  }
+  die.setAttribute('aria-label', dieType === 'label' ? 'label' : 'dice');
+  if (dieType === 'label') {
+    const face = die.querySelector('.table-die-face');
+    if (face instanceof HTMLElement) {
+      const fontPx = getLabelFontSizePx(dieState);
+      face.style.fontSize = `${fontPx.toFixed(2)}px`;
+      face.style.color = normalizeHexColor(dieState.textColor || '#ff7a59');
+      const activeEditor = face.querySelector('.table-label-editor');
+      if (activeEditor instanceof HTMLTextAreaElement) {
+        activeEditor.style.fontSize = `${fontPx.toFixed(2)}px`;
+      }
+    }
+  }
+  renderDieFace(die, dieType, getRenderedDieValue(dieState, now), dieState);
+  return rolling;
+}
+
+function renderAllDice() {
+  let hasRolling = false;
+  for (const dieId of diceById.keys()) {
+    if (renderDieElement(dieId)) {
+      hasRolling = true;
+    }
+  }
+  for (const dieId of Array.from(diceElements.keys())) {
+    if (diceById.has(dieId)) {
+      continue;
+    }
+    removeDieElement(dieId);
+  }
+  if (hasRolling && !diceRollAnimationRafId) {
+    diceRollAnimationRafId = window.requestAnimationFrame(() => {
+      diceRollAnimationRafId = 0;
+      renderAllDice();
+    });
+  }
 }
 
 function ensureCardElement(cardId) {
@@ -4692,6 +5685,22 @@ function ensureCardElement(cardId) {
       }
     });
     card.appendChild(image);
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'table-card-resize-handle hidden';
+    resizeHandle.setAttribute('aria-hidden', 'true');
+    resizeHandle.innerHTML =
+      '<svg viewBox="0 0 16 16" width="10" height="10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 13L13 3M7 13L13 7M11 13L13 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+    resizeHandle.addEventListener('pointerdown', (event) => {
+      onCardResizePointerDown(event, cardId);
+    });
+    resizeHandle.addEventListener('pointerenter', () => {
+      card.classList.add('is-resize-hovered');
+    });
+    resizeHandle.addEventListener('pointerleave', () => {
+      card.classList.remove('is-resize-hovered');
+    });
+    card.appendChild(resizeHandle);
 
     card.addEventListener('pointerdown', (event) => {
       onCardPointerDown(event, cardId);
@@ -5210,19 +6219,20 @@ function renderCardElement(cardId) {
   const cardDeckState = getDeckStateById(cardDeckId);
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
+  const baseCardSize = getCardTableDimensions(cardState);
   const cardWorldX = cardState.inDeck && cardDeckState ? cardDeckState.x : discardCenter ? discardCenter.x : auctionCenter ? auctionCenter.x : cardState.x;
   const cardWorldY = cardState.inDeck && cardDeckState ? cardDeckState.y : discardCenter ? discardCenter.y : auctionCenter ? auctionCenter.y : cardState.y;
   const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
   card.style.left = `${screen.x}px`;
   card.style.top = `${screen.y}px`;
-  const auctionCardWorldWidth = CARD_WIDTH * AUCTION_CARD_SCALE;
-  const auctionCardWorldHeight = CARD_HEIGHT * AUCTION_CARD_SCALE;
+  const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
+  const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
   const cardScreenWidth = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldWidth * camera.scale)
-    : snapToDevicePixel(CARD_WIDTH * camera.scale);
+    : snapToDevicePixel(baseCardSize.width * camera.scale);
   const cardScreenHeight = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldHeight * camera.scale)
-    : (cardScreenWidth * CARD_HEIGHT) / CARD_WIDTH;
+    : snapToDevicePixel(baseCardSize.height * camera.scale);
   card.style.width = `${cardScreenWidth}px`;
   card.style.height = `${cardScreenHeight}px`;
   const heldBySelf = Boolean(localClientId) && cardState.holderClientId === localClientId;
@@ -5248,9 +6258,28 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-held-by-self', heldBySelf);
   card.classList.toggle('is-held-by-other', heldByOther);
   card.classList.toggle('is-group-selected', selectedCardIds.has(cardId));
+  card.classList.toggle('is-in-deck', cardState.inDeck);
   card.classList.toggle('is-in-discard', cardState.inDiscard);
   card.classList.toggle('is-in-auction', cardState.inAuction);
   card.classList.toggle('is-discard-returning', discardReturnAnimatingCardIds.has(cardId));
+  const isImageComponent = isImageComponentCard(cardState);
+  const isImageComponentCardMode = isImageComponent && cardState.componentCardSized !== false;
+  const isImageComponentNativeMode = isImageComponent && cardState.componentCardSized === false;
+  const isResizableImage = isResizableImageComponentCard(cardState);
+  const isResizingThisCard = resizingImageCardId === cardId;
+  card.classList.toggle('is-image-component', isImageComponent);
+  card.classList.toggle('is-image-component-card', isImageComponentCardMode);
+  card.classList.toggle('is-image-component-native', isImageComponentNativeMode);
+  card.classList.toggle('is-resizable-image', isResizableImage);
+  card.classList.toggle('is-resizing', isResizingThisCard);
+  if (!isResizingThisCard && !isResizableImage) {
+    card.classList.remove('is-resize-hovered');
+  }
+
+  const resizeHandle = card.querySelector('.table-card-resize-handle');
+  if (resizeHandle instanceof HTMLElement) {
+    resizeHandle.classList.toggle('hidden', !isResizableImage);
+  }
 
   const image = card.querySelector('img');
   if (image) {
@@ -5260,7 +6289,7 @@ function renderCardElement(cardId) {
 
     let preferredFrontSrc = '';
     let fallbackFrontSrc = '';
-    let displaySrc = CARD_BACK_IMAGE_SRC;
+    let displaySrc = getCardBackDisplaySrc(cardState);
     if (showingFront) {
       const variants = resolveFrontVariantSources(cardState.frontSrc, cardScreenWidth);
       preferredFrontSrc = variants.preferredSrc;
@@ -5283,7 +6312,7 @@ function renderCardElement(cardId) {
             }
             const latestVariants = resolveFrontVariantSources(
               latestCardState.frontSrc,
-              snapToDevicePixel(CARD_WIDTH * camera.scale)
+              snapToDevicePixel(getCardTableDimensions(latestCardState).width * camera.scale)
             );
             const hasAnyVariantLoaded =
               isFrontImageLoaded(latestVariants.preferredSrc) ||
@@ -5333,6 +6362,9 @@ function renderCardElement(cardId) {
 }
 
 function renderAllCards() {
+  if (resizingImageCardId && !cards.has(resizingImageCardId)) {
+    resizingImageCardId = '';
+  }
   for (const cardId of cards.keys()) {
     renderCardElement(cardId);
   }
@@ -5375,16 +6407,46 @@ function setDrawToolMode(mode) {
   syncDrawModeUi();
 }
 
+function hasOwnDrawingStrokes() {
+  for (const strokeState of drawingStrokes.values()) {
+    if (!strokeState || typeof strokeState !== 'object') {
+      continue;
+    }
+    const ownerToken = typeof strokeState.authorPlayerToken === 'string' ? strokeState.authorPlayerToken : '';
+    const ownerClient = typeof strokeState.authorClientId === 'string' ? strokeState.authorClientId : '';
+    const matchesToken = Boolean(localPlayerToken) && ownerToken === localPlayerToken;
+    const matchesLegacyClient = !ownerToken && Boolean(clientId) && ownerClient === clientId;
+    if (matchesToken || matchesLegacyClient) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function syncDrawActionButtonsState() {
+  const hasOwnStrokes = hasOwnDrawingStrokes();
+  const canUseActions = drawModeEnabled && hasOwnStrokes;
+  if (drawClearButton) {
+    drawClearButton.disabled = !canUseActions;
+    drawClearButton.classList.toggle('is-disabled', !canUseActions);
+    drawClearButton.setAttribute('title', canUseActions ? 'delete my drawings' : 'no drawings to delete');
+  }
+  if (drawUndoButton) {
+    drawUndoButton.disabled = !canUseActions;
+    drawUndoButton.classList.toggle('is-disabled', !canUseActions);
+    drawUndoButton.setAttribute('title', canUseActions ? 'undo last stroke' : 'no drawings to undo');
+  }
+}
+
 function syncDrawModeUi() {
   tableRoot?.classList.toggle('is-draw-mode', drawModeEnabled);
   if (drawClearButton) {
     drawClearButton.classList.toggle('hidden', !drawModeEnabled);
-    drawClearButton.setAttribute('title', 'delete my drawings');
   }
   if (drawUndoButton) {
     drawUndoButton.classList.toggle('hidden', !drawModeEnabled);
-    drawUndoButton.setAttribute('title', 'undo last stroke');
   }
+  syncDrawActionButtonsState();
   if (drawToolRow) {
     drawToolRow.classList.toggle('hidden', !drawModeEnabled);
   }
@@ -5484,6 +6546,10 @@ function ensureDrawingStrokeElement(strokeId) {
     stroke.classList.add('drawing-stroke');
     stroke.setAttribute('stroke-width', String(DRAW_STROKE_WORLD_WIDTH));
     stroke.setAttribute('fill', 'none');
+    stroke.dataset.strokeId = String(strokeId);
+    stroke.addEventListener('pointerdown', (event) => {
+      onDrawingStrokePointerDown(event, strokeId);
+    });
     drawingLayer.appendChild(stroke);
     drawingStrokeElements.set(strokeId, stroke);
   }
@@ -5518,6 +6584,7 @@ function renderAllDrawingStrokes() {
       removeDrawingStrokeElement(strokeId);
     }
   }
+  syncDrawActionButtonsState();
 }
 
 function applyCamera() {
@@ -5536,6 +6603,7 @@ function applyCamera() {
   if (drawingLayer) {
     drawingLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
   }
+  renderAllDice();
   renderAllCards();
   renderMonsBoard();
   if (selectionBoxElement && !selectionBoxElement.classList.contains('hidden')) {
@@ -5675,8 +6743,12 @@ drawToolLineButton?.addEventListener('click', () => {
 drawToolBoxButton?.addEventListener('click', () => {
   setDrawToolMode(DRAW_TOOL_BOX);
 });
-drawClearButton?.addEventListener('click', () => {
-  if (!drawModeEnabled) {
+drawClearButton?.addEventListener('click', async () => {
+  if (!drawModeEnabled || drawClearButton.disabled) {
+    return;
+  }
+  const shouldContinue = await openDrawClearWarningModal();
+  if (!shouldContinue) {
     return;
   }
   onDrawToolModeChanged(activeDrawTool);
@@ -5686,7 +6758,7 @@ drawClearButton?.addEventListener('click', () => {
   });
 });
 drawUndoButton?.addEventListener('click', () => {
-  if (!drawModeEnabled) {
+  if (!drawModeEnabled || drawUndoButton.disabled) {
     return;
   }
   onDrawToolModeChanged(activeDrawTool);
@@ -5759,6 +6831,7 @@ if (canonicalPathAndSearch !== currentPathAndSearch) {
   window.history.replaceState({}, '', `${canonicalPathAndSearch}${window.location.hash || ''}`);
 }
 localStorage.setItem(LAST_GAME_URL_KEY, canonicalPathAndSearch);
+syncClearTableButtonState();
 
 if (cursorColorInput) {
   cursorColorInput.value = playerState.color;
@@ -5912,13 +6985,110 @@ function openMonsItemChoiceModal(context) {
   return true;
 }
 
+function isDiceAddModalOpen() {
+  return Boolean(diceAddModal && !diceAddModal.classList.contains('hidden'));
+}
+
+function isImageAddModalOpen() {
+  return Boolean(imageAddModal && !imageAddModal.classList.contains('hidden'));
+}
+
+function syncDiceAddModalUi() {
+  const isD20 = activeDiceAddType === 'd20';
+  diceTypeD6Button?.classList.toggle('is-active', !isD20);
+  diceTypeD6Button?.setAttribute('aria-pressed', !isD20 ? 'true' : 'false');
+  diceTypeD20Button?.classList.toggle('is-active', isD20);
+  diceTypeD20Button?.setAttribute('aria-pressed', isD20 ? 'true' : 'false');
+  if (!(diceCountRow instanceof HTMLElement)) {
+    return;
+  }
+  const countButtons = diceCountRow.querySelectorAll('[data-dice-count]');
+  for (const button of countButtons) {
+    const parsedCount = Number(button.getAttribute('data-dice-count'));
+    const isActive = parsedCount === activeDiceAddCount;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+}
+
+function setDiceAddType(type) {
+  activeDiceAddType = normalizeDieType(type);
+  syncDiceAddModalUi();
+}
+
+function setDiceAddCount(count) {
+  const nextCount = clamp(Math.round(Number(count) || 1), 1, 5);
+  activeDiceAddCount = nextCount;
+  syncDiceAddModalUi();
+}
+
+function openDiceAddModal() {
+  if (!diceAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeImageAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  syncDiceAddModalUi();
+  diceAddModal.classList.remove('hidden');
+}
+
+function closeDiceAddModal() {
+  if (!diceAddModal) {
+    return;
+  }
+  diceAddModal.classList.add('hidden');
+}
+
+function syncImageAddModalUi() {
+  const twoSidedEnabled = Boolean(imageAddTwoSidedCheckbox?.checked);
+  imageAddBackField?.classList.toggle('hidden', !twoSidedEnabled);
+}
+
+function setImageAddValidationMessage(message = '', options = {}) {
+  const normalizedMessage = String(message || '').trim();
+  if (imageAddError) {
+    imageAddError.textContent = normalizedMessage;
+    imageAddError.classList.toggle('hidden', !normalizedMessage);
+  }
+  const markFrontInvalid = options.frontInvalid === true;
+  const markBackInvalid = options.backInvalid === true;
+  imageAddFrontInput?.classList.toggle('is-invalid', markFrontInvalid);
+  imageAddBackInput?.classList.toggle('is-invalid', markBackInvalid);
+}
+
+function openImageAddModal() {
+  if (!imageAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  setImageAddValidationMessage('');
+  syncImageAddModalUi();
+  imageAddModal.classList.remove('hidden');
+}
+
+function closeImageAddModal() {
+  if (!imageAddModal) {
+    return;
+  }
+  setImageAddValidationMessage('');
+  imageAddModal.classList.add('hidden');
+}
+
 function openAssetMenu() {
   if (!assetMenuModal) {
     return;
   }
+  closeDiceAddModal();
+  closeImageAddModal();
   closeMonsItemChoiceModal();
   closeGameOptionsMenu();
-  setAssetMenuView('game');
+  setAssetMenuView(activeAssetMenuView);
+  syncClearTableButtonState();
   assetMenuModal.classList.remove('hidden');
 }
 
@@ -5932,13 +7102,55 @@ function closeAssetMenu() {
 function setAssetMenuView(view) {
   const nextView = view === 'component' ? 'component' : 'game';
   activeAssetMenuView = nextView;
+  localStorage.setItem(ASSET_MENU_VIEW_KEY, nextView);
   const isComponentView = nextView === 'component';
+  assetMenuModal?.classList.toggle('is-component-view', isComponentView);
   assetGameGallery?.classList.toggle('hidden', isComponentView);
   assetComponentGallery?.classList.toggle('hidden', !isComponentView);
   assetMenuTabGameButton?.classList.toggle('is-active', !isComponentView);
   assetMenuTabGameButton?.setAttribute('aria-selected', !isComponentView ? 'true' : 'false');
   assetMenuTabComponentButton?.classList.toggle('is-active', isComponentView);
   assetMenuTabComponentButton?.setAttribute('aria-selected', isComponentView ? 'true' : 'false');
+}
+
+function isTabletopCompletelyEmpty() {
+  const hasCards = cards.size > 0;
+  const hasDice = diceById.size > 0;
+  const hasDecks = deckStatesById.size > 0;
+  const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasDrawings = drawingStrokes.size > 0;
+  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasDrawings;
+}
+
+function syncClearTableButtonState() {
+  if (!clearTableButton) {
+    syncWipeAllDrawingsButtonState();
+    return;
+  }
+  const isEmpty = isTabletopCompletelyEmpty();
+  clearTableButton.disabled = isEmpty;
+  clearTableButton.classList.toggle('is-disabled', isEmpty);
+  syncWipeAllDrawingsButtonState();
+}
+
+function syncWipeAllDrawingsButtonState() {
+  if (!wipeAllDrawingsButton) {
+    syncTableResetRowLayout();
+    return;
+  }
+  const hasDrawings = drawingStrokes.size > 0;
+  const isDisabled = !isRoomOwner || !hasDrawings;
+  wipeAllDrawingsButton.disabled = isDisabled;
+  wipeAllDrawingsButton.classList.toggle('is-disabled', isDisabled);
+  syncTableResetRowLayout();
+}
+
+function syncTableResetRowLayout() {
+  if (!tableResetRow || !wipeAllDrawingsButton) {
+    return;
+  }
+  const hasVisibleWipeButton = !wipeAllDrawingsButton.classList.contains('hidden');
+  tableResetRow.classList.toggle('has-wipe', hasVisibleWipeButton);
 }
 
 function resolveGameOptionsTitle(targetKey) {
@@ -6013,6 +7225,29 @@ function openClearTableWarningModal() {
   clearTableWarningModal.classList.remove('hidden');
   return new Promise((resolve) => {
     clearTableWarningResolver = resolve;
+  });
+}
+
+function closeDrawClearWarningModal(shouldContinue = false) {
+  if (drawClearWarningModal) {
+    drawClearWarningModal.classList.add('hidden');
+  }
+  const resolver = drawClearWarningResolver;
+  drawClearWarningResolver = null;
+  resolver?.(Boolean(shouldContinue));
+}
+
+function openDrawClearWarningModal() {
+  if (!drawClearWarningModal) {
+    return Promise.resolve(true);
+  }
+  closeMonsItemChoiceModal();
+  if (drawClearWarningResolver) {
+    return Promise.resolve(false);
+  }
+  drawClearWarningModal.classList.remove('hidden');
+  return new Promise((resolve) => {
+    drawClearWarningResolver = resolve;
   });
 }
 
@@ -6097,6 +7332,13 @@ assetMenuTabGameButton?.addEventListener('click', () => {
 assetMenuTabComponentButton?.addEventListener('click', () => {
   setAssetMenuView('component');
 });
+removeComponentsButton?.addEventListener('click', () => {
+  closeAssetMenu();
+  setDeleteModeEnabled(true);
+});
+deleteModeCancelButton?.addEventListener('click', () => {
+  setDeleteModeEnabled(false);
+});
 
 gameOptionsCloseButton?.addEventListener('click', () => {
   closeGameOptionsMenu();
@@ -6128,6 +7370,12 @@ clearTableWarningYesButton?.addEventListener('click', () => {
 clearTableWarningNoButton?.addEventListener('click', () => {
   closeClearTableWarningModal(false);
 });
+drawClearWarningYesButton?.addEventListener('click', () => {
+  closeDrawClearWarningModal(true);
+});
+drawClearWarningNoButton?.addEventListener('click', () => {
+  closeDrawClearWarningModal(false);
+});
 
 coolJpegsTile?.addEventListener('click', async () => {
   const shouldContinue = await confirmAdditionalInstanceWarningIfNeeded(DECK_KEY);
@@ -6153,13 +7401,119 @@ superMetalMonsTile?.addEventListener('click', async () => {
   });
 });
 
+diceComponentTile?.addEventListener('click', () => {
+  openDiceAddModal();
+});
+coinComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnCoin().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+labelComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnLabelComponent().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+imageComponentTile?.addEventListener('click', () => {
+  openImageAddModal();
+});
+
+diceAddCloseButton?.addEventListener('click', () => {
+  closeDiceAddModal();
+});
+
+diceTypeD6Button?.addEventListener('click', () => {
+  setDiceAddType('d6');
+});
+
+diceTypeD20Button?.addEventListener('click', () => {
+  setDiceAddType('d20');
+});
+
+diceCountRow?.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-dice-count]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  setDiceAddCount(target.getAttribute('data-dice-count'));
+});
+
+diceAddConfirmButton?.addEventListener('click', () => {
+  closeDiceAddModal();
+  spawnDice(activeDiceAddType, activeDiceAddCount).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+imageAddCloseButton?.addEventListener('click', () => {
+  closeImageAddModal();
+});
+imageAddTwoSidedCheckbox?.addEventListener('change', () => {
+  syncImageAddModalUi();
+  setImageAddValidationMessage('');
+});
+imageAddCardCheckbox?.addEventListener('change', () => {
+  setImageAddValidationMessage('');
+});
+imageAddFrontInput?.addEventListener('input', () => {
+  setImageAddValidationMessage('');
+});
+imageAddBackInput?.addEventListener('input', () => {
+  setImageAddValidationMessage('');
+});
+imageAddConfirmButton?.addEventListener('click', () => {
+  const frontSrc = normalizeImageComponentSrc(imageAddFrontInput?.value || '');
+  if (!frontSrc) {
+    setImageAddValidationMessage('enter a valid image URL first.', { frontInvalid: true });
+    return;
+  }
+  const twoSided = Boolean(imageAddTwoSidedCheckbox?.checked);
+  const backSrc = normalizeImageComponentSrc(imageAddBackInput?.value || '');
+  if (twoSided && !backSrc) {
+    setImageAddValidationMessage('enter a back URL or disable 2-sided.', { backInvalid: true });
+    return;
+  }
+  setImageAddValidationMessage('');
+  const cardSized = Boolean(imageAddCardCheckbox?.checked);
+  closeImageAddModal();
+  spawnImageComponent(frontSrc, {
+    cardSized,
+    twoSided,
+    backSrc
+  }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
 clearTableButton?.addEventListener('click', async () => {
+  if (clearTableButton.disabled) {
+    return;
+  }
   const shouldContinue = await openClearTableWarningModal();
   if (!shouldContinue) {
     return;
   }
   closeAssetMenu();
   clearTabletop().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+wipeAllDrawingsButton?.addEventListener('click', async () => {
+  if (!isRoomOwner || wipeAllDrawingsButton.disabled) {
+    return;
+  }
+  const shouldContinue = await openClearTableWarningModal();
+  if (!shouldContinue) {
+    return;
+  }
+  closeAssetMenu();
+  wipeAllDrawings().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -6192,6 +7546,16 @@ assetMenuModal?.addEventListener('pointerdown', (event) => {
     closeAssetMenu();
   }
 });
+diceAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === diceAddModal) {
+    closeDiceAddModal();
+  }
+});
+imageAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === imageAddModal) {
+    closeImageAddModal();
+  }
+});
 
 gameOptionsModal?.addEventListener('pointerdown', (event) => {
   if (event.target === gameOptionsModal) {
@@ -6213,9 +7577,22 @@ clearTableWarningModal?.addEventListener('pointerdown', (event) => {
     closeClearTableWarningModal(false);
   }
 });
+drawClearWarningModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === drawClearWarningModal) {
+    closeDrawClearWarningModal(false);
+  }
+});
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') {
+    return;
+  }
+  if (isDiceAddModalOpen()) {
+    closeDiceAddModal();
+    return;
+  }
+  if (isImageAddModalOpen()) {
+    closeImageAddModal();
     return;
   }
   if (isMonsItemChoiceModalOpen()) {
@@ -6224,6 +7601,10 @@ window.addEventListener('keydown', (event) => {
   }
   if (clearTableWarningModal && !clearTableWarningModal.classList.contains('hidden')) {
     closeClearTableWarningModal(false);
+    return;
+  }
+  if (drawClearWarningModal && !drawClearWarningModal.classList.contains('hidden')) {
+    closeDrawClearWarningModal(false);
     return;
   }
   if (instanceWarningModal && !instanceWarningModal.classList.contains('hidden')) {
@@ -6238,6 +7619,9 @@ window.addEventListener('keydown', (event) => {
     closeAssetMenu();
   }
 });
+
+syncDiceAddModalUi();
+syncImageAddModalUi();
 
 function initializeTileTilt(tile) {
   if (!tile) {
@@ -6268,8 +7652,61 @@ function initializeTileTilt(tile) {
   });
 }
 
+function setDiceTileIconFace(faceValue) {
+  if (!diceComponentTile) {
+    return;
+  }
+  const normalizedFace = clamp(Math.round(Number(faceValue) || 1), 1, 6);
+  const activePips = new Set(DICE_TILE_ICON_PIP_LAYOUTS[normalizedFace] || DICE_TILE_ICON_PIP_LAYOUTS[1]);
+  const pipElements = diceComponentTile.querySelectorAll('[data-dice-pip]');
+  for (const pipElement of pipElements) {
+    const pipIndex = Number(pipElement.getAttribute('data-dice-pip'));
+    pipElement.style.opacity = activePips.has(pipIndex) ? '1' : '0';
+  }
+}
+
+function initializeDiceTilePipShuffle(tile) {
+  if (!tile) {
+    return;
+  }
+  let lastShuffleAt = 0;
+  let lastPointerX = Number.NaN;
+  let lastPointerY = Number.NaN;
+  let accumulatedDistance = 0;
+  const minDistanceBeforeShuffle = 15;
+  const shuffleIntervalMs = 140;
+  setDiceTileIconFace(4);
+  tile.addEventListener('pointermove', (event) => {
+    if (Number.isFinite(lastPointerX) && Number.isFinite(lastPointerY)) {
+      accumulatedDistance += Math.hypot(event.clientX - lastPointerX, event.clientY - lastPointerY);
+    }
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    if (accumulatedDistance < minDistanceBeforeShuffle) {
+      return;
+    }
+    const now = Date.now();
+    if (now - lastShuffleAt < shuffleIntervalMs) {
+      return;
+    }
+    lastShuffleAt = now;
+    setDiceTileIconFace(1 + Math.floor(Math.random() * 6));
+  });
+  tile.addEventListener('pointerleave', () => {
+    lastPointerX = Number.NaN;
+    lastPointerY = Number.NaN;
+    accumulatedDistance = 0;
+    setDiceTileIconFace(4);
+  });
+}
+
 initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
+initializeTileTilt(diceComponentTile);
+initializeTileTilt(coinComponentTile);
+initializeTileTilt(labelComponentTile);
+initializeTileTilt(imageComponentTile);
+initializeDiceTilePipShuffle(diceComponentTile);
 
 function normalizeHexColor(value) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -6404,8 +7841,16 @@ function setRealtimeStatus(text) {
   statusBadge.textContent = text;
 }
 
+function setDocumentRoomTitle(title) {
+  const normalizedTitle = normalizeRoomTitle(title);
+  if (document.title !== normalizedTitle) {
+    document.title = normalizedTitle;
+  }
+}
+
 function setRoomBadgeText(title) {
   roomTitleValue = normalizeRoomTitle(title);
+  setDocumentRoomTitle(roomTitleValue);
   if (roomBadge && !isRoomTitleEditing) {
     roomBadge.textContent = roomTitleValue;
     scheduleRoomBadgeWidthSync();
@@ -6415,11 +7860,20 @@ function setRoomBadgeText(title) {
 function setRoomOwnerState(isOwner) {
   isRoomOwner = Boolean(isOwner);
   if (!roomBadge) {
+    if (wipeAllDrawingsButton) {
+      wipeAllDrawingsButton.classList.toggle('hidden', !isRoomOwner);
+      syncWipeAllDrawingsButtonState();
+    }
     return;
   }
   roomBadge.classList.toggle('is-editable', isRoomOwner);
   roomBadge.tabIndex = isRoomOwner ? 0 : -1;
   roomBadge.setAttribute('title', isRoomOwner ? 'rename room' : '');
+  if (wipeAllDrawingsButton) {
+    wipeAllDrawingsButton.classList.toggle('hidden', !isRoomOwner);
+    syncWipeAllDrawingsButtonState();
+  }
+  syncTableResetRowLayout();
 }
 
 function openRoomTitleEditor() {
@@ -6514,7 +7968,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #clearTableWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -6527,7 +7981,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #clearTableWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -6807,15 +8261,39 @@ if (hasPlaceholderConfig(firebaseConfig)) {
 
 shieldPointerEvents(copyLinkButton);
 shieldPointerEvents(bottomRightControls);
+shieldPointerEvents(deleteModeCancelButton);
 shieldPointerEvents(assetMenuButton);
 shieldPointerEvents(assetMenuModal);
 shieldPointerEvents(assetMenuCloseButton);
 shieldPointerEvents(assetMenuTabGameButton);
 shieldPointerEvents(assetMenuTabComponentButton);
+shieldPointerEvents(diceComponentTile);
+shieldPointerEvents(coinComponentTile);
+shieldPointerEvents(labelComponentTile);
+shieldPointerEvents(imageComponentTile);
+shieldPointerEvents(diceAddModal);
+shieldPointerEvents(diceAddCloseButton);
+shieldPointerEvents(diceTypeD6Button);
+shieldPointerEvents(diceTypeD20Button);
+shieldPointerEvents(diceCountRow);
+shieldPointerEvents(diceAddConfirmButton);
+shieldPointerEvents(imageAddModal);
+shieldPointerEvents(imageAddCloseButton);
+shieldPointerEvents(imageAddFrontInput);
+shieldPointerEvents(imageAddBackInput);
+shieldPointerEvents(imageAddCardCheckbox);
+shieldPointerEvents(imageAddTwoSidedCheckbox);
+shieldPointerEvents(imageAddBackField);
+shieldPointerEvents(imageAddConfirmButton);
+shieldPointerEvents(removeComponentsButton);
 shieldPointerEvents(clearTableButton);
+shieldPointerEvents(wipeAllDrawingsButton);
 shieldPointerEvents(clearTableWarningModal);
 shieldPointerEvents(clearTableWarningYesButton);
 shieldPointerEvents(clearTableWarningNoButton);
+shieldPointerEvents(drawClearWarningModal);
+shieldPointerEvents(drawClearWarningYesButton);
+shieldPointerEvents(drawClearWarningNoButton);
 shieldPointerEvents(instanceWarningModal);
 shieldPointerEvents(instanceWarningContinueButton);
 shieldPointerEvents(instanceWarningCancelButton);
@@ -6855,6 +8333,7 @@ async function startRealtimeSession() {
 
   const cursorsRef = ref(db, `${roomPath}/cursors`);
   const cardsRef = ref(db, `${roomPath}/cards`);
+  const diceRef = ref(db, `${roomPath}/dice`);
   const drawingsRef = ref(db, `${roomPath}/drawings`);
   const auctionBidsRef = ref(db, `${roomPath}/auctionBids`);
   const decksRef = ref(db, `${roomPath}/decks`);
@@ -6956,8 +8435,14 @@ async function startRealtimeSession() {
 
   let cardWriteScheduled = false;
   const pendingCardWrites = new Map();
+  let dieWriteScheduled = false;
+  const pendingDieWrites = new Map();
   let cardWriteGeneration = 0;
+  let dieWriteGeneration = 0;
   let cardDragState = null;
+  let cardResizeState = null;
+  let dieDragState = null;
+  let labelResizeState = null;
   let groupDragState = null;
   let selectionBoxState = null;
   let suppressNextCardContextMenu = false;
@@ -6978,7 +8463,9 @@ async function startRealtimeSession() {
   let localLockWatchdogIntervalId = 0;
   const endedTouchPointerIds = new Set();
   const recentTouchTapByCardId = new Map();
+  const recentTouchTapByDieId = new Map();
   const recentMouseClickByCardId = new Map();
+  const recentMouseClickByDieId = new Map();
   let selectedRightClickFlipCooldownUntil = 0;
   let strokeWriteScheduled = false;
   const pendingStrokeWrites = new Map();
@@ -6992,12 +8479,430 @@ async function startRealtimeSession() {
   let auctionBidUiRafQueued = false;
   let activeAuctionCardIdForUi = '';
   let previousActiveAuctionCardId = '';
+  const pendingDeleteKeys = new Set();
+  let labelEditState = null;
   latestPresenceByToken = {};
   let hasSignaledSessionLeave = false;
 
   function getMonsGameRef(gameId = activeMonsGameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
     return ref(db, `${roomPath}/games/${normalizedGameId}`);
+  }
+
+  function getUniqueConnectedElements(elements) {
+    const uniqueElements = [];
+    const seen = new Set();
+    for (const candidate of elements || []) {
+      if (!(candidate instanceof Element) || !candidate.isConnected) {
+        continue;
+      }
+      if (seen.has(candidate)) {
+        continue;
+      }
+      seen.add(candidate);
+      uniqueElements.push(candidate);
+    }
+    return uniqueElements;
+  }
+
+  function applyDeleteFadeToElements(elements) {
+    const fadeElements = getUniqueConnectedElements(elements);
+    for (const element of fadeElements) {
+      element.classList.add('is-delete-fading');
+      element.dataset.deleteFading = '1';
+    }
+    return fadeElements;
+  }
+
+  function clearDeleteFadeFromElements(elements) {
+    for (const element of elements || []) {
+      if (!(element instanceof Element)) {
+        continue;
+      }
+      element.classList.remove('is-delete-fading');
+      delete element.dataset.deleteFading;
+    }
+  }
+
+  async function runDeleteWithFade(deleteKey, elements, deleteFn) {
+    const normalizedKey = String(deleteKey || '').trim();
+    if (!normalizedKey || typeof deleteFn !== 'function') {
+      return;
+    }
+    if (pendingDeleteKeys.has(normalizedKey)) {
+      return;
+    }
+    pendingDeleteKeys.add(normalizedKey);
+    const fadeElements = applyDeleteFadeToElements(elements);
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, DELETE_FADE_DURATION_MS);
+    });
+    try {
+      await deleteFn();
+    } catch (error) {
+      clearDeleteFadeFromElements(fadeElements);
+      throw error;
+    } finally {
+      pendingDeleteKeys.delete(normalizedKey);
+    }
+  }
+
+  function getDeckDeleteFadeElements(deckId = activeDeckId) {
+    const targetDeckId = normalizeDeckId(deckId);
+    const elements = [];
+    const deckUi = deckUiById.get(targetDeckId);
+    if (deckUi) {
+      elements.push(
+        deckUi.shuffleButton,
+        deckUi.dealOneButton,
+        deckUi.moveButton,
+        deckUi.optionsButton,
+        deckUi.discardResetButton,
+        deckUi.discardSlot,
+        deckUi.auctionSlot,
+        deckUi.deckCountBadge
+      );
+    }
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!cardState || normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
+        continue;
+      }
+      elements.push(cardElements.get(cardId), handCardElements.get(cardId));
+    }
+    return getUniqueConnectedElements(elements);
+  }
+
+  function getMonsGameDeleteFadeElements(gameId = activeMonsGameId) {
+    const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    const elements = [];
+    if (targetGameId === normalizeMonsGameId(activeMonsGameId)) {
+      elements.push(monsGameShell, monsMoveButton, monsOptionsButton, monsBlackClaimsList, monsWhiteClaimsList);
+    }
+    const ghostBoardUi = monsGhostBoardElementsById.get(targetGameId);
+    if (ghostBoardUi) {
+      elements.push(
+        ghostBoardUi.shell,
+        ghostBoardUi.moveButton,
+        ghostBoardUi.optionsButton,
+        ghostBoardUi.claimsBlackList,
+        ghostBoardUi.claimsWhiteList
+      );
+    }
+    return getUniqueConnectedElements(elements);
+  }
+
+  function getMonsPieceDeleteFadeElement(pieceId, gameId = activeMonsGameId) {
+    const targetPieceId = String(pieceId || '').trim();
+    if (!targetPieceId) {
+      return null;
+    }
+    const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    const candidateSvgs = [];
+    if (targetGameId === normalizeMonsGameId(activeMonsGameId) && monsBoardSvg instanceof SVGElement) {
+      candidateSvgs.push(monsBoardSvg);
+    }
+    const ghostBoardUi = monsGhostBoardElementsById.get(targetGameId);
+    if (ghostBoardUi?.boardSvg instanceof SVGElement) {
+      candidateSvgs.push(ghostBoardUi.boardSvg);
+    }
+    for (const svg of candidateSvgs) {
+      const pieceNodes = svg.querySelectorAll('[data-mons-piece-id]');
+      for (const node of pieceNodes) {
+        if (!(node instanceof Element)) {
+          continue;
+        }
+        if (node.getAttribute('data-mons-piece-id') === targetPieceId) {
+          return node;
+        }
+      }
+    }
+    return null;
+  }
+
+  async function deleteCardInRemoveMode(cardId) {
+    const targetCardId = String(cardId || '').trim();
+    if (!targetCardId) {
+      return;
+    }
+    await runDeleteWithFade(
+      `card:${targetCardId}`,
+      [cardElements.get(targetCardId), handCardElements.get(targetCardId)],
+      async () => {
+        await set(ref(db, `${roomPath}/cards/${targetCardId}`), null);
+      }
+    );
+  }
+
+  async function deleteDieInRemoveMode(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    await runDeleteWithFade(
+      `die:${targetDieId}`,
+      [diceElements.get(targetDieId)],
+      async () => {
+        await set(ref(db, `${roomPath}/dice/${targetDieId}`), null);
+      }
+    );
+  }
+
+  async function deleteDrawingStrokeInRemoveMode(strokeId) {
+    const targetStrokeId = String(strokeId || '').trim();
+    if (!targetStrokeId) {
+      return;
+    }
+    await runDeleteWithFade(
+      `stroke:${targetStrokeId}`,
+      [drawingStrokeElements.get(targetStrokeId)],
+      async () => {
+        await set(ref(db, `${roomPath}/drawings/${targetStrokeId}`), null);
+      }
+    );
+  }
+
+  async function deleteDeckInRemoveMode(deckId = activeDeckId) {
+    const targetDeckId = normalizeDeckId(deckId);
+    await runDeleteWithFade(
+      `deck:${targetDeckId}`,
+      getDeckDeleteFadeElements(targetDeckId),
+      async () => {
+        await putAwayCoolJpegsGame(targetDeckId);
+      }
+    );
+  }
+
+  async function deleteMonsGameInRemoveMode(gameId = activeMonsGameId) {
+    const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    await runDeleteWithFade(
+      `mons-game:${targetGameId}`,
+      getMonsGameDeleteFadeElements(targetGameId),
+      async () => {
+        await putAwaySuperMetalMonsGame(targetGameId);
+      }
+    );
+  }
+
+  async function deleteMonsPieceInRemoveMode(pieceId, gameId = activeMonsGameId) {
+    const targetPieceId = String(pieceId || '').trim();
+    if (!targetPieceId) {
+      return;
+    }
+    const targetGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    const pieceElement = getMonsPieceDeleteFadeElement(targetPieceId, targetGameId);
+    await runDeleteWithFade(
+      `mons-piece:${targetGameId}:${targetPieceId}`,
+      [pieceElement],
+      async () => {
+        await runTransaction(
+          getMonsGameRef(targetGameId),
+          (currentGame) => {
+            if (!currentGame || typeof currentGame !== 'object') {
+              return currentGame;
+            }
+            const normalized = normalizeMonsGamePayload(currentGame);
+            if (normalized.enabled === false) {
+              return currentGame;
+            }
+            const nextPieces = normalized.pieces && typeof normalized.pieces === 'object' ? { ...normalized.pieces } : {};
+            if (!Object.prototype.hasOwnProperty.call(nextPieces, targetPieceId)) {
+              return currentGame;
+            }
+            delete nextPieces[targetPieceId];
+            return {
+              ...normalized,
+              pieces: nextPieces,
+              moveTick: (Number(normalized.moveTick) || 0) + 1,
+              lastMove: null,
+              updatedAt: Date.now()
+            };
+          },
+          { applyLocally: false }
+        );
+      }
+    );
+
+    if (monsSelectionPieceId === targetPieceId) {
+      monsSelectionPieceId = '';
+    }
+    if (monsPendingSpiritPush && (monsPendingSpiritPush.spiritId === targetPieceId || monsPendingSpiritPush.targetId === targetPieceId)) {
+      monsPendingSpiritPush = null;
+    }
+    if (monsPendingDemonRebound && (monsPendingDemonRebound.demonId === targetPieceId || monsPendingDemonRebound.targetId === targetPieceId)) {
+      monsPendingDemonRebound = null;
+    }
+  }
+
+  function isLabelDieState(dieState) {
+    return normalizeDieType(dieState?.type) === 'label';
+  }
+
+  function isLabelDieEditing(dieId) {
+    return Boolean(labelEditState && labelEditState.dieId === dieId);
+  }
+
+  function buildLabelDimensionsPatch(nextText, dieState = null) {
+    const normalizedText = normalizeLabelText(nextText);
+    const sourceState = isLabelDieState(dieState) ? dieState : null;
+    const currentTextScale = getLabelTextScale(sourceState, LABEL_TEXT_SCALE_DEFAULT);
+    const currentWidth = Number(sourceState?.labelWidth);
+    const currentHeight = Number(sourceState?.labelHeight);
+    if (!Number.isFinite(currentWidth) || !Number.isFinite(currentHeight)) {
+      const dimensions = measureLabelWorldDimensions(normalizedText, {
+        textScale: currentTextScale
+      });
+      return {
+        text: normalizedText,
+        textScale: currentTextScale,
+        labelWidth: dimensions.width,
+        labelHeight: dimensions.height
+      };
+    }
+
+    // Refit text to fill the current label area, then expand bounds only if needed.
+    const targetWidth = clamp(currentWidth, LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+    const targetHeight = clamp(currentHeight, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+    const layout = resolveLabelLayoutForBounds(
+      normalizedText,
+      targetWidth,
+      targetHeight,
+      LABEL_TEXT_SCALE_MAX
+    );
+    const nextWidth = clamp(Math.max(targetWidth, layout.labelWidth), LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
+    const nextHeight = clamp(Math.max(targetHeight, layout.labelHeight), LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+    return {
+      text: normalizedText,
+      textScale: layout.textScale,
+      labelWidth: nextWidth,
+      labelHeight: nextHeight
+    };
+  }
+
+  function applyLabelTextPatch(dieId, nextText) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const dieState = diceById.get(targetDieId);
+    if (!isLabelDieState(dieState)) {
+      return;
+    }
+    const patch = buildLabelDimensionsPatch(nextText, dieState);
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+  }
+
+  function closeLabelEditor(options = {}) {
+    if (!labelEditState) {
+      return;
+    }
+    if (labelEditState.closing) {
+      return;
+    }
+    labelEditState.closing = true;
+    const { dieId, editor } = labelEditState;
+    const shouldCommit = options.commit !== false;
+    if (shouldCommit && editor instanceof HTMLTextAreaElement) {
+      applyLabelTextPatch(dieId, editor.value);
+    }
+    if (editor instanceof HTMLTextAreaElement && editor.isConnected) {
+      editor.remove();
+    }
+    const dieElement = diceElements.get(dieId);
+    if (dieElement) {
+      dieElement.classList.remove('is-label-editing');
+      delete dieElement.dataset.labelEditing;
+    }
+    labelEditState = null;
+    renderDieElement(dieId);
+  }
+
+  function beginLabelEditing(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const dieState = diceById.get(targetDieId);
+    if (!isLabelDieState(dieState)) {
+      return;
+    }
+    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+      return;
+    }
+    if (isLabelDieEditing(targetDieId)) {
+      labelEditState?.editor?.focus({ preventScroll: true });
+      return;
+    }
+    closeLabelEditor({ commit: true });
+    const dieElement = ensureDieElement(targetDieId);
+    if (!(dieElement instanceof HTMLElement)) {
+      return;
+    }
+    const face = dieElement.querySelector('.table-die-face');
+    if (!(face instanceof HTMLElement)) {
+      return;
+    }
+    dieElement.classList.add('is-label-editing');
+    dieElement.dataset.labelEditing = '1';
+    dieElement.classList.remove('is-resizable-label');
+    dieElement.classList.remove('is-label-resize-hovered');
+    dieElement.classList.remove('is-resizing-label');
+    const resizeHandle = dieElement.querySelector('.table-label-resize-handle');
+    if (resizeHandle instanceof HTMLElement) {
+      resizeHandle.classList.add('hidden');
+    }
+    face.textContent = '';
+    const editor = document.createElement('textarea');
+    editor.className = 'table-label-editor';
+    editor.rows = 1;
+    editor.spellcheck = false;
+    editor.autocapitalize = 'off';
+    editor.autocomplete = 'off';
+    editor.inputMode = 'text';
+    editor.value = normalizeLabelText(dieState.text || '');
+    editor.placeholder = LABEL_DEFAULT_TEXT;
+    editor.style.color = normalizeHexColor(dieState.textColor || '#ff7a59');
+    editor.style.fontSize = `${getLabelFontSizePx(dieState).toFixed(2)}px`;
+    editor.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    editor.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+    });
+    editor.addEventListener('input', () => {
+      applyLabelTextPatch(targetDieId, editor.value);
+      const latestState = diceById.get(targetDieId);
+      if (isLabelDieState(latestState)) {
+        editor.style.fontSize = `${getLabelFontSizePx(latestState).toFixed(2)}px`;
+      }
+    });
+    editor.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLabelEditor({ commit: false });
+        return;
+      }
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        closeLabelEditor({ commit: true });
+      }
+    });
+    editor.addEventListener('blur', () => {
+      closeLabelEditor({ commit: true });
+    });
+    face.appendChild(editor);
+    labelEditState = {
+      dieId: targetDieId,
+      editor,
+      closing: false
+    };
+    editor.focus({ preventScroll: true });
+    if ((dieState.text || '') === LABEL_DEFAULT_TEXT) {
+      editor.select();
+    } else {
+      const end = editor.value.length;
+      editor.setSelectionRange(end, end);
+    }
   }
 
   const sendPresenceHeartbeat = () => {
@@ -7065,11 +8970,21 @@ async function startRealtimeSession() {
   }
 
   function syncHandHoverDragLock() {
-    setHandHoverDragLock(Boolean(cardDragState || groupDragState || handReorderState));
+    setHandHoverDragLock(Boolean(cardDragState || cardResizeState || groupDragState || handReorderState));
   }
 
   function hasActiveCardInteraction() {
-    return Boolean(cardDragState || groupDragState || handReorderState || deckDragState || monsDragState || selectionBoxState);
+    return Boolean(
+      cardDragState ||
+      cardResizeState ||
+      dieDragState ||
+      labelResizeState ||
+      groupDragState ||
+      handReorderState ||
+      deckDragState ||
+      monsDragState ||
+      selectionBoxState
+    );
   }
 
   function hasDragPointerComeToRest(dragState) {
@@ -7081,23 +8996,44 @@ async function startRealtimeSession() {
   }
 
   function cancelActiveCardInteractions() {
-    const hasCardDrag = Boolean(cardDragState || groupDragState);
+    if (labelEditState) {
+      closeLabelEditor({ commit: true });
+    }
+    const hasCardDrag = Boolean(cardDragState || cardResizeState || dieDragState || labelResizeState || groupDragState);
     const hasSelectedObjects = hasAnyGroupSelection();
     if (!hasCardDrag && !hasSelectedObjects) {
       return;
     }
 
     const cardIdsToRelease = new Set();
+    const dieIdsToRelease = new Set();
     if (cardDragState?.cardId) {
       cardIdsToRelease.add(cardDragState.cardId);
+    }
+    if (cardResizeState?.cardId) {
+      cardIdsToRelease.add(cardResizeState.cardId);
+    }
+    if (dieDragState?.dieId) {
+      dieIdsToRelease.add(dieDragState.dieId);
+    }
+    if (labelResizeState?.dieId) {
+      dieIdsToRelease.add(labelResizeState.dieId);
     }
     if (groupDragState?.basePositions instanceof Map) {
       for (const cardId of groupDragState.basePositions.keys()) {
         cardIdsToRelease.add(cardId);
       }
     }
+    if (groupDragState?.baseDiePositions instanceof Map) {
+      for (const dieId of groupDragState.baseDiePositions.keys()) {
+        dieIdsToRelease.add(dieId);
+      }
+    }
     for (const selectedId of selectedCardIds) {
       cardIdsToRelease.add(selectedId);
+    }
+    for (const selectedId of selectedDiceIds) {
+      dieIdsToRelease.add(selectedId);
     }
 
     const selectedIds = Array.from(selectedCardIds);
@@ -7105,8 +9041,18 @@ async function startRealtimeSession() {
     for (const selectedId of selectedIds) {
       renderCardElement(selectedId);
     }
+    const selectedDieIds = Array.from(selectedDiceIds);
+    selectedDiceIds.clear();
+    for (const selectedId of selectedDieIds) {
+      renderDieElement(selectedId);
+    }
 
     cardDragState = null;
+    cardResizeState = null;
+    resizingImageCardId = '';
+    dieDragState = null;
+    labelResizeState = null;
+    resizingLabelDieId = '';
     groupDragState = null;
     selectionBoxState = null;
     setDeckDropIndicator(false);
@@ -7132,6 +9078,21 @@ async function startRealtimeSession() {
         console.error(error);
       });
     }
+    for (const dieId of dieIdsToRelease) {
+      const dieState = diceById.get(dieId);
+      if (!dieState || dieState.holderClientId !== clientId) {
+        renderDieElement(dieId);
+        continue;
+      }
+      const releasePatch = {
+        holderClientId: null
+      };
+      patchLocalDie(dieId, releasePatch);
+      queueDiePatch(dieId, releasePatch);
+      releaseDieLock(dieId).catch((error) => {
+        console.error(error);
+      });
+    }
 
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
@@ -7142,6 +9103,7 @@ async function startRealtimeSession() {
       return;
     }
     const movableSelectedIds = new Set(getMovableSelectedIds());
+    const movableSelectedDieIds = new Set(getMovableSelectedDieIds());
     const movableSelectedDeckIds = new Set(getMovableSelectedDeckIds());
     const movableSelectedMonsIds = new Set(getMovableSelectedMonsGameIds());
     for (const [cardId, cardState] of cards.entries()) {
@@ -7171,6 +9133,19 @@ async function startRealtimeSession() {
       patchLocalDeck({ holderClientId: null }, normalizedDeckId);
       queueDeckPatch({ holderClientId: null }, normalizedDeckId);
       releaseDeckLock(normalizedDeckId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const [dieId, dieState] of diceById.entries()) {
+      if (!dieState || dieState.holderClientId !== clientId) {
+        continue;
+      }
+      if (dieDragState?.dieId === dieId || labelResizeState?.dieId === dieId || movableSelectedDieIds.has(dieId)) {
+        continue;
+      }
+      patchLocalDie(dieId, { holderClientId: null });
+      queueDiePatch(dieId, { holderClientId: null });
+      releaseDieLock(dieId).catch((error) => {
         console.error(error);
       });
     }
@@ -7204,6 +9179,11 @@ async function startRealtimeSession() {
     for (const [cardId, tap] of recentTouchTapByCardId.entries()) {
       if (now - tap.time > TOUCH_DOUBLE_TAP_MS) {
         recentTouchTapByCardId.delete(cardId);
+      }
+    }
+    for (const [dieId, tap] of recentTouchTapByDieId.entries()) {
+      if (now - tap.time > TOUCH_DOUBLE_TAP_MS) {
+        recentTouchTapByDieId.delete(dieId);
       }
     }
   }
@@ -7248,6 +9228,11 @@ async function startRealtimeSession() {
         recentMouseClickByCardId.delete(cardId);
       }
     }
+    for (const [dieId, click] of recentMouseClickByDieId.entries()) {
+      if (now - click.time > MOUSE_DOUBLE_CLICK_MS) {
+        recentMouseClickByDieId.delete(dieId);
+      }
+    }
   }
 
   function consumeDoubleClickIfPresent(cardId, event) {
@@ -7269,6 +9254,70 @@ async function startRealtimeSession() {
 
     recentMouseClickByCardId.delete(cardId);
     return true;
+  }
+
+  function consumeDieDoubleTapIfPresent(dieId, event) {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') {
+      return false;
+    }
+    const now = Date.now();
+    pruneRecentTouchTaps(now);
+    const previousTap = recentTouchTapByDieId.get(dieId);
+    if (!previousTap) {
+      return false;
+    }
+    const elapsed = now - previousTap.time;
+    const distance = Math.hypot(event.clientX - previousTap.x, event.clientY - previousTap.y);
+    if (elapsed > TOUCH_DOUBLE_TAP_MS || distance > TOUCH_DOUBLE_TAP_MAX_DISTANCE_PX) {
+      return false;
+    }
+    recentTouchTapByDieId.delete(dieId);
+    return true;
+  }
+
+  function rememberDieTouchTapCandidate(dieId, event) {
+    if ((event.pointerType !== 'touch' && event.pointerType !== 'pen') || !dieId) {
+      return;
+    }
+    const now = Date.now();
+    pruneRecentTouchTaps(now);
+    recentTouchTapByDieId.set(dieId, {
+      time: now,
+      x: event.clientX,
+      y: event.clientY
+    });
+  }
+
+  function consumeDieDoubleClickIfPresent(dieId, event) {
+    if (event.pointerType !== 'mouse' || event.button !== 0) {
+      return false;
+    }
+    const now = Date.now();
+    pruneRecentMouseClicks(now);
+    const previousClick = recentMouseClickByDieId.get(dieId);
+    if (!previousClick) {
+      return false;
+    }
+    const elapsed = now - previousClick.time;
+    const distance = Math.hypot(event.clientX - previousClick.x, event.clientY - previousClick.y);
+    if (elapsed > MOUSE_DOUBLE_CLICK_MS || distance > MOUSE_DOUBLE_CLICK_MAX_DISTANCE_PX) {
+      return false;
+    }
+    recentMouseClickByDieId.delete(dieId);
+    return true;
+  }
+
+  function rememberDieMouseClickCandidate(dieId, event) {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || !dieId) {
+      return;
+    }
+    const now = Date.now();
+    pruneRecentMouseClicks(now);
+    recentMouseClickByDieId.set(dieId, {
+      time: now,
+      x: event.clientX,
+      y: event.clientY
+    });
   }
 
   function setDeckDropIndicator(visible, deckId = activeDeckId) {
@@ -7662,6 +9711,36 @@ async function startRealtimeSession() {
     });
   }
 
+  function queueDiePatch(dieId, patch) {
+    if (isTableResetting || !dieId || !patch || typeof patch !== 'object') {
+      return;
+    }
+    const queuedPatch = pendingDieWrites.get(dieId) || {};
+    pendingDieWrites.set(dieId, { ...queuedPatch, ...patch });
+    if (dieWriteScheduled) {
+      return;
+    }
+
+    dieWriteScheduled = true;
+    const scheduledGeneration = dieWriteGeneration;
+    window.requestAnimationFrame(() => {
+      dieWriteScheduled = false;
+      if (scheduledGeneration !== dieWriteGeneration) {
+        return;
+      }
+      for (const [pendingDieId, pendingPatch] of pendingDieWrites.entries()) {
+        pendingDieWrites.delete(pendingDieId);
+        update(ref(db, `${roomPath}/dice/${pendingDieId}`), {
+          ...pendingPatch,
+          updatedAt: serverTimestamp()
+        }).catch((error) => {
+          console.error(error);
+          setRealtimeStatus('firebase: write blocked');
+        });
+      }
+    });
+  }
+
   function queueDeckPatch(patch, deckId = activeDeckId) {
     if (isTableResetting) {
       return;
@@ -7757,6 +9836,7 @@ async function startRealtimeSession() {
     const nextState = normalizeDrawingPayload({ ...existing, ...patch });
     drawingStrokes.set(strokeId, nextState);
     renderDrawingStroke(strokeId);
+    syncDrawActionButtonsState();
   }
 
   function queueDrawingPatch(strokeId, patch) {
@@ -8188,6 +10268,9 @@ async function startRealtimeSession() {
 
   setDrawModeEnabled = (enabled) => {
     const nextEnabled = Boolean(enabled);
+    if (nextEnabled && deleteModeEnabled) {
+      setDeleteModeEnabled(false);
+    }
     if (drawModeEnabled === nextEnabled) {
       syncDrawModeUi();
       syncLocalDrawCursor();
@@ -8197,6 +10280,9 @@ async function startRealtimeSession() {
     drawModeEnabled = nextEnabled;
     syncDrawModeUi();
     syncCursorState(localPosition);
+    if (drawModeEnabled) {
+      closeLabelEditor({ commit: true });
+    }
     if (drawModeEnabled) {
       syncLocalDrawCursor();
     } else {
@@ -8225,6 +10311,18 @@ async function startRealtimeSession() {
       setHandDropGlow(false);
       setHandDropPreview(null);
       renderLocalHandCards();
+    }
+    if (dieDragState) {
+      const draggedDieId = dieDragState.dieId;
+      const draggedDieState = diceById.get(draggedDieId);
+      dieDragState = null;
+      if (draggedDieState?.holderClientId === clientId) {
+        patchLocalDie(draggedDieId, { holderClientId: null });
+        queueDiePatch(draggedDieId, { holderClientId: null });
+        releaseDieLock(draggedDieId).catch((error) => {
+          console.error(error);
+        });
+      }
     }
     if (deckDragState) {
       const draggedDeckId = normalizeDeckId(deckDragState.deckId);
@@ -8256,6 +10354,32 @@ async function startRealtimeSession() {
     setAuctionDropIndicator(false);
     syncShapeDrawingAssistVisuals();
   };
+  setDeleteModeEnabled = (enabled) => {
+    const nextEnabled = Boolean(enabled);
+    if (deleteModeEnabled === nextEnabled) {
+      tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
+      deleteModeCancelButton?.classList.toggle('hidden', !nextEnabled);
+      return;
+    }
+    if (nextEnabled) {
+      closeLabelEditor({ commit: true });
+      if (drawModeEnabled) {
+        setDrawModeEnabled(false);
+      }
+      cancelActiveCardInteractions();
+      if (hasAnyGroupSelection()) {
+        releaseAllSelectedObjects();
+      }
+      closeGameOptionsMenu();
+      closeDiceAddModal();
+      closeImageAddModal();
+      closeMonsItemChoiceModal();
+    }
+    deleteModeEnabled = nextEnabled;
+    tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
+    deleteModeCancelButton?.classList.toggle('hidden', !nextEnabled);
+  };
+  setDeleteModeEnabled(deleteModeEnabled);
   setDrawModeEnabled(drawModeEnabled);
 
   function getOwnedStrokeEntries() {
@@ -8457,6 +10581,16 @@ async function startRealtimeSession() {
     }
   }
 
+  function patchLocalDie(dieId, patch) {
+    const existingDie = diceById.get(dieId);
+    if (!existingDie) {
+      return;
+    }
+    const nextState = normalizeDicePayload({ ...existingDie, ...patch });
+    diceById.set(dieId, nextState);
+    renderDieElement(dieId);
+  }
+
   function patchLocalCard(cardId, patch) {
     const existingCard = cards.get(cardId);
     if (!existingCard) {
@@ -8494,6 +10628,10 @@ async function startRealtimeSession() {
       topZ = Math.max(topZ, Number(cardState.z) || 0);
     }
     return topZ;
+  }
+
+  function getTopObjectZ() {
+    return Math.max(getTopCardZ(), getTopDieZ());
   }
 
   function getDeckCardIdsInOrder() {
@@ -8573,7 +10711,7 @@ async function startRealtimeSession() {
 
   function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const cardState = cards.get(cardId);
-    if (!cardState) {
+    if (!cardState || !canCardUseDeckZones(cardState)) {
       return false;
     }
     const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
@@ -8595,7 +10733,10 @@ async function startRealtimeSession() {
     }
     return cardIds.every((cardId) => {
       const cardState = cards.get(cardId);
-      return Boolean(cardState?.inAuction) && normalizeDeckId(cardState?.deckId) === targetDeckId;
+      if (!cardState || !canCardUseDeckZones(cardState)) {
+        return false;
+      }
+      return Boolean(cardState.inAuction) && normalizeDeckId(cardState.deckId) === targetDeckId;
     });
   }
 
@@ -8637,11 +10778,12 @@ async function startRealtimeSession() {
     if (!cardState) {
       return null;
     }
+    const nextFace = getFaceWhenEnteringHand(cardState);
     return {
       x: cardState.x,
       y: cardState.y,
       z: Number.isFinite(nextHandZ) ? nextHandZ : getTopHandZ(ownerToken) + 1,
-      face: 'front',
+      face: nextFace,
       inDeck: false,
       inDiscard: false,
       inAuction: false,
@@ -8661,7 +10803,7 @@ async function startRealtimeSession() {
 
   function buildDeckDropPatch(cardId, preferredDeckId = '') {
     const cardState = cards.get(cardId);
-    if (!cardState) {
+    if (!cardState || !canCardUseDeckZones(cardState)) {
       return null;
     }
 
@@ -8704,7 +10846,7 @@ async function startRealtimeSession() {
 
   function buildDiscardDropPatch(cardId, preferredDeckId = '') {
     const cardState = cards.get(cardId);
-    if (!cardState) {
+    if (!cardState || !canCardUseDeckZones(cardState)) {
       return null;
     }
 
@@ -8736,7 +10878,7 @@ async function startRealtimeSession() {
 
   function buildAuctionDropPatch(cardId, preferredDeckId = '') {
     const cardState = cards.get(cardId);
-    if (!cardState) {
+    if (!cardState || !canCardUseDeckZones(cardState)) {
       return null;
     }
 
@@ -8821,6 +10963,39 @@ async function startRealtimeSession() {
     );
   }
 
+  async function acquireDieLock(dieId) {
+    const holderRef = ref(db, `${roomPath}/dice/${dieId}/holderClientId`);
+    const result = await runTransaction(
+      holderRef,
+      (currentHolder) => {
+        if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
+          return;
+        }
+        return clientId;
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed || result.snapshot.val() !== clientId) {
+      return false;
+    }
+    onDisconnect(holderRef).set(null);
+    return true;
+  }
+
+  async function releaseDieLock(dieId) {
+    const holderRef = ref(db, `${roomPath}/dice/${dieId}/holderClientId`);
+    await runTransaction(
+      holderRef,
+      (currentHolder) => {
+        if (currentHolder !== clientId) {
+          return;
+        }
+        return null;
+      },
+      { applyLocally: false }
+    );
+  }
+
   function getMovableSelectedIds() {
     return Array.from(selectedCardIds).filter((cardId) => {
       const cardState = cards.get(cardId);
@@ -8842,6 +11017,13 @@ async function startRealtimeSession() {
     });
   }
 
+  function getMovableSelectedDieIds() {
+    return Array.from(selectedDiceIds).filter((dieId) => {
+      const dieState = diceById.get(dieId);
+      return Boolean(dieState) && dieState.holderClientId === clientId;
+    });
+  }
+
   function getMovableSelectedMonsGameIds() {
     return Array.from(selectedMonsGameIds).filter((gameId) => {
       const gameState = getMonsGameStateById(gameId);
@@ -8850,7 +11032,7 @@ async function startRealtimeSession() {
   }
 
   function hasAnyGroupSelection() {
-    return selectedCardIds.size > 0 || selectedDeckIds.size > 0 || selectedMonsGameIds.size > 0;
+    return selectedCardIds.size > 0 || selectedDiceIds.size > 0 || selectedDeckIds.size > 0 || selectedMonsGameIds.size > 0;
   }
 
   function releaseSelectedCards() {
@@ -8903,6 +11085,23 @@ async function startRealtimeSession() {
     }
   }
 
+  function releaseSelectedDice() {
+    const selectedIds = Array.from(selectedDiceIds);
+    selectedDiceIds.clear();
+    for (const dieId of selectedIds) {
+      const dieState = diceById.get(dieId);
+      if (dieState?.holderClientId === clientId) {
+        patchLocalDie(dieId, { holderClientId: null });
+        queueDiePatch(dieId, { holderClientId: null });
+        releaseDieLock(dieId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        renderDieElement(dieId);
+      }
+    }
+  }
+
   function releaseSelectedMonsBoards() {
     const selectedIds = Array.from(selectedMonsGameIds);
     selectedMonsGameIds.clear();
@@ -8926,6 +11125,7 @@ async function startRealtimeSession() {
 
   function releaseAllSelectedObjects() {
     releaseSelectedCards();
+    releaseSelectedDice();
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
   }
@@ -8937,6 +11137,7 @@ async function startRealtimeSession() {
     const maxY = Math.max(startWorld.y, endWorld.y);
 
     const cardCandidates = [];
+    const diceCandidates = [];
     const deckCandidates = [];
     const monsCandidates = [];
     const overlapsSelectionRect = (centerX, centerY, width, height) => {
@@ -8967,6 +11168,19 @@ async function startRealtimeSession() {
       }
       if (cardState.x >= minX && cardState.x <= maxX && cardState.y >= minY && cardState.y <= maxY) {
         cardCandidates.push(cardId);
+      }
+    }
+
+    for (const [dieId, dieState] of diceById.entries()) {
+      if (!dieState) {
+        continue;
+      }
+      if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+        continue;
+      }
+      const dieDimensions = getDieWorldDimensions(dieState);
+      if (overlapsSelectionRect(dieState.x, dieState.y, dieDimensions.width, dieDimensions.height)) {
+        diceCandidates.push(dieId);
       }
     }
 
@@ -9005,11 +11219,11 @@ async function startRealtimeSession() {
     }
 
     releaseAllSelectedObjects();
-    if (cardCandidates.length === 0 && deckCandidates.length === 0 && monsCandidates.length === 0) {
+    if (cardCandidates.length === 0 && diceCandidates.length === 0 && deckCandidates.length === 0 && monsCandidates.length === 0) {
       return;
     }
 
-    let nextTopZ = getTopCardZ();
+    let nextTopZ = getTopObjectZ();
     for (const cardId of cardCandidates) {
       const acquired = await acquireCardLock(cardId);
       if (!acquired) {
@@ -9040,6 +11254,21 @@ async function startRealtimeSession() {
       queueDeckPatch({ holderClientId: clientId }, deckId);
     }
 
+    for (const dieId of diceCandidates) {
+      const acquired = await acquireDieLock(dieId);
+      if (!acquired) {
+        continue;
+      }
+      nextTopZ += 1;
+      selectedDiceIds.add(dieId);
+      const patch = {
+        z: nextTopZ,
+        holderClientId: clientId
+      };
+      patchLocalDie(dieId, patch);
+      queueDiePatch(dieId, patch);
+    }
+
     for (const gameId of monsCandidates) {
       const acquired = await acquireMonsBoardLock(gameId);
       if (!acquired) {
@@ -9053,6 +11282,7 @@ async function startRealtimeSession() {
 
   function buildGroupDragBase() {
     const basePositions = new Map();
+    const baseDiePositions = new Map();
     const baseDeckPositions = new Map();
     const baseMonsPositions = new Map();
 
@@ -9061,7 +11291,8 @@ async function startRealtimeSession() {
       if (!cardState) {
         continue;
       }
-      basePositions.set(cardId, { x: cardState.x, y: cardState.y });
+      const cardSize = getCardTableDimensions(cardState);
+      basePositions.set(cardId, { x: cardState.x, y: cardState.y, width: cardSize.width, height: cardSize.height });
     }
     for (const deckId of getMovableSelectedDeckIds()) {
       const deckState = getDeckStateById(deckId);
@@ -9069,6 +11300,20 @@ async function startRealtimeSession() {
         continue;
       }
       baseDeckPositions.set(deckId, { x: deckState.x, y: deckState.y });
+    }
+    for (const dieId of getMovableSelectedDieIds()) {
+      const dieState = diceById.get(dieId);
+      if (!dieState) {
+        continue;
+      }
+      const dimensions = getDieWorldDimensions(dieState);
+      baseDiePositions.set(dieId, {
+        x: dieState.x,
+        y: dieState.y,
+        width: dimensions.width,
+        height: dimensions.height,
+        type: normalizeDieType(dieState.type)
+      });
     }
     for (const gameId of getMovableSelectedMonsGameIds()) {
       const gameState = getMonsGameStateById(gameId);
@@ -9080,6 +11325,7 @@ async function startRealtimeSession() {
 
     return {
       basePositions,
+      baseDiePositions,
       baseDeckPositions,
       baseMonsPositions
     };
@@ -9097,7 +11343,7 @@ async function startRealtimeSession() {
   }
 
   function beginGroupDrag(event, cardId) {
-    if (!selectedCardIds.has(cardId) || cardDragState || groupDragState) {
+    if (!selectedCardIds.has(cardId) || cardDragState || cardResizeState || labelResizeState || groupDragState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -9125,8 +11371,8 @@ async function startRealtimeSession() {
       anchorType: 'card',
       anchorId: cardId,
       anchorCardId: cardId,
-      anchorWidth: CARD_WIDTH,
-      anchorHeight: CARD_HEIGHT,
+      anchorWidth: anchorBase.width,
+      anchorHeight: anchorBase.height,
       ...groupBase,
       moved: false
     };
@@ -9137,7 +11383,7 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromDeck(event, deckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    if (!selectedDeckIds.has(normalizedDeckId) || cardDragState || groupDragState || handReorderState) {
+    if (!selectedDeckIds.has(normalizedDeckId) || cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -9177,7 +11423,7 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromMons(event, gameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
-    if (!selectedMonsGameIds.has(normalizedGameId) || cardDragState || groupDragState || handReorderState) {
+    if (!selectedMonsGameIds.has(normalizedGameId) || cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -9207,6 +11453,44 @@ async function startRealtimeSession() {
       anchorCardId: '',
       anchorWidth: anchorGameState.width,
       anchorHeight: anchorGameState.height,
+      ...groupBase,
+      moved: false
+    };
+    syncHandHoverDragLock();
+    bringSelectedDeckStacksToFront(groupBase.baseDeckPositions);
+    return true;
+  }
+
+  function beginGroupDragFromDie(event, dieId) {
+    if (!selectedDiceIds.has(dieId) || cardDragState || cardResizeState || labelResizeState || dieDragState || groupDragState || handReorderState) {
+      return false;
+    }
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return false;
+    }
+    const groupBase = buildGroupDragBase();
+    const anchorDieState = diceById.get(dieId);
+    const anchorBase = groupBase.baseDiePositions.get(dieId);
+    if (!anchorDieState || !anchorBase) {
+      releaseAllSelectedObjects();
+      return false;
+    }
+    groupDragState = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      anchorOffsetX: worldPoint.x - anchorDieState.x,
+      anchorOffsetY: worldPoint.y - anchorDieState.y,
+      anchorType: 'die',
+      anchorId: dieId,
+      anchorCardId: '',
+      anchorWidth: anchorBase.width,
+      anchorHeight: anchorBase.height,
       ...groupBase,
       moved: false
     };
@@ -9253,6 +11537,8 @@ async function startRealtimeSession() {
       anchorBase = groupDragState.baseDeckPositions.get(groupDragState.anchorId);
     } else if (groupDragState.anchorType === 'mons') {
       anchorBase = groupDragState.baseMonsPositions.get(groupDragState.anchorId);
+    } else if (groupDragState.anchorType === 'die') {
+      anchorBase = groupDragState.baseDiePositions.get(groupDragState.anchorId);
     } else {
       anchorBase = groupDragState.basePositions.get(groupDragState.anchorId);
     }
@@ -9262,8 +11548,20 @@ async function startRealtimeSession() {
 
     const anchorWidth = Math.max(1, Number(groupDragState.anchorWidth) || CARD_WIDTH);
     const anchorHeight = Math.max(1, Number(groupDragState.anchorHeight) || CARD_HEIGHT);
-    const anchorNextX = clamp(worldPoint.x - groupDragState.anchorOffsetX, anchorWidth / 2, WORLD_WIDTH - anchorWidth / 2);
-    const anchorNextY = clamp(worldPoint.y - groupDragState.anchorOffsetY, anchorHeight / 2, WORLD_HEIGHT - anchorHeight / 2);
+    let anchorMinX = anchorWidth / 2;
+    let anchorMaxX = WORLD_WIDTH - anchorWidth / 2;
+    let anchorMinY = anchorHeight / 2;
+    let anchorMaxY = WORLD_HEIGHT - anchorHeight / 2;
+    if (groupDragState.anchorType === 'die') {
+      const anchorDieBase = groupDragState.baseDiePositions.get(groupDragState.anchorId);
+      const anchorDieBounds = getDieCenterBounds(anchorDieBase?.type || 'd6', anchorWidth, anchorHeight);
+      anchorMinX = anchorDieBounds.minX;
+      anchorMaxX = anchorDieBounds.maxX;
+      anchorMinY = anchorDieBounds.minY;
+      anchorMaxY = anchorDieBounds.maxY;
+    }
+    const anchorNextX = clamp(worldPoint.x - groupDragState.anchorOffsetX, anchorMinX, anchorMaxX);
+    const anchorNextY = clamp(worldPoint.y - groupDragState.anchorOffsetY, anchorMinY, anchorMaxY);
     const movedDistance = Math.hypot(event.clientX - groupDragState.startClientX, event.clientY - groupDragState.startClientY);
     const movedThreshold =
       groupDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
@@ -9280,18 +11578,24 @@ async function startRealtimeSession() {
     const anchorAuctionDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorNextX, anchorNextY, 'auction') : '';
     const canPlaceGroupOnAuction =
       hasDropEligibleCards && canPlaceCardsOnAuction(selectedCardIdsInDrag, anchorAuctionDeckId);
-    const anchorHoverX = clamp(anchorBase.x + deltaX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2);
-    const anchorHoverY = clamp(anchorBase.y + deltaY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2);
-    const deckTargetDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'deck') : '';
-    const discardTargetDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'discard') : '';
-    const auctionTargetDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'auction') : '';
+    const anchorHalfWidth = Math.max(1, Number(anchorBase.width) || CARD_WIDTH) / 2;
+    const anchorHalfHeight = Math.max(1, Number(anchorBase.height) || CARD_HEIGHT) / 2;
+    const anchorHoverX = clamp(anchorBase.x + deltaX, anchorHalfWidth, WORLD_WIDTH - anchorHalfWidth);
+    const anchorHoverY = clamp(anchorBase.y + deltaY, anchorHalfHeight, WORLD_HEIGHT - anchorHalfHeight);
+    const anchorCardState = hasDropEligibleCards && groupDragState.anchorCardId ? cards.get(groupDragState.anchorCardId) : null;
+    const canAnchorUseDeckZones = canCardUseDeckZones(anchorCardState);
+    const deckTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'deck') : '';
+    const discardTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'discard') : '';
+    const auctionTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'auction') : '';
     const overDeck = Boolean(deckTargetDeckId);
     const overDiscard = Boolean(discardTargetDeckId);
     let overAuction = false;
 
     for (const [selectedCardId, base] of groupDragState.basePositions.entries()) {
-      const nextX = clamp(base.x + deltaX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2);
-      const nextY = clamp(base.y + deltaY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2);
+      const halfWidth = Math.max(1, Number(base.width) || CARD_WIDTH) / 2;
+      const halfHeight = Math.max(1, Number(base.height) || CARD_HEIGHT) / 2;
+      const nextX = clamp(base.x + deltaX, halfWidth, WORLD_WIDTH - halfWidth);
+      const nextY = clamp(base.y + deltaY, halfHeight, WORLD_HEIGHT - halfHeight);
       if (canPlaceGroupOnAuction && auctionTargetDeckId && isPositionOverAuction(nextX, nextY, auctionTargetDeckId)) {
         overAuction = true;
       }
@@ -9319,6 +11623,21 @@ async function startRealtimeSession() {
       };
       patchLocalDeck(patch, selectedDeckId);
       queueDeckPatch(patch, selectedDeckId);
+    }
+
+    for (const [selectedDieId, base] of groupDragState.baseDiePositions.entries()) {
+      const dieWidth = Math.max(1, Number(base?.width) || DIE_SIZE_D6);
+      const dieHeight = Math.max(1, Number(base?.height) || DIE_SIZE_D6);
+      const dieBounds = getDieCenterBounds(base?.type || 'd6', dieWidth, dieHeight);
+      const nextX = clamp(base.x + deltaX, dieBounds.minX, dieBounds.maxX);
+      const nextY = clamp(base.y + deltaY, dieBounds.minY, dieBounds.maxY);
+      const patch = {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      };
+      patchLocalDie(selectedDieId, patch);
+      queueDiePatch(selectedDieId, patch);
     }
 
     for (const [selectedGameId, base] of groupDragState.baseMonsPositions.entries()) {
@@ -9377,26 +11696,29 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (
-      event.type === 'pointerup' &&
-      !finishedGroupDrag.moved &&
-      finishedGroupDrag.anchorType === 'card' &&
-      finishedGroupDrag.anchorCardId
-    ) {
-      if (finishedGroupDrag.pointerType === 'touch' || finishedGroupDrag.pointerType === 'pen') {
-        pruneRecentTouchTaps();
-        recentTouchTapByCardId.set(finishedGroupDrag.anchorCardId, {
-          time: Date.now(),
-          x: event.clientX,
-          y: event.clientY
-        });
-      } else if (finishedGroupDrag.pointerType === 'mouse' && event.button === 0) {
-        pruneRecentMouseClicks();
-        recentMouseClickByCardId.set(finishedGroupDrag.anchorCardId, {
-          time: Date.now(),
-          x: event.clientX,
-          y: event.clientY
-        });
+    if (event.type === 'pointerup' && !finishedGroupDrag.moved) {
+      if (finishedGroupDrag.anchorType === 'card' && finishedGroupDrag.anchorCardId) {
+        if (finishedGroupDrag.pointerType === 'touch' || finishedGroupDrag.pointerType === 'pen') {
+          pruneRecentTouchTaps();
+          recentTouchTapByCardId.set(finishedGroupDrag.anchorCardId, {
+            time: Date.now(),
+            x: event.clientX,
+            y: event.clientY
+          });
+        } else if (finishedGroupDrag.pointerType === 'mouse' && event.button === 0) {
+          pruneRecentMouseClicks();
+          recentMouseClickByCardId.set(finishedGroupDrag.anchorCardId, {
+            time: Date.now(),
+            x: event.clientX,
+            y: event.clientY
+          });
+        }
+      } else if (finishedGroupDrag.anchorType === 'die' && finishedGroupDrag.anchorId) {
+        if (finishedGroupDrag.pointerType === 'touch' || finishedGroupDrag.pointerType === 'pen') {
+          rememberDieTouchTapCandidate(finishedGroupDrag.anchorId, event);
+        } else if (finishedGroupDrag.pointerType === 'mouse' && event.button === 0) {
+          rememberDieMouseClickCandidate(finishedGroupDrag.anchorId, event);
+        }
       }
     }
 
@@ -9429,24 +11751,52 @@ async function startRealtimeSession() {
       return true;
     }
 
+    const deckEligibleSelectedIds = selectedIds.filter((cardId) => canCardUseDeckZones(cards.get(cardId)));
+    const nonDeckSelectedIds = selectedIds.filter((cardId) => !deckEligibleSelectedIds.includes(cardId));
+    const releaseNonDeckSelectedCards = () => {
+      for (const cardId of nonDeckSelectedIds) {
+        const currentCard = cards.get(cardId);
+        if (!currentCard) {
+          continue;
+        }
+        const patch = {
+          holderClientId: null,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null
+        };
+        patchLocalCard(cardId, patch);
+        queueCardPatch(cardId, patch);
+        releaseCardLock(cardId).catch((error) => {
+          console.error(error);
+        });
+      }
+    };
+
     const anchorCardId = finishedGroupDrag.anchorCardId;
     const anchorIsSelected = anchorCardId && selectedIds.includes(anchorCardId);
     const anchorCardState = anchorIsSelected ? cards.get(anchorCardId) : null;
-    const deckTargetDeckId = anchorCardState ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'deck') : '';
-    const discardTargetDeckId = anchorCardState ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'discard') : '';
-    const auctionTargetDeckId = anchorCardState ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'auction') : '';
+    const canAnchorUseDeckZones = canCardUseDeckZones(anchorCardState);
+    const deckTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'deck') : '';
+    const discardTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'discard') : '';
+    const auctionTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'auction') : '';
     const shouldStackOnDeck =
+      deckEligibleSelectedIds.length > 0 &&
       Boolean(deckTargetDeckId) &&
       Boolean(anchorCardState) &&
       isPositionOverDeck(anchorCardState.x, anchorCardState.y, deckTargetDeckId);
     const shouldStackOnDiscard =
+      deckEligibleSelectedIds.length > 0 &&
       Boolean(discardTargetDeckId) &&
       Boolean(anchorCardState) &&
       isPositionOverDiscard(anchorCardState.x, anchorCardState.y, discardTargetDeckId);
     const shouldStackOnAuction =
+      deckEligibleSelectedIds.length > 0 &&
       Boolean(auctionTargetDeckId) &&
-      canPlaceCardsOnAuction(selectedIds, auctionTargetDeckId) &&
-      selectedIds.some((cardId) => {
+      canPlaceCardsOnAuction(deckEligibleSelectedIds, auctionTargetDeckId) &&
+      deckEligibleSelectedIds.some((cardId) => {
         const cardState = cards.get(cardId);
         return Boolean(cardState) && isPositionOverAuction(cardState.x, cardState.y, auctionTargetDeckId);
       });
@@ -9454,7 +11804,7 @@ async function startRealtimeSession() {
     if (shouldStackOnAuction && auctionTargetDeckId) {
       selectedCardIds.clear();
       let nextAuctionZ = getAuctionTopZ(auctionTargetDeckId) + 1;
-      for (const cardId of selectedIds) {
+      for (const cardId of deckEligibleSelectedIds) {
         const patch = buildAuctionPlacementPatch(nextAuctionZ, auctionTargetDeckId);
         nextAuctionZ += 1;
         patchLocalCard(cardId, patch);
@@ -9463,6 +11813,7 @@ async function startRealtimeSession() {
           console.error(error);
         });
       }
+      releaseNonDeckSelectedCards();
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -9470,7 +11821,7 @@ async function startRealtimeSession() {
     if (shouldStackOnDiscard && discardTargetDeckId) {
       selectedCardIds.clear();
       let nextDiscardZ = getDiscardTopZ(discardTargetDeckId) + 1;
-      for (const cardId of selectedIds) {
+      for (const cardId of deckEligibleSelectedIds) {
         const patch = buildDiscardPlacementPatch(nextDiscardZ, discardTargetDeckId);
         nextDiscardZ += 1;
         patchLocalCard(cardId, patch);
@@ -9479,6 +11830,7 @@ async function startRealtimeSession() {
           console.error(error);
         });
       }
+      releaseNonDeckSelectedCards();
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -9491,7 +11843,7 @@ async function startRealtimeSession() {
       }
       selectedCardIds.clear();
       let nextDeckZ = getDeckTopZ(deckTargetDeckId) + 1;
-      for (const cardId of selectedIds) {
+      for (const cardId of deckEligibleSelectedIds) {
         const patch = {
           x: targetDeckState.x,
           y: targetDeckState.y,
@@ -9511,6 +11863,7 @@ async function startRealtimeSession() {
           console.error(error);
         });
       }
+      releaseNonDeckSelectedCards();
     }
 
     schedulePublishFromClient(event.clientX, event.clientY);
@@ -9591,6 +11944,13 @@ async function startRealtimeSession() {
     if (drawModeEnabled) {
       return;
     }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteMonsGameInRemoveMode(gameId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
@@ -9615,7 +11975,7 @@ async function startRealtimeSession() {
       setActiveMonsGameId(targetMonsGameId);
     }
 
-    if (monsDragState || groupDragState || handReorderState) {
+    if (monsDragState || cardResizeState || groupDragState || handReorderState) {
       return;
     }
     const targetMonsGameState = getMonsGameStateById(targetMonsGameId);
@@ -10145,6 +12505,53 @@ async function startRealtimeSession() {
     return options;
   }
 
+  function getMonsDemonReboundOptionsFromPayload(piecesPayload, attackerPiece, targetPiece) {
+    if (!attackerPiece || !targetPiece) {
+      return [];
+    }
+    const targetSpawnTile = getMonsSpawnTileForPiece(targetPiece);
+    const options = [];
+    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
+      for (let colOffset = -1; colOffset <= 1; colOffset += 1) {
+        if (rowOffset === 0 && colOffset === 0) {
+          continue;
+        }
+        const nextRow = targetPiece.row + rowOffset;
+        const nextCol = targetPiece.col + colOffset;
+        if (targetSpawnTile && nextRow === targetSpawnTile.row && nextCol === targetSpawnTile.col) {
+          continue;
+        }
+        if (!canMonsPieceOccupyTileFromPayload(attackerPiece, nextRow, nextCol)) {
+          continue;
+        }
+        if (isMonsTileOccupiedByOtherPiece(piecesPayload, nextRow, nextCol, [attackerPiece.id, targetPiece.id])) {
+          continue;
+        }
+        options.push({
+          row: nextRow,
+          col: nextCol
+        });
+      }
+    }
+    return options;
+  }
+
+  function shouldMonsDemonAttackRequireReboundChoice(attacker, target) {
+    if (!attacker || !target) {
+      return false;
+    }
+    const targetSpawnTile = getMonsSpawnTileForPiece(target);
+    if (!targetSpawnTile) {
+      return false;
+    }
+    const attackerCanOccupyTarget = canMonsPieceOccupyTileFromPayload(attacker, target.row, target.col);
+    const targetOnOwnSpawn = targetSpawnTile.row === target.row && targetSpawnTile.col === target.col;
+    const carriedManaType = getMonsDrainerCarriedManaType(target);
+    const targetHoldsMana =
+      carriedManaType === 'mana' || carriedManaType === 'manaB' || carriedManaType === 'supermana';
+    return targetHoldsMana || (!attackerCanOccupyTarget && targetOnOwnSpawn);
+  }
+
   function isMonsCornerTile(row, col) {
     return (
       (row === 0 && col === 0) ||
@@ -10397,6 +12804,7 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       return false;
     }
@@ -10439,12 +12847,42 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       return false;
     }
     const nextGame = normalizeMonsGamePayload(result.snapshot.val());
     if (monsSelectionPieceId && !nextGame.pieces[monsSelectionPieceId]) {
       monsSelectionPieceId = '';
+    }
+    renderMonsBoard();
+    return true;
+  }
+
+  async function toggleMonsBoardOrientation(gameId = activeMonsGameId) {
+    const targetMonsGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    const result = await runTransaction(
+      getMonsGameRef(targetMonsGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeMonsGamePayload(currentGame);
+        return {
+          ...normalized,
+          flipped: normalized.flipped !== true,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed || !result.snapshot?.val()) {
+      return false;
+    }
+    const nextGame = normalizeMonsGamePayload(result.snapshot.val());
+    monsGameStatesById.set(targetMonsGameId, nextGame);
+    if (normalizeMonsGameId(activeMonsGameId) === targetMonsGameId) {
+      monsGameState = nextGame;
     }
     renderMonsBoard();
     return true;
@@ -10529,6 +12967,7 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       return false;
     }
@@ -10545,8 +12984,11 @@ async function startRealtimeSession() {
     return true;
   }
 
-  async function executeMonsDemonAttack(attackerId, targetId) {
-    const targetMonsGameId = normalizeMonsGameId(activeMonsGameId);
+  async function executeMonsDemonAttack(attackerId, targetId, options = {}) {
+    const targetMonsGameId = normalizeMonsGameId(options?.gameId || activeMonsGameId);
+    const requestedReboundRow = Number(options?.reboundRow);
+    const requestedReboundCol = Number(options?.reboundCol);
+    const hasRequestedRebound = Number.isFinite(requestedReboundRow) && Number.isFinite(requestedReboundCol);
     const previousMoveTick = Number(monsGameState?.moveTick) || 0;
     const result = await runTransaction(
       getMonsGameRef(targetMonsGameId),
@@ -10606,6 +13048,20 @@ async function startRealtimeSession() {
         const attackerCanOccupyTarget = canMonsPieceOccupyTileFromPayload(attacker, target.row, target.col);
         const targetCarriedManaType = getMonsDrainerCarriedManaType(target);
         const targetDropsManaOnFaint = targetCarriedManaType === 'mana' || targetCarriedManaType === 'manaB';
+        const requiresReboundChoice = shouldMonsDemonAttackRequireReboundChoice(attacker, target);
+        let reboundChoice = null;
+        if (requiresReboundChoice) {
+          if (targetHoldsBomb || !hasRequestedRebound) {
+            return currentGame;
+          }
+          const reboundOptions = getMonsDemonReboundOptionsFromPayload(normalized.pieces, attacker, target);
+          reboundChoice = reboundOptions.find(
+            (option) => option.row === requestedReboundRow && option.col === requestedReboundCol
+          );
+          if (!reboundChoice) {
+            return currentGame;
+          }
+        }
 
         const nextPieces = { ...normalized.pieces };
         const targetTileBeforeFaint = {
@@ -10638,6 +13094,13 @@ async function startRealtimeSession() {
             attackerTileBeforeFaint.row,
             attackerTileBeforeFaint.col
           );
+        } else if (reboundChoice) {
+          nextPieces[attacker.id] = {
+            ...attacker,
+            row: reboundChoice.row,
+            col: reboundChoice.col,
+            faintedByAttack: false
+          };
         } else if (attackerCanOccupyTarget && !targetDropsManaOnFaint) {
           nextPieces[attacker.id] = {
             ...attacker,
@@ -10661,7 +13124,9 @@ async function startRealtimeSession() {
             targetRow: target.row,
             targetCol: target.col,
             toRow: targetSpawnTile.row,
-            toCol: targetSpawnTile.col
+            toCol: targetSpawnTile.col,
+            reboundRow: reboundChoice?.row ?? null,
+            reboundCol: reboundChoice?.col ?? null
           },
           undoHistory: appendMonsUndoHistoryEntry(normalized.undoHistory, undoEntry),
           updatedAt: Date.now()
@@ -10670,6 +13135,7 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       return false;
     }
@@ -10808,6 +13274,7 @@ async function startRealtimeSession() {
     setActiveMonsGameId(targetMonsGameId);
     monsSelectionPieceId = nextGame.pieces[pendingChoice.pieceId] ? pendingChoice.pieceId : '';
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     renderMonsBoard();
     return true;
   }
@@ -10879,6 +13346,7 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       return false;
     }
@@ -10923,6 +13391,7 @@ async function startRealtimeSession() {
     const options = getMonsSpiritPushOptionsFromPayload(monsGameState.pieces, targetPiece);
     if (options.length === 0) {
       monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
       return false;
     }
     monsPendingSpiritPush = {
@@ -10935,6 +13404,7 @@ async function startRealtimeSession() {
       targetCol: targetPiece.col,
       options
     };
+    monsPendingDemonRebound = null;
     return true;
   }
 
@@ -11023,6 +13493,7 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     if (!result.committed || !result.snapshot?.val()) {
       renderMonsBoard();
       return false;
@@ -11038,6 +13509,71 @@ async function startRealtimeSession() {
     }
     monsSelectionPieceId = nextGame.pieces[pendingState.spiritId] ? pendingState.spiritId : '';
     renderMonsBoard();
+    return true;
+  }
+
+  function tryStartMonsDemonRebound(demonPiece, targetPiece) {
+    if (!monsGameState?.pieces) {
+      return false;
+    }
+    if (!demonPiece || !targetPiece) {
+      return false;
+    }
+    if (demonPiece.id === targetPiece.id) {
+      return false;
+    }
+    if (getMonsPieceBaseType(demonPiece) !== 'demon') {
+      return false;
+    }
+    if (!canCurrentPlayerControlMonsPieceFromPayload(monsGameState, demonPiece)) {
+      return false;
+    }
+    if (!canMonsDemonAttackIgnoringAngelFromPayload(monsGameState.pieces, demonPiece, targetPiece)) {
+      return false;
+    }
+    if (!shouldMonsDemonAttackRequireReboundChoice(demonPiece, targetPiece)) {
+      return false;
+    }
+    const options = getMonsDemonReboundOptionsFromPayload(monsGameState.pieces, demonPiece, targetPiece);
+    if (options.length === 0) {
+      monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
+      return false;
+    }
+    monsPendingSpiritPush = null;
+    monsPendingDemonRebound = {
+      gameId: normalizeMonsGameId(activeMonsGameId),
+      demonId: demonPiece.id,
+      targetId: targetPiece.id,
+      targetRow: targetPiece.row,
+      targetCol: targetPiece.col,
+      options
+    };
+    return true;
+  }
+
+  async function applyMonsDemonReboundOption(targetRow, targetCol) {
+    if (!monsPendingDemonRebound) {
+      return false;
+    }
+    const pendingState = { ...monsPendingDemonRebound };
+    const chosenOption = Array.isArray(pendingState.options)
+      ? pendingState.options.find((option) => option && option.row === targetRow && option.col === targetCol)
+      : null;
+    monsPendingDemonRebound = null;
+    if (!chosenOption) {
+      renderMonsBoard();
+      return false;
+    }
+    const applied = await executeMonsDemonAttack(pendingState.demonId, pendingState.targetId, {
+      gameId: pendingState.gameId,
+      reboundRow: chosenOption.row,
+      reboundCol: chosenOption.col
+    });
+    if (!applied) {
+      renderMonsBoard();
+      return false;
+    }
     return true;
   }
 
@@ -11093,11 +13629,19 @@ async function startRealtimeSession() {
       return executeMonsMysticAttack(selectedPiece.id, clickedPiece.id);
     }
     if (selectedBaseType === 'demon') {
-      if (
+      const canDemonAttack =
         monsGameState?.pieces &&
-        canMonsDemonAttackIgnoringAngelFromPayload(monsGameState.pieces, selectedPiece, clickedPiece) &&
-        isMonsTargetProtectedByAngel(monsGameState.pieces, clickedPiece)
-      ) {
+        canMonsDemonAttackIgnoringAngelFromPayload(monsGameState.pieces, selectedPiece, clickedPiece);
+      if (canDemonAttack && isMonsTargetProtectedByAngel(monsGameState.pieces, clickedPiece)) {
+        renderMonsBoard();
+        return true;
+      }
+      if (canDemonAttack && tryStartMonsDemonRebound(selectedPiece, clickedPiece)) {
+        renderMonsBoard();
+        return true;
+      }
+      if (canDemonAttack && shouldMonsDemonAttackRequireReboundChoice(selectedPiece, clickedPiece)) {
+        monsPendingDemonRebound = null;
         renderMonsBoard();
         return true;
       }
@@ -11133,6 +13677,31 @@ async function startRealtimeSession() {
 
     const clampedRow = clamp(Math.round(row), 0, MONS_BOARD_SIZE - 1);
     const clampedCol = clamp(Math.round(col), 0, MONS_BOARD_SIZE - 1);
+    if (deleteModeEnabled) {
+      const clickedPiece = getMonsPieceAtTile(clampedRow, clampedCol, monsGameState.pieces);
+      if (clickedPiece?.id) {
+        await deleteMonsPieceInRemoveMode(clickedPiece.id, targetMonsGameId);
+      }
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (monsPendingDemonRebound) {
+      const pendingGameId = normalizeMonsGameId(monsPendingDemonRebound.gameId || activeMonsGameId);
+      const isPendingOptionClick =
+        pendingGameId === targetMonsGameId &&
+        Array.isArray(monsPendingDemonRebound.options) &&
+        monsPendingDemonRebound.options.some(
+          (option) => option && option.row === clampedRow && option.col === clampedCol
+        );
+      if (isPendingOptionClick) {
+        await applyMonsDemonReboundOption(clampedRow, clampedCol);
+      } else {
+        monsPendingDemonRebound = null;
+        renderMonsBoard();
+      }
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
     if (monsPendingSpiritPush) {
       const didApplySpiritPush = await applyMonsSpiritPushOption(clampedRow, clampedCol);
       if (didApplySpiritPush) {
@@ -11140,6 +13709,7 @@ async function startRealtimeSession() {
         return;
       }
       monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
     }
 
     const clickedPiece = getMonsPieceAtTile(clampedRow, clampedCol, monsGameState.pieces);
@@ -11148,6 +13718,7 @@ async function startRealtimeSession() {
     if (selectedPiece && !canCurrentPlayerControlMonsPieceFromPayload(monsGameState, selectedPiece)) {
       monsSelectionPieceId = '';
       monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
       selectedPiece = null;
     }
     if (clickedPiece) {
@@ -11165,6 +13736,7 @@ async function startRealtimeSession() {
           monsSelectionPieceId = '';
         }
         monsPendingSpiritPush = null;
+        monsPendingDemonRebound = null;
         renderMonsBoard();
         schedulePublishFromClient(event.clientX, event.clientY);
         return;
@@ -11178,12 +13750,14 @@ async function startRealtimeSession() {
       }
       if (!canCurrentPlayerControlMonsPieceFromPayload(monsGameState, clickedPiece)) {
         monsPendingSpiritPush = null;
+        monsPendingDemonRebound = null;
         renderMonsBoard();
         schedulePublishFromClient(event.clientX, event.clientY);
         return;
       }
       monsSelectionPieceId = monsSelectionPieceId === clickedPiece.id ? '' : clickedPiece.id;
       monsPendingSpiritPush = null;
+      monsPendingDemonRebound = null;
       renderMonsBoard();
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
@@ -11192,6 +13766,7 @@ async function startRealtimeSession() {
       return;
     }
     monsPendingSpiritPush = null;
+    monsPendingDemonRebound = null;
     await moveSelectedMonsPiece(clampedRow, clampedCol);
     schedulePublishFromClient(event.clientX, event.clientY);
   }
@@ -11268,6 +13843,85 @@ async function startRealtimeSession() {
       selectedRightClickFlipCooldownUntil = now + RIGHT_CLICK_SELECTED_FLIP_COOLDOWN_MS;
     }
     await handleCardFlipIntent(cardId);
+  }
+
+  function getDieRollTargetIds(anchorDieId) {
+    if (!anchorDieId) {
+      return [];
+    }
+    if (selectedDiceIds.has(anchorDieId)) {
+      const movableSelectedDieIds = getMovableSelectedDieIds();
+      if (movableSelectedDieIds.includes(anchorDieId)) {
+        return movableSelectedDieIds;
+      }
+    }
+    return [anchorDieId];
+  }
+
+  async function rollDice(dieIds) {
+    const targetDieIds = Array.from(
+      new Set(
+        (Array.isArray(dieIds) ? dieIds : [dieIds])
+          .map((dieId) => String(dieId || '').trim())
+          .filter(Boolean)
+      )
+    );
+    if (targetDieIds.length === 0) {
+      return;
+    }
+    await runTransaction(
+      diceRef,
+      (currentDice) => {
+        if (!currentDice || typeof currentDice !== 'object') {
+          return;
+        }
+        const nextDice = { ...currentDice };
+        const now = Date.now();
+        let changed = false;
+        for (const dieId of targetDieIds) {
+          const currentDie = currentDice[dieId];
+          if (!currentDie || typeof currentDie !== 'object') {
+            continue;
+          }
+          const normalized = normalizeDicePayload(currentDie);
+          if (normalized.type === 'label') {
+            continue;
+          }
+          if (normalized.holderClientId && normalized.holderClientId !== clientId) {
+            continue;
+          }
+          const sides = getDieSides(normalized.type);
+          nextDice[dieId] = {
+            ...currentDie,
+            type: normalized.type,
+            value: getRandomIntInclusive(1, sides),
+            rollStartedAt: now,
+            rollDurationMs: DIE_ROLL_DURATION_MS,
+            rollSeed: getRandomIntInclusive(0, 0x7fffffff),
+            updatedAt: now
+          };
+          changed = true;
+        }
+        if (!changed) {
+          return;
+        }
+        return nextDice;
+      },
+      { applyLocally: false }
+    );
+  }
+
+  async function handleDieRollIntent(anchorDieId) {
+    const anchorDieState = diceById.get(anchorDieId);
+    if (isLabelDieState(anchorDieState)) {
+      beginLabelEditing(anchorDieId);
+      return;
+    }
+    const targetDieIds = getDieRollTargetIds(anchorDieId);
+    if (targetDieIds.length === 0) {
+      return;
+    }
+    await rollDice(targetDieIds);
   }
 
   const activePointers = new Set();
@@ -11458,8 +14112,449 @@ async function startRealtimeSession() {
     return true;
   }
 
+  function getImageResizeBounds(cardLeft, cardTop) {
+    const normalizedLeft = clamp(Number(cardLeft) || 0, 0, WORLD_WIDTH);
+    const normalizedTop = clamp(Number(cardTop) || 0, 0, WORLD_HEIGHT);
+    const minWidth = IMAGE_COMPONENT_MIN_WORLD_SIZE;
+    const minHeight = IMAGE_COMPONENT_MIN_WORLD_SIZE;
+    const maxWidth = Math.max(minWidth, Math.min(IMAGE_COMPONENT_MAX_WORLD_WIDTH, WORLD_WIDTH - normalizedLeft));
+    const maxHeight = Math.max(minHeight, Math.min(IMAGE_COMPONENT_MAX_WORLD_HEIGHT, WORLD_HEIGHT - normalizedTop));
+    return {
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight
+    };
+  }
+
+  function getLabelResizeBounds(labelLeft, labelTop, dieState) {
+    const edgeOverflow = LABEL_EDGE_OVERFLOW;
+    const normalizedLeft = clamp(Number(labelLeft) || 0, -edgeOverflow, WORLD_WIDTH + edgeOverflow);
+    const normalizedTop = clamp(Number(labelTop) || 0, -edgeOverflow, WORLD_HEIGHT + edgeOverflow);
+    const maxWidth = Math.max(
+      LABEL_MIN_WORLD_WIDTH,
+      Math.min(LABEL_MAX_WORLD_WIDTH, WORLD_WIDTH + edgeOverflow - normalizedLeft)
+    );
+    const maxHeight = Math.max(
+      LABEL_MIN_WORLD_HEIGHT,
+      Math.min(LABEL_MAX_WORLD_HEIGHT, WORLD_HEIGHT + edgeOverflow - normalizedTop)
+    );
+    const textValue = normalizeLabelText(dieState?.text || '');
+    const minimumScale = LABEL_TEXT_SCALE_MIN;
+    const minimumMeasureAtMaxWidth = measureLabelWorldDimensions(textValue, {
+      textScale: minimumScale,
+      maxWidth
+    });
+    const minWidth = clamp(minimumMeasureAtMaxWidth.width, LABEL_MIN_WORLD_WIDTH, maxWidth);
+    const minimumMeasureAtMinWidth = measureLabelWorldDimensions(textValue, {
+      textScale: minimumScale,
+      maxWidth: minWidth
+    });
+    const minHeight = clamp(minimumMeasureAtMinWidth.height, LABEL_MIN_WORLD_HEIGHT, maxHeight);
+    return {
+      minWidth,
+      minHeight,
+      maxWidth,
+      maxHeight
+    };
+  }
+
+  async function handleLabelResizePointerDown(event, dieId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (dieDragState || labelResizeState || cardDragState || cardResizeState || groupDragState || handReorderState) {
+      return;
+    }
+    if (hasAnyGroupSelection()) {
+      releaseAllSelectedObjects();
+    }
+
+    const existingDie = diceById.get(dieId);
+    if (!isLabelDieState(existingDie)) {
+      return;
+    }
+    if (isLabelDieEditing(dieId)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireDieLock(dieId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+
+    const latestDie = diceById.get(dieId) || existingDie;
+    if (!isLabelDieState(latestDie) || isLabelDieEditing(dieId)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+
+    const size = getDieWorldDimensions(latestDie);
+    const labelLeft = latestDie.x - size.width / 2;
+    const labelTop = latestDie.y - size.height / 2;
+    const bounds = getLabelResizeBounds(labelLeft, labelTop, latestDie);
+    labelResizeState = {
+      dieId,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      labelLeft,
+      labelTop,
+      minWidth: bounds.minWidth,
+      minHeight: bounds.minHeight,
+      maxWidth: bounds.maxWidth,
+      maxHeight: bounds.maxHeight,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      moved: false,
+      text: normalizeLabelText(latestDie.text || ''),
+      textScale: getLabelTextScale(latestDie)
+    };
+    resizingLabelDieId = dieId;
+    renderDieElement(dieId);
+
+    const startPatch = {
+      holderClientId: clientId
+    };
+    patchLocalDie(dieId, startPatch);
+    queueDiePatch(dieId, startPatch);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleLabelResizeMove(event) {
+    if (!labelResizeState || event.pointerId !== labelResizeState.pointerId) {
+      return;
+    }
+    if (labelResizeState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+      handleLabelResizeEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        pointerType: labelResizeState.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const moveSinceLastEvent = Math.hypot(event.clientX - labelResizeState.lastClientX, event.clientY - labelResizeState.lastClientY);
+    if (moveSinceLastEvent >= 0.5) {
+      labelResizeState.lastMotionAt = Date.now();
+    }
+    labelResizeState.lastClientX = event.clientX;
+    labelResizeState.lastClientY = event.clientY;
+
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return;
+    }
+
+    const movedDistance = Math.hypot(event.clientX - labelResizeState.startClientX, event.clientY - labelResizeState.startClientY);
+    const movedThreshold = labelResizeState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    if (movedDistance > movedThreshold) {
+      labelResizeState.moved = true;
+    }
+
+    const proposedWidth = clamp(
+      worldPoint.x - labelResizeState.labelLeft,
+      labelResizeState.minWidth,
+      labelResizeState.maxWidth
+    );
+    const proposedHeight = clamp(
+      worldPoint.y - labelResizeState.labelTop,
+      labelResizeState.minHeight,
+      labelResizeState.maxHeight
+    );
+    const nextLayout = resolveLabelLayoutForBounds(
+      labelResizeState.text,
+      proposedWidth,
+      proposedHeight,
+      LABEL_TEXT_SCALE_MAX
+    );
+    const nextWidth = clamp(
+      Math.max(nextLayout.labelWidth, labelResizeState.minWidth),
+      labelResizeState.minWidth,
+      labelResizeState.maxWidth
+    );
+    const nextHeight = clamp(
+      Math.max(nextLayout.labelHeight, labelResizeState.minHeight),
+      labelResizeState.minHeight,
+      labelResizeState.maxHeight
+    );
+    const nextX = labelResizeState.labelLeft + nextWidth / 2;
+    const nextY = labelResizeState.labelTop + nextHeight / 2;
+    const resizePatch = {
+      x: nextX,
+      y: nextY,
+      labelWidth: nextWidth,
+      labelHeight: nextHeight,
+      textScale: nextLayout.textScale,
+      holderClientId: clientId
+    };
+    labelResizeState.textScale = nextLayout.textScale;
+    patchLocalDie(labelResizeState.dieId, resizePatch);
+    queueDiePatch(labelResizeState.dieId, resizePatch);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleLabelResizeEnd(event) {
+    if (!labelResizeState || event.pointerId !== labelResizeState.pointerId) {
+      return;
+    }
+    if (
+      event.type === 'pointerup' &&
+      labelResizeState.pointerType === 'mouse' &&
+      event.button !== 0 &&
+      (event.buttons & 1) !== 0
+    ) {
+      return;
+    }
+
+    const finishedResize = labelResizeState;
+    labelResizeState = null;
+    resizingLabelDieId = '';
+    renderDieElement(finishedResize.dieId);
+    diceElements.get(finishedResize.dieId)?.classList.remove('is-label-resize-hovered');
+
+    const releasePatch = {
+      holderClientId: null
+    };
+    patchLocalDie(finishedResize.dieId, releasePatch);
+    queueDiePatch(finishedResize.dieId, releasePatch);
+    releaseDieLock(finishedResize.dieId).catch((error) => {
+      console.error(error);
+    });
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function handleCardResizePointerDown(event, cardId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteCardInRemoveMode(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setDeckDropIndicator(false);
+    setDiscardDropIndicator(false);
+    setAuctionDropIndicator(false);
+    setHandDropGlow(false);
+    setHandDropPreview(null);
+
+    if (cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+      return;
+    }
+
+    if (hasAnyGroupSelection()) {
+      releaseAllSelectedObjects();
+    }
+
+    const existingCard = cards.get(cardId);
+    if (!isResizableImageComponentCard(existingCard)) {
+      return;
+    }
+    if (existingCard.holderClientId && existingCard.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireCardLock(cardId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseCardLock(cardId);
+      return;
+    }
+
+    const latestCard = cards.get(cardId) || existingCard;
+    if (!isResizableImageComponentCard(latestCard)) {
+      await releaseCardLock(cardId);
+      return;
+    }
+
+    const size = getCardTableDimensions(latestCard);
+    const cardLeft = latestCard.x - size.width / 2;
+    const cardTop = latestCard.y - size.height / 2;
+    const resizeBounds = getImageResizeBounds(cardLeft, cardTop);
+    cardResizeState = {
+      cardId,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      cardLeft,
+      cardTop,
+      minWidth: resizeBounds.minWidth,
+      minHeight: resizeBounds.minHeight,
+      maxWidth: resizeBounds.maxWidth,
+      maxHeight: resizeBounds.maxHeight,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      moved: false
+    };
+    resizingImageCardId = cardId;
+    syncHandHoverDragLock();
+    renderCardElement(cardId);
+
+    const startPatch = {
+      x: latestCard.x,
+      y: latestCard.y,
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: clientId,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    patchLocalCard(cardId, startPatch);
+    queueCardPatch(cardId, startPatch);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleCardResizeMove(event) {
+    if (!cardResizeState || event.pointerId !== cardResizeState.pointerId) {
+      return;
+    }
+    if (cardResizeState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+      handleCardResizeEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        pointerType: cardResizeState.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const moveSinceLastEvent = Math.hypot(event.clientX - cardResizeState.lastClientX, event.clientY - cardResizeState.lastClientY);
+    if (moveSinceLastEvent >= 0.5) {
+      cardResizeState.lastMotionAt = Date.now();
+    }
+    cardResizeState.lastClientX = event.clientX;
+    cardResizeState.lastClientY = event.clientY;
+
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return;
+    }
+
+    const movedDistance = Math.hypot(event.clientX - cardResizeState.startClientX, event.clientY - cardResizeState.startClientY);
+    const movedThreshold = cardResizeState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    if (movedDistance > movedThreshold) {
+      cardResizeState.moved = true;
+    }
+
+    const nextWidth = clamp(worldPoint.x - cardResizeState.cardLeft, cardResizeState.minWidth, cardResizeState.maxWidth);
+    const nextHeight = clamp(worldPoint.y - cardResizeState.cardTop, cardResizeState.minHeight, cardResizeState.maxHeight);
+    const nextX = cardResizeState.cardLeft + nextWidth / 2;
+    const nextY = cardResizeState.cardTop + nextHeight / 2;
+    const resizePatch = {
+      x: nextX,
+      y: nextY,
+      componentWidth: nextWidth,
+      componentHeight: nextHeight,
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: clientId,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    patchLocalCard(cardResizeState.cardId, resizePatch);
+    queueCardPatch(cardResizeState.cardId, resizePatch);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleCardResizeEnd(event) {
+    if (!cardResizeState || event.pointerId !== cardResizeState.pointerId) {
+      return;
+    }
+    if (
+      event.type === 'pointerup' &&
+      cardResizeState.pointerType === 'mouse' &&
+      event.button !== 0 &&
+      (event.buttons & 1) !== 0
+    ) {
+      return;
+    }
+
+    const finishedResize = cardResizeState;
+    cardResizeState = null;
+    resizingImageCardId = '';
+    syncHandHoverDragLock();
+    renderCardElement(finishedResize.cardId);
+    cardElements.get(finishedResize.cardId)?.classList.remove('is-resize-hovered');
+
+    const releasePatch = {
+      holderClientId: null
+    };
+    patchLocalCard(finishedResize.cardId, releasePatch);
+    queueCardPatch(finishedResize.cardId, releasePatch);
+    releaseCardLock(finishedResize.cardId).catch((error) => {
+      console.error(error);
+    });
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
   async function handleCardPointerDown(event, cardId) {
     if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteCardInRemoveMode(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
     if (event.pointerType === 'mouse' && event.button === 2) {
@@ -11488,7 +14583,7 @@ async function startRealtimeSession() {
     }
     rememberTouchTapCandidate(cardId, event);
 
-    if (cardDragState || groupDragState || handReorderState) {
+    if (cardDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
       return;
     }
 
@@ -11638,9 +14733,11 @@ async function startRealtimeSession() {
       setHandDropPreview(null);
     }
     const worldPoint = handReorderState.releaseToTable ? screenToWorldFromClient(event.clientX, event.clientY) : null;
-    const deckTargetId = worldPoint ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'deck') : '';
-    const discardTargetId = worldPoint ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'discard') : '';
-    const auctionTargetId = worldPoint ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'auction') : '';
+    const handCardState = cards.get(handReorderState.cardId);
+    const canUseDeckZones = canCardUseDeckZones(handCardState);
+    const deckTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'deck') : '';
+    const discardTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'discard') : '';
+    const auctionTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'auction') : '';
     const overDeck = Boolean(deckTargetId);
     const overDiscard = Boolean(discardTargetId);
     const overAuction = Boolean(auctionTargetId) && canPlaceCardOnAuction(handReorderState.cardId, auctionTargetId);
@@ -11703,17 +14800,25 @@ async function startRealtimeSession() {
     if (finishedState.releaseToTable) {
       const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
       if (worldPoint) {
-        const dropX = clamp(worldPoint.x, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2);
-        const dropY = clamp(worldPoint.y, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2);
+        const droppedCard = cards.get(finishedState.cardId);
+        const droppedSize = getCardTableDimensions(droppedCard);
+        const dropX = clamp(worldPoint.x, droppedSize.width / 2, WORLD_WIDTH - droppedSize.width / 2);
+        const dropY = clamp(worldPoint.y, droppedSize.height / 2, WORLD_HEIGHT - droppedSize.height / 2);
         const topZ = getTopCardZ() + 1;
-        const auctionDeckId = getDeckIdAtPosition(dropX, dropY, 'auction');
-        const discardDeckId = getDeckIdAtPosition(dropX, dropY, 'discard');
-        const mainDeckId = getDeckIdAtPosition(dropX, dropY, 'deck');
-        const releasePatch = canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
+        const releaseFace = isImageComponentCard(droppedCard)
+          ? droppedCard?.face === 'back'
+            ? 'back'
+            : 'front'
+          : 'front';
+        const canUseDeckZones = canCardUseDeckZones(droppedCard);
+        const auctionDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'auction') : '';
+        const discardDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'discard') : '';
+        const mainDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'deck') : '';
+        const releasePatch = canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
-          : Boolean(discardDeckId)
+          : canUseDeckZones && Boolean(discardDeckId)
             ? buildDiscardPlacementPatch(topZ, discardDeckId)
-            : Boolean(mainDeckId)
+            : canUseDeckZones && Boolean(mainDeckId)
               ? {
                 x: getDeckStateById(mainDeckId)?.x ?? dropX,
                 y: getDeckStateById(mainDeckId)?.y ?? dropY,
@@ -11729,8 +14834,8 @@ async function startRealtimeSession() {
             : {
               x: dropX,
               y: dropY,
-              face: 'front',
-              deckId: getCardDeckId(cards.get(finishedState.cardId)),
+              face: releaseFace,
+              deckId: getCardDeckId(droppedCard),
               inDeck: false,
               inDiscard: false,
               inAuction: false,
@@ -11785,6 +14890,11 @@ async function startRealtimeSession() {
     if (drawModeEnabled) {
       return;
     }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
@@ -11799,7 +14909,7 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || groupDragState || deckDragState || handReorderState) {
+    if (cardDragState || cardResizeState || labelResizeState || groupDragState || deckDragState || handReorderState) {
       return;
     }
 
@@ -11852,8 +14962,10 @@ async function startRealtimeSession() {
       return;
     }
 
-    const nextX = clamp(worldPoint.x - cardDragState.offsetX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2);
-    const nextY = clamp(worldPoint.y - cardDragState.offsetY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2);
+    const activeCard = cards.get(cardDragState.cardId);
+    const activeCardSize = getCardTableDimensions(activeCard);
+    const nextX = clamp(worldPoint.x - cardDragState.offsetX, activeCardSize.width / 2, WORLD_WIDTH - activeCardSize.width / 2);
+    const nextY = clamp(worldPoint.y - cardDragState.offsetY, activeCardSize.height / 2, WORLD_HEIGHT - activeCardSize.height / 2);
     const movedDistance = Math.hypot(event.clientX - cardDragState.startClientX, event.clientY - cardDragState.startClientY);
     const movedThreshold =
       cardDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
@@ -11871,9 +14983,10 @@ async function startRealtimeSession() {
     } else {
       setHandDropPreview(null);
     }
-    const discardTargetDeckId = getDeckIdAtPosition(nextX, nextY, 'discard');
-    const auctionTargetDeckId = getDeckIdAtPosition(nextX, nextY, 'auction');
-    const deckTargetDeckId = getDeckIdAtPosition(nextX, nextY, 'deck');
+    const canUseDeckZones = canCardUseDeckZones(activeCard);
+    const discardTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'discard') : '';
+    const auctionTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'auction') : '';
+    const deckTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'deck') : '';
     const overDiscard = Boolean(discardTargetDeckId);
     const overAuction = Boolean(auctionTargetDeckId) && canPlaceCardOnAuction(cardDragState.cardId, auctionTargetDeckId);
     setDiscardDropIndicator(overDiscard && !overHandDropRegion && !overAuction, discardTargetDeckId);
@@ -11985,9 +15098,18 @@ async function startRealtimeSession() {
       console.error(error);
     });
   };
+  onCardResizePointerDown = (event, cardId) => {
+    handleCardResizePointerDown(event, cardId).catch((error) => {
+      console.error(error);
+    });
+  };
   onCardContextMenu = (event, cardId) => {
     event.preventDefault();
     event.stopPropagation();
+    if (deleteModeEnabled) {
+      suppressNextCardContextMenu = false;
+      return;
+    }
     if (drawModeEnabled) {
       suppressNextCardContextMenu = false;
       return;
@@ -12015,9 +15137,237 @@ async function startRealtimeSession() {
       console.error(error);
     });
   };
+  onDiePointerDown = (event, dieId) => {
+    handleDiePointerDown(event, dieId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onLabelResizePointerDown = (event, dieId) => {
+    handleLabelResizePointerDown(event, dieId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onDieContextMenu = (event, dieId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (dieDragState?.dieId === dieId && dieDragState.moved) {
+      return;
+    }
+    handleDieRollIntent(dieId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onDrawingStrokePointerDown = (event, strokeId) => {
+    handleDrawingStrokePointerDown(event, strokeId).catch((error) => {
+      console.error(error);
+    });
+  };
+
+  async function handleDrawingStrokePointerDown(event, strokeId) {
+    if (!deleteModeEnabled || drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    await deleteDrawingStrokeInRemoveMode(strokeId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function handleDiePointerDown(event, dieId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (isLabelDieEditing(dieId)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button === 2) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (consumeDieDoubleTapIfPresent(dieId, event) || consumeDieDoubleClickIfPresent(dieId, event)) {
+      handleDieRollIntent(dieId).catch((error) => {
+        console.error(error);
+      });
+      return;
+    }
+
+    if (hasAnyGroupSelection()) {
+      if (selectedDiceIds.has(dieId) && beginGroupDragFromDie(event, dieId)) {
+        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedDiceIds.has(dieId)) {
+        releaseAllSelectedObjects();
+      }
+    }
+
+    if (dieDragState || labelResizeState || cardDragState || cardResizeState || groupDragState || handReorderState) {
+      return;
+    }
+    const dieState = diceById.get(dieId);
+    if (!dieState) {
+      return;
+    }
+    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireDieLock(dieId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+
+    const nextZ = getTopObjectZ() + 1;
+    dieDragState = {
+      dieId,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      type: normalizeDieType(dieState.type),
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      startX: dieState.x,
+      startY: dieState.y,
+      width: getDieWorldDimensions(dieState).width,
+      height: getDieWorldDimensions(dieState).height,
+      moved: false,
+      lastMotionAt: 0
+    };
+
+    const startPatch = {
+      z: nextZ,
+      holderClientId: clientId
+    };
+    patchLocalDie(dieId, startPatch);
+    queueDiePatch(dieId, startPatch);
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleDieDragMove(event) {
+    if (!dieDragState || event.pointerId !== dieDragState.pointerId) {
+      return;
+    }
+    if (dieDragState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+      handleDieDragEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        pointerType: dieDragState.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const deltaX = (event.clientX - dieDragState.startClientX) / camera.scale;
+    const deltaY = (event.clientY - dieDragState.startClientY) / camera.scale;
+    const dieWidth = Math.max(1, Number(dieDragState.width) || DIE_SIZE_D6);
+    const dieHeight = Math.max(1, Number(dieDragState.height) || DIE_SIZE_D6);
+    const dieBounds = getDieCenterBounds(dieDragState.type || 'd6', dieWidth, dieHeight);
+    const nextX = clamp(dieDragState.startX + deltaX, dieBounds.minX, dieBounds.maxX);
+    const nextY = clamp(dieDragState.startY + deltaY, dieBounds.minY, dieBounds.maxY);
+    const movedDistance = Math.hypot(event.clientX - dieDragState.startClientX, event.clientY - dieDragState.startClientY);
+    const movedThreshold = dieDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    if (movedDistance > movedThreshold) {
+      dieDragState.moved = true;
+    }
+    const moveSinceLastEvent = Math.hypot(event.clientX - dieDragState.lastClientX, event.clientY - dieDragState.lastClientY);
+    if (moveSinceLastEvent >= 0.5) {
+      dieDragState.lastMotionAt = Date.now();
+    }
+    dieDragState.lastClientX = event.clientX;
+    dieDragState.lastClientY = event.clientY;
+
+    const movePatch = {
+      x: nextX,
+      y: nextY,
+      holderClientId: clientId
+    };
+    patchLocalDie(dieDragState.dieId, movePatch);
+    queueDiePatch(dieDragState.dieId, movePatch);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleDieDragEnd(event) {
+    if (!dieDragState || event.pointerId !== dieDragState.pointerId) {
+      return;
+    }
+    if (
+      event.type === 'pointerup' &&
+      dieDragState.pointerType === 'mouse' &&
+      event.button !== 0 &&
+      (event.buttons & 1) !== 0
+    ) {
+      return;
+    }
+
+    const finishedDrag = dieDragState;
+    dieDragState = null;
+    const releasePatch = {
+      holderClientId: null
+    };
+    patchLocalDie(finishedDrag.dieId, releasePatch);
+    queueDiePatch(finishedDrag.dieId, releasePatch);
+    releaseDieLock(finishedDrag.dieId).catch((error) => {
+      console.error(error);
+    });
+
+    if (event.type === 'pointerup' && !finishedDrag.moved) {
+      if (finishedDrag.pointerType === 'touch' || finishedDrag.pointerType === 'pen') {
+        rememberDieTouchTapCandidate(finishedDrag.dieId, event);
+      } else if (finishedDrag.pointerType === 'mouse' && event.button === 0) {
+        rememberDieMouseClickCandidate(finishedDrag.dieId, event);
+      }
+    }
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
 
   async function handleDeckMovePointerDown(event, deckId = activeDeckId) {
     if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteDeckInRemoveMode(deckId);
+      schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
@@ -12042,7 +15392,7 @@ async function startRealtimeSession() {
       }
     }
     const targetDeckState = getDeckStateById(targetDeckId);
-    if (!targetDeckState || deckDragState || groupDragState || handReorderState) {
+    if (!targetDeckState || deckDragState || cardResizeState || labelResizeState || groupDragState || handReorderState) {
       return;
     }
 
@@ -12230,6 +15580,7 @@ async function startRealtimeSession() {
           }
           const nextHandZ = (topHandZByOwner.get(ownerToken) || 0) + 1;
           topHandZByOwner.set(ownerToken, nextHandZ);
+          const dealtFace = getFaceWhenEnteringHand(sourceCard);
           nextCards[cardId] = {
             ...sourceCard,
             inDeck: false,
@@ -12239,7 +15590,7 @@ async function startRealtimeSession() {
             holderClientId: null,
             handOwnerClientId: null,
             handOwnerPlayerToken: ownerToken,
-            face: 'front',
+            face: dealtFace,
             z: nextHandZ,
             updatedAt: timestamp + index
           };
@@ -12371,6 +15722,9 @@ async function startRealtimeSession() {
       event.preventDefault();
       event.stopPropagation();
     }
+    if (deleteModeEnabled) {
+      return;
+    }
     const targetMonsGameId = normalizeMonsGameId(gameId || activeMonsGameId);
     if (normalizeMonsGameId(activeMonsGameId) !== targetMonsGameId) {
       setActiveMonsGameId(targetMonsGameId);
@@ -12378,6 +15732,20 @@ async function startRealtimeSession() {
     }
     undoMonsLastAction().catch((error) => {
       console.error(error);
+    });
+  };
+  onMonsFlipButtonClick = (event, gameId = activeMonsGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetMonsGameId = normalizeMonsGameId(gameId || activeMonsGameId);
+    toggleMonsBoardOrientation(targetMonsGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
     });
   };
   onMonsBoardTilePointerDown = (event, row, col, gameId = activeMonsGameId) => {
@@ -12388,6 +15756,9 @@ async function startRealtimeSession() {
   onMonsSideClaimClick = (event, side, gameId = activeMonsGameId) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
+    if (deleteModeEnabled) {
+      return;
+    }
     toggleMonsSideClaim(side, gameId).catch((error) => {
       console.error(error);
       setRealtimeStatus('firebase: write blocked');
@@ -12404,6 +15775,195 @@ async function startRealtimeSession() {
   };
   reclaimDiscardToDeck = async (deckId = activeDeckId) => {
     await handleDiscardReturnToDeck(deckId);
+  };
+
+  async function loadImageNaturalSize(src) {
+    const normalizedSrc = normalizeImageComponentSrc(src);
+    if (!normalizedSrc) {
+      return { width: CARD_WIDTH, height: CARD_HEIGHT };
+    }
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.decoding = 'async';
+      let settled = false;
+      const finalize = (success) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (success && Number.isFinite(image.naturalWidth) && Number.isFinite(image.naturalHeight) && image.naturalWidth > 0 && image.naturalHeight > 0) {
+          resolve(clampImageComponentSize(image.naturalWidth, image.naturalHeight));
+          return;
+        }
+        resolve({ width: CARD_WIDTH, height: CARD_HEIGHT });
+      };
+      image.onload = () => finalize(true);
+      image.onerror = () => finalize(false);
+      image.src = normalizedSrc;
+      if (image.complete) {
+        finalize(image.naturalWidth > 0 && image.naturalHeight > 0);
+      }
+    });
+  }
+
+  spawnDice = async (type = 'd6', count = 1) => {
+    const normalizedType = normalizeDieType(type);
+    const normalizedCount = clamp(Math.round(Number(count) || 1), 1, 5);
+    const dieDimensions = getDieWorldDimensions(normalizedType);
+    const viewportCenter = getViewportWorldCenter();
+    const spawnCenterX = clamp(viewportCenter.x, dieDimensions.width / 2, WORLD_WIDTH - dieDimensions.width / 2);
+    const spawnCenterY = clamp(viewportCenter.y, dieDimensions.height / 2, WORLD_HEIGHT - dieDimensions.height / 2);
+    await runTransaction(
+      diceRef,
+      (currentDice) => {
+        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+        let nextTopZ = getTopObjectZ();
+        for (const payload of Object.values(baseDice)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+        }
+        const totalSpan = (normalizedCount - 1) * DICE_SPAWN_GAP;
+        const startX = spawnCenterX - totalSpan / 2;
+        for (let index = 0; index < normalizedCount; index += 1) {
+          let nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+            nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          const sides = getDieSides(normalizedType);
+          const x = clamp(
+            startX + index * DICE_SPAWN_GAP,
+            dieDimensions.width / 2,
+            WORLD_WIDTH - dieDimensions.width / 2
+          );
+          const y = spawnCenterY;
+          nextTopZ += 1;
+          baseDice[nextDieId] = {
+            type: normalizedType,
+            x,
+            y,
+            z: nextTopZ,
+            value: 1 + Math.floor(Math.random() * sides),
+            holderClientId: null,
+            rollStartedAt: 0,
+            rollDurationMs: DIE_ROLL_DURATION_MS,
+            rollSeed: Math.floor(Math.random() * 0x7fffffff),
+            updatedAt: Date.now()
+          };
+        }
+        return baseDice;
+      },
+      { applyLocally: false }
+    );
+  };
+  spawnCoin = async () => {
+    await spawnDice('coin', 1);
+  };
+  spawnLabelComponent = async () => {
+    const labelText = LABEL_DEFAULT_TEXT;
+    const labelColor = normalizeHexColor(playerState.color);
+    const baseDimensions = measureLabelWorldDimensions(labelText, {
+      textScale: LABEL_TEXT_SCALE_DEFAULT
+    });
+    const targetSpawnWidth = clamp(
+      Math.max(baseDimensions.width, LABEL_DEFAULT_SPAWN_WIDTH),
+      LABEL_MIN_WORLD_WIDTH,
+      LABEL_MAX_WORLD_WIDTH
+    );
+    const labelLayout = resolveLabelLayoutForBounds(
+      labelText,
+      targetSpawnWidth,
+      baseDimensions.height,
+      LABEL_TEXT_SCALE_DEFAULT
+    );
+    const viewportCenter = getViewportWorldCenter();
+    const labelCenterBounds = getDieCenterBounds('label', labelLayout.labelWidth, labelLayout.labelHeight);
+    const spawnCenterX = clamp(viewportCenter.x, labelCenterBounds.minX, labelCenterBounds.maxX);
+    const spawnCenterY = clamp(viewportCenter.y, labelCenterBounds.minY, labelCenterBounds.maxY);
+    await runTransaction(
+      diceRef,
+      (currentDice) => {
+        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+        let nextTopZ = getTopObjectZ();
+        for (const payload of Object.values(baseDice)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+        }
+        nextTopZ += 1;
+        let nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+          nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        baseDice[nextDieId] = {
+          type: 'label',
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: nextTopZ,
+          value: 1,
+          text: labelText,
+          textColor: labelColor,
+          textScale: labelLayout.textScale,
+          labelWidth: labelLayout.labelWidth,
+          labelHeight: labelLayout.labelHeight,
+          holderClientId: null,
+          rollStartedAt: 0,
+          rollDurationMs: DIE_ROLL_DURATION_MS,
+          rollSeed: 0,
+          updatedAt: Date.now()
+        };
+        return baseDice;
+      },
+      { applyLocally: false }
+    );
+  };
+  spawnImageComponent = async (frontSrc, options = {}) => {
+    const normalizedFrontSrc = normalizeImageComponentSrc(frontSrc);
+    if (!normalizedFrontSrc) {
+      throw new Error('Image URL required');
+    }
+    const useCardSize = options.cardSized !== false;
+    const twoSided = options.twoSided === true;
+    const normalizedBackSrc = twoSided ? normalizeImageComponentSrc(options.backSrc || '') : '';
+    const nativeSize = useCardSize ? { width: CARD_WIDTH, height: CARD_HEIGHT } : await loadImageNaturalSize(normalizedFrontSrc);
+    const viewportCenter = getViewportWorldCenter();
+    const halfWidth = nativeSize.width / 2;
+    const halfHeight = nativeSize.height / 2;
+    const spawnCenterX = clamp(viewportCenter.x, halfWidth, WORLD_WIDTH - halfWidth);
+    const spawnCenterY = clamp(viewportCenter.y, halfHeight, WORLD_HEIGHT - halfHeight);
+    await runTransaction(
+      cardsRef,
+      (currentCards) => {
+        const baseCards = currentCards && typeof currentCards === 'object' ? { ...currentCards } : {};
+        let nextTopZ = 1;
+        for (const payload of Object.values(baseCards)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 1);
+        }
+        nextTopZ += 1;
+        let nextCardId = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseCards, nextCardId)) {
+          nextCardId = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        baseCards[nextCardId] = {
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: nextTopZ,
+          face: 'front',
+          frontSrc: normalizedFrontSrc,
+          backSrc: normalizedBackSrc,
+          componentType: 'image',
+          componentCardSized: useCardSize,
+          componentWidth: nativeSize.width,
+          componentHeight: nativeSize.height,
+          deckId: DECK_KEY,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null,
+          updatedAt: Date.now()
+        };
+        return baseCards;
+      },
+      { applyLocally: false }
+    );
   };
 
   spawnCoolJpegsDeck = async () => {
@@ -12591,10 +16151,13 @@ async function startRealtimeSession() {
 
   function resetLocalTabletopState() {
     cardWriteGeneration += 1;
+    dieWriteGeneration += 1;
     deckWriteGeneration += 1;
     monsWriteGeneration += 1;
     strokeWriteGeneration += 1;
+    closeLabelEditor({ commit: true });
     cardWriteScheduled = false;
+    dieWriteScheduled = false;
     deckWriteScheduled = false;
     monsWriteScheduled = false;
     strokeWriteScheduled = false;
@@ -12606,9 +16169,11 @@ async function startRealtimeSession() {
     discardDropIndicatorVisible = false;
     auctionDropIndicatorVisible = false;
     selectedCardIds.clear();
+    selectedDiceIds.clear();
     selectedDeckIds.clear();
     selectedMonsGameIds.clear();
     pendingCardWrites.clear();
+    pendingDieWrites.clear();
     pendingDeckPatch = {};
     pendingMonsPatch = {};
     pendingStrokeWrites.clear();
@@ -12626,11 +16191,18 @@ async function startRealtimeSession() {
     discardReturnAnimationTimers.clear();
     discardReturnAnimatingCardIds.clear();
     cardDragState = null;
+    cardResizeState = null;
+    resizingImageCardId = '';
+    dieDragState = null;
+    labelResizeState = null;
+    resizingLabelDieId = '';
     groupDragState = null;
     selectionBoxState = null;
     suppressNextCardContextMenu = false;
     recentTouchTapByCardId.clear();
+    recentTouchTapByDieId.clear();
     recentMouseClickByCardId.clear();
+    recentMouseClickByDieId.clear();
     deckDragState = null;
     monsDragState = null;
     handReorderState = null;
@@ -12657,10 +16229,15 @@ async function startRealtimeSession() {
     }
     removeAllDeckUiArtifacts();
     removeMonsBoardElements();
+    closeDiceAddModal();
     closeMonsItemChoiceModal();
     closeGameOptionsMenu();
     deckShuffleFxCards = [];
     deckShuffleFxActive = false;
+    if (diceRollAnimationRafId) {
+      window.cancelAnimationFrame(diceRollAnimationRafId);
+      diceRollAnimationRafId = 0;
+    }
     window.clearTimeout(deckShuffleFxTimerId);
     deckShuffleFxTimerId = 0;
 
@@ -12671,6 +16248,9 @@ async function startRealtimeSession() {
     }
     for (const cardElement of cardElements.values()) {
       cardElement.remove();
+    }
+    for (const dieElement of diceElements.values()) {
+      dieElement.remove();
     }
     for (const handCardId of handCardElements.keys()) {
       removeHandCardElement(handCardId);
@@ -12698,8 +16278,11 @@ async function startRealtimeSession() {
     }
     drawingStrokeElements.clear();
     drawingStrokes.clear();
+    syncDrawActionButtonsState();
     cards.clear();
+    diceById.clear();
     cardElements.clear();
+    diceElements.clear();
     frontDisplayPendingByCard.clear();
     deckState = null;
     deckStatesById.clear();
@@ -12713,6 +16296,7 @@ async function startRealtimeSession() {
     activeMonsGameId = MONS_GAME_KEY;
     setLocalHandCountLabel();
     setHandHoverDragLock(false);
+    syncClearTableButtonState();
   }
 
   clearTabletop = async () => {
@@ -12722,6 +16306,7 @@ async function startRealtimeSession() {
 
       await update(ref(db, roomPath), {
         cards: null,
+        dice: null,
         decks: null,
         games: null,
         drawings: null,
@@ -12730,6 +16315,49 @@ async function startRealtimeSession() {
     } finally {
       isTableResetting = false;
     }
+  };
+
+  wipeAllDrawings = async () => {
+    if (!isRoomOwner) {
+      throw new Error('Only the room creator can wipe all drawings.');
+    }
+    const ownerCheck = await runTransaction(
+      roomMetaRef,
+      (currentMeta) => {
+        if (!currentMeta || typeof currentMeta !== 'object') {
+          return;
+        }
+        const currentOwnerToken = typeof currentMeta.ownerToken === 'string' ? currentMeta.ownerToken : '';
+        if (!currentOwnerToken || currentOwnerToken !== ownerToken) {
+          return;
+        }
+        return {
+          ...currentMeta,
+          ownerToken: currentOwnerToken,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!ownerCheck.committed) {
+      throw new Error('Only the room creator can wipe all drawings.');
+    }
+
+    drawPointerState = null;
+    drawShapePointerState = null;
+    drawShapeAnchorState = null;
+    syncShapeDrawingAssistVisuals();
+    strokeWriteGeneration += 1;
+    strokeWriteScheduled = false;
+    pendingStrokeWrites.clear();
+    await set(drawingsRef, null);
+    for (const strokeElement of drawingStrokeElements.values()) {
+      strokeElement.remove();
+    }
+    drawingStrokeElements.clear();
+    drawingStrokes.clear();
+    renderAllDrawingStrokes();
+    syncClearTableButtonState();
   };
 
   let latestRawCursorsById = {};
@@ -12860,6 +16488,11 @@ async function startRealtimeSession() {
         if (activeCardIds.has(cardId)) {
           continue;
         }
+        if (cardResizeState?.cardId === cardId) {
+          cardResizeState = null;
+          resizingImageCardId = '';
+          syncHandHoverDragLock();
+        }
         selectedCardIds.delete(cardId);
         frontDisplayPendingByCard.delete(cardId);
         removeHandCardElement(cardId);
@@ -12876,11 +16509,57 @@ async function startRealtimeSession() {
       renderRoomRoster(latestRoomCursors, clientId);
       scheduleHandReclaimCheck();
       scheduleAuctionBidUiRender();
+      syncClearTableButtonState();
     },
     (error) => {
       console.error(error);
       setRealtimeStatus('firebase: read blocked');
       showStatusMessage('Card sync failed. Check Realtime Database rules for room path access.');
+    }
+  );
+
+  onValue(
+    diceRef,
+    (snapshot) => {
+      if (isTableResetting) {
+        return;
+      }
+      const allDice = snapshot.val() || {};
+      const activeDieIds = new Set();
+      for (const [dieId, payload] of Object.entries(allDice)) {
+        activeDieIds.add(dieId);
+        diceById.set(dieId, normalizeDicePayload(payload));
+      }
+      if (labelEditState) {
+        const editingState = diceById.get(labelEditState.dieId);
+        if (!editingState || !isLabelDieState(editingState)) {
+          closeLabelEditor({ commit: false });
+        }
+      }
+      for (const dieId of Array.from(diceById.keys())) {
+        if (activeDieIds.has(dieId)) {
+          continue;
+        }
+        if (labelEditState?.dieId === dieId) {
+          closeLabelEditor({ commit: false });
+        }
+        if (dieDragState?.dieId === dieId) {
+          dieDragState = null;
+        }
+        if (labelResizeState?.dieId === dieId) {
+          labelResizeState = null;
+          resizingLabelDieId = '';
+        }
+        selectedDiceIds.delete(dieId);
+        diceById.delete(dieId);
+      }
+      renderAllDice();
+      syncClearTableButtonState();
+    },
+    (error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: read blocked');
+      showStatusMessage('Dice sync failed. Check Realtime Database rules for room path access.');
     }
   );
 
@@ -12919,6 +16598,7 @@ async function startRealtimeSession() {
         drawingStrokes.delete(strokeId);
       }
       renderAllDrawingStrokes();
+      syncClearTableButtonState();
     },
     (error) => {
       console.error(error);
@@ -13010,6 +16690,7 @@ async function startRealtimeSession() {
       if (shouldTriggerShuffleFx) {
         triggerDeckShuffleFx(shuffleFxDeckId || activeDeckId);
       }
+      syncClearTableButtonState();
     },
     (error) => {
       console.error(error);
@@ -13065,6 +16746,7 @@ async function startRealtimeSession() {
         setActiveMonsGameId(MONS_GAME_KEY);
         monsGameState = null;
         renderMonsBoard();
+        syncClearTableButtonState();
         return;
       }
 
@@ -13074,6 +16756,7 @@ async function startRealtimeSession() {
       }
       setActiveMonsGameId(fallbackMonsGameId);
       renderMonsBoard();
+      syncClearTableButtonState();
     },
     (error) => {
       console.error(error);
@@ -13085,6 +16768,15 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleCardDragMove);
   window.addEventListener('pointerup', handleCardDragEnd);
   window.addEventListener('pointercancel', handleCardDragEnd);
+  window.addEventListener('pointermove', handleCardResizeMove);
+  window.addEventListener('pointerup', handleCardResizeEnd);
+  window.addEventListener('pointercancel', handleCardResizeEnd);
+  window.addEventListener('pointermove', handleDieDragMove);
+  window.addEventListener('pointerup', handleDieDragEnd);
+  window.addEventListener('pointercancel', handleDieDragEnd);
+  window.addEventListener('pointermove', handleLabelResizeMove);
+  window.addEventListener('pointerup', handleLabelResizeEnd);
+  window.addEventListener('pointercancel', handleLabelResizeEnd);
   window.addEventListener('pointermove', handleHandReorderMove);
   window.addEventListener('pointerup', handleHandReorderEnd);
   window.addEventListener('pointercancel', handleHandReorderEnd);
@@ -13113,6 +16805,10 @@ async function startRealtimeSession() {
     if (cameraPersistTimerId) {
       window.clearTimeout(cameraPersistTimerId);
       cameraPersistTimerId = 0;
+    }
+    if (diceRollAnimationRafId) {
+      window.cancelAnimationFrame(diceRollAnimationRafId);
+      diceRollAnimationRafId = 0;
     }
     persistCameraViewNow();
     if (handReclaimIntervalId) {
@@ -13204,6 +16900,71 @@ function isEventOnMonsBoardUi(event) {
   return Boolean(target?.closest('#monsGameShell, .mons-game-shell, #monsMoveButton, #monsOptionsButton, .mons-move-button, .mons-options-button'));
 }
 
+function getDistancePointToSegment(pointX, pointY, startX, startY, endX, endY) {
+  const segmentX = endX - startX;
+  const segmentY = endY - startY;
+  const segmentLengthSq = segmentX * segmentX + segmentY * segmentY;
+  if (segmentLengthSq <= 0.0001) {
+    return Math.hypot(pointX - startX, pointY - startY);
+  }
+  const projection =
+    ((pointX - startX) * segmentX + (pointY - startY) * segmentY) / segmentLengthSq;
+  const clampedProjection = clamp(projection, 0, 1);
+  const closestX = startX + segmentX * clampedProjection;
+  const closestY = startY + segmentY * clampedProjection;
+  return Math.hypot(pointX - closestX, pointY - closestY);
+}
+
+function getDeleteModeStrokeIdAtClient(clientX, clientY) {
+  const worldPoint = screenToWorldFromClient(clientX, clientY);
+  if (!worldPoint || !Number.isFinite(worldPoint.x) || !Number.isFinite(worldPoint.y)) {
+    return '';
+  }
+  let closestStrokeId = '';
+  let closestDistance = Infinity;
+  const toleranceWorld = Math.max(DRAW_STROKE_WORLD_WIDTH * 0.8, 14 / Math.max(camera.scale, 0.001));
+  for (const [strokeId, strokeState] of drawingStrokes.entries()) {
+    const points = Array.isArray(strokeState?.points) ? strokeState.points : [];
+    if (points.length === 0) {
+      continue;
+    }
+    let strokeDistance = Infinity;
+    if (points.length === 1) {
+      strokeDistance = Math.hypot(worldPoint.x - points[0].x, worldPoint.y - points[0].y);
+    } else {
+      for (let index = 1; index < points.length; index += 1) {
+        const startPoint = points[index - 1];
+        const endPoint = points[index];
+        if (!startPoint || !endPoint) {
+          continue;
+        }
+        const distance = getDistancePointToSegment(
+          worldPoint.x,
+          worldPoint.y,
+          Number(startPoint.x) || 0,
+          Number(startPoint.y) || 0,
+          Number(endPoint.x) || 0,
+          Number(endPoint.y) || 0
+        );
+        if (distance < strokeDistance) {
+          strokeDistance = distance;
+        }
+        if (strokeDistance <= toleranceWorld * 0.55) {
+          break;
+        }
+      }
+    }
+    if (strokeDistance > toleranceWorld) {
+      continue;
+    }
+    if (strokeDistance < closestDistance) {
+      closestDistance = strokeDistance;
+      closestStrokeId = strokeId;
+    }
+  }
+  return closestStrokeId;
+}
+
   tableRoot.addEventListener('contextmenu', (event) => {
     event.preventDefault();
   });
@@ -13222,6 +16983,12 @@ function isEventOnMonsBoardUi(event) {
   );
 
   tableRoot.addEventListener('pointerdown', (event) => {
+    if (labelEditState) {
+      const targetElement = event.target instanceof Element ? event.target : null;
+      if (!targetElement?.closest('.table-label-editor')) {
+        closeLabelEditor({ commit: true });
+      }
+    }
     if (drawModeEnabled) {
       if (shouldIgnorePointerEventInDrawMode(event)) {
         return;
@@ -13271,10 +17038,26 @@ function isEventOnMonsBoardUi(event) {
     activePointers.add(event.pointerId);
     tableRoot.setPointerCapture?.(event.pointerId);
 
+    if (deleteModeEnabled && event.button === 0) {
+      const clickedStrokeId = getDeleteModeStrokeIdAtClient(event.clientX, event.clientY);
+      if (clickedStrokeId) {
+        event.preventDefault();
+        deleteDrawingStrokeInRemoveMode(clickedStrokeId).catch((error) => {
+          console.error(error);
+          setRealtimeStatus('firebase: write blocked');
+        });
+        schedulePublishFromEvent(event);
+        return;
+      }
+    }
+
     if (event.pointerType === 'mouse') {
       if (event.button === 2) {
         event.preventDefault();
-        if (cardDragState || groupDragState) {
+        if (deleteModeEnabled) {
+          return;
+        }
+        if (cardDragState || cardResizeState || groupDragState) {
           if (isEventOnCard(event)) {
             // Allow card context menu flip while keeping the current drag alive.
             suppressNextCardContextMenu = false;

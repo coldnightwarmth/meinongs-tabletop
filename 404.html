@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Loading Room...</title>
+    <script>
+      (function redirectRoomPath() {
+        var pathname = String(window.location.pathname || '/');
+        var segments = pathname.split('/').filter(Boolean);
+        var last = segments[segments.length - 1] || '';
+        var looksLikeFile = last.indexOf('.') !== -1;
+        var isGithubPagesHost = /\\.github\\.io$/i.test(window.location.hostname || '');
+
+        var basePath = '/';
+        if (segments.length > 1) {
+          basePath = '/' + segments[0] + '/';
+        }
+
+        if (isGithubPagesHost && segments.length === 1 && !looksLikeFile) {
+          window.location.replace('/' + segments[0] + '/index.html');
+          return;
+        }
+
+        var lowerLast = last.toLowerCase();
+        if (!last || looksLikeFile || lowerLast === 'index.html' || lowerLast === 'table.html') {
+          window.location.replace(basePath + 'index.html');
+          return;
+        }
+
+        var roomId = last;
+        try {
+          roomId = decodeURIComponent(last);
+        } catch (error) {
+          roomId = last;
+        }
+
+        var target = basePath + 'table.html?room=' + encodeURIComponent(roomId);
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

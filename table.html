@@ -60,15 +60,14 @@
       </button>
       <button id="drawUndoButton" class="draw-undo-button hidden" type="button" aria-label="undo last stroke">
         <svg
-          viewBox="0 0 24 24"
+          viewBox="0 0 512 512"
           width="14"
           height="14"
-          fill="none"
+          fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true"
         >
-          <path d="M9 7H4V12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M4 12C4.7 7.7 8.55 4.5 13 4.5C17.95 4.5 22 8.55 22 13.5C22 18.45 17.95 22.5 13 22.5C10.08 22.5 7.49 21.09 5.85 18.91" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M125.7 160H176c17.7 0 32 14.3 32 32s-14.3 32-32 32H48c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32v51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z" />
         </svg>
       </button>
       <div id="drawToolRow" class="draw-tool-row hidden" role="group" aria-label="drawing tools">
@@ -188,6 +187,19 @@
       </div>
 
       <div id="bottomRightControls" class="bottom-right-controls">
+        <button id="deleteModeCancelButton" class="icon-pill-button delete-mode-cancel-button hidden" type="button" aria-label="exit remove mode">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </button>
+
         <button id="assetMenuButton" class="icon-pill-button" type="button" aria-label="open asset gallery">
           <svg
             viewBox="0 0 24 24"
@@ -310,9 +322,57 @@
           </div>
 
           <div id="assetComponentGallery" class="asset-gallery-grid asset-component-grid hidden">
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="diceComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-dice"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.6" y="4.6" width="14.8" height="14.8" rx="3.2" stroke="currentColor" stroke-width="1.8" />
+                  <circle data-dice-pip="0" cx="8.5" cy="8.5" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="1" cx="15.5" cy="8.5" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="2" cx="8.5" cy="12" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="3" cx="15.5" cy="12" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="4" cx="8.5" cy="15.5" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="5" cx="15.5" cy="15.5" r="1.2" fill="currentColor" />
+                  <circle data-dice-pip="6" cx="12" cy="12" r="1.2" fill="currentColor" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">dice</span>
+            </button>
+            <button id="coinComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-coin"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9.4" fill="rgba(255, 255, 255, 0.42)" stroke="currentColor" stroke-width="1.65" />
+                  <circle cx="12" cy="12" r="7.1" stroke="currentColor" stroke-width="0.9" stroke-dasharray="0.7 1.7" opacity="0.46" />
+                  <image
+                    href="./assets/mons/angel.png"
+                    x="6.1"
+                    y="6.1"
+                    width="11.8"
+                    height="11.8"
+                    preserveAspectRatio="xMidYMid meet"
+                    style="image-rendering: auto; pointer-events: none;"
+                    opacity="0.96"
+                  />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">coin</span>
             </button>
             <button class="asset-gallery-item asset-component-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
@@ -320,15 +380,260 @@
             </button>
             <button class="asset-gallery-item asset-component-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">image</span>
+              <span class="asset-label">chips</span>
+            </button>
+            <button id="labelComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-label"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <text x="12" y="15.8" text-anchor="middle">Abc</text>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">label</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">note</span>
+            </button>
+            <button id="imageComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-image"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="5.2" width="15.6" height="13.6" rx="1.8" stroke="currentColor" stroke-width="1.75" />
+                  <circle cx="9.2" cy="10" r="1.35" fill="currentColor" opacity="0.74" />
+                  <path d="M6.4 16.4L10.6 12.2L13.2 14.8L16 12L17.6 13.6V16.4H6.4Z" fill="currentColor" opacity="0.84" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">image/card</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">counter</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">timer</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">stickers</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">stack point</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">playmat</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">marble</span>
             </button>
             <button class="asset-gallery-item asset-component-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">media</span>
             </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">document</span>
+            </button>
           </div>
 
-          <button id="clearTableButton" class="asset-clear-button" type="button">clear table</button>
+          <button id="removeComponentsButton" class="asset-clear-button" type="button">remove components</button>
+          <div id="tableResetRow" class="asset-table-reset-row">
+            <button id="clearTableButton" class="asset-clear-button" type="button">clear table</button>
+            <button id="wipeAllDrawingsButton" class="asset-clear-button hidden" type="button">wipe all drawings</button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="diceAddModal"
+        class="asset-menu-modal dice-add-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="diceAddTitle"
+      >
+        <div class="asset-menu-dialog dice-add-dialog">
+          <div class="asset-menu-header dice-add-header">
+            <h2 id="diceAddTitle" class="dice-add-title">adding dice</h2>
+            <button id="diceAddCloseButton" class="asset-menu-close" type="button" aria-label="close add dice menu">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="dice-add-body">
+            <div class="dice-add-row dice-type-row" role="group" aria-label="dice type">
+              <button
+                id="diceTypeD6Button"
+                class="dice-add-option dice-type-option is-active"
+                type="button"
+                aria-pressed="true"
+                aria-label="six-sided dice"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3.2" stroke="currentColor" stroke-width="1.8" />
+                  <circle cx="8.5" cy="8.5" r="1.15" fill="currentColor" />
+                  <circle cx="12" cy="8.5" r="1.15" fill="currentColor" />
+                  <circle cx="15.5" cy="8.5" r="1.15" fill="currentColor" />
+                  <circle cx="8.5" cy="15.5" r="1.15" fill="currentColor" />
+                  <circle cx="12" cy="15.5" r="1.15" fill="currentColor" />
+                  <circle cx="15.5" cy="15.5" r="1.15" fill="currentColor" />
+                </svg>
+              </button>
+              <button
+                id="diceTypeD20Button"
+                class="dice-add-option dice-type-option"
+                type="button"
+                aria-pressed="false"
+                aria-label="twenty-sided dice"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M12 3.8L19.1 7.9V16.1L12 20.2L4.9 16.1V7.9L12 3.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                  <text x="12" y="14.2" text-anchor="middle" font-size="6.2" font-weight="700" fill="currentColor">20</text>
+                </svg>
+              </button>
+            </div>
+            <div id="diceCountRow" class="dice-add-row dice-count-row" role="group" aria-label="dice count">
+              <button class="dice-add-option dice-count-option is-active" data-dice-count="1" type="button" aria-pressed="true">1</button>
+              <button class="dice-add-option dice-count-option" data-dice-count="2" type="button" aria-pressed="false">2</button>
+              <button class="dice-add-option dice-count-option" data-dice-count="3" type="button" aria-pressed="false">3</button>
+              <button class="dice-add-option dice-count-option" data-dice-count="4" type="button" aria-pressed="false">4</button>
+              <button class="dice-add-option dice-count-option" data-dice-count="5" type="button" aria-pressed="false">5</button>
+            </div>
+            <button id="diceAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add dice">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="imageAddModal"
+        class="asset-menu-modal image-add-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="imageAddTitle"
+      >
+        <div class="asset-menu-dialog image-add-dialog">
+          <div class="asset-menu-header image-add-header">
+            <h2 id="imageAddTitle" class="dice-add-title">adding image</h2>
+            <button id="imageAddCloseButton" class="asset-menu-close" type="button" aria-label="close add image menu">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="image-add-body">
+            <div class="image-add-field">
+              <label class="image-add-label" for="imageAddFrontInput">enter url:</label>
+              <input
+                id="imageAddFrontInput"
+                class="image-add-input"
+                type="text"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://..."
+              />
+            </div>
+            <div class="image-add-check-row">
+              <label class="image-add-toggle" for="imageAddCardCheckbox">
+                <span class="image-add-toggle-label">card</span>
+                <span class="image-add-toggle-control">
+                  <input id="imageAddCardCheckbox" class="image-add-toggle-input" type="checkbox" />
+                  <span class="image-add-toggle-slider" aria-hidden="true"></span>
+                </span>
+              </label>
+              <label class="image-add-toggle" for="imageAddTwoSidedCheckbox">
+                <span class="image-add-toggle-label">2-sided</span>
+                <span class="image-add-toggle-control">
+                  <input id="imageAddTwoSidedCheckbox" class="image-add-toggle-input" type="checkbox" />
+                  <span class="image-add-toggle-slider" aria-hidden="true"></span>
+                </span>
+              </label>
+            </div>
+            <div id="imageAddBackField" class="image-add-field hidden">
+              <label class="image-add-label" for="imageAddBackInput">back url:</label>
+              <input
+                id="imageAddBackInput"
+                class="image-add-input"
+                type="text"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="https://..."
+              />
+            </div>
+            <div id="imageAddError" class="image-add-error hidden" aria-live="polite"></div>
+            <button id="imageAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add image">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -411,6 +716,55 @@
             </button>
             <button
               id="clearTableWarningNoButton"
+              class="asset-clear-button instance-warning-cancel"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              <span>no</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="drawClearWarningModal"
+        class="asset-menu-modal instance-warning-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="drawClearWarningTitle"
+      >
+        <div class="asset-menu-dialog instance-warning-dialog clear-table-warning-dialog">
+          <h2 id="drawClearWarningTitle" class="instance-warning-title">warning</h2>
+          <p class="instance-warning-text">are you sure? this cannot be undone.</p>
+          <div class="instance-warning-actions">
+            <button
+              id="drawClearWarningYesButton"
+              class="asset-clear-button instance-warning-continue"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M5 12.5L9.1 16.6L19 7.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>yes</span>
+            </button>
+            <button
+              id="drawClearWarningNoButton"
               class="asset-clear-button instance-warning-cancel"
               type="button"
             >

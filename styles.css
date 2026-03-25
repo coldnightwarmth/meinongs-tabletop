@@ -205,6 +205,25 @@ input[type="color"]::-webkit-color-swatch {
   touch-action: none;
 }
 
+.table-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(to bottom, rgba(185, 12, 12, 0.26), rgba(185, 12, 12, 0) 22%),
+    linear-gradient(to top, rgba(185, 12, 12, 0.26), rgba(185, 12, 12, 0) 22%),
+    linear-gradient(to right, rgba(185, 12, 12, 0.22), rgba(185, 12, 12, 0) 18%),
+    linear-gradient(to left, rgba(185, 12, 12, 0.22), rgba(185, 12, 12, 0) 18%);
+  transition: opacity 160ms ease;
+}
+
+.table-shell.is-delete-mode::after {
+  opacity: 1;
+}
+
 .table-shell.light-mode {
   --playspace-grid-color: rgba(33, 33, 28, 0.08);
   background-color: #ddd6c6;
@@ -373,6 +392,7 @@ input[type="color"]::-webkit-color-swatch {
 
 .draw-mode-button svg {
   display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.62));
 }
 
 .draw-mode-button.is-active {
@@ -391,7 +411,7 @@ input[type="color"]::-webkit-color-swatch {
   border: none;
   border-radius: 0;
   background: transparent;
-  color: rgba(247, 243, 232, 0.78);
+  color: #d5d9df;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -412,13 +432,36 @@ input[type="color"]::-webkit-color-swatch {
 .draw-clear-button:focus-visible,
 .draw-undo-button:hover,
 .draw-undo-button:focus-visible {
-  color: rgba(255, 255, 255, 0.95);
+  color: #d5d9df;
   transform: translateY(-1px);
+}
+
+.draw-clear-button:disabled,
+.draw-clear-button.is-disabled,
+.draw-undo-button:disabled,
+.draw-undo-button.is-disabled {
+  opacity: 0.34;
+  color: rgba(213, 217, 223, 0.56);
+  cursor: default;
+  transform: none;
+}
+
+.draw-clear-button:disabled:hover,
+.draw-clear-button:disabled:focus-visible,
+.draw-clear-button.is-disabled:hover,
+.draw-clear-button.is-disabled:focus-visible,
+.draw-undo-button:disabled:hover,
+.draw-undo-button:disabled:focus-visible,
+.draw-undo-button.is-disabled:hover,
+.draw-undo-button.is-disabled:focus-visible {
+  color: rgba(213, 217, 223, 0.56);
+  transform: none;
 }
 
 .draw-clear-button svg,
 .draw-undo-button svg {
   display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.62));
 }
 
 .draw-tool-row {
@@ -734,6 +777,7 @@ input[type="color"]::-webkit-color-swatch {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 }
 
 .mons-hud-avatar {
@@ -862,7 +906,8 @@ input[type="color"]::-webkit-color-swatch {
   -webkit-user-select: none;
 }
 
-.mons-undo-button {
+.mons-undo-button,
+.mons-flip-button {
   width: 28px;
   height: 28px;
   display: inline-flex;
@@ -877,14 +922,23 @@ input[type="color"]::-webkit-color-swatch {
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease, opacity 120ms ease;
 }
 
-.mons-undo-button svg {
+.mons-undo-button svg,
+.mons-flip-button svg {
   width: 54%;
   height: 54%;
   display: block;
+  transform-origin: 50% 50%;
+  transition: transform 180ms ease;
+}
+
+.mons-flip-button.is-flipped svg {
+  transform: scaleY(-1);
 }
 
 .mons-undo-button:hover,
-.mons-undo-button:focus-visible {
+.mons-undo-button:focus-visible,
+.mons-flip-button:hover,
+.mons-flip-button:focus-visible {
   background: rgba(11, 18, 15, 0.84);
   color: rgba(247, 243, 232, 0.95);
 }
@@ -906,6 +960,10 @@ input[type="color"]::-webkit-color-swatch {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.9;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 140ms ease, filter 140ms ease, scale 140ms ease;
 }
 
 .drawing-shape-preview {
@@ -1195,6 +1253,341 @@ input[type="color"]::-webkit-color-swatch {
   box-shadow: 0 0 0 1px rgba(8, 14, 12, 0.18) inset;
 }
 
+.table-die {
+  --die-scale: 1;
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.26);
+  transform: translate(-50%, -50%) scale(var(--die-scale));
+  transform-origin: center center;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  transition: transform 110ms ease, box-shadow 110ms ease, filter 110ms ease, background-color 180ms ease;
+}
+
+.table-die.table-die-coin {
+  border-radius: 999px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.table-die.table-die-label {
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.table-die.table-die-label::after {
+  display: none;
+}
+
+.table-die.table-die-coin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -10%;
+  width: 64%;
+  height: 20%;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: -1;
+  transform: translateX(-50%) scale(1);
+  filter: blur(1px);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.34) 0%,
+    rgba(0, 0, 0, 0.21) 48%,
+    rgba(0, 0, 0, 0) 78%
+  );
+}
+
+.table-die-face {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.table-die.table-die-label .table-die-face {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 0.16em 0.42em;
+  background: transparent;
+  color: inherit;
+  text-align: center;
+  line-height: 1.2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  overflow: visible;
+  user-select: none;
+}
+
+.table-die.table-die-label .table-label-text {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 0.03em 0.02em;
+  text-shadow: 0 0.8px 1.4px rgba(0, 0, 0, 0.24);
+  pointer-events: none;
+}
+
+.table-die.table-die-label .table-label-editor {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border: none;
+  resize: none;
+  overflow: visible;
+  background: transparent;
+  color: inherit;
+  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: center;
+  line-height: 1.2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-shadow: 0 0.8px 1.4px rgba(0, 0, 0, 0.24);
+  outline: none;
+  padding: 0.03em 0.02em;
+  margin: 0;
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: auto;
+  caret-color: currentColor;
+}
+
+.table-die.table-die-label .table-label-editor::placeholder {
+  color: inherit;
+  opacity: 0.58;
+}
+
+.table-die.table-die-label.is-label-editing {
+  --die-scale: 1;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.table-die.table-die-label.is-label-editing .table-die-face {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.table-die.table-die-label.is-held-by-self,
+.table-die.table-die-label.is-held-by-other,
+.table-die.table-die-label.is-group-selected {
+  box-shadow: none;
+  background: transparent;
+}
+
+.table-die.table-die-label .table-label-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-top-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  background: rgba(14, 22, 18, 0.46);
+  color: rgba(247, 243, 232, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.table-die.table-die-label .table-label-resize-handle svg {
+  display: block;
+  pointer-events: none;
+}
+
+.table-die.table-die-label.is-resizable-label:hover .table-label-resize-handle,
+.table-die.table-die-label.is-label-resize-hovered .table-label-resize-handle,
+.table-die.table-die-label.is-resizing-label .table-label-resize-handle {
+  opacity: 1;
+}
+
+.table-die.table-die-label.is-resizing-label {
+  cursor: nwse-resize;
+}
+
+.table-die.table-die-coin .table-die-face {
+  position: relative;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.table-die.table-die-coin .table-die-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.26) inset,
+    0 0 0 4px rgba(10, 12, 13, 0.07) inset;
+  z-index: 2;
+}
+
+.table-die.table-die-coin .table-die-face::after {
+  content: "";
+  position: absolute;
+  inset: 10%;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.38;
+  background: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.04) 54%, rgba(255, 255, 255, 0) 72%);
+  z-index: 3;
+}
+
+.table-die-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.table-die-outline {
+  fill: none;
+  stroke: rgba(247, 243, 232, 0.95);
+  stroke-width: 3.8;
+  stroke-linejoin: round;
+}
+
+.table-die-d20-shell {
+  fill: none;
+  stroke: rgba(247, 243, 232, 0.95);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.table-die-d20-facet {
+  fill: none;
+  stroke: rgba(247, 243, 232, 0.62);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.table-die-pip {
+  fill: rgba(247, 243, 232, 0.95);
+}
+
+.table-die-number {
+  fill: rgba(247, 243, 232, 0.95);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.table-die-d20-number {
+  font-size: 30px;
+}
+
+.table-coin-shell {
+  fill: rgba(255, 255, 255, 0.34);
+  stroke: rgba(247, 243, 232, 0.95);
+  stroke-width: 3;
+}
+
+.table-coin-inner {
+  fill: none;
+  stroke: rgba(18, 18, 18, 0.72);
+  stroke-width: 2;
+  stroke-dasharray: 2.2 2.8;
+}
+
+.table-coin-sprite {
+  opacity: 0.98;
+  filter: drop-shadow(0 0.9px 0.5px rgba(0, 0, 0, 0.3));
+}
+
+.table-die.is-held-by-self {
+  cursor: grabbing;
+  --die-scale: 1.04;
+  box-shadow: 0 11px 20px rgba(0, 0, 0, 0.34);
+}
+
+.table-die.is-held-by-other {
+  cursor: not-allowed;
+  filter: saturate(0.82) brightness(0.9);
+}
+
+.table-die.is-group-selected {
+  --die-scale: 1.08;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.46),
+    0 9px 18px rgba(0, 0, 0, 0.3);
+}
+
+.table-die.is-group-selected.is-held-by-self {
+  --die-scale: 1.12;
+}
+
+.table-die.is-rolling {
+  box-shadow: 0 9px 18px rgba(0, 0, 0, 0.34);
+}
+
+.table-die.is-rolling .table-die-face {
+  animation: dieRollingScale 220ms ease-in-out infinite;
+}
+
+.table-die.table-die-coin.is-rolling .table-die-face {
+  animation: coinFlip3d 620ms cubic-bezier(0.2, 0.67, 0.31, 1) infinite;
+}
+
+.table-die.table-die-coin.is-rolling,
+.table-die.table-die-coin.is-rolling.is-group-selected,
+.table-die.table-die-coin.is-rolling.is-group-selected.is-held-by-self,
+.table-die.table-die-coin.is-rolling.is-held-by-self,
+.table-die.table-die-coin.is-rolling.is-held-by-other {
+  box-shadow: none !important;
+}
+
+.table-die.table-die-coin.is-rolling .table-die-face::after {
+  animation: coinFlipGlint 620ms linear infinite;
+}
+
+.table-die.table-die-coin.is-rolling::after {
+  opacity: 1;
+  animation: coinFlipGroundShadow 620ms cubic-bezier(0.2, 0.67, 0.31, 1) infinite;
+}
+
 .table-card {
   --card-scale: 1;
   position: absolute;
@@ -1220,6 +1613,10 @@ input[type="color"]::-webkit-color-swatch {
     box-shadow 120ms ease,
     filter 120ms ease,
     background-color 180ms ease;
+}
+
+.table-card.is-in-deck {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .table-card.is-discard-returning {
@@ -1249,6 +1646,68 @@ input[type="color"]::-webkit-color-swatch {
   transform: none;
   pointer-events: none;
   transition: filter 120ms ease;
+}
+
+.table-card.is-image-component-card img {
+  object-fit: cover;
+}
+
+.table-card.is-image-component-native {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+.table-card.is-image-component-native img {
+  height: 100%;
+  margin: 0;
+  object-fit: contain;
+}
+
+.table-card.is-resizable-image .table-card-resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-top-left-radius: 8px;
+  border-bottom-right-radius: 9px;
+  background: rgba(14, 22, 18, 0.46);
+  color: rgba(247, 243, 232, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: nwse-resize;
+  pointer-events: auto;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.table-card.is-resizable-image .table-card-resize-handle svg {
+  display: block;
+  pointer-events: none;
+}
+
+.table-card.is-resizable-image:hover .table-card-resize-handle,
+.table-card.is-resizable-image.is-resize-hovered .table-card-resize-handle,
+.table-card.is-resizable-image .table-card-resize-handle:hover,
+.table-card.is-resizable-image.is-resizing .table-card-resize-handle {
+  opacity: 1;
+  background: rgba(18, 30, 24, 0.62);
+}
+
+.table-card.is-resizable-image.is-resize-hovered,
+.table-card.is-resizable-image.is-resizing {
+  box-shadow:
+    0 0 0 2px rgba(163, 214, 255, 0.86),
+    0 12px 22px rgba(0, 0, 0, 0.36);
+}
+
+.table-card.is-resizable-image.is-resizing {
+  cursor: nwse-resize;
 }
 
 .table-card.is-front-pending img {
@@ -1642,6 +2101,85 @@ input[type="color"]::-webkit-color-swatch {
   }
 }
 
+@keyframes dieRollingScale {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.07);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+  75% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes coinFlip3d {
+  0% {
+    transform: perspective(860px) translateZ(0) rotateX(0deg) rotateY(-8deg) scale(1);
+  }
+  12% {
+    transform: perspective(860px) translateZ(38px) rotateX(120deg) rotateY(8deg) scale(1.13, 0.96);
+  }
+  24% {
+    transform: perspective(860px) translateZ(72px) rotateX(240deg) rotateY(-10deg) scale(1.25, 0.88);
+  }
+  36% {
+    transform: perspective(860px) translateZ(104px) rotateX(360deg) rotateY(10deg) scale(1.34, 0.79);
+  }
+  50% {
+    transform: perspective(860px) translateZ(128px) rotateX(540deg) rotateY(-7deg) scale(1.44, 0.72);
+  }
+  64% {
+    transform: perspective(860px) translateZ(98px) rotateX(720deg) rotateY(8deg) scale(1.31, 0.8);
+  }
+  78% {
+    transform: perspective(860px) translateZ(62px) rotateX(900deg) rotateY(-8deg) scale(1.19, 0.9);
+  }
+  100% {
+    transform: perspective(860px) translateZ(0) rotateX(1080deg) rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes coinFlipGroundShadow {
+  0% {
+    transform: translateX(-50%) scale(0.94);
+    opacity: 0.35;
+  }
+  2% {
+    transform: translateX(-50%) scale(0.98);
+    opacity: 0;
+  }
+  98% {
+    transform: translateX(-50%) scale(1.08);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-50%) scale(0.94);
+    opacity: 0.35;
+  }
+}
+
+@keyframes coinFlipGlint {
+  0% {
+    opacity: 0.2;
+    transform: translate3d(-10%, -10%, 0) scale(0.94);
+  }
+  50% {
+    opacity: 0.62;
+    transform: translate3d(12%, 8%, 0) scale(1.15);
+  }
+  100% {
+    opacity: 0.2;
+    transform: translate3d(-10%, -10%, 0) scale(0.94);
+  }
+}
+
 .remote-cursor {
   position: absolute;
   width: 12px;
@@ -1755,6 +2293,20 @@ input[type="color"]::-webkit-color-swatch {
   height: 2.5rem;
   padding: 0;
   cursor: pointer;
+}
+
+.delete-mode-cancel-button {
+  width: 2.95rem;
+  height: 2.95rem;
+  border-color: rgba(248, 158, 158, 0.56);
+  background: linear-gradient(160deg, rgba(173, 28, 28, 0.9), rgba(129, 18, 18, 0.84));
+  color: rgba(255, 226, 226, 0.95);
+  box-shadow: 0 8px 16px rgba(78, 8, 8, 0.35);
+}
+
+.delete-mode-cancel-button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .icon-pill-button svg {
@@ -1924,6 +2476,104 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.light-mode .table-card {
   background: rgba(255, 255, 255, 0.6);
   box-shadow: 0 7px 13px rgba(46, 38, 25, 0.22);
+}
+
+.table-shell.light-mode .table-card.is-image-component-native {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 13px rgba(46, 38, 25, 0.18);
+}
+
+.table-shell.light-mode .table-card.is-resizable-image .table-card-resize-handle {
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(34, 29, 23, 0.8);
+}
+
+.table-shell.light-mode .table-card.is-resizable-image:hover .table-card-resize-handle,
+.table-shell.light-mode .table-card.is-resizable-image.is-resize-hovered .table-card-resize-handle,
+.table-shell.light-mode .table-card.is-resizable-image .table-card-resize-handle:hover,
+.table-shell.light-mode .table-card.is-resizable-image.is-resizing .table-card-resize-handle {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .table-card.is-resizable-image.is-resize-hovered,
+.table-shell.light-mode .table-card.is-resizable-image.is-resizing {
+  box-shadow:
+    0 0 0 2px rgba(98, 151, 228, 0.78),
+    0 12px 21px rgba(46, 38, 25, 0.26);
+}
+
+.table-shell.light-mode .table-die {
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 6px 12px rgba(46, 38, 25, 0.2);
+}
+
+.table-shell.light-mode .table-die.table-die-coin {
+  background: transparent;
+}
+
+.table-shell.light-mode .table-die.table-die-label {
+  background: transparent;
+  box-shadow: none;
+}
+
+.table-shell.light-mode .table-die.table-die-label .table-label-resize-handle {
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(34, 29, 23, 0.78);
+}
+
+.table-shell.light-mode .table-die.table-die-label.is-resizable-label:hover .table-label-resize-handle,
+.table-shell.light-mode .table-die.table-die-label.is-label-resize-hovered .table-label-resize-handle,
+.table-shell.light-mode .table-die.table-die-label.is-resizing-label .table-label-resize-handle {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .table-die.table-die-coin .table-die-face {
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.table-shell.light-mode #diceComponentTile .asset-placeholder-box,
+.table-shell.light-mode #coinComponentTile .asset-placeholder-box,
+.table-shell.light-mode #imageComponentTile .asset-placeholder-box,
+.table-shell.light-mode #labelComponentTile .asset-placeholder-box {
+  border-color: rgba(34, 29, 23, 0.3);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.table-shell.light-mode .table-die-outline {
+  stroke: rgba(34, 29, 23, 0.94);
+}
+
+.table-shell.light-mode .table-die-d20-shell {
+  fill: none;
+  stroke: rgba(34, 29, 23, 0.94);
+}
+
+.table-shell.light-mode .table-die-d20-facet {
+  stroke: rgba(34, 29, 23, 0.56);
+}
+
+.table-shell.light-mode .table-coin-shell {
+  fill: rgba(255, 255, 255, 0.52);
+  stroke: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .table-coin-inner {
+  stroke: rgba(34, 29, 23, 0.64);
+}
+
+.table-shell.light-mode .table-die-pip,
+.table-shell.light-mode .table-die-number {
+  fill: rgba(34, 29, 23, 0.94);
+}
+
+.table-shell.light-mode .table-die.is-group-selected {
+  box-shadow:
+    0 0 0 2px rgba(34, 29, 23, 0.34),
+    0 8px 16px rgba(46, 38, 25, 0.24);
+}
+
+.table-shell.light-mode .table-card.is-in-deck {
+  box-shadow: 0 6px 12px rgba(46, 38, 25, 0.14);
 }
 
 .table-shell.light-mode .table-card.is-in-discard {
@@ -2096,6 +2746,32 @@ input[type="color"]::-webkit-color-swatch {
   color: rgba(34, 29, 23, 0.92);
 }
 
+.table-shell.light-mode .draw-clear-button:disabled,
+.table-shell.light-mode .draw-clear-button.is-disabled,
+.table-shell.light-mode .draw-undo-button:disabled,
+.table-shell.light-mode .draw-undo-button.is-disabled {
+  color: rgba(34, 29, 23, 0.36);
+}
+
+.table-shell.light-mode .draw-clear-button:disabled:hover,
+.table-shell.light-mode .draw-clear-button:disabled:focus-visible,
+.table-shell.light-mode .draw-clear-button.is-disabled:hover,
+.table-shell.light-mode .draw-clear-button.is-disabled:focus-visible,
+.table-shell.light-mode .draw-undo-button:disabled:hover,
+.table-shell.light-mode .draw-undo-button:disabled:focus-visible,
+.table-shell.light-mode .draw-undo-button.is-disabled:hover,
+.table-shell.light-mode .draw-undo-button.is-disabled:focus-visible {
+  color: rgba(34, 29, 23, 0.36);
+}
+
+.table-shell.light-mode .draw-mode-button svg,
+.table-shell.light-mode .draw-clear-button svg,
+.table-shell.light-mode .draw-undo-button svg {
+  filter:
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.76));
+}
+
 .table-shell.light-mode .draw-tool-button {
   background: rgba(255, 255, 255, 0.58);
   color: rgba(34, 29, 23, 0.66);
@@ -2130,6 +2806,13 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(255, 255, 255, 0.85);
   color: #2a241d;
   border-color: rgba(34, 29, 23, 0.28);
+}
+
+.table-shell.light-mode .delete-mode-cancel-button {
+  background: linear-gradient(160deg, rgba(210, 54, 54, 0.95), rgba(169, 31, 31, 0.92));
+  border-color: rgba(152, 18, 18, 0.58);
+  color: rgba(255, 241, 241, 0.98);
+  box-shadow: 0 8px 16px rgba(138, 26, 26, 0.28);
 }
 
 .table-shell.light-mode .player-name-button:hover,
@@ -2213,6 +2896,49 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.is-draw-mode .deck-control-button,
 .table-shell.is-draw-mode .deck-control-button * {
   cursor: none !important;
+}
+
+.table-shell.is-delete-mode .table-card,
+.table-shell.is-delete-mode .table-die,
+.table-shell.is-delete-mode .mons-board-svg [data-mons-piece-id],
+.table-shell.is-delete-mode .deck-move-button,
+.table-shell.is-delete-mode .mons-move-button,
+.table-shell.is-delete-mode .drawing-stroke {
+  cursor: pointer !important;
+  transition: filter 120ms ease, scale 120ms ease, opacity 120ms ease;
+}
+
+.table-shell.is-delete-mode .mons-board-svg [data-mons-piece-id] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.table-shell.is-delete-mode .drawing-stroke {
+  pointer-events: stroke;
+}
+
+.table-shell.is-delete-mode .table-card:hover,
+.table-shell.is-delete-mode .table-die:hover,
+.table-shell.is-delete-mode .mons-board-svg [data-mons-piece-id]:hover,
+.table-shell.is-delete-mode .deck-move-button:hover,
+.table-shell.is-delete-mode .deck-move-button:focus-visible,
+.table-shell.is-delete-mode .mons-move-button:hover,
+.table-shell.is-delete-mode .mons-move-button:focus-visible,
+.table-shell.is-delete-mode .drawing-stroke:hover {
+  filter: saturate(0.78) brightness(0.82);
+  scale: 1.04;
+}
+
+.table-card.is-delete-fading,
+.table-die.is-delete-fading,
+.deck-control-button.is-delete-fading,
+.mons-game-shell.is-delete-fading,
+.mons-side-claims.is-delete-fading,
+.mons-board-svg [data-mons-piece-id].is-delete-fading,
+.drawing-stroke.is-delete-fading {
+  opacity: 0;
+  scale: 0.9;
+  filter: saturate(0.62) brightness(0.72);
 }
 
 .icon-pill-button:hover,
@@ -2446,6 +3172,18 @@ input[type="color"]::-webkit-color-swatch {
   padding: 0.9rem;
 }
 
+#assetMenuModal .asset-menu-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 760px);
+}
+
+#assetMenuModal.is-component-view .asset-menu-dialog {
+  height: min(88vh, 725px);
+  max-height: min(88vh, 725px);
+  overflow: hidden;
+}
+
 .asset-menu-header {
   display: flex;
   align-items: center;
@@ -2476,6 +3214,7 @@ input[type="color"]::-webkit-color-swatch {
 .asset-menu-tabs {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.42rem;
 }
 
@@ -2521,6 +3260,17 @@ input[type="color"]::-webkit-color-swatch {
   color: rgba(228, 243, 255, 0.96);
 }
 
+.asset-menu-tab-remove {
+  border-color: rgba(248, 158, 158, 0.45);
+  background: rgba(136, 34, 34, 0.2);
+  color: rgba(255, 218, 218, 0.95);
+}
+
+.asset-menu-tab-remove:hover,
+.asset-menu-tab-remove:focus-visible {
+  background: rgba(150, 40, 40, 0.32);
+}
+
 .asset-menu-close {
   width: 2rem;
   height: 2rem;
@@ -2542,8 +3292,20 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .asset-component-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.58rem;
+}
+
+#assetMenuModal.is-component-view .asset-component-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: start;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .asset-component-item {
@@ -2555,8 +3317,294 @@ input[type="color"]::-webkit-color-swatch {
   border-radius: 8px;
 }
 
+.asset-component-icon-wrap {
+  display: grid;
+  place-items: center;
+}
+
+.asset-component-icon {
+  width: 60%;
+  height: 60%;
+  display: block;
+  color: rgba(247, 243, 232, 0.88);
+}
+
+#diceComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#diceComponentTile .asset-component-icon-dice {
+  transform: translateY(21px);
+}
+
+#coinComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#coinComponentTile .asset-component-icon-coin {
+  transform: translateY(21px);
+}
+
+#imageComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#imageComponentTile .asset-component-icon-image {
+  transform: translateY(21px);
+}
+
+#labelComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#labelComponentTile .asset-component-icon-label {
+  transform: translateY(21px);
+}
+
+#labelComponentTile .asset-component-icon-label text {
+  fill: currentColor;
+  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-size: 8.2px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+#diceComponentTile [data-dice-pip] {
+  transition: opacity 90ms linear;
+}
+
 .asset-component-item .asset-label {
   font-size: 0.76rem;
+}
+
+.dice-add-modal {
+  z-index: 71000;
+}
+
+.image-add-modal {
+  z-index: 71000;
+}
+
+.dice-add-dialog {
+  width: min(92vw, 338px);
+  max-width: 338px;
+  padding: 0.76rem;
+}
+
+.image-add-dialog {
+  width: min(92vw, 372px);
+  max-width: 372px;
+  padding: 0.76rem;
+}
+
+.dice-add-header {
+  margin-bottom: 0.62rem;
+}
+
+.image-add-header {
+  margin-bottom: 0.62rem;
+}
+
+.dice-add-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: rgba(247, 243, 232, 0.95);
+}
+
+.dice-add-body {
+  display: grid;
+  gap: 0.52rem;
+}
+
+.image-add-body {
+  display: grid;
+  gap: 0.56rem;
+}
+
+.dice-add-row {
+  display: grid;
+  gap: 0.44rem;
+}
+
+.image-add-field {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.image-add-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: rgba(247, 243, 232, 0.82);
+}
+
+.image-add-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(10, 17, 15, 0.7);
+  color: #f7f3e8;
+  padding: 0.52rem 0.58rem;
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.image-add-input:focus {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(10, 17, 15, 0.82);
+}
+
+.image-add-input.is-invalid {
+  border-color: rgba(255, 118, 118, 0.82);
+  box-shadow: 0 0 0 1px rgba(255, 88, 88, 0.3);
+}
+
+.image-add-check-row {
+  display: grid;
+  gap: 0.46rem;
+}
+
+.image-add-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.36rem 0.52rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(247, 243, 232, 0.92);
+  text-transform: none;
+}
+
+.image-add-toggle-label {
+  font-size: 0.76rem;
+  text-transform: lowercase;
+}
+
+.image-add-toggle-control {
+  position: relative;
+  display: inline-flex;
+  width: 34px;
+  height: 20px;
+}
+
+.image-add-toggle-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.image-add-toggle-slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.image-add-toggle-slider::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(247, 243, 232, 0.96);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 150ms ease;
+}
+
+.image-add-toggle-input:checked + .image-add-toggle-slider {
+  background: rgba(98, 166, 252, 0.62);
+  border-color: rgba(150, 207, 255, 0.78);
+}
+
+.image-add-toggle-input:checked + .image-add-toggle-slider::after {
+  transform: translateX(14px);
+}
+
+.image-add-toggle-input:focus-visible + .image-add-toggle-slider {
+  box-shadow: 0 0 0 2px rgba(150, 207, 255, 0.36);
+}
+
+.image-add-error {
+  min-height: 1rem;
+  padding: 0.08rem 0.1rem 0;
+  color: rgba(255, 128, 128, 0.96);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.dice-type-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.dice-count-row {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dice-add-option {
+  min-height: 2.1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(247, 243, 232, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+
+.dice-add-option:hover,
+.dice-add-option:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.dice-add-option.is-active {
+  border-color: rgba(144, 204, 255, 0.76);
+  background: rgba(98, 166, 252, 0.22);
+  color: rgba(227, 243, 255, 0.96);
+}
+
+#diceTypeD6Button svg {
+  transform: rotate(90deg);
+  transform-origin: 50% 50%;
+}
+
+.dice-add-confirm-button {
+  width: 100%;
+  min-height: 2.3rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(247, 243, 232, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 130ms ease, border-color 130ms ease;
+}
+
+.dice-add-confirm-button:hover,
+.dice-add-confirm-button:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.44);
 }
 
 .asset-clear-button {
@@ -2573,9 +3621,37 @@ input[type="color"]::-webkit-color-swatch {
   cursor: pointer;
 }
 
+.asset-table-reset-row {
+  margin-top: 0.84rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.62rem;
+}
+
+.asset-table-reset-row.has-wipe {
+  grid-template-columns: 1fr 1fr;
+}
+
+.asset-table-reset-row .asset-clear-button {
+  margin-top: 0;
+}
+
 .asset-clear-button:hover,
 .asset-clear-button:focus-visible {
   background: rgba(255, 255, 255, 0.14);
+}
+
+.asset-clear-button:disabled,
+.asset-clear-button.is-disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.asset-clear-button:disabled:hover,
+.asset-clear-button:disabled:focus-visible,
+.asset-clear-button.is-disabled:hover,
+.asset-clear-button.is-disabled:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .asset-gallery-item {
@@ -2696,6 +3772,91 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(28, 24, 18, 0.22);
 }
 
+.table-shell.light-mode .asset-component-icon {
+  color: rgba(34, 29, 23, 0.84);
+}
+
+.table-shell.light-mode .dice-add-title {
+  color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .image-add-label {
+  color: rgba(34, 29, 23, 0.82);
+}
+
+.table-shell.light-mode .image-add-input {
+  border-color: rgba(34, 29, 23, 0.26);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(34, 29, 23, 0.92);
+}
+
+.table-shell.light-mode .image-add-input:focus {
+  border-color: rgba(34, 29, 23, 0.46);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .image-add-input.is-invalid {
+  border-color: rgba(198, 66, 66, 0.7);
+  box-shadow: 0 0 0 1px rgba(198, 66, 66, 0.22);
+}
+
+.table-shell.light-mode .image-add-toggle {
+  border-color: rgba(34, 29, 23, 0.22);
+  background: rgba(255, 255, 255, 0.74);
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .image-add-toggle-slider {
+  background: rgba(34, 29, 23, 0.14);
+  border-color: rgba(34, 29, 23, 0.28);
+}
+
+.table-shell.light-mode .image-add-toggle-slider::after {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 2px rgba(34, 29, 23, 0.26);
+}
+
+.table-shell.light-mode .image-add-toggle-input:checked + .image-add-toggle-slider {
+  background: rgba(92, 154, 238, 0.62);
+  border-color: rgba(83, 141, 221, 0.74);
+}
+
+.table-shell.light-mode .image-add-toggle-input:focus-visible + .image-add-toggle-slider {
+  box-shadow: 0 0 0 2px rgba(92, 154, 238, 0.28);
+}
+
+.table-shell.light-mode .image-add-error {
+  color: rgba(181, 54, 54, 0.9);
+}
+
+.table-shell.light-mode .dice-add-option {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(34, 29, 23, 0.88);
+}
+
+.table-shell.light-mode .dice-add-option:hover,
+.table-shell.light-mode .dice-add-option:focus-visible {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.table-shell.light-mode .dice-add-option.is-active {
+  border-color: rgba(84, 143, 222, 0.56);
+  background: rgba(111, 174, 255, 0.24);
+  color: rgba(24, 53, 84, 0.95);
+}
+
+.table-shell.light-mode .dice-add-confirm-button {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.82);
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .dice-add-confirm-button:hover,
+.table-shell.light-mode .dice-add-confirm-button:focus-visible {
+  background: rgba(255, 255, 255, 0.96);
+}
+
 .table-shell.light-mode .mons-item-choice-dialog {
   border-color: rgba(34, 29, 23, 0.24);
   background: rgba(249, 245, 236, 0.95);
@@ -2721,6 +3882,11 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(249, 245, 236, 0.95);
   border-color: rgba(34, 29, 23, 0.22);
   box-shadow: 0 22px 34px rgba(43, 35, 21, 0.22);
+}
+
+.table-shell.light-mode #assetMenuModal.is-component-view .asset-component-grid {
+  border-color: rgba(34, 29, 23, 0.22);
+  background: rgba(255, 255, 255, 0.62);
 }
 
 .table-shell.light-mode .asset-menu-header h2,
@@ -2787,6 +3953,17 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(111, 174, 255, 0.28);
   border-color: rgba(84, 143, 222, 0.56);
   color: rgba(24, 53, 84, 0.95);
+}
+
+.table-shell.light-mode .asset-menu-tab-remove {
+  border-color: rgba(184, 77, 77, 0.44);
+  background: rgba(184, 77, 77, 0.14);
+  color: rgba(120, 34, 34, 0.92);
+}
+
+.table-shell.light-mode .asset-menu-tab-remove:hover,
+.table-shell.light-mode .asset-menu-tab-remove:focus-visible {
+  background: rgba(184, 77, 77, 0.22);
 }
 
 .table-shell.light-mode .instance-warning-title {
@@ -2870,14 +4047,17 @@ input[type="color"]::-webkit-color-swatch {
   text-shadow: none;
 }
 
-.table-shell.light-mode .mons-undo-button {
+.table-shell.light-mode .mons-undo-button,
+.table-shell.light-mode .mons-flip-button {
   border-color: rgba(34, 29, 23, 0.24);
   background: rgba(255, 255, 255, 0.86);
   color: rgba(34, 29, 23, 0.5);
 }
 
 .table-shell.light-mode .mons-undo-button:hover,
-.table-shell.light-mode .mons-undo-button:focus-visible {
+.table-shell.light-mode .mons-undo-button:focus-visible,
+.table-shell.light-mode .mons-flip-button:hover,
+.table-shell.light-mode .mons-flip-button:focus-visible {
   background: rgba(255, 255, 255, 0.98);
   color: rgba(34, 29, 23, 0.82);
 }
@@ -2916,6 +4096,7 @@ input[type="color"]::-webkit-color-swatch {
 @media (prefers-reduced-motion: reduce) {
   .asset-gallery-item,
   .asset-preview-gloss,
+  .table-die,
   .table-card,
   .hand-card,
   .hand-drop-glow,
@@ -2933,6 +4114,10 @@ input[type="color"]::-webkit-color-swatch {
   .deck-shuffle-fx.is-active,
   .deck-shuffle-fx-1.is-active,
   .deck-shuffle-fx-2.is-active,
+  .table-die.is-rolling .table-die-face,
+  .table-die.table-die-coin.is-rolling,
+  .table-die.table-die-coin.is-rolling::after,
+  .table-die.table-die-coin.is-rolling .table-die-face::after,
   .auction-slot.is-occupied .auction-slot-icon {
     animation: none;
   }
