@@ -41,6 +41,7 @@ const copyLabel = document.getElementById('copyLabel');
 const bottomRightControls = document.getElementById('bottomRightControls');
 const deleteModeUndoButton = document.getElementById('deleteModeUndoButton');
 const deleteModeCancelButton = document.getElementById('deleteModeCancelButton');
+const deleteSelectionButton = document.getElementById('deleteSelectionButton');
 const assetMenuButton = document.getElementById('assetMenuButton');
 const assetMenuModal = document.getElementById('assetMenuModal');
 const assetMenuCloseButton = document.getElementById('assetMenuCloseButton');
@@ -52,9 +53,11 @@ const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
+const counterComponentTile = document.getElementById('counterComponentTile');
 const labelComponentTile = document.getElementById('labelComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
 const stickerComponentTile = document.getElementById('stickerComponentTile');
+const marbleComponentTile = document.getElementById('marbleComponentTile');
 const mediaComponentTile = document.getElementById('mediaComponentTile');
 const diceAddModal = document.getElementById('diceAddModal');
 const diceAddBackButton = document.getElementById('diceAddBackButton');
@@ -123,6 +126,13 @@ const playerControls = document.getElementById('playerControls');
 const playerHandCount = document.getElementById('playerHandCount');
 const bottomLeftControls = document.getElementById('bottomLeftControls');
 const homeButton = document.getElementById('homeButton');
+const roomSettingsButton = document.getElementById('roomSettingsButton');
+const roomSettingsModal = document.getElementById('roomSettingsModal');
+const roomSettingsCloseButton = document.getElementById('roomSettingsCloseButton');
+const roomBackgroundPatternRow = document.getElementById('roomBackgroundPatternRow');
+const roomBackgroundPatternButtons = Array.from(
+  document.querySelectorAll('.room-settings-pattern-button[data-room-background-pattern]')
+);
 const lightModeControl = document.getElementById('lightModeControl');
 const lightModeToggle = document.getElementById('lightModeToggle');
 const modeIcon = document.getElementById('modeIcon');
@@ -134,6 +144,11 @@ const CAMERA_VIEW_STORAGE_KEY_PREFIX = 'tabletop-camera-view';
 const OWNER_TOKEN_KEY = 'tabletop-owner-token';
 const PLAYER_TOKEN_KEY = 'tabletop-player-token';
 const ROOM_TITLE_MAX_LENGTH = 48;
+const ROOM_BACKGROUND_PATTERN_GRID = 'grid';
+const ROOM_BACKGROUND_PATTERN_DOTS = 'dots';
+const ROOM_BACKGROUND_PATTERN_NOISE = 'noise';
+const ROOM_BACKGROUND_PATTERN_GREENSCREEN = 'greenscreen';
+const ROOM_BACKGROUND_PATTERN_PLAIN = 'plain';
 
 const WORLD_WIDTH = 7680;
 const WORLD_HEIGHT = 4320;
@@ -217,9 +232,43 @@ const MONS_MOVE_CONTROL_SIZE = 28;
 const MONS_SIDE_CLAIMS_EDGE_INSET = 27;
 const MONS_SIDE_CLAIMS_VERTICAL_OFFSET = 8;
 const MONS_UNDO_HISTORY_LIMIT = 30;
+const COUNTER_MIN_VALUE = -9999;
+const COUNTER_MAX_VALUE = 9999;
+const COUNTER_DIGIT_COUNT = 4;
+const COUNTER_CONTROL_LABEL_HIDE_SCREEN_WIDTH = 112;
+const COUNTER_CONTROL_FONT_MIN_PX = 7;
+const COUNTER_CONTROL_FONT_MAX_PX = 12;
+const COUNTER_CONTROL_FONT_WIDTH_DIVISOR = 20;
 const DIE_SIZE_D6 = 84;
 const DIE_SIZE_D20 = 92;
 const DIE_SIZE_COIN = 114;
+const DIE_SIZE_COUNTER_WIDTH = 248;
+const DIE_SIZE_COUNTER_HEIGHT = 136;
+const DIE_SIZE_MARBLE = 90;
+const MARBLE_HUE_MIN = 0;
+const MARBLE_HUE_MAX = 359;
+const MARBLE_DEFAULT_HUE = 218;
+const MARBLE_WARBLE_SPEED_THRESHOLD = 760;
+const MARBLE_WARBLE_SPEED_MAX = 2100;
+const MARBLE_FLICK_MIN_DISTANCE = 10;
+const MARBLE_FLICK_MAX_DISTANCE = 3200;
+const MARBLE_FLICK_MIN_SPEED = 240;
+const MARBLE_FLICK_MAX_SPEED = 8200;
+const MARBLE_LINEAR_DRAG_PER_SECOND = 1.14;
+const MARBLE_ROLLING_FRICTION_PER_SECOND = 22;
+const MARBLE_BOUNCE_RESTITUTION = 0.78;
+const MARBLE_COLLISION_DAMPING = 0.96;
+const MARBLE_MARBLE_RESTITUTION = 0.9;
+const MARBLE_MARBLE_SEPARATION_RATIO = 0.52;
+const MARBLE_STOP_SPEED = 14;
+const MARBLE_STALL_SPEED = 12;
+const MARBLE_STALL_DISTANCE_PER_FRAME = 0.06;
+const MARBLE_STALL_FRAME_LIMIT = 24;
+const MARBLE_RESTART_BLOCK_SPEED = 42;
+const MARBLE_FORCE_STOP_SPEED = 8;
+const MARBLE_MAX_FRAME_SECONDS = 1 / 20;
+const MARBLE_SUBSTEP_SECONDS = 1 / 120;
+const MARBLE_SYNC_INTERVAL_MS = 38;
 const MEDIA_DEFAULT_WIDTH = 560;
 const MEDIA_DEFAULT_HEIGHT_YOUTUBE = 315;
 const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = 166;
@@ -557,6 +606,19 @@ const DICE_TILE_ICON_PIP_LAYOUTS = {
   4: [0, 1, 4, 5],
   5: [0, 1, 6, 4, 5],
   6: [0, 2, 4, 1, 3, 5]
+};
+const COUNTER_SEGMENT_KEYS = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+const COUNTER_DIGIT_SEGMENTS = {
+  0: ['a', 'b', 'c', 'd', 'e', 'f'],
+  1: ['b', 'c'],
+  2: ['a', 'b', 'd', 'e', 'g'],
+  3: ['a', 'b', 'c', 'd', 'g'],
+  4: ['b', 'c', 'f', 'g'],
+  5: ['a', 'c', 'd', 'f', 'g'],
+  6: ['a', 'c', 'd', 'e', 'f', 'g'],
+  7: ['a', 'b', 'c'],
+  8: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+  9: ['a', 'b', 'c', 'd', 'f', 'g']
 };
 const MONS_PARTICLE_DURATION_MS = 420;
 const MONS_ATTACK_EFFECT_DURATION_MS = 820;
@@ -917,6 +979,7 @@ let isRoomOwner = false;
 let roomShareUrl = '';
 let copyLinkFeedbackTimerId = 0;
 let roomBadgeCopyFeedbackTimerId = 0;
+let roomBackgroundPattern = ROOM_BACKGROUND_PATTERN_GRID;
 let spawnCoolJpegsDeck = async () => {
   showStatusMessage('Firebase connection is required before adding a deck.');
 };
@@ -944,6 +1007,12 @@ let spawnDice = async () => {
 let spawnCoin = async () => {
   showStatusMessage('Firebase connection is required before adding coins.');
 };
+let spawnCounter = async () => {
+  showStatusMessage('Firebase connection is required before adding counters.');
+};
+let spawnMarble = async () => {
+  showStatusMessage('Firebase connection is required before adding marbles.');
+};
 let spawnImageComponent = async () => {
   showStatusMessage('Firebase connection is required before adding images.');
 };
@@ -960,6 +1029,9 @@ let announceMediaStartForRoom = async () => false;
 let renameRoomTitle = async () => {
   showStatusMessage('Firebase connection is required before renaming the room.');
 };
+let setRoomBackgroundPattern = async (nextPattern) => {
+  applyRoomBackgroundPattern(nextPattern);
+};
 let clearTabletop = async () => {
   showStatusMessage('Firebase connection is required before clearing the table.');
 };
@@ -974,6 +1046,9 @@ let undoOwnDrawing = async () => {
 };
 let undoDeleteModeAction = async () => {
   showStatusMessage('Firebase connection is required before undoing deletions.');
+};
+let deleteSelectedElements = async () => {
+  showStatusMessage('Firebase connection is required before deleting selected elements.');
 };
 let submitMonsItemChoice = async () => {
   showStatusMessage('Firebase connection is required before choosing an item.');
@@ -992,6 +1067,7 @@ let onStickerLockControlPointerDown = () => {};
 let onHandCardPointerDown = () => {};
 let onDiePointerDown = () => {};
 let onDieContextMenu = () => {};
+let onCounterControlPointerDown = () => {};
 let onLabelResizePointerDown = () => {};
 let onLabelLockControlPointerDown = () => {};
 let onLabelRotatePointerDown = () => {};
@@ -1018,6 +1094,16 @@ let syncDeleteModeActionsUi = () => {
     deleteModeUndoButton.setAttribute('title', deleteModeEnabled ? 'no deletions to undo' : 'undo last deletion');
   }
 };
+let syncSelectionDeleteButtonUi = () => {
+  if (!deleteSelectionButton) {
+    return;
+  }
+  deleteSelectionButton.classList.add('hidden');
+  deleteSelectionButton.disabled = true;
+  deleteSelectionButton.classList.add('is-disabled');
+  deleteSelectionButton.setAttribute('title', 'delete selected');
+};
+let syncMarbleFlickArrow = () => {};
 function syncDeleteCursorLock() {
   const shouldHide = Boolean(deleteModeEnabled);
   const lockTargets = [document.documentElement, document.body, tableRoot];
@@ -1045,6 +1131,7 @@ let setDeleteModeEnabled = (enabled) => {
   }
   tableRoot?.classList.toggle('is-delete-mode', deleteModeEnabled);
   syncDeleteModeActionsUi();
+  syncSelectionDeleteButtonUi();
   syncDeleteCursorLock();
 };
 
@@ -1433,6 +1520,12 @@ function normalizeDieType(type) {
   if (type === 'media') {
     return 'media';
   }
+  if (type === 'counter') {
+    return 'counter';
+  }
+  if (type === 'marble') {
+    return 'marble';
+  }
   if (type === 'coin') {
     return 'coin';
   }
@@ -1449,7 +1542,10 @@ function isLabelDieLocked(dieState) {
 
 function getDieSides(type) {
   const normalizedType = normalizeDieType(type);
-  if (normalizedType === 'label' || normalizedType === 'media') {
+  if (normalizedType === 'label' || normalizedType === 'media' || normalizedType === 'counter') {
+    return 1;
+  }
+  if (normalizedType === 'marble') {
     return 1;
   }
   if (normalizedType === 'coin') {
@@ -1466,6 +1562,12 @@ function getDieSize(type) {
   if (normalizedType === 'media') {
     return MEDIA_DEFAULT_WIDTH;
   }
+  if (normalizedType === 'counter') {
+    return Math.max(DIE_SIZE_COUNTER_WIDTH, DIE_SIZE_COUNTER_HEIGHT);
+  }
+  if (normalizedType === 'marble') {
+    return DIE_SIZE_MARBLE;
+  }
   if (normalizedType === 'coin') {
     return DIE_SIZE_COIN;
   }
@@ -1478,6 +1580,14 @@ function getDefaultMediaDimensions(provider = '') {
     return { width: 500, height: MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD };
   }
   return { width: MEDIA_DEFAULT_WIDTH, height: MEDIA_DEFAULT_HEIGHT_YOUTUBE };
+}
+
+function clampCounterValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return clamp(Math.round(numeric), COUNTER_MIN_VALUE, COUNTER_MAX_VALUE);
 }
 
 function clampMediaDimensions(widthValue, heightValue, provider = '') {
@@ -1635,6 +1745,12 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
       payload?.mediaProvider
     );
   }
+  if (dieType === 'counter') {
+    return {
+      width: DIE_SIZE_COUNTER_WIDTH,
+      height: DIE_SIZE_COUNTER_HEIGHT
+    };
+  }
   if (dieType !== 'label') {
     const size = getDieSize(dieType);
     return { width: size, height: size };
@@ -1718,6 +1834,18 @@ function normalizeDicePayload(payload) {
   const rollStartedAt = Number(payload?.rollStartedAt);
   const rollDurationMs = Number(payload?.rollDurationMs);
   const rollSeed = Math.floor(Number(payload?.rollSeed) || 0);
+  const velocityX = type === 'marble' && Number.isFinite(Number(payload?.velocityX))
+    ? clamp(Number(payload.velocityX), -MARBLE_FLICK_MAX_SPEED, MARBLE_FLICK_MAX_SPEED)
+    : 0;
+  const velocityY = type === 'marble' && Number.isFinite(Number(payload?.velocityY))
+    ? clamp(Number(payload.velocityY), -MARBLE_FLICK_MAX_SPEED, MARBLE_FLICK_MAX_SPEED)
+    : 0;
+  const moving =
+    type === 'marble' &&
+    payload?.moving === true &&
+    Boolean(holderClientId) &&
+    Math.hypot(velocityX, velocityY) > MARBLE_FORCE_STOP_SPEED;
+  const marbleHue = type === 'marble' ? normalizeMarbleHue(payload?.marbleHue) : MARBLE_DEFAULT_HUE;
   const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
   const text = normalizeLabelText(payload?.text);
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
@@ -1759,6 +1887,9 @@ function normalizeDicePayload(payload) {
   const mediaStartedAt = Number.isFinite(mediaStartedAtRaw) && mediaStartedAtRaw > 0 ? Math.floor(mediaStartedAtRaw) : 0;
   const mediaStartNonce = Number.isFinite(mediaStartNonceRaw) ? Math.floor(mediaStartNonceRaw) : 0;
   const normalizedHolderClientId = labelLocked ? null : holderClientId;
+  const normalizedValue = type === 'counter'
+    ? clampCounterValue(nextValue)
+    : clamp(Number.isFinite(nextValue) ? Math.round(nextValue) : 1, 1, sides);
   return {
     type,
     x: Number.isFinite(nextX)
@@ -1768,7 +1899,7 @@ function normalizeDicePayload(payload) {
       ? clamp(nextY, centerBounds.minY, centerBounds.maxY)
       : clamp(WORLD_HEIGHT / 2, centerBounds.minY, centerBounds.maxY),
     z: clamp(Number.isFinite(nextZ) ? nextZ : 1, 1, DECK_UI_Z_INDEX - 1),
-    value: clamp(Number.isFinite(nextValue) ? Math.round(nextValue) : 1, 1, sides),
+    value: normalizedValue,
     text,
     textColor,
     textScale,
@@ -1785,7 +1916,16 @@ function normalizeDicePayload(payload) {
     mediaHeight: dimensions.height,
     drawLifted,
     holderClientId: normalizedHolderClientId,
-    rollStartedAt: type === 'label' || type === 'media' ? 0 : Number.isFinite(rollStartedAt) ? Math.max(0, rollStartedAt) : 0,
+    moving,
+    velocityX,
+    velocityY,
+    marbleHue,
+    rollStartedAt:
+      type === 'label' || type === 'media' || type === 'marble' || type === 'counter'
+        ? 0
+        : Number.isFinite(rollStartedAt)
+          ? Math.max(0, rollStartedAt)
+          : 0,
     rollDurationMs: Number.isFinite(rollDurationMs) ? clamp(Math.round(rollDurationMs), 120, 3000) : DIE_ROLL_DURATION_MS,
     rollSeed: Number.isFinite(rollSeed) ? rollSeed : 0
   };
@@ -1796,7 +1936,7 @@ function isDieRolling(dieState, now = Date.now()) {
     return false;
   }
   const dieType = normalizeDieType(dieState.type);
-  if (dieType === 'label' || dieType === 'media') {
+  if (dieType === 'label' || dieType === 'media' || dieType === 'marble' || dieType === 'counter') {
     return false;
   }
   const startedAt = Number(dieState.rollStartedAt);
@@ -7030,6 +7170,148 @@ function ensureDieElement(dieId) {
   return die;
 }
 
+function setCounterDigitSegments(digitElement, value) {
+  if (!(digitElement instanceof HTMLElement)) {
+    return;
+  }
+  if (value === null || value === undefined || value === '') {
+    for (const segmentKey of COUNTER_SEGMENT_KEYS) {
+      const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+      if (segment instanceof HTMLElement) {
+        segment.classList.remove('is-active');
+      }
+    }
+    return;
+  }
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0 || numericValue > 9) {
+    for (const segmentKey of COUNTER_SEGMENT_KEYS) {
+      const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+      if (segment instanceof HTMLElement) {
+        segment.classList.remove('is-active');
+      }
+    }
+    return;
+  }
+  const digitValue = clamp(Math.round(numericValue), 0, 9);
+  const activeSegments = new Set(COUNTER_DIGIT_SEGMENTS[digitValue] || COUNTER_DIGIT_SEGMENTS[0]);
+  for (const segmentKey of COUNTER_SEGMENT_KEYS) {
+    const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+    if (segment instanceof HTMLElement) {
+      segment.classList.toggle('is-active', activeSegments.has(segmentKey));
+    }
+  }
+}
+
+function ensureCounterFaceShell(face, dieId) {
+  if (!(face instanceof HTMLElement)) {
+    return null;
+  }
+  let shell = face.querySelector('.table-counter-shell');
+  if (shell instanceof HTMLElement) {
+    return shell;
+  }
+
+  face.textContent = '';
+  shell = document.createElement('div');
+  shell.className = 'table-counter-shell';
+
+  const display = document.createElement('div');
+  display.className = 'table-counter-display';
+
+  const sign = document.createElement('div');
+  sign.className = 'table-counter-sign';
+  sign.setAttribute('aria-hidden', 'true');
+  const signSegment = document.createElement('span');
+  signSegment.className = 'table-counter-segment table-counter-segment-g';
+  signSegment.setAttribute('data-counter-sign-segment', 'g');
+  sign.appendChild(signSegment);
+  display.appendChild(sign);
+
+  for (let index = 0; index < COUNTER_DIGIT_COUNT; index += 1) {
+    const digit = document.createElement('div');
+    digit.className = 'table-counter-digit';
+    digit.setAttribute('data-counter-digit-index', String(index));
+    digit.setAttribute('aria-hidden', 'true');
+    for (const segmentKey of COUNTER_SEGMENT_KEYS) {
+      const segment = document.createElement('span');
+      segment.className = `table-counter-segment table-counter-segment-${segmentKey}`;
+      segment.setAttribute('data-segment', segmentKey);
+      digit.appendChild(segment);
+    }
+    display.appendChild(digit);
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'table-counter-controls';
+  const controlSpecs = [
+    { delta: -100, label: '---', title: 'decrease by one hundred' },
+    { delta: -10, label: '--', title: 'decrease by ten' },
+    { delta: -1, label: '-', title: 'decrease by one' },
+    { reset: true, label: 'c', title: 'reset to zero' },
+    { delta: 1, label: '+', title: 'increase by one' },
+    { delta: 10, label: '++', title: 'increase by ten' },
+    { delta: 100, label: '+++', title: 'increase by one hundred' }
+  ];
+  for (const spec of controlSpecs) {
+    const control = document.createElement('div');
+    control.className = 'table-counter-control';
+    control.setAttribute('role', 'button');
+    control.setAttribute('tabindex', '-1');
+    control.setAttribute('title', spec.title);
+    control.setAttribute('aria-label', spec.title);
+    control.setAttribute('data-counter-delta', String(spec.delta ?? 0));
+    if (spec.reset) {
+      control.setAttribute('data-counter-reset', '1');
+    }
+    control.textContent = spec.label;
+    control.addEventListener('pointerdown', (event) => {
+      onCounterControlPointerDown(event, dieId, spec.delta, spec.reset === true);
+    });
+    control.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    control.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    controls.appendChild(control);
+  }
+
+  shell.appendChild(display);
+  shell.appendChild(controls);
+  face.appendChild(shell);
+  return shell;
+}
+
+function renderCounterFaceValue(dieId, dieState) {
+  const die = diceElements.get(dieId);
+  const face = die?.querySelector('.table-die-face');
+  if (!(face instanceof HTMLElement)) {
+    return;
+  }
+  const shell = ensureCounterFaceShell(face, dieId);
+  if (!(shell instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedValue = clampCounterValue(dieState?.value);
+  const absoluteDigits = String(Math.abs(normalizedValue)).padStart(COUNTER_DIGIT_COUNT, '0').slice(-COUNTER_DIGIT_COUNT);
+  const firstNonZeroIndex = absoluteDigits.search(/[1-9]/);
+  const shouldHideLeadingZeros = normalizedValue !== 0 && firstNonZeroIndex >= 0;
+  const signSegment = shell.querySelector('[data-counter-sign-segment="g"]');
+  if (signSegment instanceof HTMLElement) {
+    signSegment.classList.toggle('is-active', normalizedValue < 0);
+  }
+  const digitElements = shell.querySelectorAll('.table-counter-digit[data-counter-digit-index]');
+  for (let index = 0; index < digitElements.length; index += 1) {
+    const digitElement = digitElements[index];
+    const digitChar = absoluteDigits[index] || '0';
+    const isLeadingZero = shouldHideLeadingZeros && index < firstNonZeroIndex;
+    setCounterDigitSegments(digitElement, isLeadingZero ? null : Number(digitChar));
+  }
+}
+
 function renderDieFace(dieId, die, dieType, faceValue, dieState) {
   if (!(die instanceof HTMLElement)) {
     return;
@@ -7097,6 +7379,12 @@ function renderDieFace(dieId, die, dieType, faceValue, dieState) {
     registerMediaEmbedController(dieId, provider, sourceUrl, iframe);
     return;
   }
+  if (dieType === 'counter') {
+    teardownMediaController(dieId);
+    face.classList.remove('table-label-text');
+    renderCounterFaceValue(dieId, dieState);
+    return;
+  }
   teardownMediaController(dieId);
   face.classList.remove('table-label-text');
   face.textContent = '';
@@ -7131,6 +7419,44 @@ function renderDieFace(dieId, die, dieType, faceValue, dieState) {
     sideImage.setAttribute('class', 'table-coin-sprite');
     sideImage.setAttribute('style', `image-rendering: ${getMonsPieceImageRendering()}; pointer-events: none;`);
     svg.appendChild(sideImage);
+    return;
+  }
+
+  if (dieType === 'marble') {
+    const gradientStops = getMarbleGradientStops(dieState?.marbleHue);
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const radialGradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+    radialGradient.setAttribute('id', `marbleGradient-${dieId}`);
+    radialGradient.setAttribute('cx', '32%');
+    radialGradient.setAttribute('cy', '28%');
+    radialGradient.setAttribute('r', '72%');
+    for (const stopSpec of gradientStops) {
+      const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop.setAttribute('offset', stopSpec.offset);
+      stop.setAttribute('stop-color', stopSpec.color);
+      radialGradient.appendChild(stop);
+    }
+    defs.appendChild(radialGradient);
+    svg.appendChild(defs);
+
+    const shell = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shell.setAttribute('cx', '50');
+    shell.setAttribute('cy', '50');
+    shell.setAttribute('r', '41');
+    shell.setAttribute('fill', `url(#marbleGradient-${dieId})`);
+    shell.setAttribute('stroke', 'rgba(247, 243, 232, 0.72)');
+    shell.setAttribute('stroke-width', '1.4');
+    svg.appendChild(shell);
+
+    const shine = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    shine.setAttribute('cx', '39');
+    shine.setAttribute('cy', '34');
+    shine.setAttribute('rx', '16');
+    shine.setAttribute('ry', '10');
+    shine.setAttribute('fill', 'rgba(255,255,255,0.72)');
+    shine.setAttribute('opacity', '0.82');
+    shine.setAttribute('class', 'table-marble-shine');
+    svg.appendChild(shine);
     return;
   }
 
@@ -7196,6 +7522,7 @@ function renderDieElement(dieId) {
   const heldByOther = Boolean(dieState.holderClientId) && dieState.holderClientId !== localClientId;
   if (selectedDiceIds.has(dieId) && dieState.holderClientId !== localClientId) {
     selectedDiceIds.delete(dieId);
+    syncSelectionDeleteButtonUi();
   }
   if (isHeld) {
     const overlayLayer = ensureHeldCardLayer();
@@ -7216,6 +7543,7 @@ function renderDieElement(dieId) {
   const rolling = isDieRolling(dieState, now);
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
+  const isCounter = dieType === 'counter';
   const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
   const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
   if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
@@ -7225,6 +7553,7 @@ function renderDieElement(dieId) {
   const isLabelLocked = isLabelDieLocked(dieState);
   if (isLabelLocked && selectedDiceIds.has(dieId)) {
     selectedDiceIds.delete(dieId);
+    syncSelectionDeleteButtonUi();
   }
   const labelRotationDeg = isLabel ? normalizeStickerRotationDegrees(dieState.labelRotation) : 0;
   die.style.setProperty('--die-rotation-deg', `${labelRotationDeg}deg`);
@@ -7257,11 +7586,40 @@ function renderDieElement(dieId) {
     !drawModeEnabled &&
     !deleteModeEnabled;
   const canResizeDie = canResizeLabel || canResizeMedia;
+  const marbleSpeed =
+    dieType === 'marble'
+      ? Math.hypot(Number(dieState?.velocityX) || 0, Number(dieState?.velocityY) || 0)
+      : 0;
+  const marbleWarbleStrength =
+    dieType === 'marble'
+      ? clamp(
+        (marbleSpeed - MARBLE_WARBLE_SPEED_THRESHOLD) /
+        Math.max(1, MARBLE_WARBLE_SPEED_MAX - MARBLE_WARBLE_SPEED_THRESHOLD),
+        0,
+        1
+      )
+      : 0;
   die.classList.toggle('table-die-d20', dieType === 'd20');
   die.classList.toggle('table-die-d6', dieType === 'd6');
   die.classList.toggle('table-die-coin', dieType === 'coin');
+  die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
+  die.classList.toggle('table-die-counter', isCounter);
+  if (isCounter) {
+    const counterControlFontSize = clamp(
+      screenWidth / COUNTER_CONTROL_FONT_WIDTH_DIVISOR,
+      COUNTER_CONTROL_FONT_MIN_PX,
+      COUNTER_CONTROL_FONT_MAX_PX
+    );
+    die.style.setProperty('--counter-control-font-size', `${counterControlFontSize.toFixed(2)}px`);
+    die.classList.toggle('is-counter-controls-hidden', screenWidth <= COUNTER_CONTROL_LABEL_HIDE_SCREEN_WIDTH);
+  } else {
+    die.style.removeProperty('--counter-control-font-size');
+    die.classList.remove('is-counter-controls-hidden');
+  }
+  die.classList.toggle('is-marble-moving', dieType === 'marble' && dieState.moving === true);
+  die.classList.toggle('is-marble-fast', dieType === 'marble' && dieState.moving === true && marbleWarbleStrength > 0.001);
   die.classList.toggle('is-label-locked', isLabelLocked);
   die.classList.toggle('is-label-lockable', canToggleLabelLock);
   die.classList.toggle('is-held-by-self', heldBySelf);
@@ -7300,8 +7658,19 @@ function renderDieElement(dieId) {
     die.setAttribute('aria-label', 'label');
   } else if (dieType === 'media') {
     die.setAttribute('aria-label', 'media');
+  } else if (dieType === 'counter') {
+    die.setAttribute('aria-label', 'counter');
+  } else if (dieType === 'marble') {
+    die.setAttribute('aria-label', 'marble');
   } else {
     die.setAttribute('aria-label', 'dice');
+  }
+  if (dieType === 'marble') {
+    die.style.setProperty('--marble-hue', String(normalizeMarbleHue(dieState.marbleHue)));
+    die.style.setProperty('--marble-warble-strength', marbleWarbleStrength.toFixed(3));
+  } else {
+    die.style.removeProperty('--marble-hue');
+    die.style.removeProperty('--marble-warble-strength');
   }
   if (dieType === 'label') {
     const face = die.querySelector('.table-die-face');
@@ -7971,7 +8340,9 @@ function renderCardElement(cardId) {
 
   const handOwnerClientId = getCardHandOwnerId(cardState);
   if (handOwnerClientId) {
-    selectedCardIds.delete(cardId);
+    if (selectedCardIds.delete(cardId)) {
+      syncSelectionDeleteButtonUi();
+    }
     removeTableCardElement(cardId);
     if (handOwnerClientId !== localPlayerToken) {
       removeHandCardElement(cardId);
@@ -8013,6 +8384,7 @@ function renderCardElement(cardId) {
   const isHeld = Boolean(cardState.holderClientId);
   if (selectedCardIds.has(cardId) && cardState.holderClientId !== localClientId) {
     selectedCardIds.delete(cardId);
+    syncSelectionDeleteButtonUi();
   }
   if (isHeld) {
     const overlayLayer = ensureHeldCardLayer();
@@ -8059,6 +8431,7 @@ function renderCardElement(cardId) {
     : 'auto';
   if (isComponentLocked && selectedCardIds.has(cardId)) {
     selectedCardIds.delete(cardId);
+    syncSelectionDeleteButtonUi();
   }
   const isResizableImage = isResizableImageComponentCard(cardState);
   const isResizingThisCard = resizingImageCardId === cardId;
@@ -8224,6 +8597,16 @@ function getGridLineSizeForScale(scale) {
   const lowZoomBoost = clamp((0.34 - scale) / 0.14, 0, 1) * 0.2;
   const targetScreenLineSize = 1 + lowZoomBoost;
   return clamp(targetScreenLineSize / scale, MIN_WORLD_GRID_LINE_SIZE, MAX_WORLD_GRID_LINE_SIZE);
+}
+
+function getGridDotOpacityFactorForScale(scale) {
+  const normalized = clamp((scale - MIN_SCALE) / 0.9, 0, 1);
+  return clamp(0.52 - normalized * 0.2, 0.32, 0.52);
+}
+
+function getGridDotScaleFactorForScale(scale) {
+  const normalized = clamp((scale - MIN_SCALE) / 0.28, 0, 1);
+  return clamp(0.56 + normalized * 0.44, 0.56, 1);
 }
 
 function snapScreenTranslation(value) {
@@ -8459,8 +8842,12 @@ function applyCamera() {
   if (playspaceLayer) {
     const gridLineSize = getGridLineSizeForScale(camera.scale);
     const gridCellSize = getGridCellSizeForScale(camera.scale);
+    const gridDotOpacityFactor = getGridDotOpacityFactorForScale(camera.scale);
+    const gridDotScaleFactor = getGridDotScaleFactorForScale(camera.scale);
     playspaceLayer.style.setProperty('--grid-line-size', `${gridLineSize}px`);
     playspaceLayer.style.setProperty('--grid-cell-size', `${gridCellSize}px`);
+    playspaceLayer.style.setProperty('--grid-dot-opacity-factor', gridDotOpacityFactor.toFixed(3));
+    playspaceLayer.style.setProperty('--grid-dot-scale-factor', gridDotScaleFactor.toFixed(3));
     playspaceLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
   }
   if (drawingLayer) {
@@ -8480,6 +8867,7 @@ function applyCamera() {
     renderSelectionBox({ x: startWorldX, y: startWorldY }, { x: endWorldX, y: endWorldY });
   }
   renderAllDots();
+  syncMarbleFlickArrow();
   scheduleCameraViewPersist();
 }
 
@@ -8595,6 +8983,7 @@ if (storedLightMode === null) {
   localStorage.setItem(LIGHT_MODE_KEY, '1');
 }
 setLightMode(hasLightModeEnabled, { animate: false });
+applyRoomBackgroundPattern(roomBackgroundPattern);
 if (lightModeToggle) {
   lightModeToggle.checked = hasLightModeEnabled;
   lightModeToggle.addEventListener('change', () => {
@@ -8910,6 +9299,34 @@ function isMediaAddModalOpen() {
   return Boolean(mediaAddModal && !mediaAddModal.classList.contains('hidden'));
 }
 
+function isRoomSettingsModalOpen() {
+  return Boolean(roomSettingsModal && !roomSettingsModal.classList.contains('hidden'));
+}
+
+function openRoomSettingsMenu() {
+  if (!roomSettingsModal) {
+    return;
+  }
+  if (deleteModeEnabled) {
+    setDeleteModeEnabled(false);
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeImageAddModal();
+  closeStickerAddModal();
+  closeMediaAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  roomSettingsModal.classList.remove('hidden');
+}
+
+function closeRoomSettingsMenu() {
+  if (!roomSettingsModal) {
+    return;
+  }
+  roomSettingsModal.classList.add('hidden');
+}
+
 function setMediaAddValidationMessage(message = '', options = {}) {
   const normalizedMessage = String(message || '').trim();
   if (mediaAddError) {
@@ -8949,11 +9366,6 @@ function getStickerCategoryFilterSet(packKey = activeStickerPackKey) {
   for (const category of Array.from(filters)) {
     if (!allowedCategories.includes(category)) {
       filters.delete(category);
-    }
-  }
-  if (filters.size === 0 && allowedCategories.length > 0) {
-    for (const category of allowedCategories) {
-      filters.add(category);
     }
   }
   return filters;
@@ -9118,10 +9530,21 @@ function toggleStickerCategoryFilter(category) {
   if (!(filters instanceof Set)) {
     return;
   }
-  if (filters.has(normalizedCategory)) {
+  const allEnabled =
+    allowedCategories.length > 0 &&
+    allowedCategories.every((allowedCategory) => filters.has(allowedCategory));
+  if (allEnabled) {
+    filters.clear();
+    filters.add(normalizedCategory);
+  } else if (filters.has(normalizedCategory)) {
     filters.delete(normalizedCategory);
   } else {
     filters.add(normalizedCategory);
+  }
+  if (filters.size === 0) {
+    for (const allowedCategory of allowedCategories) {
+      filters.add(allowedCategory);
+    }
   }
   syncStickerCategoryTabsUi();
   ensureStickerAddGallery();
@@ -9354,6 +9777,7 @@ function openAssetMenu() {
   closeMediaAddModal();
   closeMonsItemChoiceModal();
   closeGameOptionsMenu();
+  closeRoomSettingsMenu();
   setAssetMenuView(activeAssetMenuView);
   syncClearTableButtonState();
   assetMenuModal.classList.remove('hidden');
@@ -9491,6 +9915,7 @@ function openGameOptionsMenu(targetKey, targetId = '') {
     return;
   }
   closeMonsItemChoiceModal();
+  closeRoomSettingsMenu();
   closeAssetMenu();
   if (targetKey === MONS_GAME_KEY) {
     const normalizedMonsGameId = normalizeMonsGameId(targetId || activeMonsGameId || MONS_GAME_KEY);
@@ -9589,15 +10014,23 @@ function openInstanceWarningModal() {
 }
 
 function hasGameInstanceOnTable(gameKey) {
-  if (gameKey === MONS_GAME_KEY) {
-    for (const gameState of monsGameStatesById.values()) {
-      if (gameState && gameState.enabled !== false) {
-        return true;
-      }
-    }
+  if (gameKey !== DECK_KEY) {
     return false;
   }
-  return getDeckIdsInRoom().length > 0;
+  if (deckStatesById.size > 0) {
+    return true;
+  }
+  for (const cardState of cards.values()) {
+    if (!cardState || typeof cardState !== 'object') {
+      continue;
+    }
+    // Ignore user-added image/sticker components when checking for cool jpegs duplicates.
+    if (isVisualImageComponentCard(cardState)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
 }
 
 async function confirmAdditionalInstanceWarningIfNeeded(gameKey) {
@@ -9637,6 +10070,31 @@ assetMenuButton?.addEventListener('click', () => {
   openAssetMenu();
 });
 
+roomSettingsButton?.addEventListener('click', () => {
+  openRoomSettingsMenu();
+});
+
+roomSettingsCloseButton?.addEventListener('click', () => {
+  closeRoomSettingsMenu();
+});
+
+roomBackgroundPatternRow?.addEventListener('click', (event) => {
+  const target =
+    event.target instanceof Element ? event.target.closest('.room-settings-pattern-button[data-room-background-pattern]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  const nextPattern = normalizeRoomBackgroundPattern(target.getAttribute('data-room-background-pattern'));
+  if (nextPattern === roomBackgroundPattern) {
+    syncRoomBackgroundPatternUi();
+    return;
+  }
+  setRoomBackgroundPattern(nextPattern).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
 assetMenuCloseButton?.addEventListener('click', () => {
   closeAssetMenu();
 });
@@ -9664,6 +10122,15 @@ deleteModeUndoButton?.addEventListener('click', () => {
     return;
   }
   undoDeleteModeAction().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+deleteSelectionButton?.addEventListener('click', () => {
+  if (deleteSelectionButton.disabled) {
+    return;
+  }
+  deleteSelectedElements().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -9729,10 +10196,6 @@ coolJpegsTile?.addEventListener('click', async () => {
 });
 
 superMetalMonsTile?.addEventListener('click', async () => {
-  const shouldContinue = await confirmAdditionalInstanceWarningIfNeeded(MONS_GAME_KEY);
-  if (!shouldContinue) {
-    return;
-  }
   closeAssetMenu();
   spawnSuperMetalMonsBoard().catch((error) => {
     console.error(error);
@@ -9746,6 +10209,20 @@ diceComponentTile?.addEventListener('click', () => {
 coinComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnCoin().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+counterComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnCounter().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+marbleComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnMarble().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -10022,6 +10499,11 @@ gameOptionsModal?.addEventListener('pointerdown', (event) => {
     closeGameOptionsMenu();
   }
 });
+roomSettingsModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === roomSettingsModal) {
+    closeRoomSettingsMenu();
+  }
+});
 monsItemChoiceModal?.addEventListener('pointerdown', (event) => {
   if (event.target === monsItemChoiceModal) {
     closeMonsItemChoiceModal();
@@ -10081,6 +10563,10 @@ window.addEventListener('keydown', (event) => {
   }
   if (gameOptionsModal && !gameOptionsModal.classList.contains('hidden')) {
     closeGameOptionsMenu();
+    return;
+  }
+  if (roomSettingsModal && !roomSettingsModal.classList.contains('hidden')) {
+    closeRoomSettingsMenu();
     return;
   }
   if (assetMenuModal && !assetMenuModal.classList.contains('hidden')) {
@@ -10233,6 +10719,92 @@ function initializeLabelTileLetterShuffle(tile) {
 
   tile.addEventListener('pointerleave', () => {
     tile.dataset.labelTileShufflePlayed = '0';
+    stopShuffle();
+  });
+}
+
+function setCounterTileIconDigits(tile, leftDigit = 0, rightDigit = 1) {
+  if (!tile) {
+    return;
+  }
+  const icon = tile.querySelector('.asset-component-icon-counter');
+  if (!(icon instanceof SVGElement)) {
+    return;
+  }
+  const normalizedDigits = [
+    clamp(Math.round(Number(leftDigit) || 0), 0, 9),
+    clamp(Math.round(Number(rightDigit) || 0), 0, 9)
+  ];
+  const activeSets = normalizedDigits.map((digit) => new Set(COUNTER_DIGIT_SEGMENTS[digit] || COUNTER_DIGIT_SEGMENTS[0]));
+  const segmentNodes = icon.querySelectorAll('[data-counter-icon-digit][data-counter-icon-segment]');
+  for (const segmentNode of segmentNodes) {
+    if (!(segmentNode instanceof SVGPathElement)) {
+      continue;
+    }
+    const digitIndex = Number(segmentNode.getAttribute('data-counter-icon-digit'));
+    const segmentKey = String(segmentNode.getAttribute('data-counter-icon-segment') || '').trim().toLowerCase();
+    const isActive =
+      Number.isInteger(digitIndex) &&
+      digitIndex >= 0 &&
+      digitIndex < activeSets.length &&
+      activeSets[digitIndex].has(segmentKey);
+    segmentNode.style.opacity = isActive ? '1' : '0';
+  }
+}
+
+function initializeCounterTileDigitShuffle(tile) {
+  if (!tile) {
+    return;
+  }
+  const segmentNodes = tile.querySelectorAll('.asset-component-icon-counter [data-counter-icon-digit][data-counter-icon-segment]');
+  if (segmentNodes.length === 0) {
+    return;
+  }
+  const shuffleDurationMs = 760;
+  const shuffleStepMs = 95;
+  let shuffleIntervalId = 0;
+  let shuffleTimeoutId = 0;
+  let shuffleActive = false;
+  let countValue = 1;
+
+  const stopShuffle = () => {
+    if (shuffleIntervalId) {
+      window.clearInterval(shuffleIntervalId);
+      shuffleIntervalId = 0;
+    }
+    if (shuffleTimeoutId) {
+      window.clearTimeout(shuffleTimeoutId);
+      shuffleTimeoutId = 0;
+    }
+    shuffleActive = false;
+    setCounterTileIconDigits(tile, 0, 1);
+  };
+
+  tile.dataset.counterTileShufflePlayed = '0';
+  setCounterTileIconDigits(tile, 0, 1);
+
+  tile.addEventListener('pointerenter', () => {
+    if (shuffleActive || tile.dataset.counterTileShufflePlayed === '1') {
+      return;
+    }
+    tile.dataset.counterTileShufflePlayed = '1';
+    shuffleActive = true;
+    countValue = 1;
+    const step = () => {
+      countValue = (countValue + 1) % 100;
+      const tens = Math.floor(countValue / 10);
+      const ones = countValue % 10;
+      setCounterTileIconDigits(tile, tens, ones);
+    };
+    step();
+    shuffleIntervalId = window.setInterval(step, shuffleStepMs);
+    shuffleTimeoutId = window.setTimeout(() => {
+      stopShuffle();
+    }, shuffleDurationMs);
+  });
+
+  tile.addEventListener('pointerleave', () => {
+    tile.dataset.counterTileShufflePlayed = '0';
     stopShuffle();
   });
 }
@@ -10482,11 +11054,14 @@ initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
+initializeTileTilt(counterComponentTile);
 initializeTileTilt(labelComponentTile);
 initializeTileTilt(imageComponentTile);
 initializeTileTilt(stickerComponentTile);
+initializeTileTilt(marbleComponentTile);
 initializeTileTilt(mediaComponentTile);
 initializeDiceTilePipShuffle(diceComponentTile);
+initializeCounterTileDigitShuffle(counterComponentTile);
 initializeLabelTileLetterShuffle(labelComponentTile);
 initializeStickerTileIconShuffle(stickerComponentTile);
 loadStickerManifestIfNeeded().catch(() => {});
@@ -10494,6 +11069,29 @@ loadStickerManifestIfNeeded().catch(() => {});
 function normalizeHexColor(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : '#ff7a59';
+}
+
+function normalizeMarbleHue(value) {
+  const numeric = Math.round(Number(value));
+  if (!Number.isFinite(numeric)) {
+    return MARBLE_DEFAULT_HUE;
+  }
+  const wrapped = ((numeric % 360) + 360) % 360;
+  return clamp(wrapped, MARBLE_HUE_MIN, MARBLE_HUE_MAX);
+}
+
+function getRandomMarbleHue() {
+  return getRandomIntInclusive(MARBLE_HUE_MIN, MARBLE_HUE_MAX);
+}
+
+function getMarbleGradientStops(hueValue) {
+  const hue = normalizeMarbleHue(hueValue);
+  return [
+    { offset: '0%', color: `hsla(${hue}, 100%, 97%, 0.94)` },
+    { offset: '34%', color: `hsla(${hue}, 78%, 82%, 0.72)` },
+    { offset: '70%', color: `hsla(${hue}, 76%, 54%, 0.93)` },
+    { offset: '100%', color: `hsla(${hue}, 76%, 34%, 0.98)` }
+  ];
 }
 
 function colorFromId(id) {
@@ -10555,6 +11153,40 @@ function normalizeRoomTitle(value) {
     .trim()
     .slice(0, ROOM_TITLE_MAX_LENGTH);
   return normalized || defaultRoomTitle;
+}
+
+function normalizeRoomBackgroundPattern(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === ROOM_BACKGROUND_PATTERN_DOTS) {
+    return ROOM_BACKGROUND_PATTERN_DOTS;
+  }
+  if (normalized === ROOM_BACKGROUND_PATTERN_NOISE) {
+    return ROOM_BACKGROUND_PATTERN_NOISE;
+  }
+  if (normalized === ROOM_BACKGROUND_PATTERN_GREENSCREEN) {
+    return ROOM_BACKGROUND_PATTERN_GREENSCREEN;
+  }
+  if (normalized === ROOM_BACKGROUND_PATTERN_PLAIN) {
+    return ROOM_BACKGROUND_PATTERN_PLAIN;
+  }
+  return ROOM_BACKGROUND_PATTERN_GRID;
+}
+
+function syncRoomBackgroundPatternUi() {
+  for (const button of roomBackgroundPatternButtons) {
+    const pattern = normalizeRoomBackgroundPattern(button.getAttribute('data-room-background-pattern'));
+    const isActive = pattern === roomBackgroundPattern;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  }
+}
+
+function applyRoomBackgroundPattern(nextPattern) {
+  roomBackgroundPattern = normalizeRoomBackgroundPattern(nextPattern);
+  if (tableRoot) {
+    tableRoot.dataset.playspacePattern = roomBackgroundPattern;
+  }
+  syncRoomBackgroundPatternUi();
 }
 
 function generateOwnerToken() {
@@ -10839,7 +11471,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -10852,7 +11484,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -11134,6 +11766,7 @@ shieldPointerEvents(copyLinkButton);
 shieldPointerEvents(bottomRightControls);
 shieldPointerEvents(deleteModeUndoButton);
 shieldPointerEvents(deleteModeCancelButton);
+shieldPointerEvents(deleteSelectionButton);
 shieldPointerEvents(assetMenuButton);
 shieldPointerEvents(assetMenuModal);
 shieldPointerEvents(assetMenuCloseButton);
@@ -11141,9 +11774,11 @@ shieldPointerEvents(assetMenuTabGameButton);
 shieldPointerEvents(assetMenuTabComponentButton);
 shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
+shieldPointerEvents(counterComponentTile);
 shieldPointerEvents(labelComponentTile);
 shieldPointerEvents(imageComponentTile);
 shieldPointerEvents(stickerComponentTile);
+shieldPointerEvents(marbleComponentTile);
 shieldPointerEvents(mediaComponentTile);
 shieldPointerEvents(diceAddModal);
 shieldPointerEvents(diceAddBackButton);
@@ -11194,6 +11829,9 @@ shieldPointerEvents(gameOptionsCloseButton);
 shieldPointerEvents(gameOptionsCoverDrawingsToggle);
 shieldPointerEvents(gameOptionsResetButton);
 shieldPointerEvents(gameOptionsPutAwayButton);
+shieldPointerEvents(roomSettingsButton);
+shieldPointerEvents(roomSettingsModal);
+shieldPointerEvents(roomSettingsCloseButton);
 shieldPointerEvents(monsItemChoiceModal);
 shieldPointerEvents(monsItemChoiceBombButton);
 shieldPointerEvents(monsItemChoicePotionButton);
@@ -11316,6 +11954,7 @@ async function startRealtimeSession() {
       return {
         ...baseMeta,
         title: normalizeRoomTitle(baseMeta.title),
+        backgroundPattern: normalizeRoomBackgroundPattern(baseMeta.backgroundPattern),
         ownerToken: currentOwnerToken || ownerToken,
         drawingsLiftCutoffAt:
           Number.isFinite(currentDrawingsLiftCutoffAt) && currentDrawingsLiftCutoffAt > 0
@@ -11350,6 +11989,21 @@ async function startRealtimeSession() {
     );
     if (!result.committed) {
       throw new Error('Only the room creator can rename this room.');
+    }
+  };
+
+  setRoomBackgroundPattern = async (nextPattern) => {
+    const normalizedPattern = normalizeRoomBackgroundPattern(nextPattern);
+    const previousPattern = roomBackgroundPattern;
+    applyRoomBackgroundPattern(normalizedPattern);
+    try {
+      await update(roomMetaRef, {
+        backgroundPattern: normalizedPattern,
+        updatedAt: Date.now()
+      });
+    } catch (error) {
+      applyRoomBackgroundPattern(previousPattern);
+      throw error;
     }
   };
 
@@ -11456,6 +12110,11 @@ async function startRealtimeSession() {
   let auctionBidUiRafQueued = false;
   let activeAuctionCardIdForUi = '';
   let previousActiveAuctionCardId = '';
+  let marbleFlickState = null;
+  let marbleFlickSafetyTimerId = 0;
+  let marbleFlickArrowElement = null;
+  let marbleMotionRafId = 0;
+  const marbleMotionByDieId = new Map();
   const pendingDeleteKeys = new Set();
   const deleteModeUndoHistory = [];
   let deleteModeUndoPending = false;
@@ -11954,6 +12613,50 @@ async function startRealtimeSession() {
     }
   }
 
+  deleteSelectedElements = async () => {
+    if (deleteModeEnabled || !hasAnyGroupSelection()) {
+      syncSelectionDeleteButtonUi();
+      return;
+    }
+
+    const selectedDeckIdList = Array.from(selectedDeckIds).map((deckId) => normalizeDeckId(deckId));
+    const selectedDeckIdSet = new Set(selectedDeckIdList);
+    const selectedCardIdList = Array.from(selectedCardIds).filter((cardId) => {
+      const cardState = cards.get(cardId);
+      if (!cardState) {
+        return false;
+      }
+      return !selectedDeckIdSet.has(normalizeDeckId(cardState.deckId || DECK_KEY));
+    });
+    const selectedDieIdList = Array.from(selectedDiceIds);
+    const selectedMonsGameIdList = Array.from(selectedMonsGameIds).map((gameId) => normalizeMonsGameId(gameId));
+
+    releaseAllSelectedObjects();
+    syncSelectionDeleteButtonUi();
+
+    const deleteJobs = [];
+    for (const cardId of selectedCardIdList) {
+      deleteJobs.push(deleteCardInRemoveMode(cardId));
+    }
+    for (const dieId of selectedDieIdList) {
+      deleteJobs.push(deleteDieInRemoveMode(dieId));
+    }
+    for (const deckId of selectedDeckIdList) {
+      deleteJobs.push(deleteDeckInRemoveMode(deckId));
+    }
+    for (const gameId of selectedMonsGameIdList) {
+      deleteJobs.push(deleteMonsGameInRemoveMode(gameId));
+    }
+
+    if (deleteJobs.length === 0) {
+      syncSelectionDeleteButtonUi();
+      return;
+    }
+
+    await Promise.all(deleteJobs);
+    syncSelectionDeleteButtonUi();
+  };
+
   function isLabelDieState(dieState) {
     return normalizeDieType(dieState?.type) === 'label';
   }
@@ -11964,6 +12667,58 @@ async function startRealtimeSession() {
 
   function isMediaDieState(dieState) {
     return normalizeDieType(dieState?.type) === 'media';
+  }
+
+  function isCounterDieState(dieState) {
+    return normalizeDieType(dieState?.type) === 'counter';
+  }
+
+  function isMarbleDieState(dieState) {
+    return normalizeDieType(dieState?.type) === 'marble';
+  }
+
+  function getMarbleSpeed(dieState) {
+    if (!isMarbleDieState(dieState)) {
+      return 0;
+    }
+    const velocityX = Number(dieState.velocityX) || 0;
+    const velocityY = Number(dieState.velocityY) || 0;
+    return Math.hypot(velocityX, velocityY);
+  }
+
+  function isMarbleEffectivelyMoving(dieState) {
+    return isMarbleDieState(dieState) && dieState.moving === true && getMarbleSpeed(dieState) > MARBLE_RESTART_BLOCK_SPEED;
+  }
+
+  function settleMarbleIfNearlyStill(dieId, dieState, speedLimit = MARBLE_RESTART_BLOCK_SPEED) {
+    if (!isMarbleDieState(dieState)) {
+      return false;
+    }
+    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+      return false;
+    }
+    const speed = getMarbleSpeed(dieState);
+    if (dieState.moving !== true && speed <= MARBLE_FORCE_STOP_SPEED) {
+      return false;
+    }
+    if (speed > speedLimit) {
+      return false;
+    }
+    const stopPatch = {
+      moving: false,
+      velocityX: 0,
+      velocityY: 0,
+      holderClientId: null
+    };
+    patchLocalDie(dieId, stopPatch);
+    queueDiePatch(dieId, stopPatch);
+    marbleMotionByDieId.delete(dieId);
+    if (dieState.holderClientId === clientId) {
+      releaseDieLock(dieId).catch((error) => {
+        console.error(error);
+      });
+    }
+    return true;
   }
 
   function isLabelDieEditing(dieId) {
@@ -12337,7 +13092,8 @@ async function startRealtimeSession() {
       groupDragState
     );
     const hasSelectedObjects = hasAnyGroupSelection();
-    if (!hasCardDrag && !hasSelectedObjects) {
+    const hasMarbleFlick = Boolean(marbleFlickState);
+    if (!hasCardDrag && !hasSelectedObjects && !hasMarbleFlick) {
       return;
     }
 
@@ -12388,12 +13144,14 @@ async function startRealtimeSession() {
     for (const selectedId of selectedDieIds) {
       renderDieElement(selectedId);
     }
+    syncSelectionDeleteButtonUi();
 
     cardDragState = null;
     cardResizeState = null;
     cardRotateState = null;
     resizingImageCardId = '';
     rotatingStickerCardId = '';
+    cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
     dieDragState = null;
     labelResizeState = null;
     labelRotateState = null;
@@ -12485,6 +13243,9 @@ async function startRealtimeSession() {
     }
     for (const [dieId, dieState] of diceById.entries()) {
       if (!dieState || dieState.holderClientId !== clientId) {
+        continue;
+      }
+      if (isMarbleDieState(dieState) && (dieState.moving === true || marbleMotionByDieId.has(dieId))) {
         continue;
       }
       if (
@@ -13846,6 +14607,7 @@ async function startRealtimeSession() {
     drawShapePointerState = null;
     drawShapeAnchorState = null;
 
+    cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
     cancelActiveCardInteractions();
     if (hasAnyGroupSelection()) {
       releaseAllSelectedObjects();
@@ -13907,6 +14669,7 @@ async function startRealtimeSession() {
     if (deleteModeEnabled === nextEnabled) {
       tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
       syncDeleteModeActionsUi();
+      syncSelectionDeleteButtonUi();
       syncDeleteCursorLock();
       syncLocalModeCursors();
       return;
@@ -13916,6 +14679,7 @@ async function startRealtimeSession() {
       if (drawModeEnabled) {
         setDrawModeEnabled(false);
       }
+      cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
       cancelActiveCardInteractions();
       if (hasAnyGroupSelection()) {
         releaseAllSelectedObjects();
@@ -13930,6 +14694,7 @@ async function startRealtimeSession() {
     deleteModeEnabled = nextEnabled;
     tableRoot?.classList.toggle('is-delete-mode', nextEnabled);
     syncDeleteModeActionsUi();
+    syncSelectionDeleteButtonUi();
     syncDeleteCursorLock();
     syncLocalModeCursors();
     if (nextEnabled) {
@@ -14624,6 +15389,21 @@ async function startRealtimeSession() {
     return selectedCardIds.size > 0 || selectedDiceIds.size > 0 || selectedDeckIds.size > 0 || selectedMonsGameIds.size > 0;
   }
 
+  function syncSelectionDeleteButtonState() {
+    if (!deleteSelectionButton) {
+      return;
+    }
+    const hasSelection = hasAnyGroupSelection();
+    const visible = hasSelection && !deleteModeEnabled;
+    deleteSelectionButton.classList.toggle('hidden', !visible);
+    deleteSelectionButton.disabled = !visible;
+    deleteSelectionButton.classList.toggle('is-disabled', !visible);
+    deleteSelectionButton.setAttribute('title', visible ? 'delete selected' : 'no selected elements');
+  }
+
+  syncSelectionDeleteButtonUi = syncSelectionDeleteButtonState;
+  syncSelectionDeleteButtonUi();
+
   function releaseSelectedCards() {
     const selectedIds = Array.from(selectedCardIds);
     selectedCardIds.clear();
@@ -14651,6 +15431,7 @@ async function startRealtimeSession() {
         renderCardElement(cardId);
       }
     }
+    syncSelectionDeleteButtonUi();
   }
 
   function releaseSelectedDecks() {
@@ -14672,6 +15453,7 @@ async function startRealtimeSession() {
     if (shouldRender) {
       renderAllCards();
     }
+    syncSelectionDeleteButtonUi();
   }
 
   function releaseSelectedDice() {
@@ -14689,6 +15471,7 @@ async function startRealtimeSession() {
         renderDieElement(dieId);
       }
     }
+    syncSelectionDeleteButtonUi();
   }
 
   function releaseSelectedMonsBoards() {
@@ -14710,6 +15493,7 @@ async function startRealtimeSession() {
     if (shouldRender) {
       renderMonsBoard();
     }
+    syncSelectionDeleteButtonUi();
   }
 
   function releaseAllSelectedObjects() {
@@ -14717,6 +15501,7 @@ async function startRealtimeSession() {
     releaseSelectedDice();
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
+    syncSelectionDeleteButtonUi();
   }
 
   async function applySelectionFromBox(startWorld, endWorld) {
@@ -14866,6 +15651,7 @@ async function startRealtimeSession() {
       patchLocalMonsGame({ holderClientId: clientId }, gameId);
       queueMonsPatch({ holderClientId: clientId }, gameId);
     }
+    syncSelectionDeleteButtonUi();
   }
 
   function buildGroupDragBase() {
@@ -15369,6 +16155,7 @@ async function startRealtimeSession() {
     if (finishedGroupDrag.anchorType === 'card' && canCardEnterHand(anchorCardForHandDrop) && isClientInHandDropRegion(event.clientY)) {
       const orderedSelectedIds = getCardsSortedByZ(selectedIds);
       selectedCardIds.clear();
+      syncSelectionDeleteButtonUi();
       let nextHandZ = getTopHandZ(localPlayerToken) + 1;
       for (const cardId of orderedSelectedIds) {
         const currentCard = cards.get(cardId);
@@ -15457,6 +16244,7 @@ async function startRealtimeSession() {
 
     if (shouldStackOnAuction && auctionTargetDeckId) {
       selectedCardIds.clear();
+      syncSelectionDeleteButtonUi();
       let nextAuctionZ = getAuctionTopZ(auctionTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
         const patch = buildAuctionPlacementPatch(nextAuctionZ, auctionTargetDeckId);
@@ -15474,6 +16262,7 @@ async function startRealtimeSession() {
 
     if (shouldStackOnDiscard && discardTargetDeckId) {
       selectedCardIds.clear();
+      syncSelectionDeleteButtonUi();
       let nextDiscardZ = getDiscardTopZ(discardTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
         const patch = buildDiscardPlacementPatch(nextDiscardZ, discardTargetDeckId);
@@ -15496,6 +16285,7 @@ async function startRealtimeSession() {
         return true;
       }
       selectedCardIds.clear();
+      syncSelectionDeleteButtonUi();
       let nextDeckZ = getDeckTopZ(deckTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
         const patch = {
@@ -17557,7 +18347,7 @@ async function startRealtimeSession() {
             continue;
           }
           const normalized = normalizeDicePayload(currentDie);
-          if (normalized.type === 'label' || normalized.type === 'media') {
+          if (normalized.type === 'label' || normalized.type === 'media' || normalized.type === 'marble' || normalized.type === 'counter') {
             continue;
           }
           if (normalized.holderClientId && normalized.holderClientId !== clientId) {
@@ -17596,11 +18386,715 @@ async function startRealtimeSession() {
     if (isMediaDieState(anchorDieState)) {
       return;
     }
+    if (normalizeDieType(anchorDieState?.type) === 'counter') {
+      return;
+    }
+    if (isMarbleDieState(anchorDieState)) {
+      return;
+    }
     const targetDieIds = getDieRollTargetIds(anchorDieId);
     if (targetDieIds.length === 0) {
       return;
     }
     await rollDice(targetDieIds);
+  }
+
+  function ensureMarbleFlickArrowElement() {
+    if (marbleFlickArrowElement) {
+      return marbleFlickArrowElement;
+    }
+    const arrowHost = cursorLayer || tableRoot;
+    if (!arrowHost) {
+      return marbleFlickArrowElement;
+    }
+    const arrow = document.createElement('div');
+    arrow.className = 'marble-flick-arrow hidden';
+    arrow.setAttribute('aria-hidden', 'true');
+
+    const line = document.createElement('div');
+    line.className = 'marble-flick-arrow-line';
+    arrow.appendChild(line);
+
+    const head = document.createElement('div');
+    head.className = 'marble-flick-arrow-head';
+    arrow.appendChild(head);
+
+    arrowHost.appendChild(arrow);
+    marbleFlickArrowElement = arrow;
+    return marbleFlickArrowElement;
+  }
+
+  function hideMarbleFlickArrowElement() {
+    if (marbleFlickArrowElement) {
+      marbleFlickArrowElement.classList.add('hidden');
+    }
+  }
+
+  syncMarbleFlickArrow = () => {
+    if (!marbleFlickState) {
+      hideMarbleFlickArrowElement();
+      return;
+    }
+    const flickDieState = diceById.get(marbleFlickState.dieId);
+    if (!isMarbleDieState(flickDieState)) {
+      hideMarbleFlickArrowElement();
+      return;
+    }
+    const cursorScreen = getScreenPoint(marbleFlickState.cursorClientX, marbleFlickState.cursorClientY);
+    if (!cursorScreen) {
+      hideMarbleFlickArrowElement();
+      return;
+    }
+    const marbleScreen = worldToScreen({
+      x: flickDieState.x,
+      y: flickDieState.y
+    });
+    const deltaX = marbleScreen.x - cursorScreen.x;
+    const deltaY = marbleScreen.y - cursorScreen.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    if (distance <= 2) {
+      hideMarbleFlickArrowElement();
+      return;
+    }
+    const arrow = ensureMarbleFlickArrowElement();
+    if (!arrow) {
+      return;
+    }
+    arrow.style.left = `${cursorScreen.x}px`;
+    arrow.style.top = `${cursorScreen.y}px`;
+    arrow.style.width = `${distance}px`;
+    arrow.style.transform = `rotate(${Math.atan2(deltaY, deltaX)}rad)`;
+    arrow.classList.remove('hidden');
+  };
+
+  function getMarbleObstacleRects(marbleDieId) {
+    const obstacleRects = [];
+    for (const gameState of monsGameStatesById.values()) {
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
+      const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
+      obstacleRects.push({
+        left: Number(gameState.x) - width / 2,
+        right: Number(gameState.x) + width / 2,
+        top: Number(gameState.y) - height / 2,
+        bottom: Number(gameState.y) + height / 2
+      });
+    }
+    for (const [dieId, dieState] of diceById.entries()) {
+      if (dieId === marbleDieId || !isMediaDieState(dieState)) {
+        continue;
+      }
+      const dimensions = getDieWorldDimensions(dieState);
+      obstacleRects.push({
+        left: dieState.x - dimensions.width / 2,
+        right: dieState.x + dimensions.width / 2,
+        top: dieState.y - dimensions.height / 2,
+        bottom: dieState.y + dimensions.height / 2
+      });
+    }
+    return obstacleRects;
+  }
+
+  function resolveMarbleCollisionWithRect(centerX, centerY, radius, rect) {
+    const closestX = clamp(centerX, rect.left, rect.right);
+    const closestY = clamp(centerY, rect.top, rect.bottom);
+    const deltaX = centerX - closestX;
+    const deltaY = centerY - closestY;
+    const distanceSq = deltaX * deltaX + deltaY * deltaY;
+    if (distanceSq > radius * radius) {
+      return null;
+    }
+    if (distanceSq > 0.000001) {
+      const distance = Math.sqrt(distanceSq);
+      return {
+        normalX: deltaX / distance,
+        normalY: deltaY / distance,
+        penetration: Math.max(0, radius - distance)
+      };
+    }
+
+    const distanceToLeft = Math.abs(centerX - rect.left);
+    const distanceToRight = Math.abs(rect.right - centerX);
+    const distanceToTop = Math.abs(centerY - rect.top);
+    const distanceToBottom = Math.abs(rect.bottom - centerY);
+    const minimumDistance = Math.min(distanceToLeft, distanceToRight, distanceToTop, distanceToBottom);
+    if (minimumDistance === distanceToLeft) {
+      return { normalX: -1, normalY: 0, penetration: radius + distanceToLeft };
+    }
+    if (minimumDistance === distanceToRight) {
+      return { normalX: 1, normalY: 0, penetration: radius + distanceToRight };
+    }
+    if (minimumDistance === distanceToTop) {
+      return { normalX: 0, normalY: -1, penetration: radius + distanceToTop };
+    }
+    return { normalX: 0, normalY: 1, penetration: radius + distanceToBottom };
+  }
+
+  function getMarbleRadiusFromState(marbleState) {
+    if (!isMarbleDieState(marbleState)) {
+      return Math.max(1, DIE_SIZE_MARBLE / 2);
+    }
+    const dimensions = getDieWorldDimensions(marbleState);
+    return Math.max(1, Math.min(dimensions.width, dimensions.height) / 2);
+  }
+
+  function resolveMarbleMarbleCollision(dieId, nextState) {
+    let nextX = nextState.x;
+    let nextY = nextState.y;
+    let velocityX = nextState.velocityX;
+    let velocityY = nextState.velocityY;
+    const marbleState = diceById.get(dieId);
+    if (!isMarbleDieState(marbleState)) {
+      return { x: nextX, y: nextY, velocityX, velocityY };
+    }
+    const radius = getMarbleRadiusFromState(marbleState);
+    const sourceBounds = getDieCenterBounds('marble', radius * 2, radius * 2);
+
+    for (const [otherDieId, otherState] of diceById.entries()) {
+      if (otherDieId === dieId || !isMarbleDieState(otherState)) {
+        continue;
+      }
+
+      const otherHeldByOtherClient = Boolean(otherState.holderClientId) && otherState.holderClientId !== clientId;
+      const canTransferToOther = !otherHeldByOtherClient;
+      const otherRadius = getMarbleRadiusFromState(otherState);
+      const minDistance = radius + otherRadius;
+      let deltaX = nextX - (Number(otherState.x) || 0);
+      let deltaY = nextY - (Number(otherState.y) || 0);
+      let distance = Math.hypot(deltaX, deltaY);
+      if (distance >= minDistance) {
+        continue;
+      }
+
+      if (distance < 0.0001) {
+        deltaX = velocityX || 1;
+        deltaY = velocityY || 0;
+        distance = Math.hypot(deltaX, deltaY) || 1;
+      }
+      const normalX = deltaX / distance;
+      const normalY = deltaY / distance;
+      const penetration = minDistance - distance;
+      const sourceShift = penetration * MARBLE_MARBLE_SEPARATION_RATIO + 0.01;
+      const otherShift = penetration * (1 - MARBLE_MARBLE_SEPARATION_RATIO) + 0.01;
+      nextX += normalX * sourceShift;
+      nextY += normalY * sourceShift;
+
+      let otherVelocityX = Number(otherState.velocityX) || 0;
+      let otherVelocityY = Number(otherState.velocityY) || 0;
+      const otherMotionState = marbleMotionByDieId.get(otherDieId);
+      if (otherMotionState) {
+        otherVelocityX = Number(otherMotionState.velocityX) || otherVelocityX;
+        otherVelocityY = Number(otherMotionState.velocityY) || otherVelocityY;
+      }
+
+      const relativeNormalVelocity =
+        (velocityX - otherVelocityX) * normalX + (velocityY - otherVelocityY) * normalY;
+      if (relativeNormalVelocity < 0) {
+        if (canTransferToOther) {
+          const impulse = -((1 + MARBLE_MARBLE_RESTITUTION) * relativeNormalVelocity) / 2;
+          velocityX += impulse * normalX;
+          velocityY += impulse * normalY;
+          otherVelocityX -= impulse * normalX;
+          otherVelocityY -= impulse * normalY;
+        } else {
+          velocityX -= (1 + MARBLE_MARBLE_RESTITUTION) * relativeNormalVelocity * normalX;
+          velocityY -= (1 + MARBLE_MARBLE_RESTITUTION) * relativeNormalVelocity * normalY;
+        }
+      }
+
+      if (!canTransferToOther) {
+        continue;
+      }
+
+      const otherBounds = getDieCenterBounds('marble', otherRadius * 2, otherRadius * 2);
+      const pushedOtherX = clamp((Number(otherState.x) || 0) - normalX * otherShift, otherBounds.minX, otherBounds.maxX);
+      const pushedOtherY = clamp((Number(otherState.y) || 0) - normalY * otherShift, otherBounds.minY, otherBounds.maxY);
+      const otherSpeed = Math.hypot(otherVelocityX, otherVelocityY);
+      if (otherSpeed <= MARBLE_FORCE_STOP_SPEED) {
+        const otherStopPatch = {
+          x: pushedOtherX,
+          y: pushedOtherY,
+          moving: false,
+          velocityX: 0,
+          velocityY: 0,
+          holderClientId: null
+        };
+        marbleMotionByDieId.delete(otherDieId);
+        patchLocalDie(otherDieId, otherStopPatch);
+        queueDiePatch(otherDieId, otherStopPatch);
+        continue;
+      }
+
+      beginMarbleMotion(otherDieId, otherVelocityX, otherVelocityY, { syncPatch: false, raiseZ: false });
+      const otherMovePatch = {
+        x: pushedOtherX,
+        y: pushedOtherY,
+        moving: true,
+        velocityX: otherVelocityX,
+        velocityY: otherVelocityY,
+        holderClientId: clientId
+      };
+      patchLocalDie(otherDieId, otherMovePatch);
+      queueDiePatch(otherDieId, otherMovePatch);
+      const refreshedMotionState = marbleMotionByDieId.get(otherDieId);
+      if (refreshedMotionState) {
+        refreshedMotionState.lastSyncedAt = 0;
+        refreshedMotionState.lastSyncedX = pushedOtherX;
+        refreshedMotionState.lastSyncedY = pushedOtherY;
+      }
+    }
+
+    nextX = clamp(nextX, sourceBounds.minX, sourceBounds.maxX);
+    nextY = clamp(nextY, sourceBounds.minY, sourceBounds.maxY);
+    return { x: nextX, y: nextY, velocityX, velocityY };
+  }
+
+  function simulateMarbleStep(dieId, state, deltaSeconds) {
+    const marbleState = diceById.get(dieId);
+    if (!isMarbleDieState(marbleState)) {
+      return null;
+    }
+    const dimensions = getDieWorldDimensions(marbleState);
+    const radius = Math.max(1, Math.min(dimensions.width, dimensions.height) / 2);
+    const minX = radius;
+    const maxX = WORLD_WIDTH - radius;
+    const minY = radius;
+    const maxY = WORLD_HEIGHT - radius;
+    const obstacleRects = getMarbleObstacleRects(dieId);
+    let nextX = Number(marbleState.x) || WORLD_WIDTH / 2;
+    let nextY = Number(marbleState.y) || WORLD_HEIGHT / 2;
+    let velocityX = Number(state.velocityX) || 0;
+    let velocityY = Number(state.velocityY) || 0;
+    let remaining = clamp(deltaSeconds, 0, MARBLE_MAX_FRAME_SECONDS);
+
+    while (remaining > 0.00001) {
+      const stepSeconds = Math.min(remaining, MARBLE_SUBSTEP_SECONDS);
+      remaining -= stepSeconds;
+      let collidedThisStep = false;
+
+      nextX += velocityX * stepSeconds;
+      nextY += velocityY * stepSeconds;
+
+      if (nextX < minX) {
+        nextX = minX + (minX - nextX);
+        velocityX = Math.abs(velocityX) * MARBLE_BOUNCE_RESTITUTION;
+      } else if (nextX > maxX) {
+        nextX = maxX - (nextX - maxX);
+        velocityX = -Math.abs(velocityX) * MARBLE_BOUNCE_RESTITUTION;
+      }
+      if (nextY < minY) {
+        nextY = minY + (minY - nextY);
+        velocityY = Math.abs(velocityY) * MARBLE_BOUNCE_RESTITUTION;
+      } else if (nextY > maxY) {
+        nextY = maxY - (nextY - maxY);
+        velocityY = -Math.abs(velocityY) * MARBLE_BOUNCE_RESTITUTION;
+      }
+
+      for (const rect of obstacleRects) {
+        const collision = resolveMarbleCollisionWithRect(nextX, nextY, radius, rect);
+        if (!collision) {
+          continue;
+        }
+        nextX += collision.normalX * (collision.penetration + 0.01);
+        nextY += collision.normalY * (collision.penetration + 0.01);
+        const velocityAlongNormal = velocityX * collision.normalX + velocityY * collision.normalY;
+        if (velocityAlongNormal < 0) {
+          velocityX -= (1 + MARBLE_BOUNCE_RESTITUTION) * velocityAlongNormal * collision.normalX;
+          velocityY -= (1 + MARBLE_BOUNCE_RESTITUTION) * velocityAlongNormal * collision.normalY;
+          collidedThisStep = true;
+        }
+      }
+
+      if (collidedThisStep) {
+        velocityX *= MARBLE_COLLISION_DAMPING;
+        velocityY *= MARBLE_COLLISION_DAMPING;
+      }
+
+      const marbleCollisionResult = resolveMarbleMarbleCollision(dieId, {
+        x: nextX,
+        y: nextY,
+        velocityX,
+        velocityY
+      });
+      nextX = marbleCollisionResult.x;
+      nextY = marbleCollisionResult.y;
+      velocityX = marbleCollisionResult.velocityX;
+      velocityY = marbleCollisionResult.velocityY;
+
+      const dragFactor = Math.exp(-MARBLE_LINEAR_DRAG_PER_SECOND * stepSeconds);
+      velocityX *= dragFactor;
+      velocityY *= dragFactor;
+
+      const speedAfterDrag = Math.hypot(velocityX, velocityY);
+      if (speedAfterDrag > 0) {
+        const frictionDrop = MARBLE_ROLLING_FRICTION_PER_SECOND * stepSeconds;
+        const nextSpeed = Math.max(0, speedAfterDrag - frictionDrop);
+        const speedScale = nextSpeed / speedAfterDrag;
+        velocityX *= speedScale;
+        velocityY *= speedScale;
+      }
+
+      const speed = Math.hypot(velocityX, velocityY);
+      if (speed > MARBLE_FLICK_MAX_SPEED) {
+        const scale = MARBLE_FLICK_MAX_SPEED / speed;
+        velocityX *= scale;
+        velocityY *= scale;
+      }
+    }
+
+    return {
+      x: clamp(nextX, minX, maxX),
+      y: clamp(nextY, minY, maxY),
+      velocityX,
+      velocityY
+    };
+  }
+
+  function ensureMarbleMotionLoop() {
+    if (marbleMotionRafId || marbleMotionByDieId.size === 0) {
+      return;
+    }
+    marbleMotionRafId = window.requestAnimationFrame((timestamp) => {
+      marbleMotionRafId = 0;
+      const now = Number(timestamp) || performance.now();
+      for (const [dieId, motionState] of Array.from(marbleMotionByDieId.entries())) {
+        const dieState = diceById.get(dieId);
+        if (!isMarbleDieState(dieState)) {
+          marbleMotionByDieId.delete(dieId);
+          continue;
+        }
+        if (dieState.holderClientId !== clientId || dieState.moving !== true) {
+          if (dieState.moving === true && !dieState.holderClientId) {
+            const stopPatch = {
+              moving: false,
+              velocityX: 0,
+              velocityY: 0,
+              holderClientId: null
+            };
+            patchLocalDie(dieId, stopPatch);
+            queueDiePatch(dieId, stopPatch);
+          }
+          marbleMotionByDieId.delete(dieId);
+          continue;
+        }
+        const deltaSeconds = Math.max(0, now - motionState.lastFrameAt) / 1000;
+        motionState.lastFrameAt = now;
+        const stepResult = simulateMarbleStep(dieId, motionState, deltaSeconds);
+        if (!stepResult) {
+          marbleMotionByDieId.delete(dieId);
+          continue;
+        }
+        motionState.velocityX = stepResult.velocityX;
+        motionState.velocityY = stepResult.velocityY;
+        const previousX = Number(dieState.x) || stepResult.x;
+        const previousY = Number(dieState.y) || stepResult.y;
+        const movedDistance = Math.hypot(stepResult.x - previousX, stepResult.y - previousY);
+        const speed = Math.hypot(stepResult.velocityX, stepResult.velocityY);
+        if (speed <= MARBLE_STALL_SPEED && movedDistance <= MARBLE_STALL_DISTANCE_PER_FRAME) {
+          motionState.stallFrames = (Number(motionState.stallFrames) || 0) + 1;
+        } else {
+          motionState.stallFrames = 0;
+        }
+        const stillMoving = speed > MARBLE_STOP_SPEED && (Number(motionState.stallFrames) || 0) < MARBLE_STALL_FRAME_LIMIT;
+        if (!stillMoving) {
+          const stopPatch = {
+            x: stepResult.x,
+            y: stepResult.y,
+            moving: false,
+            velocityX: 0,
+            velocityY: 0,
+            holderClientId: null
+          };
+          patchLocalDie(dieId, stopPatch);
+          queueDiePatch(dieId, stopPatch);
+          marbleMotionByDieId.delete(dieId);
+          releaseDieLock(dieId).catch((error) => {
+            console.error(error);
+          });
+          continue;
+        }
+        const movePatch = {
+          x: stepResult.x,
+          y: stepResult.y,
+          moving: true,
+          velocityX: stepResult.velocityX,
+          velocityY: stepResult.velocityY,
+          holderClientId: clientId
+        };
+        patchLocalDie(dieId, movePatch);
+        const shouldSync =
+          now - motionState.lastSyncedAt >= MARBLE_SYNC_INTERVAL_MS ||
+          Math.abs(stepResult.x - motionState.lastSyncedX) >= 1.5 ||
+          Math.abs(stepResult.y - motionState.lastSyncedY) >= 1.5;
+        if (shouldSync) {
+          queueDiePatch(dieId, movePatch);
+          motionState.lastSyncedAt = now;
+          motionState.lastSyncedX = stepResult.x;
+          motionState.lastSyncedY = stepResult.y;
+        }
+      }
+      if (marbleMotionByDieId.size > 0) {
+        ensureMarbleMotionLoop();
+      }
+    });
+  }
+
+  function beginMarbleMotion(dieId, velocityX, velocityY, options = {}) {
+    const marbleState = diceById.get(dieId);
+    if (!isMarbleDieState(marbleState)) {
+      return false;
+    }
+    const speed = Math.hypot(velocityX, velocityY);
+    if (!Number.isFinite(speed) || speed <= MARBLE_FORCE_STOP_SPEED) {
+      return false;
+    }
+    const clampedSpeed = Math.min(speed, MARBLE_FLICK_MAX_SPEED);
+    const speedScale = clampedSpeed / speed;
+    const normalizedVelocityX = velocityX * speedScale;
+    const normalizedVelocityY = velocityY * speedScale;
+    const now = performance.now();
+    marbleMotionByDieId.set(dieId, {
+      velocityX: normalizedVelocityX,
+      velocityY: normalizedVelocityY,
+      stallFrames: 0,
+      lastFrameAt: now,
+      lastSyncedAt: 0,
+      lastSyncedX: Number(marbleState.x) || 0,
+      lastSyncedY: Number(marbleState.y) || 0
+    });
+
+    if (options.syncPatch !== false) {
+      const startPatch = {
+        moving: true,
+        velocityX: normalizedVelocityX,
+        velocityY: normalizedVelocityY,
+        holderClientId: clientId,
+        z: options.raiseZ === false ? marbleState.z : getTopObjectZ() + 1
+      };
+      patchLocalDie(dieId, startPatch);
+      queueDiePatch(dieId, startPatch);
+    }
+    ensureMarbleMotionLoop();
+    return true;
+  }
+
+  function clearMarbleFlickSafetyTimer() {
+    if (!marbleFlickSafetyTimerId) {
+      return;
+    }
+    window.clearTimeout(marbleFlickSafetyTimerId);
+    marbleFlickSafetyTimerId = 0;
+  }
+
+  function scheduleMarbleFlickSafetyTimer(pointerId) {
+    clearMarbleFlickSafetyTimer();
+    marbleFlickSafetyTimerId = window.setTimeout(() => {
+      if (!marbleFlickState || marbleFlickState.pointerId !== pointerId) {
+        return;
+      }
+      cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
+    }, 7000);
+  }
+
+  function cancelMarbleFlickGesture(options = {}) {
+    const { releaseLock = false, resetState = false } = options;
+    const activeGesture = marbleFlickState;
+    marbleFlickState = null;
+    clearMarbleFlickSafetyTimer();
+    hideMarbleFlickArrowElement();
+    if (!activeGesture) {
+      return;
+    }
+    if (!releaseLock) {
+      return;
+    }
+    const gestureDieState = diceById.get(activeGesture.dieId);
+    if (!isMarbleDieState(gestureDieState) || gestureDieState.holderClientId !== clientId) {
+      return;
+    }
+    if (resetState) {
+      const resetPatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(activeGesture.dieId, resetPatch);
+      queueDiePatch(activeGesture.dieId, resetPatch);
+    }
+    releaseDieLock(activeGesture.dieId).catch((error) => {
+      console.error(error);
+    });
+  }
+
+  async function beginMarbleFlickGesture(event, dieId) {
+    if (
+      marbleFlickState ||
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return false;
+    }
+    const targetDie = diceById.get(dieId);
+    if (!isMarbleDieState(targetDie)) {
+      return false;
+    }
+    settleMarbleIfNearlyStill(dieId, targetDie, MARBLE_RESTART_BLOCK_SPEED);
+    const refreshedTargetDie = diceById.get(dieId) || targetDie;
+    if (!isMarbleEffectivelyMoving(refreshedTargetDie) && marbleMotionByDieId.has(dieId)) {
+      marbleMotionByDieId.delete(dieId);
+    }
+    if (isMarbleEffectivelyMoving(refreshedTargetDie) || marbleMotionByDieId.has(dieId)) {
+      return false;
+    }
+    if (refreshedTargetDie.holderClientId && refreshedTargetDie.holderClientId !== clientId) {
+      return false;
+    }
+
+    marbleFlickState = {
+      dieId,
+      pointerId: event.pointerId,
+      mouseButtonMask: event.pointerType === 'mouse' ? (event.button === 2 ? 2 : 1) : 0,
+      startedAt: Date.now(),
+      cursorClientX: event.clientX,
+      cursorClientY: event.clientY
+    };
+    scheduleMarbleFlickSafetyTimer(event.pointerId);
+    syncMarbleFlickArrow();
+    schedulePublishFromClient(event.clientX, event.clientY);
+    return true;
+  }
+
+  function updateMarbleFlickGesture(event) {
+    if (!marbleFlickState || event.pointerId !== marbleFlickState.pointerId) {
+      return false;
+    }
+    marbleFlickState.cursorClientX = event.clientX;
+    marbleFlickState.cursorClientY = event.clientY;
+    syncMarbleFlickArrow();
+    schedulePublishFromClient(event.clientX, event.clientY);
+    return true;
+  }
+
+  function finishMarbleFlickGesture(event, options = {}) {
+    const force = options.force === true;
+    if (!marbleFlickState) {
+      return false;
+    }
+    const eventPointerId = Number(event?.pointerId);
+    if (!force && eventPointerId !== marbleFlickState.pointerId) {
+      return false;
+    }
+    const finishedGesture = marbleFlickState;
+    marbleFlickState = null;
+    clearMarbleFlickSafetyTimer();
+    hideMarbleFlickArrowElement();
+
+    const dieState = diceById.get(finishedGesture.dieId);
+    if (!isMarbleDieState(dieState)) {
+      return true;
+    }
+    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+      return true;
+    }
+
+    const clientX = Number.isFinite(event.clientX) ? event.clientX : finishedGesture.cursorClientX;
+    const clientY = Number.isFinite(event.clientY) ? event.clientY : finishedGesture.cursorClientY;
+    const cursorWorld = screenToWorldFromClient(clientX, clientY);
+    if (!cursorWorld) {
+      const idlePatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(finishedGesture.dieId, idlePatch);
+      queueDiePatch(finishedGesture.dieId, idlePatch);
+      return true;
+    }
+
+    const arrowX = dieState.x - cursorWorld.x;
+    const arrowY = dieState.y - cursorWorld.y;
+    const arrowLength = Math.hypot(arrowX, arrowY);
+    if (arrowLength < MARBLE_FLICK_MIN_DISTANCE) {
+      const idlePatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(finishedGesture.dieId, idlePatch);
+      queueDiePatch(finishedGesture.dieId, idlePatch);
+      schedulePublishFromClient(clientX, clientY);
+      return true;
+    }
+
+    const normalizedLength = clamp(
+      (Math.min(arrowLength, MARBLE_FLICK_MAX_DISTANCE) - MARBLE_FLICK_MIN_DISTANCE) /
+      Math.max(1, MARBLE_FLICK_MAX_DISTANCE - MARBLE_FLICK_MIN_DISTANCE),
+      0,
+      1
+    );
+    const easedLength = 1 - Math.pow(1 - normalizedLength, 1.35);
+    const speed = MARBLE_FLICK_MIN_SPEED + easedLength * (MARBLE_FLICK_MAX_SPEED - MARBLE_FLICK_MIN_SPEED);
+    const velocityX = (arrowX / arrowLength) * speed;
+    const velocityY = (arrowY / arrowLength) * speed;
+    beginMarbleMotion(finishedGesture.dieId, velocityX, velocityY, { syncPatch: true, raiseZ: true });
+    schedulePublishFromClient(clientX, clientY);
+    return true;
+  }
+
+  function syncMarbleMotionFromState(dieId, dieState) {
+    if (!isMarbleDieState(dieState)) {
+      marbleMotionByDieId.delete(dieId);
+      return;
+    }
+    const incomingSpeed = getMarbleSpeed(dieState);
+    if (
+      dieState.moving === true &&
+      incomingSpeed <= MARBLE_FORCE_STOP_SPEED &&
+      (!dieState.holderClientId || dieState.holderClientId === clientId)
+    ) {
+      settleMarbleIfNearlyStill(dieId, dieState, MARBLE_FORCE_STOP_SPEED);
+      if (marbleFlickState?.dieId === dieId) {
+        cancelMarbleFlickGesture();
+      }
+      return;
+    }
+    if (dieState.holderClientId === clientId && dieState.moving === true) {
+      if (!marbleMotionByDieId.has(dieId)) {
+        const resumed = beginMarbleMotion(dieId, Number(dieState.velocityX) || 0, Number(dieState.velocityY) || 0, {
+          syncPatch: false,
+          raiseZ: false
+        });
+        if (!resumed) {
+          const stopPatch = {
+            moving: false,
+            velocityX: 0,
+            velocityY: 0,
+            holderClientId: null
+          };
+          patchLocalDie(dieId, stopPatch);
+          queueDiePatch(dieId, stopPatch);
+          releaseDieLock(dieId).catch((error) => {
+            console.error(error);
+          });
+        }
+      }
+      return;
+    }
+    marbleMotionByDieId.delete(dieId);
+    if (marbleFlickState?.dieId === dieId) {
+      cancelMarbleFlickGesture();
+    }
   }
 
   const activePointers = new Set();
@@ -17900,6 +19394,111 @@ async function startRealtimeSession() {
     };
   }
 
+  async function adjustCounterValue(dieId, delta) {
+    const targetDieId = String(dieId || '').trim();
+    const step = Math.round(Number(delta) || 0);
+    if (!targetDieId || !Number.isFinite(step) || step === 0) {
+      return;
+    }
+    await runTransaction(
+      ref(db, `${roomPath}/dice/${targetDieId}`),
+      (currentDie) => {
+        if (!currentDie || typeof currentDie !== 'object') {
+          return;
+        }
+        const normalized = normalizeDicePayload(currentDie);
+        if (!isCounterDieState(normalized)) {
+          return currentDie;
+        }
+        if (normalized.holderClientId && normalized.holderClientId !== clientId) {
+          return currentDie;
+        }
+        const nextValue = clampCounterValue((Number(normalized.value) || 0) + step);
+        if (nextValue === normalized.value) {
+          return currentDie;
+        }
+        return {
+          ...currentDie,
+          type: 'counter',
+          value: nextValue,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+  }
+
+  async function resetCounterValue(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    await runTransaction(
+      ref(db, `${roomPath}/dice/${targetDieId}`),
+      (currentDie) => {
+        if (!currentDie || typeof currentDie !== 'object') {
+          return;
+        }
+        const normalized = normalizeDicePayload(currentDie);
+        if (!isCounterDieState(normalized)) {
+          return currentDie;
+        }
+        if (normalized.holderClientId && normalized.holderClientId !== clientId) {
+          return currentDie;
+        }
+        if (normalized.value === 0) {
+          return currentDie;
+        }
+        return {
+          ...currentDie,
+          type: 'counter',
+          value: 0,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+  }
+
+  async function handleCounterControlPointerDown(event, dieId, delta, reset = false) {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+    if (reset) {
+      await resetCounterValue(dieId);
+    } else {
+      await adjustCounterValue(dieId, delta);
+    }
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
   async function handleLabelLockControlPointerDown(event, dieId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       event.preventDefault();
@@ -17949,7 +19548,9 @@ async function startRealtimeSession() {
       labelLocked: nextLocked
     };
     if (nextLocked) {
-      selectedDiceIds.delete(dieId);
+      if (selectedDiceIds.delete(dieId)) {
+        syncSelectionDeleteButtonUi();
+      }
       lockPatch.holderClientId = null;
     }
 
@@ -18451,7 +20052,9 @@ async function startRealtimeSession() {
       componentLocked: nextLocked
     };
     if (nextLocked) {
-      selectedCardIds.delete(cardId);
+      if (selectedCardIds.delete(cardId)) {
+        syncSelectionDeleteButtonUi();
+      }
       patch.holderClientId = null;
       patch.handOwnerClientId = null;
       patch.handOwnerPlayerToken = null;
@@ -19444,7 +21047,9 @@ async function startRealtimeSession() {
     const draggedCardState = cards.get(finishedDrag.cardId);
     if (canCardEnterHand(draggedCardState) && isClientInHandDropRegion(event.clientY)) {
       finalPatch = buildHandDropPatch(finishedDrag.cardId, localPlayerToken);
-      selectedCardIds.delete(finishedDrag.cardId);
+      if (selectedCardIds.delete(finishedDrag.cardId)) {
+        syncSelectionDeleteButtonUi();
+      }
     }
     if (!finalPatch) {
       finalPatch =
@@ -19577,7 +21182,16 @@ async function startRealtimeSession() {
     if (dieDragState?.dieId === dieId && dieDragState.moved) {
       return;
     }
+    const contextDieState = diceById.get(dieId);
+    if (isMarbleDieState(contextDieState)) {
+      return;
+    }
     handleDieRollIntent(dieId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onCounterControlPointerDown = (event, dieId, delta, reset = false) => {
+    handleCounterControlPointerDown(event, dieId, delta, reset).catch((error) => {
       console.error(error);
     });
   };
@@ -19616,12 +21230,23 @@ async function startRealtimeSession() {
       event.stopPropagation();
       return;
     }
-    if (event.pointerType === 'mouse' && event.button === 2) {
+    const targetDieState = diceById.get(dieId);
+    const isTargetMarble = isMarbleDieState(targetDieState);
+    const isPrimaryMarbleFlick = event.button === 0 && isTargetMarble;
+    const isMouseSecondaryMarbleDrag = event.pointerType === 'mouse' && event.button === 2 && isTargetMarble;
+
+    if (isPrimaryMarbleFlick) {
+      event.preventDefault();
+      event.stopPropagation();
+      await beginMarbleFlickGesture(event, dieId);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button === 2 && !isTargetMarble) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
-    if (event.pointerType === 'mouse' && event.button !== 0) {
+    if (event.pointerType === 'mouse' && event.button !== 0 && !isMouseSecondaryMarbleDrag) {
       return;
     }
     const effectivePointerType = getEffectivePointerType(event);
@@ -19631,14 +21256,17 @@ async function startRealtimeSession() {
     event.preventDefault();
     event.stopPropagation();
 
-    if (consumeDieDoubleTapIfPresent(dieId, event) || consumeDieDoubleClickIfPresent(dieId, event)) {
+    if (
+      !isMouseSecondaryMarbleDrag &&
+      (consumeDieDoubleTapIfPresent(dieId, event) || consumeDieDoubleClickIfPresent(dieId, event))
+    ) {
       handleDieRollIntent(dieId).catch((error) => {
         console.error(error);
       });
       return;
     }
 
-    if (hasAnyGroupSelection()) {
+    if (!isMouseSecondaryMarbleDrag && hasAnyGroupSelection()) {
       if (selectedDiceIds.has(dieId) && beginGroupDragFromDie(event, dieId)) {
         safeSetPointerCapture(event.currentTarget, event.pointerId);
         schedulePublishFromClient(event.clientX, event.clientY);
@@ -19661,16 +21289,29 @@ async function startRealtimeSession() {
     ) {
       return;
     }
-    const dieState = diceById.get(dieId);
+    const dieState = targetDieState || diceById.get(dieId);
     if (!dieState) {
       return;
     }
-    if (isLabelDieLocked(dieState)) {
-      selectedDiceIds.delete(dieId);
+    if (isMarbleDieState(dieState)) {
+      settleMarbleIfNearlyStill(dieId, dieState, MARBLE_RESTART_BLOCK_SPEED);
+      const refreshedDie = diceById.get(dieId) || dieState;
+      if (!isMarbleEffectivelyMoving(refreshedDie) && marbleMotionByDieId.has(dieId)) {
+        marbleMotionByDieId.delete(dieId);
+      }
+      if (isMarbleEffectivelyMoving(refreshedDie) || marbleMotionByDieId.has(dieId)) {
+        return;
+      }
+    }
+    const currentDieState = diceById.get(dieId) || dieState;
+    if (isLabelDieLocked(currentDieState)) {
+      if (selectedDiceIds.delete(dieId)) {
+        syncSelectionDeleteButtonUi();
+      }
       renderDieElement(dieId);
       return;
     }
-    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+    if (currentDieState.holderClientId && currentDieState.holderClientId !== clientId) {
       return;
     }
 
@@ -19688,15 +21329,16 @@ async function startRealtimeSession() {
       dieId,
       pointerId: event.pointerId,
       pointerType: effectivePointerType,
-      type: normalizeDieType(dieState.type),
+      type: normalizeDieType(currentDieState.type),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
       lastClientY: event.clientY,
-      startX: dieState.x,
-      startY: dieState.y,
-      width: getDieWorldDimensions(dieState).width,
-      height: getDieWorldDimensions(dieState).height,
+      startX: currentDieState.x,
+      startY: currentDieState.y,
+      width: getDieWorldDimensions(currentDieState).width,
+      height: getDieWorldDimensions(currentDieState).height,
+      mouseButtonMask: isMouseSecondaryMarbleDrag ? 2 : 1,
       moved: false,
       lastMotionAt: 0
     };
@@ -19712,10 +21354,14 @@ async function startRealtimeSession() {
   }
 
   function handleDieDragMove(event) {
+    if (updateMarbleFlickGesture(event)) {
+      return;
+    }
     if (!dieDragState || event.pointerId !== dieDragState.pointerId) {
       return;
     }
-    if (dieDragState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+    const mouseButtonMask = dieDragState.mouseButtonMask || 1;
+    if (dieDragState.pointerType === 'mouse' && (event.buttons & mouseButtonMask) === 0) {
       handleDieDragEnd({
         type: 'pointercancel',
         pointerId: event.pointerId,
@@ -19751,6 +21397,12 @@ async function startRealtimeSession() {
       y: nextY,
       holderClientId: clientId
     };
+    if (dieDragState.type === 'marble') {
+      marbleMotionByDieId.delete(dieDragState.dieId);
+      movePatch.moving = false;
+      movePatch.velocityX = 0;
+      movePatch.velocityY = 0;
+    }
     patchLocalDie(dieDragState.dieId, movePatch);
     queueDiePatch(dieDragState.dieId, movePatch);
     schedulePublishFromClient(event.clientX, event.clientY);
@@ -19758,6 +21410,9 @@ async function startRealtimeSession() {
   }
 
   function handleDieDragEnd(event) {
+    if (finishMarbleFlickGesture(event)) {
+      return;
+    }
     if (!dieDragState || event.pointerId !== dieDragState.pointerId) {
       return;
     }
@@ -19775,6 +21430,11 @@ async function startRealtimeSession() {
     const releasePatch = {
       holderClientId: null
     };
+    if (finishedDrag.type === 'marble') {
+      releasePatch.moving = false;
+      releasePatch.velocityX = 0;
+      releasePatch.velocityY = 0;
+    }
     patchLocalDie(finishedDrag.dieId, releasePatch);
     queueDiePatch(finishedDrag.dieId, releasePatch);
     releaseDieLock(finishedDrag.dieId).catch((error) => {
@@ -20278,13 +21938,25 @@ async function startRealtimeSession() {
           );
           const y = spawnCenterY;
           nextTopZ += 1;
+          const initialValue =
+            normalizedType === 'counter'
+              ? 0
+              : 1 + Math.floor(Math.random() * sides);
           baseDice[nextDieId] = {
             type: normalizedType,
             x,
             y,
             z: nextTopZ,
-            value: 1 + Math.floor(Math.random() * sides),
+            value: initialValue,
             holderClientId: null,
+            ...(normalizedType === 'marble'
+              ? {
+                moving: false,
+                velocityX: 0,
+                velocityY: 0,
+                marbleHue: getRandomMarbleHue()
+              }
+              : {}),
             rollStartedAt: 0,
             rollDurationMs: DIE_ROLL_DURATION_MS,
             rollSeed: Math.floor(Math.random() * 0x7fffffff),
@@ -20298,6 +21970,12 @@ async function startRealtimeSession() {
   };
   spawnCoin = async () => {
     await spawnDice('coin', 1);
+  };
+  spawnCounter = async () => {
+    await spawnDice('counter', 1);
+  };
+  spawnMarble = async () => {
+    await spawnDice('marble', 1);
   };
   spawnLabelComponent = async () => {
     const labelText = LABEL_DEFAULT_TEXT;
@@ -20734,6 +22412,7 @@ async function startRealtimeSession() {
     selectedDiceIds.clear();
     selectedDeckIds.clear();
     selectedMonsGameIds.clear();
+    syncSelectionDeleteButtonUi();
     pendingCardWrites.clear();
     pendingDieWrites.clear();
     pendingDeckPatch = {};
@@ -20757,6 +22436,8 @@ async function startRealtimeSession() {
     cardRotateState = null;
     resizingImageCardId = '';
     rotatingStickerCardId = '';
+    cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
+    marbleMotionByDieId.clear();
     dieDragState = null;
     labelResizeState = null;
     labelRotateState = null;
@@ -20806,6 +22487,10 @@ async function startRealtimeSession() {
       window.cancelAnimationFrame(diceRollAnimationRafId);
       diceRollAnimationRafId = 0;
     }
+    if (marbleMotionRafId) {
+      window.cancelAnimationFrame(marbleMotionRafId);
+      marbleMotionRafId = 0;
+    }
     window.clearTimeout(deckShuffleFxTimerId);
     deckShuffleFxTimerId = 0;
     if (drawingsLiftCutoffFlushTimerId) {
@@ -20825,6 +22510,10 @@ async function startRealtimeSession() {
     }
     for (const dieElement of diceElements.values()) {
       dieElement.remove();
+    }
+    if (marbleFlickArrowElement) {
+      marbleFlickArrowElement.remove();
+      marbleFlickArrowElement = null;
     }
     for (const dieId of diceById.keys()) {
       clearMediaPlaybackTrackingForDie(dieId);
@@ -20998,6 +22687,7 @@ async function startRealtimeSession() {
       const roomMeta = snapshot.val() || {};
       const syncedTitle = normalizeRoomTitle(roomMeta.title);
       setRoomBadgeText(syncedTitle);
+      applyRoomBackgroundPattern(roomMeta.backgroundPattern);
 
       const syncedDrawingsLiftCutoffAtRaw = Number(roomMeta.drawingsLiftCutoffAt);
       const syncedDrawingsLiftCutoffAt =
@@ -21073,6 +22763,7 @@ async function startRealtimeSession() {
         cards.set(cardId, nextCard);
       }
 
+      let cardSelectionChanged = false;
       for (const cardId of Array.from(cards.keys())) {
         if (activeCardIds.has(cardId)) {
           continue;
@@ -21087,7 +22778,9 @@ async function startRealtimeSession() {
           rotatingStickerCardId = '';
           syncHandHoverDragLock();
         }
-        selectedCardIds.delete(cardId);
+        if (selectedCardIds.delete(cardId)) {
+          cardSelectionChanged = true;
+        }
         frontDisplayPendingByCard.delete(cardId);
         removeHandCardElement(cardId);
         removeTableCardElement(cardId);
@@ -21108,6 +22801,9 @@ async function startRealtimeSession() {
         console.error(error);
       });
       scheduleAuctionBidUiRender();
+      if (cardSelectionChanged) {
+        syncSelectionDeleteButtonUi();
+      }
       syncClearTableButtonState();
     },
     (error) => {
@@ -21131,6 +22827,7 @@ async function startRealtimeSession() {
         const nextDieState = normalizeDicePayload(payload);
         diceById.set(dieId, nextDieState);
         syncMediaStartSignalFromState(dieId, previousDieState, nextDieState);
+        syncMarbleMotionFromState(dieId, nextDieState);
       }
       if (labelEditState) {
         const editingState = diceById.get(labelEditState.dieId);
@@ -21138,6 +22835,7 @@ async function startRealtimeSession() {
           closeLabelEditor({ commit: false });
         }
       }
+      let dieSelectionChanged = false;
       for (const dieId of Array.from(diceById.keys())) {
         if (activeDieIds.has(dieId)) {
           continue;
@@ -21148,6 +22846,10 @@ async function startRealtimeSession() {
         if (dieDragState?.dieId === dieId) {
           dieDragState = null;
         }
+        marbleMotionByDieId.delete(dieId);
+        if (marbleFlickState?.dieId === dieId) {
+          cancelMarbleFlickGesture();
+        }
         if (labelResizeState?.dieId === dieId) {
           labelResizeState = null;
           resizingLabelDieId = '';
@@ -21157,11 +22859,16 @@ async function startRealtimeSession() {
           labelRotateState = null;
           rotatingLabelDieId = '';
         }
-        selectedDiceIds.delete(dieId);
+        if (selectedDiceIds.delete(dieId)) {
+          dieSelectionChanged = true;
+        }
         clearMediaPlaybackTrackingForDie(dieId);
         diceById.delete(dieId);
       }
       renderAllDice();
+      if (dieSelectionChanged) {
+        syncSelectionDeleteButtonUi();
+      }
       syncClearTableButtonState();
     },
     (error) => {
@@ -21272,11 +22979,14 @@ async function startRealtimeSession() {
         deckStatesById.delete(existingDeckId);
         removeDeckUi(existingDeckId);
       }
+      let deckSelectionChanged = false;
       for (const selectedDeckId of Array.from(selectedDeckIds)) {
         if (nextDeckIds.has(selectedDeckId)) {
           continue;
         }
-        selectedDeckIds.delete(selectedDeckId);
+        if (selectedDeckIds.delete(selectedDeckId)) {
+          deckSelectionChanged = true;
+        }
       }
 
       if (!deckStatesById.has(activeDeckId)) {
@@ -21298,6 +23008,9 @@ async function startRealtimeSession() {
 
       if (shouldTriggerShuffleFx) {
         triggerDeckShuffleFx(shuffleFxDeckId || activeDeckId);
+      }
+      if (deckSelectionChanged) {
+        syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
     },
@@ -21339,11 +23052,14 @@ async function startRealtimeSession() {
         }
         monsGameStatesById.delete(existingMonsGameId);
       }
+      let monsSelectionChanged = false;
       for (const selectedMonsGameId of Array.from(selectedMonsGameIds)) {
         if (nextMonsIds.has(selectedMonsGameId)) {
           continue;
         }
-        selectedMonsGameIds.delete(selectedMonsGameId);
+        if (selectedMonsGameIds.delete(selectedMonsGameId)) {
+          monsSelectionChanged = true;
+        }
       }
 
       const optionsMonsGameId = getMonsGameIdFromGameOptionsTarget(activeGameOptionsTarget);
@@ -21356,6 +23072,9 @@ async function startRealtimeSession() {
         setActiveMonsGameId(MONS_GAME_KEY);
         monsGameState = null;
         renderMonsBoard();
+        if (monsSelectionChanged) {
+          syncSelectionDeleteButtonUi();
+        }
         syncClearTableButtonState();
         return;
       }
@@ -21366,6 +23085,9 @@ async function startRealtimeSession() {
       }
       setActiveMonsGameId(fallbackMonsGameId);
       renderMonsBoard();
+      if (monsSelectionChanged) {
+        syncSelectionDeleteButtonUi();
+      }
       syncClearTableButtonState();
     },
     (error) => {
@@ -21387,6 +23109,38 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleDieDragMove);
   window.addEventListener('pointerup', handleDieDragEnd);
   window.addEventListener('pointercancel', handleDieDragEnd);
+  window.addEventListener('pointerdown', (event) => {
+    if (!marbleFlickState) {
+      return;
+    }
+    if (event.pointerId === marbleFlickState.pointerId) {
+      return;
+    }
+    cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
+  });
+  window.addEventListener('mousemove', (event) => {
+    if (!marbleFlickState) {
+      return;
+    }
+    marbleFlickState.cursorClientX = event.clientX;
+    marbleFlickState.cursorClientY = event.clientY;
+    syncMarbleFlickArrow();
+    schedulePublishFromClient(event.clientX, event.clientY);
+  });
+  window.addEventListener('mouseup', (event) => {
+    if (!marbleFlickState) {
+      return;
+    }
+    finishMarbleFlickGesture(
+      {
+        pointerId: marbleFlickState.pointerId,
+        pointerType: 'mouse',
+        clientX: event.clientX,
+        clientY: event.clientY
+      },
+      { force: true }
+    );
+  });
   window.addEventListener('pointermove', handleLabelResizeMove);
   window.addEventListener('pointerup', handleLabelResizeEnd);
   window.addEventListener('pointercancel', handleLabelResizeEnd);
@@ -21426,6 +23180,12 @@ async function startRealtimeSession() {
       window.cancelAnimationFrame(diceRollAnimationRafId);
       diceRollAnimationRafId = 0;
     }
+    if (marbleMotionRafId) {
+      window.cancelAnimationFrame(marbleMotionRafId);
+      marbleMotionRafId = 0;
+    }
+    marbleMotionByDieId.clear();
+    cancelMarbleFlickGesture();
     if (drawingsLiftCutoffFlushTimerId) {
       window.clearTimeout(drawingsLiftCutoffFlushTimerId);
       drawingsLiftCutoffFlushTimerId = 0;

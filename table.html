@@ -181,12 +181,20 @@
             />
           </svg>
         </a>
-
-        <label id="lightModeControl" class="mode-toggle" title="toggle light mode">
-          <input id="lightModeToggle" type="checkbox" aria-label="toggle light mode" />
-          <span class="mode-toggle-switch" aria-hidden="true"></span>
-          <span id="modeIcon" class="mode-toggle-icon" aria-hidden="true"></span>
-        </label>
+        <button id="roomSettingsButton" class="room-settings-button" type="button" aria-label="open room settings" title="room settings">
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <circle cx="6.5" cy="12" r="1.7" />
+            <circle cx="12" cy="12" r="1.7" />
+            <circle cx="17.5" cy="12" r="1.7" />
+          </svg>
+        </button>
       </div>
 
       <div id="bottomRightControls" class="bottom-right-controls">
@@ -214,6 +222,10 @@
           >
             <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
           </svg>
+        </button>
+
+        <button id="deleteSelectionButton" class="icon-pill-button selection-delete-button hidden" type="button" aria-label="delete selected elements" title="delete selected">
+          <img src="./assets/mons/bomb.png" alt="" aria-hidden="true" />
         </button>
 
         <button id="assetMenuButton" class="icon-pill-button" type="button" aria-label="open asset gallery">
@@ -440,8 +452,55 @@
               </span>
               <span class="asset-label">image/card</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="counterComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-counter"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <g fill="#8D959D" opacity="0.24" shape-rendering="geometricPrecision">
+                    <path d="M5.82 6.2H9.38L9.74 6.58L9.38 6.96H5.82L5.46 6.58L5.82 6.2Z" />
+                    <path d="M5.82 11.6H9.38L9.74 11.98L9.38 12.36H5.82L5.46 11.98L5.82 11.6Z" />
+                    <path d="M5.7 16.98H9.26L9.62 17.36L9.26 17.74H5.7L5.34 17.36L5.7 16.98Z" />
+                    <path d="M4.88 7.85L5.28 8.16V10.82L4.88 11.13L4.48 10.82V8.16L4.88 7.85Z" />
+                    <path d="M10.03 7.85L10.43 8.16V10.82L10.03 11.13L9.63 10.82V8.16L10.03 7.85Z" />
+                    <path d="M4.88 12.84L5.28 13.15V15.81L4.88 16.12L4.48 15.81V13.15L4.88 12.84Z" />
+                    <path d="M10.03 12.84L10.43 13.15V15.81L10.03 16.12L9.63 15.81V13.15L10.03 12.84Z" />
+
+                    <path d="M14.4 6.2H17.96L18.32 6.58L17.96 6.96H14.4L14.04 6.58L14.4 6.2Z" />
+                    <path d="M14.4 11.6H17.96L18.32 11.98L17.96 12.36H14.4L14.04 11.98L14.4 11.6Z" />
+                    <path d="M14.28 16.98H17.84L18.2 17.36L17.84 17.74H14.28L13.92 17.36L14.28 16.98Z" />
+                    <path d="M13.46 7.85L13.86 8.16V10.82L13.46 11.13L13.06 10.82V8.16L13.46 7.85Z" />
+                    <path d="M18.61 7.85L19.01 8.16V10.82L18.61 11.13L18.21 10.82V8.16L18.61 7.85Z" />
+                    <path d="M13.46 12.84L13.86 13.15V15.81L13.46 16.12L13.06 15.81V13.15L13.46 12.84Z" />
+                    <path d="M18.61 12.84L19.01 13.15V15.81L18.61 16.12L18.21 15.81V13.15L18.61 12.84Z" />
+                  </g>
+
+                  <g fill="currentColor" opacity="0.98" shape-rendering="geometricPrecision">
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="a" style="opacity:1" d="M5.82 6.2H9.38L9.74 6.58L9.38 6.96H5.82L5.46 6.58L5.82 6.2Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="g" style="opacity:0" d="M5.82 11.6H9.38L9.74 11.98L9.38 12.36H5.82L5.46 11.98L5.82 11.6Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="d" style="opacity:1" d="M5.7 16.98H9.26L9.62 17.36L9.26 17.74H5.7L5.34 17.36L5.7 16.98Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="f" style="opacity:1" d="M4.88 7.85L5.28 8.16V10.82L4.88 11.13L4.48 10.82V8.16L4.88 7.85Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="b" style="opacity:1" d="M10.03 7.85L10.43 8.16V10.82L10.03 11.13L9.63 10.82V8.16L10.03 7.85Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="e" style="opacity:1" d="M4.88 12.84L5.28 13.15V15.81L4.88 16.12L4.48 15.81V13.15L4.88 12.84Z" />
+                    <path data-counter-icon-digit="0" data-counter-icon-segment="c" style="opacity:1" d="M10.03 12.84L10.43 13.15V15.81L10.03 16.12L9.63 15.81V13.15L10.03 12.84Z" />
+
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="a" style="opacity:0" d="M14.4 6.2H17.96L18.32 6.58L17.96 6.96H14.4L14.04 6.58L14.4 6.2Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="g" style="opacity:0" d="M14.4 11.6H17.96L18.32 11.98L17.96 12.36H14.4L14.04 11.98L14.4 11.6Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="d" style="opacity:0" d="M14.28 16.98H17.84L18.2 17.36L17.84 17.74H14.28L13.92 17.36L14.28 16.98Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="f" style="opacity:0" d="M13.46 7.85L13.86 8.16V10.82L13.46 11.13L13.06 10.82V8.16L13.46 7.85Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="b" style="opacity:1" d="M18.61 7.85L19.01 8.16V10.82L18.61 11.13L18.21 10.82V8.16L18.61 7.85Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="e" style="opacity:0" d="M13.46 12.84L13.86 13.15V15.81L13.46 16.12L13.06 15.81V13.15L13.46 12.84Z" />
+                    <path data-counter-icon-digit="1" data-counter-icon-segment="c" style="opacity:1" d="M18.61 12.84L19.01 13.15V15.81L18.61 16.12L18.21 15.81V13.15L18.61 12.84Z" />
+                  </g>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">counter</span>
             </button>
             <button class="asset-gallery-item asset-component-item" type="button">
@@ -469,8 +528,35 @@
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">playmat</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="marbleComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-marble"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <defs>
+                    <radialGradient id="marbleTileFillGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(8.1 7.6) rotate(45.8) scale(12.9)">
+                      <stop offset="0" stop-color="rgba(244, 246, 249, 0.95)" />
+                      <stop offset="0.3" stop-color="rgba(126, 135, 146, 0.88)" />
+                      <stop offset="0.62" stop-color="rgba(64, 72, 83, 0.9)" />
+                      <stop offset="1" stop-color="rgba(17, 20, 26, 0.97)" />
+                    </radialGradient>
+                    <linearGradient id="marbleTileShineGradient" x1="6.7" y1="5.8" x2="17.6" y2="18.3" gradientUnits="userSpaceOnUse">
+                      <stop offset="0" stop-color="rgba(255, 255, 255, 0.92)" />
+                      <stop offset="1" stop-color="rgba(255, 255, 255, 0)" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="12" cy="12" r="8.3" fill="url(#marbleTileFillGradient)" />
+                  <circle cx="12" cy="12" r="8.3" stroke="rgba(231, 237, 246, 0.62)" stroke-width="0.8" />
+                  <ellipse cx="8.9" cy="8.1" rx="3.3" ry="2.2" fill="url(#marbleTileShineGradient)" opacity="0.95" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">marble</span>
             </button>
             <button id="mediaComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
@@ -962,7 +1048,7 @@
       >
         <div class="asset-menu-dialog instance-warning-dialog">
           <h2 id="instanceWarningTitle" class="instance-warning-title">warning</h2>
-          <p class="instance-warning-text">multiple instance of a game can cause lag</p>
+          <p class="instance-warning-text">multiple instances of a game can cause lag</p>
           <div class="instance-warning-actions">
             <button
               id="instanceWarningContinueButton"
@@ -1151,6 +1237,96 @@
             <button id="gameOptionsPutAwayButton" class="asset-clear-button game-options-action game-options-action-put-away" type="button">
               put game away
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="roomSettingsModal" class="asset-menu-modal game-options-modal hidden" role="dialog" aria-modal="true" aria-labelledby="roomSettingsTitle">
+        <div class="asset-menu-dialog game-options-dialog room-settings-dialog">
+          <div class="asset-menu-header room-settings-header">
+            <label id="lightModeControl" class="mode-toggle room-settings-mode-toggle" title="toggle light mode">
+              <input id="lightModeToggle" type="checkbox" aria-label="toggle light mode" />
+              <span class="mode-toggle-switch" aria-hidden="true"></span>
+              <span id="modeIcon" class="mode-toggle-icon" aria-hidden="true"></span>
+            </label>
+            <h2 id="roomSettingsTitle" class="game-options-title">
+              <span>settings</span>
+              <svg
+                class="game-options-title-icon"
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path
+                  d="M19.4 13.5V10.5L17.65 10.03C17.5 9.5 17.28 9 17 8.55L17.95 6.98L15.82 4.85L14.25 5.8C13.8 5.52 13.3 5.3 12.77 5.15L12.3 3.4H9.3L8.83 5.15C8.3 5.3 7.8 5.52 7.35 5.8L5.78 4.85L3.65 6.98L4.6 8.55C4.32 9 4.1 9.5 3.95 10.03L2.2 10.5V13.5L3.95 13.97C4.1 14.5 4.32 15 4.6 15.45L3.65 17.02L5.78 19.15L7.35 18.2C7.8 18.48 8.3 18.7 8.83 18.85L9.3 20.6H12.3L12.77 18.85C13.3 18.7 13.8 18.48 14.25 18.2L15.82 19.15L17.95 17.02L17 15.45C17.28 15 17.5 14.5 17.65 13.97L19.4 13.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="12" cy="12" r="2.2" stroke="currentColor" stroke-width="1.6" />
+              </svg>
+            </h2>
+            <button id="roomSettingsCloseButton" class="asset-menu-close room-settings-close" type="button" aria-label="close settings">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+          <div class="room-settings-actions">
+            <p class="room-settings-section-title">background pattern</p>
+            <div id="roomBackgroundPatternRow" class="room-settings-pattern-row" role="group" aria-label="background pattern">
+              <button
+                type="button"
+                class="room-settings-pattern-button is-active"
+                data-room-background-pattern="grid"
+                aria-pressed="true"
+              >
+                grid
+              </button>
+              <button
+                type="button"
+                class="room-settings-pattern-button"
+                data-room-background-pattern="dots"
+                aria-pressed="false"
+              >
+                dots
+              </button>
+              <button
+                type="button"
+                class="room-settings-pattern-button"
+                data-room-background-pattern="noise"
+                aria-pressed="false"
+              >
+                noise
+              </button>
+              <button
+                type="button"
+                class="room-settings-pattern-button"
+                data-room-background-pattern="greenscreen"
+                aria-pressed="false"
+              >
+                greenscreen
+              </button>
+              <button
+                type="button"
+                class="room-settings-pattern-button"
+                data-room-background-pattern="plain"
+                aria-pressed="false"
+              >
+                plain
+              </button>
+            </div>
           </div>
         </div>
       </div>
