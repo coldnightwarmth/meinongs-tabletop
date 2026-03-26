@@ -128,6 +128,7 @@
       </div>
       <div id="playspaceLayer" class="playspace-layer" aria-hidden="true"></div>
       <div id="gameLayer" class="game-layer" aria-hidden="true"></div>
+      <div id="stackLayer" class="stack-layer" aria-hidden="true"></div>
       <svg id="drawingBackLayer" class="drawing-layer drawing-layer-back" viewBox="0 0 7680 4320" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div id="promotedCardLayer" class="promoted-cards-layer" aria-hidden="true"></div>
       <svg id="drawingLayer" class="drawing-layer" viewBox="0 0 7680 4320" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -404,8 +405,42 @@
               </span>
               <span class="asset-label">coin</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="spinnerComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-spinner"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <g class="spinner-icon-wheel">
+                    <path class="spinner-icon-segment" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" />
+                    <path class="spinner-icon-segment spinner-icon-segment-alt" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(51.4286 12 12)" />
+                    <path class="spinner-icon-segment" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(102.8572 12 12)" />
+                    <path class="spinner-icon-segment spinner-icon-segment-alt" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(154.2858 12 12)" />
+                    <path class="spinner-icon-segment" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(205.7144 12 12)" />
+                    <path class="spinner-icon-segment spinner-icon-segment-alt" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(257.143 12 12)" />
+                    <path class="spinner-icon-segment" d="M12 8.9L12 3.8A8.2 8.2 0 0 1 18.411 6.887L14.424 10.067A3.1 3.1 0 0 0 12 8.9Z" transform="rotate(308.5716 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(51.4286 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(102.8572 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(154.2858 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(205.7144 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(257.143 12 12)" />
+                    <line class="spinner-icon-separator" x1="12" y1="8.9" x2="12" y2="3.8" transform="rotate(308.5716 12 12)" />
+                    <circle class="spinner-icon-ring" cx="12" cy="12" r="8.2" />
+                  </g>
+                  <g class="spinner-icon-pointer">
+                    <line class="spinner-icon-needle" x1="12" y1="12" x2="12" y2="7.9" />
+                    <path class="spinner-icon-needle-head" d="M12 6.2L10.95 8.1H13.05Z" />
+                  </g>
+                  <circle class="spinner-icon-center" cx="12" cy="12" r="1.2" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">spinner</span>
             </button>
             <button class="asset-gallery-item asset-component-item" type="button">
@@ -807,6 +842,81 @@
             </label>
             <div id="imageAddError" class="image-add-error hidden" aria-live="polite"></div>
             <button id="imageAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add image">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="spinnerAddModal"
+        class="asset-menu-modal spinner-add-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="spinnerAddTitle"
+      >
+        <div class="asset-menu-dialog spinner-add-dialog">
+          <div class="asset-menu-header spinner-add-header">
+            <h2 id="spinnerAddTitle" class="dice-add-title">adding spinner</h2>
+            <div class="asset-submenu-header-actions">
+              <button id="spinnerAddBackButton" class="asset-menu-close asset-menu-back" type="button" aria-label="back to components">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M15.5 5L8.5 12L15.5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button id="spinnerAddCloseButton" class="asset-menu-close" type="button" aria-label="close add spinner menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="spinner-add-body">
+            <div class="spinner-add-field">
+              <label class="image-add-label" for="spinnerAddSegmentsInput"># of segments</label>
+              <input
+                id="spinnerAddSegmentsInput"
+                class="image-add-input spinner-add-segment-input"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="20"
+                step="1"
+                value="8"
+              />
+            </div>
+            <label class="image-add-toggle spinner-add-text-toggle" for="spinnerAddTextToggle">
+              <span class="image-add-toggle-label">text</span>
+              <span class="image-add-toggle-control">
+                <input id="spinnerAddTextToggle" class="image-add-toggle-input" type="checkbox" />
+                <span class="image-add-toggle-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <div id="spinnerAddTextInputs" class="spinner-add-text-inputs hidden"></div>
+            <button id="spinnerAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add spinner">
               <svg
                 viewBox="0 0 24 24"
                 width="24"

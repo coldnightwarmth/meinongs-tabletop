@@ -15,6 +15,7 @@ import { firebaseConfig } from './firebase-config.js';
 const tableRoot = document.getElementById('tableRoot');
 const playspaceLayer = document.getElementById('playspaceLayer');
 const gameLayer = document.getElementById('gameLayer');
+const stackLayer = document.getElementById('stackLayer');
 const drawingBackLayer = document.getElementById('drawingBackLayer');
 const promotedCardLayer = document.getElementById('promotedCardLayer');
 const drawingLayer = document.getElementById('drawingLayer');
@@ -53,6 +54,7 @@ const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
+const spinnerComponentTile = document.getElementById('spinnerComponentTile');
 const counterComponentTile = document.getElementById('counterComponentTile');
 const labelComponentTile = document.getElementById('labelComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
@@ -66,6 +68,13 @@ const diceTypeD6Button = document.getElementById('diceTypeD6Button');
 const diceTypeD20Button = document.getElementById('diceTypeD20Button');
 const diceCountRow = document.getElementById('diceCountRow');
 const diceAddConfirmButton = document.getElementById('diceAddConfirmButton');
+const spinnerAddModal = document.getElementById('spinnerAddModal');
+const spinnerAddBackButton = document.getElementById('spinnerAddBackButton');
+const spinnerAddCloseButton = document.getElementById('spinnerAddCloseButton');
+const spinnerAddSegmentsInput = document.getElementById('spinnerAddSegmentsInput');
+const spinnerAddTextToggle = document.getElementById('spinnerAddTextToggle');
+const spinnerAddTextInputs = document.getElementById('spinnerAddTextInputs');
+const spinnerAddConfirmButton = document.getElementById('spinnerAddConfirmButton');
 const imageAddModal = document.getElementById('imageAddModal');
 const imageAddBackButton = document.getElementById('imageAddBackButton');
 const imageAddCloseButton = document.getElementById('imageAddCloseButton');
@@ -232,6 +241,19 @@ const MONS_MOVE_CONTROL_SIZE = 28;
 const MONS_SIDE_CLAIMS_EDGE_INSET = 27;
 const MONS_SIDE_CLAIMS_VERTICAL_OFFSET = 8;
 const MONS_UNDO_HISTORY_LIMIT = 30;
+const MONS_ACTION_TRANSACTION_OPTIONS = { applyLocally: true };
+const EMPTY_DECK_CARD_METRICS = Object.freeze({
+  inDeckIds: Object.freeze([]),
+  inDiscardIds: Object.freeze([]),
+  inAuctionIds: Object.freeze([]),
+  inDeckCount: 0,
+  inDiscardCount: 0,
+  inAuctionCount: 0,
+  topDeckZ: 1,
+  topDiscardZ: 1,
+  topAuctionZ: 1,
+  topDeckCardId: ''
+});
 const COUNTER_MIN_VALUE = -9999;
 const COUNTER_MAX_VALUE = 9999;
 const COUNTER_DIGIT_COUNT = 4;
@@ -242,9 +264,17 @@ const COUNTER_CONTROL_FONT_WIDTH_DIVISOR = 20;
 const DIE_SIZE_D6 = 84;
 const DIE_SIZE_D20 = 92;
 const DIE_SIZE_COIN = 114;
+const DIE_SIZE_SPINNER = 312;
 const DIE_SIZE_COUNTER_WIDTH = 248;
 const DIE_SIZE_COUNTER_HEIGHT = 136;
 const DIE_SIZE_MARBLE = 90;
+const SPINNER_MIN_SEGMENTS = 1;
+const SPINNER_MAX_SEGMENTS = 20;
+const SPINNER_DEFAULT_SEGMENTS = 8;
+const SPINNER_LABEL_MAX_LENGTH = 24;
+const SPINNER_ROLL_MIN_TURNS = 4;
+const SPINNER_ROLL_MAX_TURNS = 9;
+const SPINNER_ROLL_DURATION_MS = 1320;
 const MARBLE_HUE_MIN = 0;
 const MARBLE_HUE_MAX = 359;
 const MARBLE_DEFAULT_HUE = 218;
@@ -887,6 +917,11 @@ let deckState = null;
 const deckStatesById = new Map();
 let activeDeckId = DECK_KEY;
 const deckUiById = new Map();
+let cardDeckMetricsCacheDirty = true;
+let cardDeckMetricsCache = {
+  deckIds: [],
+  metricsByDeck: new Map()
+};
 let monsGameState = null;
 const monsGameStatesById = new Map();
 const monsGhostBoardElementsById = new Map();
@@ -916,6 +951,9 @@ let monsSelectionPieceId = '';
 let monsPendingSpiritPush = null;
 let monsPendingDemonRebound = null;
 let lastRenderedMonsMoveTick = 0;
+let lastActiveMonsLayerRenderKey = '';
+let lastActiveMonsHudRenderKey = '';
+let lastActiveMonsBoardFlipped = null;
 let monsParticleAnimationRafId = 0;
 let monsWaveFrameIndex = 0;
 let monsWaveTimerId = 0;
@@ -939,6 +977,7 @@ let handHoverLayout = null;
 let hoveredHandCardId = null;
 let lastHandHoverClientX = Number.NaN;
 let lastHandHoverClientY = Number.NaN;
+let lastRenderedHandTrayWidth = 0;
 let resizingImageCardId = '';
 let rotatingStickerCardId = '';
 let rotatingLabelDieId = '';
@@ -951,7 +990,9 @@ let deckShuffleFxCards = [];
 let deckShuffleFxActive = false;
 let deckShuffleFxTimerId = 0;
 let deckShuffleFxDeckId = DECK_KEY;
+let deckShuffleDarkenedCardId = '';
 let diceRollAnimationRafId = 0;
+let cameraRenderRafId = 0;
 let cameraPersistTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
@@ -964,6 +1005,9 @@ let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
 let activeDiceAddType = 'd6';
 let activeDiceAddCount = 1;
+let activeSpinnerAddSegments = SPINNER_DEFAULT_SEGMENTS;
+let spinnerAddTextEnabled = false;
+let activeSpinnerAddLabels = [];
 let stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
 let stickerManifestLoaded = false;
 let stickerManifestLoadPromise = null;
@@ -1012,6 +1056,9 @@ let spawnCounter = async () => {
 };
 let spawnMarble = async () => {
   showStatusMessage('Firebase connection is required before adding marbles.');
+};
+let spawnSpinnerComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding spinners.');
 };
 let spawnImageComponent = async () => {
   showStatusMessage('Firebase connection is required before adding images.');
@@ -1140,6 +1187,7 @@ const camera = {
   panX: 0,
   panY: 0
 };
+let lastAppliedGridScale = Number.NaN;
 
 function getMonsPieceImageRendering() {
   return camera.scale >= MONS_PIECE_PIXELATE_SCALE ? 'pixelated' : 'auto';
@@ -1250,6 +1298,30 @@ function snapToDevicePixel(value, min = 1) {
   return Math.max(min, Math.round(value * dpr) / dpr);
 }
 
+function setElementStyleValue(element, property, value) {
+  if (!element || !property) {
+    return;
+  }
+  if (element.style[property] === value) {
+    return;
+  }
+  element.style[property] = value;
+}
+
+function setElementStylePx(element, property, value) {
+  setElementStyleValue(element, property, `${value}px`);
+}
+
+function setElementStyleCustomProperty(element, property, value) {
+  if (!element || !property) {
+    return;
+  }
+  if (element.style.getPropertyValue(property) === value) {
+    return;
+  }
+  element.style.setProperty(property, value);
+}
+
 function getViewportWorldCenter() {
   if (!tableRoot) {
     return {
@@ -1352,8 +1424,8 @@ function positionDot(dot) {
   const normalizedY = Number(dot.dataset.normalizedY ?? 0.5);
   const world = normalizedToWorld({ x: normalizedX, y: normalizedY });
   const screen = worldToScreen(world);
-  dot.style.left = `${screen.x}px`;
-  dot.style.top = `${screen.y}px`;
+  setElementStylePx(dot, 'left', screen.x);
+  setElementStylePx(dot, 'top', screen.y);
 }
 
 function renderAllDots() {
@@ -1423,6 +1495,9 @@ function setActiveMonsGameId(nextMonsGameId) {
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
     lastRenderedMonsMoveTick = Number(monsGameState?.moveTick) || 0;
+    lastActiveMonsLayerRenderKey = '';
+    lastActiveMonsHudRenderKey = '';
+    lastActiveMonsBoardFlipped = null;
   }
 }
 
@@ -1472,15 +1547,120 @@ function syncCoverDrawingsGamesLayerState() {
   tableRoot?.classList.toggle('has-cover-drawings-games', hasAnyCoverDrawingsGames());
 }
 
-function getDeckIdsInRoom() {
-  const deckIds = new Set(deckStatesById.keys());
-  for (const cardState of cards.values()) {
+function createEmptyDeckCardMetricsEntry() {
+  return {
+    inDeckIds: [],
+    inDiscardIds: [],
+    inAuctionIds: [],
+    inDeckCount: 0,
+    inDiscardCount: 0,
+    inAuctionCount: 0,
+    topDeckZ: 1,
+    topDiscardZ: 1,
+    topAuctionZ: 1,
+    topDeckCardId: ''
+  };
+}
+
+function markCardDeckMetricsCacheDirty() {
+  cardDeckMetricsCacheDirty = true;
+}
+
+function didCardDeckMetricsFieldsChange(previousCardState, nextCardState) {
+  if (!previousCardState || !nextCardState) {
+    return true;
+  }
+  if (normalizeDeckId(previousCardState.deckId) !== normalizeDeckId(nextCardState.deckId)) {
+    return true;
+  }
+  if (Boolean(previousCardState.inDeck) !== Boolean(nextCardState.inDeck)) {
+    return true;
+  }
+  if (Boolean(previousCardState.inDiscard) !== Boolean(nextCardState.inDiscard)) {
+    return true;
+  }
+  if (Boolean(previousCardState.inAuction) !== Boolean(nextCardState.inAuction)) {
+    return true;
+  }
+  const previousInStack =
+    previousCardState.inDeck === true ||
+    previousCardState.inDiscard === true ||
+    previousCardState.inAuction === true;
+  const nextInStack =
+    nextCardState.inDeck === true ||
+    nextCardState.inDiscard === true ||
+    nextCardState.inAuction === true;
+  if (!previousInStack && !nextInStack) {
+    return false;
+  }
+  return (Number(previousCardState.z) || 1) !== (Number(nextCardState.z) || 1);
+}
+
+function getCardDeckMetricsCache() {
+  if (!cardDeckMetricsCacheDirty) {
+    return cardDeckMetricsCache;
+  }
+  const metricsByDeck = new Map();
+  for (const [cardId, cardState] of cards.entries()) {
     if (!cardState || typeof cardState !== 'object') {
       continue;
     }
-    deckIds.add(normalizeDeckId(cardState.deckId));
+    const normalizedDeckId = normalizeDeckId(cardState.deckId);
+    let metrics = metricsByDeck.get(normalizedDeckId);
+    if (!metrics) {
+      metrics = createEmptyDeckCardMetricsEntry();
+      metricsByDeck.set(normalizedDeckId, metrics);
+    }
+    const zoneZ = Number(cardState.z) || 1;
+    if (cardState.inDeck) {
+      metrics.inDeckIds.push(cardId);
+      metrics.inDeckCount += 1;
+      if (zoneZ >= metrics.topDeckZ) {
+        metrics.topDeckZ = zoneZ;
+        metrics.topDeckCardId = cardId;
+      }
+    }
+    if (cardState.inDiscard) {
+      metrics.inDiscardIds.push(cardId);
+      metrics.inDiscardCount += 1;
+      metrics.topDiscardZ = Math.max(metrics.topDiscardZ, zoneZ);
+    }
+    if (cardState.inAuction) {
+      metrics.inAuctionIds.push(cardId);
+      metrics.inAuctionCount += 1;
+      metrics.topAuctionZ = Math.max(metrics.topAuctionZ, zoneZ);
+    }
+  }
+  cardDeckMetricsCache = {
+    deckIds: Array.from(metricsByDeck.keys()),
+    metricsByDeck
+  };
+  cardDeckMetricsCacheDirty = false;
+  return cardDeckMetricsCache;
+}
+
+function getDeckMetricsEntry(deckId = activeDeckId) {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  return getCardDeckMetricsCache().metricsByDeck.get(normalizedDeckId) || null;
+}
+
+function getDeckIdsInRoom() {
+  const cardCache = getCardDeckMetricsCache();
+  if (deckStatesById.size === 0) {
+    return cardCache.deckIds.slice();
+  }
+  const deckIds = new Set(deckStatesById.keys());
+  for (const deckId of cardCache.deckIds) {
+    deckIds.add(deckId);
   }
   return Array.from(deckIds);
+}
+
+function buildDeckCardMetrics() {
+  return {
+    deckIds: getDeckIdsInRoom(),
+    metricsByDeck: getCardDeckMetricsCache().metricsByDeck
+  };
 }
 
 function getDeckCenterPosition(deckId = activeDeckId) {
@@ -1526,6 +1706,9 @@ function normalizeDieType(type) {
   if (type === 'marble') {
     return 'marble';
   }
+  if (type === 'spinner') {
+    return 'spinner';
+  }
   if (type === 'coin') {
     return 'coin';
   }
@@ -1540,13 +1723,107 @@ function isLabelDieLocked(dieState) {
   return isLabelDieState(dieState) && dieState?.labelLocked === true;
 }
 
-function getDieSides(type) {
+function normalizeSpinnerSegmentCount(value, fallbackValue = SPINNER_DEFAULT_SEGMENTS) {
+  const parsed = Math.round(Number(value));
+  if (Number.isFinite(parsed)) {
+    return clamp(parsed, SPINNER_MIN_SEGMENTS, SPINNER_MAX_SEGMENTS);
+  }
+  const fallbackParsed = Math.round(Number(fallbackValue));
+  if (Number.isFinite(fallbackParsed)) {
+    return clamp(fallbackParsed, SPINNER_MIN_SEGMENTS, SPINNER_MAX_SEGMENTS);
+  }
+  return SPINNER_DEFAULT_SEGMENTS;
+}
+
+function normalizeSpinnerLabelText(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, SPINNER_LABEL_MAX_LENGTH);
+}
+
+function normalizeSpinnerLabels(labels, segmentCount) {
+  const normalizedCount = normalizeSpinnerSegmentCount(segmentCount);
+  const source = Array.isArray(labels) ? labels : [];
+  const nextLabels = [];
+  for (let index = 0; index < normalizedCount; index += 1) {
+    nextLabels.push(normalizeSpinnerLabelText(source[index]));
+  }
+  return nextLabels;
+}
+
+function getSpinnerSegmentCount(dieState) {
+  return normalizeSpinnerSegmentCount(dieState?.spinnerSegments, SPINNER_DEFAULT_SEGMENTS);
+}
+
+function getSpinnerLabels(dieState) {
+  return normalizeSpinnerLabels(dieState?.spinnerLabels, getSpinnerSegmentCount(dieState));
+}
+
+function getSpinnerSegmentLabel(dieState, value) {
+  const segments = getSpinnerSegmentCount(dieState);
+  const index = clamp(Math.round(Number(value) || 1), 1, segments) - 1;
+  const labels = getSpinnerLabels(dieState);
+  const customLabel = normalizeSpinnerLabelText(labels[index]);
+  return customLabel || String(index + 1);
+}
+
+function getSpinnerSegmentCenterAngle(value, segmentCount) {
+  const segments = normalizeSpinnerSegmentCount(segmentCount);
+  const index = clamp(Math.round(Number(value) || 1), 1, segments) - 1;
+  const sliceAngle = 360 / segments;
+  return index * sliceAngle;
+}
+
+function getSpinnerSegmentIndexForAngle(angle, segmentCount) {
+  const segments = normalizeSpinnerSegmentCount(segmentCount);
+  const sliceAngle = 360 / segments;
+  const normalizedAngle = ((Number(angle) || 0) % 360 + 360) % 360;
+  return ((Math.round(normalizedAngle / sliceAngle) % segments) + segments) % segments;
+}
+
+function normalizeSpinnerRollTurns(value) {
+  const numeric = Math.round(Number(value));
+  if (!Number.isFinite(numeric)) {
+    return SPINNER_ROLL_MIN_TURNS;
+  }
+  return clamp(numeric, SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS);
+}
+
+function getSpinnerNeedleAngle(dieState, now = Date.now()) {
+  const normalizedDie = normalizeDicePayload(dieState);
+  if (normalizeDieType(normalizedDie?.type) !== 'spinner') {
+    return 0;
+  }
+  const segmentCount = getSpinnerSegmentCount(normalizedDie);
+  const finalAngle = getSpinnerSegmentCenterAngle(normalizedDie.value, segmentCount);
+  if (!isDieRolling(normalizedDie, now)) {
+    return finalAngle;
+  }
+  const startedAt = Number(normalizedDie.rollStartedAt);
+  const duration = Math.max(1, Number(normalizedDie.rollDurationMs) || SPINNER_ROLL_DURATION_MS);
+  const progress = clamp((now - startedAt) / duration, 0, 1);
+  const eased = 1 - Math.pow(1 - progress, 3);
+  const startAngleRaw = Number(normalizedDie.spinnerStartAngle);
+  const startAngle = Number.isFinite(startAngleRaw)
+    ? startAngleRaw
+    : getSpinnerSegmentCenterAngle(normalizedDie.value, segmentCount);
+  const spinTurns = normalizeSpinnerRollTurns(normalizedDie.spinnerSpinTurns);
+  const normalizedDelta = ((finalAngle - startAngle) % 360 + 360) % 360;
+  const totalRotation = spinTurns * 360 + normalizedDelta;
+  return startAngle + totalRotation * eased;
+}
+
+function getDieSides(type, payload = null) {
   const normalizedType = normalizeDieType(type);
   if (normalizedType === 'label' || normalizedType === 'media' || normalizedType === 'counter') {
     return 1;
   }
   if (normalizedType === 'marble') {
     return 1;
+  }
+  if (normalizedType === 'spinner') {
+    return getSpinnerSegmentCount(payload);
   }
   if (normalizedType === 'coin') {
     return 2;
@@ -1567,6 +1844,9 @@ function getDieSize(type) {
   }
   if (normalizedType === 'marble') {
     return DIE_SIZE_MARBLE;
+  }
+  if (normalizedType === 'spinner') {
+    return DIE_SIZE_SPINNER;
   }
   if (normalizedType === 'coin') {
     return DIE_SIZE_COIN;
@@ -1824,7 +2104,21 @@ function normalizeDicePayload(payload) {
   const type = normalizeDieType(payload?.type);
   const dimensions = getDieWorldDimensions(type, payload);
   const centerBounds = getDieCenterBounds(type, dimensions.width, dimensions.height);
-  const sides = getDieSides(type);
+  const spinnerSegments = type === 'spinner' ? normalizeSpinnerSegmentCount(payload?.spinnerSegments) : 0;
+  const spinnerLabels = type === 'spinner' ? normalizeSpinnerLabels(payload?.spinnerLabels, spinnerSegments) : [];
+  const spinnerResultVisible = type === 'spinner' && payload?.spinnerResultVisible === true;
+  const spinnerHighlightVisible =
+    type === 'spinner' &&
+    (payload?.spinnerHighlightVisible === true || spinnerResultVisible);
+  const spinnerStartAngle = type === 'spinner'
+    ? (Number.isFinite(Number(payload?.spinnerStartAngle))
+      ? Number(payload?.spinnerStartAngle)
+      : getSpinnerSegmentCenterAngle(payload?.value, spinnerSegments))
+    : 0;
+  const spinnerSpinTurns = type === 'spinner' ? normalizeSpinnerRollTurns(payload?.spinnerSpinTurns) : 0;
+  const sides = getDieSides(type, {
+    spinnerSegments
+  });
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextValue = Number(payload?.value);
@@ -1914,6 +2208,12 @@ function normalizeDicePayload(payload) {
     mediaStartNonce,
     mediaWidth: dimensions.width,
     mediaHeight: dimensions.height,
+    spinnerSegments,
+    spinnerLabels,
+    spinnerResultVisible,
+    spinnerHighlightVisible,
+    spinnerStartAngle,
+    spinnerSpinTurns,
     drawLifted,
     holderClientId: normalizedHolderClientId,
     moving,
@@ -1959,13 +2259,16 @@ function getPseudoRandomFromSeed(seedValue) {
 
 function getRenderedDieValue(dieState, now = Date.now()) {
   const normalized = normalizeDicePayload(dieState);
+  if (normalized.type === 'spinner') {
+    return normalized.value;
+  }
   if (!isDieRolling(normalized, now)) {
     return normalized.value;
   }
   const elapsed = Math.max(0, now - normalized.rollStartedAt);
   const tick = Math.floor(elapsed / DIE_ROLL_STEP_MS);
   const mixedSeed = getPseudoRandomFromSeed((normalized.rollSeed || 0) + tick * 2654435761);
-  return (mixedSeed % getDieSides(normalized.type)) + 1;
+  return (mixedSeed % getDieSides(normalized.type, normalized)) + 1;
 }
 
 function getTopDieZ() {
@@ -2466,36 +2769,30 @@ function buildFreshMonsGamePayload(options = {}) {
 }
 
 function getDeckCardIds(deckId = activeDeckId) {
-  const normalizedDeckId = normalizeDeckId(deckId);
-  const ids = [];
-  for (const [cardId, cardState] of cards.entries()) {
-    if (cardState.inDeck && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-      ids.push(cardId);
-    }
-  }
-  return ids;
+  const metrics = getDeckMetricsEntry(deckId);
+  return metrics ? metrics.inDeckIds.slice() : [];
 }
 
 function getDiscardCardIds(deckId = activeDeckId) {
-  const normalizedDeckId = normalizeDeckId(deckId);
-  const ids = [];
-  for (const [cardId, cardState] of cards.entries()) {
-    if (cardState.inDiscard && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-      ids.push(cardId);
-    }
-  }
-  return ids;
+  const metrics = getDeckMetricsEntry(deckId);
+  return metrics ? metrics.inDiscardIds.slice() : [];
 }
 
 function getAuctionCardIds(deckId = activeDeckId) {
-  const normalizedDeckId = normalizeDeckId(deckId);
-  const ids = [];
-  for (const [cardId, cardState] of cards.entries()) {
-    if (cardState.inAuction && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-      ids.push(cardId);
-    }
-  }
-  return ids;
+  const metrics = getDeckMetricsEntry(deckId);
+  return metrics ? metrics.inAuctionIds.slice() : [];
+}
+
+function getDeckCardCount(deckId = activeDeckId) {
+  return getDeckMetricsEntry(deckId)?.inDeckCount || 0;
+}
+
+function getDiscardCardCount(deckId = activeDeckId) {
+  return getDeckMetricsEntry(deckId)?.inDiscardCount || 0;
+}
+
+function getAuctionCardCount(deckId = activeDeckId) {
+  return getDeckMetricsEntry(deckId)?.inAuctionCount || 0;
 }
 
 function toHighResFrontSrc(src) {
@@ -2664,14 +2961,8 @@ function preloadCoolJpegsFrontImages() {
 }
 
 function getDeckTopZ(deckId = activeDeckId) {
-  const normalizedDeckId = normalizeDeckId(deckId);
-  let maxZ = 1;
-  for (const cardState of cards.values()) {
-    if (cardState.inDeck && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-      maxZ = Math.max(maxZ, Number(cardState.z) || 1);
-    }
-  }
-  return maxZ;
+  const metrics = getDeckMetricsEntry(deckId);
+  return metrics ? metrics.topDeckZ : 1;
 }
 
 function clearCardFlipTimer(cardId) {
@@ -2703,26 +2994,27 @@ function ensureDeckShuffleFxElements() {
 }
 
 function clearTopDeckShuffleDarkening() {
-  for (const cardElement of cardElements.values()) {
-    cardElement.classList.remove('is-shuffle-darkening');
+  if (deckShuffleDarkenedCardId) {
+    const previouslyDarkened = cardElements.get(deckShuffleDarkenedCardId);
+    previouslyDarkened?.classList.remove('is-shuffle-darkening');
+    deckShuffleDarkenedCardId = '';
+    return;
   }
+  for (const [cardId, cardElement] of cardElements.entries()) {
+    if (!cardElement.classList.contains('is-shuffle-darkening')) {
+      continue;
+    }
+    cardElement.classList.remove('is-shuffle-darkening');
+    deckShuffleDarkenedCardId = cardId;
+    break;
+  }
+  deckShuffleDarkenedCardId = '';
 }
 
 function markTopDeckShuffleDarkening(deckId = deckShuffleFxDeckId) {
   clearTopDeckShuffleDarkening();
   const targetDeckId = normalizeDeckId(deckId);
-  let topCardId = '';
-  let topZ = -Infinity;
-  for (const [cardId, cardState] of cards.entries()) {
-    if (!cardState?.inDeck || normalizeDeckId(cardState.deckId) !== targetDeckId) {
-      continue;
-    }
-    const z = Number(cardState.z) || 0;
-    if (z >= topZ) {
-      topZ = z;
-      topCardId = cardId;
-    }
-  }
+  const topCardId = getDeckMetricsEntry(targetDeckId)?.topDeckCardId || '';
   if (!topCardId) {
     return;
   }
@@ -2735,6 +3027,7 @@ function markTopDeckShuffleDarkening(deckId = deckShuffleFxDeckId) {
   // Restart the animation cleanly when shuffles happen rapidly.
   void topCardElement.offsetWidth;
   topCardElement.classList.add('is-shuffle-darkening');
+  deckShuffleDarkenedCardId = topCardId;
 }
 
 function setDeckShuffleFxActive(active) {
@@ -2790,8 +3083,7 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
     setDeckShuffleFxActive(false);
     return;
   }
-  const shouldCoverDrawings = targetDeckState.coverDrawings === true;
-  const preferredLayer = shouldCoverDrawings && coverCardLayer ? coverCardLayer : cardLayer;
+  const preferredLayer = stackLayer || cardLayer;
 
   const topDeckZ = getDeckTopZ(targetDeckId);
   const baseZ = Math.max(1, topDeckZ - 2);
@@ -2903,6 +3195,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   if (!tableRoot || !ensureDeckDropIndicators()) {
     return null;
   }
+  const stackVisualHost = stackLayer || tableRoot;
 
   const normalizedDeckId = normalizeDeckId(deckId);
   const existingDeckUi = deckUiById.get(normalizedDeckId);
@@ -3032,13 +3325,13 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   deckSlot.className = 'deck-slot hidden';
   deckSlot.dataset.deckId = normalizedDeckId;
   deckSlot.setAttribute('aria-hidden', 'true');
-  tableRoot.appendChild(deckSlot);
+  stackVisualHost.appendChild(deckSlot);
 
   const discardSlot = document.createElement('div');
   discardSlot.className = 'discard-slot hidden';
   discardSlot.dataset.deckId = normalizedDeckId;
   discardSlot.setAttribute('aria-hidden', 'true');
-  tableRoot.appendChild(discardSlot);
+  stackVisualHost.appendChild(discardSlot);
 
   const discardLabel = document.createElement('span');
   discardLabel.className = 'discard-slot-label';
@@ -3049,7 +3342,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   auctionSlot.className = 'auction-slot hidden';
   auctionSlot.dataset.deckId = normalizedDeckId;
   auctionSlot.setAttribute('aria-hidden', 'true');
-  tableRoot.appendChild(auctionSlot);
+  stackVisualHost.appendChild(auctionSlot);
 
   const auctionLabel = document.createElement('img');
   auctionLabel.className = 'auction-slot-icon';
@@ -3063,7 +3356,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   deckCountBadge.dataset.deckId = normalizedDeckId;
   deckCountBadge.setAttribute('aria-hidden', 'true');
   deckCountBadge.textContent = '0';
-  tableRoot.appendChild(deckCountBadge);
+  stackVisualHost.appendChild(deckCountBadge);
 
   const deckUi = {
     deckId: normalizedDeckId,
@@ -3118,11 +3411,12 @@ function removeAllDeckUiArtifacts() {
 
 function renderDeckControls() {
   ensureDeckDropIndicators();
-  const deckIds = getDeckIdsInRoom().map((deckId) => normalizeDeckId(deckId));
+  const { deckIds, metricsByDeck } = buildDeckCardMetrics();
   const renderedDeckIds = new Set();
   let hasVisibleDeck = false;
   const controlSize = DECK_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
+  const dealTargetCount = getActivePlayerTokensForDeal().length;
   const cardScreenWidth = snapToDevicePixel(CARD_WIDTH * camera.scale);
   const cardScreenHeight = (cardScreenWidth * CARD_HEIGHT) / CARD_WIDTH;
   const auctionSlotScreenWidth = snapToDevicePixel((CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) * camera.scale);
@@ -3152,9 +3446,10 @@ function renderDeckControls() {
 
   for (const deckId of deckIds) {
     const targetDeckState = getDeckStateById(deckId);
-    const inDeckCount = getDeckCardIds(deckId).length;
-    const inDiscardCount = getDiscardCardIds(deckId).length;
-    const inAuctionCount = getAuctionCardIds(deckId).length;
+    const deckMetrics = metricsByDeck.get(deckId) || EMPTY_DECK_CARD_METRICS;
+    const inDeckCount = deckMetrics.inDeckCount;
+    const inDiscardCount = deckMetrics.inDiscardCount;
+    const inAuctionCount = deckMetrics.inAuctionCount;
     if (!targetDeckState) {
       const staleDeckUi = deckUiById.get(deckId);
       if (staleDeckUi) {
@@ -3182,83 +3477,85 @@ function renderDeckControls() {
 
     deckUi.deckSlot.classList.toggle('hidden', inDeckCount > 0);
     if (inDeckCount <= 0) {
-      deckUi.deckSlot.style.left = `${deckScreen.x}px`;
-      deckUi.deckSlot.style.top = `${deckScreen.y}px`;
-      deckUi.deckSlot.style.width = `${cardScreenWidth}px`;
-      deckUi.deckSlot.style.height = `${cardScreenHeight}px`;
+      setElementStylePx(deckUi.deckSlot, 'left', deckScreen.x);
+      setElementStylePx(deckUi.deckSlot, 'top', deckScreen.y);
+      setElementStylePx(deckUi.deckSlot, 'width', cardScreenWidth);
+      setElementStylePx(deckUi.deckSlot, 'height', cardScreenHeight);
       deckUi.deckSlot.classList.toggle('is-hovered', deckHovered);
     } else {
       deckUi.deckSlot.classList.remove('is-hovered');
     }
 
     deckUi.shuffleButton.classList.remove('hidden');
-    deckUi.shuffleButton.style.left = `${deckScreen.x - controlsXOffset}px`;
-    deckUi.shuffleButton.style.top = `${controlsY}px`;
-    deckUi.shuffleButton.style.width = `${controlSize}px`;
-    deckUi.shuffleButton.style.height = `${controlSize}px`;
+    setElementStylePx(deckUi.shuffleButton, 'left', deckScreen.x - controlsXOffset);
+    setElementStylePx(deckUi.shuffleButton, 'top', controlsY);
+    setElementStylePx(deckUi.shuffleButton, 'width', controlSize);
+    setElementStylePx(deckUi.shuffleButton, 'height', controlSize);
 
-    const dealTargetTokens = getActivePlayerTokensForDeal();
-    const canDealToAllPlayers = dealTargetTokens.length > 0 && inDeckCount >= dealTargetTokens.length;
+    const canDealToAllPlayers = dealTargetCount > 0 && inDeckCount >= dealTargetCount;
     deckUi.dealOneButton.classList.remove('hidden');
-    deckUi.dealOneButton.style.left = `${deckScreen.x + controlsXOffset}px`;
-    deckUi.dealOneButton.style.top = `${controlsY}px`;
-    deckUi.dealOneButton.style.width = `${controlSize}px`;
-    deckUi.dealOneButton.style.height = `${controlSize}px`;
+    setElementStylePx(deckUi.dealOneButton, 'left', deckScreen.x + controlsXOffset);
+    setElementStylePx(deckUi.dealOneButton, 'top', controlsY);
+    setElementStylePx(deckUi.dealOneButton, 'width', controlSize);
+    setElementStylePx(deckUi.dealOneButton, 'height', controlSize);
     deckUi.dealOneButton.disabled = !canDealToAllPlayers;
     deckUi.dealOneButton.classList.toggle('is-disabled', !canDealToAllPlayers);
 
+    const moveControlX = auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15;
+    const moveControlY = auctionScreen.y + auctionSlotScreenHeight / 2 - controlSize / 2;
     deckUi.moveButton.classList.remove('hidden');
-    deckUi.moveButton.style.left = `${auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15}px`;
-    deckUi.moveButton.style.top = `${auctionScreen.y + auctionSlotScreenHeight / 2 - controlSize / 2}px`;
-    deckUi.moveButton.style.width = `${controlSize}px`;
-    deckUi.moveButton.style.height = `${controlSize}px`;
+    setElementStylePx(deckUi.moveButton, 'left', moveControlX);
+    setElementStylePx(deckUi.moveButton, 'top', moveControlY);
+    setElementStylePx(deckUi.moveButton, 'width', controlSize);
+    setElementStylePx(deckUi.moveButton, 'height', controlSize);
     deckUi.moveButton.classList.toggle('is-held-by-self', targetDeckState.holderClientId === localClientId);
     deckUi.moveButton.classList.toggle('is-group-selected', selectedDeckIds.has(deckId));
 
     deckUi.optionsButton.classList.remove('hidden');
-    deckUi.optionsButton.style.left = deckUi.moveButton.style.left;
-    deckUi.optionsButton.style.top = `${auctionScreen.y + auctionSlotScreenHeight / 2 - (controlSize * 1.5 + controlGap)}px`;
-    deckUi.optionsButton.style.width = `${controlSize}px`;
-    deckUi.optionsButton.style.height = `${controlSize}px`;
+    setElementStylePx(deckUi.optionsButton, 'left', moveControlX);
+    setElementStylePx(deckUi.optionsButton, 'top', auctionScreen.y + auctionSlotScreenHeight / 2 - (controlSize * 1.5 + controlGap));
+    setElementStylePx(deckUi.optionsButton, 'width', controlSize);
+    setElementStylePx(deckUi.optionsButton, 'height', controlSize);
 
     const discardResetVisible = inDiscardCount > 0;
     deckUi.discardResetButton.classList.toggle('hidden', !discardResetVisible);
     if (discardResetVisible) {
-      deckUi.discardResetButton.style.left = `${discardScreen.x - cardScreenWidth / 2 - controlGap - controlSize / 2}px`;
-      deckUi.discardResetButton.style.top = `${discardScreen.y - cardScreenHeight / 2 + controlSize / 2}px`;
-      deckUi.discardResetButton.style.width = `${controlSize}px`;
-      deckUi.discardResetButton.style.height = `${controlSize}px`;
+      setElementStylePx(deckUi.discardResetButton, 'left', discardScreen.x - cardScreenWidth / 2 - controlGap - controlSize / 2);
+      setElementStylePx(deckUi.discardResetButton, 'top', discardScreen.y - cardScreenHeight / 2 + controlSize / 2);
+      setElementStylePx(deckUi.discardResetButton, 'width', controlSize);
+      setElementStylePx(deckUi.discardResetButton, 'height', controlSize);
     }
 
     const discardHovered = discardDropIndicatorVisible && discardDropIndicatorDeckId === deckId;
     deckUi.discardSlot.classList.remove('hidden');
-    deckUi.discardSlot.style.left = `${discardScreen.x}px`;
-    deckUi.discardSlot.style.top = `${discardScreen.y}px`;
-    deckUi.discardSlot.style.width = `${cardScreenWidth}px`;
-    deckUi.discardSlot.style.height = `${cardScreenHeight}px`;
+    setElementStylePx(deckUi.discardSlot, 'left', discardScreen.x);
+    setElementStylePx(deckUi.discardSlot, 'top', discardScreen.y);
+    setElementStylePx(deckUi.discardSlot, 'width', cardScreenWidth);
+    setElementStylePx(deckUi.discardSlot, 'height', cardScreenHeight);
     deckUi.discardSlot.classList.toggle('is-empty', inDiscardCount === 0);
     deckUi.discardSlot.classList.toggle('is-hovered', discardHovered);
     deckUi.discardLabel.classList.toggle('hidden', inDiscardCount > 0);
 
     const auctionHovered = auctionDropIndicatorVisible && auctionDropIndicatorDeckId === deckId;
     deckUi.auctionSlot.classList.remove('hidden');
-    deckUi.auctionSlot.style.left = `${auctionScreen.x}px`;
-    deckUi.auctionSlot.style.top = `${auctionScreen.y}px`;
-    deckUi.auctionSlot.style.width = `${auctionSlotScreenWidth}px`;
-    deckUi.auctionSlot.style.height = `${auctionSlotScreenHeight}px`;
-    deckUi.auctionSlot.style.setProperty(
+    setElementStylePx(deckUi.auctionSlot, 'left', auctionScreen.x);
+    setElementStylePx(deckUi.auctionSlot, 'top', auctionScreen.y);
+    setElementStylePx(deckUi.auctionSlot, 'width', auctionSlotScreenWidth);
+    setElementStylePx(deckUi.auctionSlot, 'height', auctionSlotScreenHeight);
+    setElementStyleCustomProperty(
+      deckUi.auctionSlot,
       '--auction-icon-occupied-top',
       `${auctionSlotScreenHeight / 2 + auctionCardScreenHeight / 2 + DECK_COUNT_OFFSET_Y}px`
     );
-    deckUi.auctionSlot.style.setProperty('--auction-icon-occupied-size', `${auctionIconOccupiedSize}px`);
+    setElementStyleCustomProperty(deckUi.auctionSlot, '--auction-icon-occupied-size', `${auctionIconOccupiedSize}px`);
     deckUi.auctionSlot.classList.toggle('is-empty', inAuctionCount === 0);
     deckUi.auctionSlot.classList.toggle('is-hovered', auctionHovered);
     deckUi.auctionSlot.classList.toggle('is-occupied', inAuctionCount > 0);
     deckUi.auctionLabel.classList.remove('hidden');
 
     deckUi.deckCountBadge.classList.remove('hidden');
-    deckUi.deckCountBadge.style.left = `${deckScreen.x}px`;
-    deckUi.deckCountBadge.style.top = `${controlsY}px`;
+    setElementStylePx(deckUi.deckCountBadge, 'left', deckScreen.x);
+    setElementStylePx(deckUi.deckCountBadge, 'top', controlsY);
     deckUi.deckCountBadge.textContent = String(inDeckCount);
   }
 
@@ -3270,11 +3567,14 @@ function renderDeckControls() {
     if (staleUi) {
       hideDeckUi(staleUi);
     }
+    const staleMetrics = metricsByDeck.get(existingDeckId);
+    const staleHasCards = Boolean(
+      staleMetrics &&
+      (staleMetrics.inDeckCount > 0 || staleMetrics.inDiscardCount > 0 || staleMetrics.inAuctionCount > 0)
+    );
     if (
       !deckStatesById.has(existingDeckId) &&
-      getDeckCardIds(existingDeckId).length === 0 &&
-      getDiscardCardIds(existingDeckId).length === 0 &&
-      getAuctionCardIds(existingDeckId).length === 0
+      !staleHasCards
     ) {
       removeDeckUi(existingDeckId);
     }
@@ -3290,8 +3590,8 @@ function renderDeckControls() {
       return;
     }
     const screen = isHandAnchoredDropIndicator && handDropIndicatorScreen ? handDropIndicatorScreen : targetScreen;
-    indicator.style.left = `${screen.x}px`;
-    indicator.style.top = `${screen.y - dropIndicatorOffsetY}px`;
+    setElementStylePx(indicator, 'left', screen.x);
+    setElementStylePx(indicator, 'top', screen.y - dropIndicatorOffsetY);
     indicator.classList.remove('hidden');
     indicator.classList.add('is-visible');
   };
@@ -3314,7 +3614,8 @@ function renderDeckControls() {
   if (deckShuffleFxActive) {
     const shuffleDeckId = normalizeDeckId(deckShuffleFxDeckId || activeDeckId);
     const shuffleDeckState = getDeckStateById(shuffleDeckId);
-    if (shuffleDeckState && getDeckCardIds(shuffleDeckId).length > 0) {
+    const shuffleDeckMetrics = metricsByDeck.get(shuffleDeckId);
+    if (shuffleDeckState && shuffleDeckMetrics && shuffleDeckMetrics.inDeckCount > 0) {
       const shuffleDeckScreen = worldToScreen({ x: shuffleDeckState.x, y: shuffleDeckState.y });
       renderDeckShuffleFx(shuffleDeckId, shuffleDeckScreen, cardScreenWidth, cardScreenHeight);
     } else {
@@ -3615,6 +3916,9 @@ function hideMonsBoardElements() {
   monsPendingSpiritPush = null;
   monsPendingDemonRebound = null;
   lastRenderedMonsMoveTick = 0;
+  lastActiveMonsLayerRenderKey = '';
+  lastActiveMonsHudRenderKey = '';
+  lastActiveMonsBoardFlipped = null;
   stopMonsParticleAnimation();
   stopMonsCornerWaveAnimation();
 }
@@ -3662,6 +3966,9 @@ function removeMonsBoardElements() {
   monsPendingSpiritPush = null;
   monsPendingDemonRebound = null;
   lastRenderedMonsMoveTick = 0;
+  lastActiveMonsLayerRenderKey = '';
+  lastActiveMonsHudRenderKey = '';
+  lastActiveMonsBoardFlipped = null;
   stopMonsParticleAnimation();
   stopMonsCornerWaveAnimation();
   monsWaveFrameIndex = 0;
@@ -3934,7 +4241,135 @@ function positionMonsSideClaimsLists(
   );
 }
 
-function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = Number.NaN) {
+function buildMonsPendingSpiritRenderKey(pendingState = monsPendingSpiritPush) {
+  if (!pendingState || typeof pendingState !== 'object') {
+    return 'none';
+  }
+  const gameId = normalizeMonsGameId(pendingState.gameId || activeMonsGameId);
+  const spiritId = typeof pendingState.spiritId === 'string' ? pendingState.spiritId : '';
+  const targetId = typeof pendingState.targetId === 'string' ? pendingState.targetId : '';
+  const options =
+    Array.isArray(pendingState.options) && pendingState.options.length > 0
+      ? pendingState.options
+          .map((option) =>
+            option && Number.isFinite(option.row) && Number.isFinite(option.col)
+              ? `${Math.round(option.row)}:${Math.round(option.col)}`
+              : ''
+          )
+          .filter(Boolean)
+          .sort()
+          .join(',')
+      : '';
+  return `${gameId}|${spiritId}|${targetId}|${options}`;
+}
+
+function buildMonsPendingDemonRenderKey(pendingState = monsPendingDemonRebound) {
+  if (!pendingState || typeof pendingState !== 'object') {
+    return 'none';
+  }
+  const gameId = normalizeMonsGameId(pendingState.gameId || activeMonsGameId);
+  const demonId = typeof pendingState.demonId === 'string' ? pendingState.demonId : '';
+  const targetId = typeof pendingState.targetId === 'string' ? pendingState.targetId : '';
+  const options =
+    Array.isArray(pendingState.options) && pendingState.options.length > 0
+      ? pendingState.options
+          .map((option) =>
+            option && Number.isFinite(option.row) && Number.isFinite(option.col)
+              ? `${Math.round(option.row)}:${Math.round(option.col)}`
+              : ''
+          )
+          .filter(Boolean)
+          .sort()
+          .join(',')
+      : '';
+  return `${gameId}|${demonId}|${targetId}|${options}`;
+}
+
+function buildMonsClaimsRenderKey(claimsPayload) {
+  const claims = normalizeMonsClaimsPayload(claimsPayload);
+  const toKey = (entries) =>
+    entries
+      .map((entry) => `${entry.token}:${entry.name}:${entry.color}`)
+      .join(',');
+  return `${toKey(claims.black)}|${toKey(claims.white)}`;
+}
+
+function buildMonsUndoTopRenderKey(undoHistoryPayload) {
+  const undoHistory = normalizeMonsUndoHistoryPayload(undoHistoryPayload);
+  const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
+  if (!topUndoEntry) {
+    return 'none';
+  }
+  return [
+    topUndoEntry.actorPlayerToken || '',
+    topUndoEntry.actorClientId || '',
+    Number(topUndoEntry.moveTick) || 0,
+    Number(topUndoEntry.createdAt) || 0
+  ].join(':');
+}
+
+function buildActiveMonsLayerRenderKey(gameState, pieceImageRendering) {
+  if (!gameState || gameState.enabled === false) {
+    return 'inactive';
+  }
+  return [
+    normalizeMonsGameId(activeMonsGameId),
+    Number(gameState.moveTick) || 0,
+    gameState.flipped === true ? '1' : '0',
+    pieceImageRendering,
+    monsSelectionPieceId || '',
+    buildMonsPendingSpiritRenderKey(),
+    buildMonsPendingDemonRenderKey()
+  ].join('|');
+}
+
+function buildActiveMonsHudRenderKey(gameState, showHudPotions) {
+  if (!gameState || gameState.enabled === false) {
+    return 'inactive';
+  }
+  const scores = normalizeMonsScoresPayload(gameState.scores);
+  const potions = normalizeMonsPotionsPayload(gameState.potions);
+  return [
+    normalizeMonsGameId(activeMonsGameId),
+    showHudPotions ? '1' : '0',
+    gameState.flipped === true ? '1' : '0',
+    Number(scores.black) || 0,
+    Number(scores.white) || 0,
+    Number(potions.black) || 0,
+    Number(potions.white) || 0,
+    buildMonsClaimsRenderKey(gameState.claims),
+    buildMonsUndoTopRenderKey(gameState.undoHistory)
+  ].join('|');
+}
+
+function buildGhostMonsRenderKey(gameId, gameState, pieceImageRendering, showHudPotions) {
+  if (!gameState || gameState.enabled === false) {
+    return 'inactive';
+  }
+  const scores = normalizeMonsScoresPayload(gameState.scores);
+  const potions = normalizeMonsPotionsPayload(gameState.potions);
+  return [
+    normalizeMonsGameId(gameId),
+    Number(gameState.moveTick) || 0,
+    gameState.flipped === true ? '1' : '0',
+    pieceImageRendering,
+    showHudPotions ? '1' : '0',
+    Number(scores.black) || 0,
+    Number(scores.white) || 0,
+    Number(potions.black) || 0,
+    Number(potions.white) || 0,
+    buildMonsClaimsRenderKey(gameState.claims),
+    buildMonsUndoTopRenderKey(gameState.undoHistory)
+  ].join('|');
+}
+
+function renderMonsGhostBoardState(
+  ghostBoardUi,
+  gameState,
+  boardScreenWidth = Number.NaN,
+  pieceImageRenderingOverride,
+  showHudPotionsOverride
+) {
   if (!ghostBoardUi || !gameState) {
     return;
   }
@@ -3942,8 +4377,14 @@ function renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth = N
   const boardFlipped = isMonsBoardFlipped(gameState);
   const ghostsLayer = ghostBoardUi.boardGhostsLayer;
   const piecesLayer = ghostBoardUi.boardPiecesLayer;
-  const pieceImageRendering = getMonsPieceImageRendering();
-  const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
+  const pieceImageRendering =
+    typeof pieceImageRenderingOverride === 'string' && pieceImageRenderingOverride
+      ? pieceImageRenderingOverride
+      : getMonsPieceImageRendering();
+  const showHudPotions =
+    typeof showHudPotionsOverride === 'boolean'
+      ? showHudPotionsOverride
+      : shouldShowMonsHudPotions(boardScreenWidth);
   if (ghostsLayer) {
     ghostsLayer.textContent = '';
     const occupiedTileKeys = new Set();
@@ -4057,6 +4498,9 @@ function removeMonsGhostBoardUi(ghostBoardUi) {
   if (!ghostBoardUi || typeof ghostBoardUi !== 'object') {
     return;
   }
+  ghostBoardUi.lastStateRenderKey = '';
+  ghostBoardUi.lastWaveFrameIndex = -1;
+  ghostBoardUi.lastBoardFlipped = null;
   ghostBoardUi.shell?.remove();
   ghostBoardUi.moveButton?.remove();
   ghostBoardUi.optionsButton?.remove();
@@ -4334,7 +4778,10 @@ function ensureMonsGhostBoardElement(gameId) {
     undoButton,
     flipButton,
     moveButton,
-    optionsButton
+    optionsButton,
+    lastStateRenderKey: '',
+    lastWaveFrameIndex: -1,
+    lastBoardFlipped: null
   };
   monsGhostBoardElementsById.set(normalizedGameId, ghostBoardUi);
   return ghostBoardUi;
@@ -4348,6 +4795,7 @@ function renderInactiveMonsBoardGhosts() {
   const visibleGhostIds = new Set();
   const controlSize = MONS_MOVE_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
+  const pieceImageRendering = getMonsPieceImageRendering();
   for (const [gameId, gameState] of monsGameStatesById.entries()) {
     if (!gameState || gameState.enabled === false) {
       continue;
@@ -4366,6 +4814,14 @@ function renderInactiveMonsBoardGhosts() {
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
     const hudScreenHeight = snapToDevicePixel(Math.max(24, boardScreenHeight - boardScreenWidth), 24);
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
+    const boardFlipped = isMonsBoardFlipped(gameState);
+    const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
+    const nextGhostStateRenderKey = buildGhostMonsRenderKey(
+      normalizedGameId,
+      gameState,
+      pieceImageRendering,
+      showHudPotions
+    );
 
     if (boardShouldCoverDrawings) {
       if (ghostBoardUi.shell.parentElement !== tableRoot) {
@@ -4380,17 +4836,32 @@ function renderInactiveMonsBoardGhosts() {
     }
 
     ghostBoardUi.shell.classList.remove('hidden');
-    ghostBoardUi.shell.style.left = `${boardScreen.x}px`;
-    ghostBoardUi.shell.style.top = `${boardScreen.y}px`;
-    ghostBoardUi.shell.style.width = `${boardScreenWidth}px`;
-    ghostBoardUi.shell.style.height = `${boardScreenHeight}px`;
-    ghostBoardUi.boardSvg.style.width = `${boardScreenWidth}px`;
-    ghostBoardUi.boardSvg.style.height = `${boardScreenWidth}px`;
-    applyMonsBoardOrientation(ghostBoardUi.boardSvg, isMonsBoardFlipped(gameState));
-    ghostBoardUi.hud.style.width = `${boardScreenWidth}px`;
-    ghostBoardUi.hud.style.height = `${hudScreenHeight}px`;
-    renderMonsCornerWavesIntoLayer(ghostBoardUi.boardWavesLayer);
-    renderMonsGhostBoardState(ghostBoardUi, gameState, boardScreenWidth);
+    setElementStylePx(ghostBoardUi.shell, 'left', boardScreen.x);
+    setElementStylePx(ghostBoardUi.shell, 'top', boardScreen.y);
+    setElementStylePx(ghostBoardUi.shell, 'width', boardScreenWidth);
+    setElementStylePx(ghostBoardUi.shell, 'height', boardScreenHeight);
+    setElementStylePx(ghostBoardUi.boardSvg, 'width', boardScreenWidth);
+    setElementStylePx(ghostBoardUi.boardSvg, 'height', boardScreenWidth);
+    if (ghostBoardUi.lastBoardFlipped !== boardFlipped) {
+      applyMonsBoardOrientation(ghostBoardUi.boardSvg, boardFlipped);
+      ghostBoardUi.lastBoardFlipped = boardFlipped;
+    }
+    setElementStylePx(ghostBoardUi.hud, 'width', boardScreenWidth);
+    setElementStylePx(ghostBoardUi.hud, 'height', hudScreenHeight);
+    if (ghostBoardUi.lastWaveFrameIndex !== monsWaveFrameIndex) {
+      renderMonsCornerWavesIntoLayer(ghostBoardUi.boardWavesLayer);
+      ghostBoardUi.lastWaveFrameIndex = monsWaveFrameIndex;
+    }
+    if (ghostBoardUi.lastStateRenderKey !== nextGhostStateRenderKey) {
+      renderMonsGhostBoardState(
+        ghostBoardUi,
+        gameState,
+        boardScreenWidth,
+        pieceImageRendering,
+        showHudPotions
+      );
+      ghostBoardUi.lastStateRenderKey = nextGhostStateRenderKey;
+    }
     positionMonsSideClaimsLists(
       ghostBoardUi.claimsBlackList,
       ghostBoardUi.claimsWhiteList,
@@ -4402,23 +4873,32 @@ function renderInactiveMonsBoardGhosts() {
     );
 
     ghostBoardUi.moveButton.classList.remove('hidden');
-    ghostBoardUi.moveButton.style.left = `${boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2}px`;
-    ghostBoardUi.moveButton.style.top = `${boardScreen.y + boardScreenHeight / 2 - controlSize / 2}px`;
-    ghostBoardUi.moveButton.style.width = `${controlSize}px`;
-    ghostBoardUi.moveButton.style.height = `${controlSize}px`;
+    const ghostMoveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
+    const ghostMoveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
+    setElementStylePx(ghostBoardUi.moveButton, 'left', ghostMoveButtonX);
+    setElementStylePx(ghostBoardUi.moveButton, 'top', ghostMoveButtonY);
+    setElementStylePx(ghostBoardUi.moveButton, 'width', controlSize);
+    setElementStylePx(ghostBoardUi.moveButton, 'height', controlSize);
     ghostBoardUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
     ghostBoardUi.moveButton.classList.toggle('is-group-selected', selectedMonsGameIds.has(normalizedGameId));
 
     ghostBoardUi.optionsButton.classList.remove('hidden');
-    ghostBoardUi.optionsButton.style.left = ghostBoardUi.moveButton.style.left;
-    ghostBoardUi.optionsButton.style.top = `${boardScreen.y + boardScreenHeight / 2 - (controlSize * 1.5 + controlGap)}px`;
-    ghostBoardUi.optionsButton.style.width = `${controlSize}px`;
-    ghostBoardUi.optionsButton.style.height = `${controlSize}px`;
+    setElementStylePx(ghostBoardUi.optionsButton, 'left', ghostMoveButtonX);
+    setElementStylePx(
+      ghostBoardUi.optionsButton,
+      'top',
+      boardScreen.y + boardScreenHeight / 2 - (controlSize * 1.5 + controlGap)
+    );
+    setElementStylePx(ghostBoardUi.optionsButton, 'width', controlSize);
+    setElementStylePx(ghostBoardUi.optionsButton, 'height', controlSize);
   }
   for (const [gameId, ghostBoardUi] of monsGhostBoardElementsById.entries()) {
     if (visibleGhostIds.has(normalizeMonsGameId(gameId))) {
       continue;
     }
+    ghostBoardUi.lastStateRenderKey = '';
+    ghostBoardUi.lastWaveFrameIndex = -1;
+    ghostBoardUi.lastBoardFlipped = null;
     removeMonsGhostBoardUi(ghostBoardUi);
     monsGhostBoardElementsById.delete(gameId);
   }
@@ -5880,6 +6360,9 @@ function renderMonsBoard() {
   syncCoverDrawingsGamesLayerState();
   monsGameState = getMonsGameStateById(activeMonsGameId);
   if (!monsGameState || monsGameState.enabled === false) {
+    lastActiveMonsLayerRenderKey = '';
+    lastActiveMonsHudRenderKey = '';
+    lastActiveMonsBoardFlipped = null;
     hideMonsBoardElements();
     renderInactiveMonsBoardGhosts();
     return;
@@ -5903,6 +6386,10 @@ function renderMonsBoard() {
   const boardScreenHeight = snapToDevicePixel(monsGameState.height * camera.scale);
   const hudScreenHeight = snapToDevicePixel(Math.max(24, boardScreenHeight - boardScreenWidth), 24);
   const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
+  const pieceImageRendering = getMonsPieceImageRendering();
+  const boardFlipped = isMonsBoardFlipped(monsGameState);
+  const nextLayerRenderKey = buildActiveMonsLayerRenderKey(monsGameState, pieceImageRendering);
+  const nextHudRenderKey = buildActiveMonsHudRenderKey(monsGameState, showHudPotions);
   const controlSize = MONS_MOVE_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const boardShouldCoverDrawings = monsGameState.coverDrawings === true;
@@ -5922,40 +6409,56 @@ function renderMonsBoard() {
   }
 
   monsGameShell.classList.remove('hidden');
-  monsGameShell.style.left = `${boardScreen.x}px`;
-  monsGameShell.style.top = `${boardScreen.y}px`;
-  monsGameShell.style.width = `${boardScreenWidth}px`;
-  monsGameShell.style.height = `${boardScreenHeight}px`;
-  monsBoardSvg.style.width = `${boardScreenWidth}px`;
-  monsBoardSvg.style.height = `${boardScreenWidth}px`;
-  applyMonsBoardOrientation(monsBoardSvg, isMonsBoardFlipped(monsGameState));
-  monsHud.style.width = `${boardScreenWidth}px`;
-  monsHud.style.height = `${hudScreenHeight}px`;
+  setElementStylePx(monsGameShell, 'left', boardScreen.x);
+  setElementStylePx(monsGameShell, 'top', boardScreen.y);
+  setElementStylePx(monsGameShell, 'width', boardScreenWidth);
+  setElementStylePx(monsGameShell, 'height', boardScreenHeight);
+  setElementStylePx(monsBoardSvg, 'width', boardScreenWidth);
+  setElementStylePx(monsBoardSvg, 'height', boardScreenWidth);
+  if (lastActiveMonsBoardFlipped !== boardFlipped) {
+    applyMonsBoardOrientation(monsBoardSvg, boardFlipped);
+    lastActiveMonsBoardFlipped = boardFlipped;
+  }
+  setElementStylePx(monsHud, 'width', boardScreenWidth);
+  setElementStylePx(monsHud, 'height', hudScreenHeight);
 
-  renderMonsSpawnGhosts();
-  renderMonsPieces();
-  renderMonsAbilityHints();
-  if (monsScoreBlackLabel) {
-    monsScoreBlackLabel.textContent = String(Math.max(0, Number(monsGameState.scores?.black) || 0));
+  if (lastActiveMonsLayerRenderKey !== nextLayerRenderKey) {
+    renderMonsSpawnGhosts();
+    renderMonsPieces();
+    renderMonsAbilityHints();
+    lastActiveMonsLayerRenderKey = nextLayerRenderKey;
   }
-  if (monsScoreWhiteLabel) {
-    monsScoreWhiteLabel.textContent = String(Math.max(0, Number(monsGameState.scores?.white) || 0));
+  if (lastActiveMonsHudRenderKey !== nextHudRenderKey) {
+    if (monsScoreBlackLabel) {
+      monsScoreBlackLabel.textContent = String(Math.max(0, Number(monsGameState.scores?.black) || 0));
+    }
+    if (monsScoreWhiteLabel) {
+      monsScoreWhiteLabel.textContent = String(Math.max(0, Number(monsGameState.scores?.white) || 0));
+    }
+    if (monsPotionsBlackTray) {
+      renderMonsPotionTray(monsPotionsBlackTray, monsGameState.potions?.black, 'black', showHudPotions);
+    }
+    if (monsPotionsWhiteTray) {
+      renderMonsPotionTray(monsPotionsWhiteTray, monsGameState.potions?.white, 'white', showHudPotions);
+    }
+    if (monsUndoButton) {
+      monsUndoButton.classList.toggle('hidden', !showHudPotions);
+    }
+    if (monsFlipButton) {
+      monsFlipButton.classList.toggle('hidden', !showHudPotions);
+      monsFlipButton.classList.toggle('is-flipped', boardFlipped);
+    }
+    renderMonsSideClaimsList(monsBlackClaimsList, monsGameState.claims?.black, 'black', monsBlackClaimButton);
+    renderMonsSideClaimsList(monsWhiteClaimsList, monsGameState.claims?.white, 'white', monsWhiteClaimButton);
+    if (monsUndoButton) {
+      const undoHistory = Array.isArray(monsGameState.undoHistory) ? monsGameState.undoHistory : [];
+      const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
+      const canUndo = canCurrentPlayerUndoMonsEntry(topUndoEntry);
+      monsUndoButton.disabled = !canUndo;
+      monsUndoButton.classList.toggle('is-disabled', !canUndo);
+    }
+    lastActiveMonsHudRenderKey = nextHudRenderKey;
   }
-  if (monsPotionsBlackTray) {
-    renderMonsPotionTray(monsPotionsBlackTray, monsGameState.potions?.black, 'black', showHudPotions);
-  }
-  if (monsPotionsWhiteTray) {
-    renderMonsPotionTray(monsPotionsWhiteTray, monsGameState.potions?.white, 'white', showHudPotions);
-  }
-  if (monsUndoButton) {
-    monsUndoButton.classList.toggle('hidden', !showHudPotions);
-  }
-  if (monsFlipButton) {
-    monsFlipButton.classList.toggle('hidden', !showHudPotions);
-    monsFlipButton.classList.toggle('is-flipped', isMonsBoardFlipped(monsGameState));
-  }
-  renderMonsSideClaimsList(monsBlackClaimsList, monsGameState.claims?.black, 'black', monsBlackClaimButton);
-  renderMonsSideClaimsList(monsWhiteClaimsList, monsGameState.claims?.white, 'white', monsWhiteClaimButton);
   positionMonsSideClaimsLists(
     monsBlackClaimsList,
     monsWhiteClaimsList,
@@ -5965,13 +6468,6 @@ function renderMonsBoard() {
     boardScreenWidth,
     boardScreenHeight
   );
-  if (monsUndoButton) {
-    const undoHistory = Array.isArray(monsGameState.undoHistory) ? monsGameState.undoHistory : [];
-    const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
-    const canUndo = canCurrentPlayerUndoMonsEntry(topUndoEntry);
-    monsUndoButton.disabled = !canUndo;
-    monsUndoButton.classList.toggle('is-disabled', !canUndo);
-  }
   if (monsGameState.moveTick > 0 && monsGameState.moveTick !== lastRenderedMonsMoveTick) {
     if (lastRenderedMonsMoveTick > 0 && monsGameState.lastMove) {
       triggerMonsAbilityEffect(monsGameState.lastMove);
@@ -5980,18 +6476,20 @@ function renderMonsBoard() {
   }
 
   monsMoveButton.classList.remove('hidden');
-  monsMoveButton.style.left = `${boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2}px`;
-  monsMoveButton.style.top = `${boardScreen.y + boardScreenHeight / 2 - controlSize / 2}px`;
-  monsMoveButton.style.width = `${controlSize}px`;
-  monsMoveButton.style.height = `${controlSize}px`;
+  const moveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
+  const moveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
+  setElementStylePx(monsMoveButton, 'left', moveButtonX);
+  setElementStylePx(monsMoveButton, 'top', moveButtonY);
+  setElementStylePx(monsMoveButton, 'width', controlSize);
+  setElementStylePx(monsMoveButton, 'height', controlSize);
   monsMoveButton.classList.toggle('is-held-by-self', monsGameState.holderClientId === localClientId);
   monsMoveButton.classList.toggle('is-group-selected', selectedMonsGameIds.has(normalizeMonsGameId(activeMonsGameId)));
 
   monsOptionsButton.classList.remove('hidden');
-  monsOptionsButton.style.left = monsMoveButton.style.left;
-  monsOptionsButton.style.top = `${boardScreen.y + boardScreenHeight / 2 - (controlSize * 1.5 + controlGap)}px`;
-  monsOptionsButton.style.width = `${controlSize}px`;
-  monsOptionsButton.style.height = `${controlSize}px`;
+  setElementStylePx(monsOptionsButton, 'left', moveButtonX);
+  setElementStylePx(monsOptionsButton, 'top', boardScreen.y + boardScreenHeight / 2 - (controlSize * 1.5 + controlGap));
+  setElementStylePx(monsOptionsButton, 'width', controlSize);
+  setElementStylePx(monsOptionsButton, 'height', controlSize);
   renderInactiveMonsBoardGhosts();
 }
 
@@ -6022,11 +6520,11 @@ function getHandCountsByOwner() {
   return counts;
 }
 
-function setLocalHandCountLabel() {
+function setLocalHandCountLabel(countsOverride = null) {
   if (!playerHandCount) {
     return;
   }
-  const counts = getHandCountsByOwner();
+  const counts = countsOverride instanceof Map ? countsOverride : getHandCountsByOwner();
   const countFromToken = localPlayerToken ? counts.get(localPlayerToken) || 0 : 0;
   const countFromClientId = localClientId ? counts.get(localClientId) || 0 : 0;
   const count = countFromToken + countFromClientId;
@@ -6638,6 +7136,13 @@ function canCardUseDeckZones(cardState) {
   return !isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false;
 }
 
+function isCoolJpegsStackCard(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return false;
+  }
+  return !isVisualImageComponentCard(cardState);
+}
+
 function canCardEnterHand(cardState) {
   if (!cardState) {
     return false;
@@ -7085,6 +7590,7 @@ function ensureDieElement(dieId) {
     const face = document.createElement('div');
     face.className = 'table-die-face';
     die.appendChild(face);
+    die._dieFace = face;
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'table-label-resize-handle hidden';
@@ -7101,6 +7607,7 @@ function ensureDieElement(dieId) {
       die.classList.remove('is-die-resize-hovered');
     });
     die.appendChild(resizeHandle);
+    die._labelResizeHandle = resizeHandle;
 
     const lockControl = document.createElement('div');
     lockControl.className = 'table-label-lock-control hidden';
@@ -7121,6 +7628,7 @@ function ensureDieElement(dieId) {
       event.stopPropagation();
     });
     die.appendChild(lockControl);
+    die._labelLockControl = lockControl;
 
     const rotateControl = document.createElement('button');
     rotateControl.type = 'button';
@@ -7142,6 +7650,7 @@ function ensureDieElement(dieId) {
       event.stopPropagation();
     });
     die.appendChild(rotateControl);
+    die._labelRotateControl = rotateControl;
 
     die.addEventListener('pointerdown', (event) => {
       onDiePointerDown(event, dieId);
@@ -7312,11 +7821,40 @@ function renderCounterFaceValue(dieId, dieState) {
   }
 }
 
-function renderDieFace(dieId, die, dieType, faceValue, dieState) {
+function buildDieFaceRenderKey(dieType, faceValue, dieState) {
+  if (dieType === 'label') {
+    return `label|${normalizeLabelText(dieState?.text || '')}`;
+  }
+  if (dieType === 'media') {
+    return `media|${normalizeMediaProvider(dieState?.mediaProvider)}|${normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '')}|${normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '')}`;
+  }
+  if (dieType === 'counter') {
+    return `counter|${clampCounterValue(dieState?.value)}`;
+  }
+  if (dieType === 'coin') {
+    return `coin|${clamp(Math.round(Number(faceValue) || 1), 1, 2)}|${getMonsPieceImageRendering()}`;
+  }
+  if (dieType === 'spinner') {
+    const segmentCount = getSpinnerSegmentCount(dieState);
+    const labels = getSpinnerLabels(dieState).join('|');
+    const resultVisible = dieState?.spinnerResultVisible === true ? 1 : 0;
+    const highlightVisible = dieState?.spinnerHighlightVisible === true ? 1 : 0;
+    const rollingState = isDieRolling(dieState) ? 1 : 0;
+    return `spinner|${segmentCount}|${clamp(Math.round(Number(faceValue) || 1), 1, segmentCount)}|${labels}|${resultVisible}|${highlightVisible}|${rollingState}`;
+  }
+  if (dieType === 'marble') {
+    return `marble|${normalizeMarbleHue(dieState?.marbleHue)}`;
+  }
+  if (dieType === 'd20') {
+    return `d20|${clamp(Math.round(Number(faceValue) || 1), 1, 20)}`;
+  }
+  return `d6|${clamp(Math.round(Number(faceValue) || 1), 1, 6)}`;
+}
+
+function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   if (!(die instanceof HTMLElement)) {
     return;
   }
-  const face = die.querySelector('.table-die-face');
   if (!(face instanceof HTMLElement)) {
     return;
   }
@@ -7422,6 +7960,145 @@ function renderDieFace(dieId, die, dieType, faceValue, dieState) {
     return;
   }
 
+  if (dieType === 'spinner') {
+    const segmentCount = getSpinnerSegmentCount(dieState);
+    const labels = getSpinnerLabels(dieState);
+    const selectedValue = clamp(Math.round(Number(faceValue) || 1), 1, segmentCount);
+    const sliceAngle = 360 / segmentCount;
+    const baseStartAngle = -90 - sliceAngle / 2;
+    const outerRadius = 44;
+    const innerRadius = 11;
+    const labelRadius = segmentCount <= 4 ? 30 : segmentCount <= 10 ? 31 : 33;
+    const labelFontSize = clamp(13.6 - segmentCount * 0.35, 5.6, 10.2);
+    const sliceAngleRadians = (sliceAngle * Math.PI) / 180;
+    const maxLabelWidth = Math.max(8, 2 * labelRadius * Math.sin(sliceAngleRadians / 2) - 3.4);
+    const toPoint = (angleDeg, radius) => {
+      const radians = (angleDeg * Math.PI) / 180;
+      return {
+        x: 50 + radius * Math.cos(radians),
+        y: 50 + radius * Math.sin(radians)
+      };
+    };
+
+    face.textContent = '';
+    const spinnerShell = document.createElement('div');
+    spinnerShell.className = 'table-spinner-shell';
+    face.appendChild(spinnerShell);
+
+    const wheelSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    wheelSvg.setAttribute('viewBox', '0 0 100 100');
+    wheelSvg.setAttribute('class', 'table-spinner-wheel');
+    wheelSvg.setAttribute('aria-hidden', 'true');
+    spinnerShell.appendChild(wheelSvg);
+
+    const spinnerLabelsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    spinnerLabelsLayer.setAttribute('class', 'table-spinner-label-layer');
+    wheelSvg.appendChild(spinnerLabelsLayer);
+
+    for (let index = 0; index < segmentCount; index += 1) {
+      const segmentStartAngle = baseStartAngle + index * sliceAngle;
+      const segmentEndAngle = segmentStartAngle + sliceAngle;
+      const startOuter = toPoint(segmentStartAngle, outerRadius);
+      const endOuter = toPoint(segmentEndAngle, outerRadius);
+      const startInner = toPoint(segmentStartAngle, innerRadius);
+      const endInner = toPoint(segmentEndAngle, innerRadius);
+      const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+
+      const segmentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      segmentPath.setAttribute(
+        'd',
+        `M ${startInner.x.toFixed(3)} ${startInner.y.toFixed(3)} ` +
+          `L ${startOuter.x.toFixed(3)} ${startOuter.y.toFixed(3)} ` +
+          `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${endOuter.x.toFixed(3)} ${endOuter.y.toFixed(3)} ` +
+          `L ${endInner.x.toFixed(3)} ${endInner.y.toFixed(3)} ` +
+          `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${startInner.x.toFixed(3)} ${startInner.y.toFixed(3)} Z`
+      );
+      segmentPath.setAttribute('class', 'table-spinner-segment');
+      segmentPath.setAttribute('data-spinner-index', String(index));
+      wheelSvg.appendChild(segmentPath);
+
+      const separatorPoint = toPoint(segmentStartAngle, outerRadius);
+      const separatorInnerPoint = toPoint(segmentStartAngle, innerRadius);
+      const separator = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      separator.setAttribute('x1', separatorInnerPoint.x.toFixed(3));
+      separator.setAttribute('y1', separatorInnerPoint.y.toFixed(3));
+      separator.setAttribute('x2', separatorPoint.x.toFixed(3));
+      separator.setAttribute('y2', separatorPoint.y.toFixed(3));
+      separator.setAttribute('class', 'table-spinner-separator');
+      wheelSvg.appendChild(separator);
+
+      const labelText = normalizeSpinnerLabelText(labels[index]) || String(index + 1);
+      const isNumericLabel = /^-?\d+(?:\.\d+)?$/.test(labelText);
+      const numericLabelRadius = Math.min(outerRadius - 4.5, labelRadius + 2);
+      const labelRadiusForValue = isNumericLabel ? numericLabelRadius : labelRadius;
+      const labelAngle = baseStartAngle + index * sliceAngle + sliceAngle / 2;
+      const labelPoint = toPoint(labelAngle, labelRadiusForValue);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', labelPoint.x.toFixed(3));
+      label.setAttribute('y', labelPoint.y.toFixed(3));
+      label.setAttribute('class', 'table-spinner-label');
+      label.setAttribute('data-spinner-index', String(index));
+      const baseLabelFontSize = isNumericLabel
+        ? labelFontSize
+        : clamp(labelFontSize * 0.72, 3.8, labelFontSize);
+      label.setAttribute('font-size', baseLabelFontSize.toFixed(3));
+      label.textContent = labelText;
+      spinnerLabelsLayer.appendChild(label);
+      let measuredLabelWidth = Number(label.getComputedTextLength?.());
+      if (!Number.isFinite(measuredLabelWidth) || measuredLabelWidth <= 0) {
+        measuredLabelWidth = Array.from(labelText).length * baseLabelFontSize * (isNumericLabel ? 0.52 : 0.5);
+      }
+      if (measuredLabelWidth > maxLabelWidth + 0.001) {
+        const fitScale = clamp(maxLabelWidth / measuredLabelWidth, 0.26, 1);
+        const minLabelFontSize = isNumericLabel ? 4.6 : 2.8;
+        const resolvedLabelFontSize = clamp(baseLabelFontSize * fitScale, minLabelFontSize, baseLabelFontSize);
+        label.setAttribute('font-size', resolvedLabelFontSize.toFixed(3));
+      }
+    }
+
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('cx', '50');
+    ring.setAttribute('cy', '50');
+    ring.setAttribute('r', String(outerRadius));
+    ring.setAttribute('class', 'table-spinner-ring');
+    wheelSvg.appendChild(ring);
+
+    const needleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    needleGroup.setAttribute('class', 'table-spinner-needle-group');
+
+    const needleLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    needleLine.setAttribute('x1', '50');
+    needleLine.setAttribute('y1', '50');
+    needleLine.setAttribute('x2', '50');
+    needleLine.setAttribute('y2', '23');
+    needleLine.setAttribute('class', 'table-spinner-needle');
+    needleGroup.appendChild(needleLine);
+
+    const needleHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    needleHead.setAttribute('points', '50,19.7 47.4,25.2 52.6,25.2');
+    needleHead.setAttribute('class', 'table-spinner-needle-head');
+    needleGroup.appendChild(needleHead);
+
+    wheelSvg.appendChild(needleGroup);
+
+    const center = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    center.setAttribute('cx', '50');
+    center.setAttribute('cy', '50');
+    center.setAttribute('r', '5.4');
+    center.setAttribute('class', 'table-spinner-center');
+    wheelSvg.appendChild(center);
+    wheelSvg.appendChild(spinnerLabelsLayer);
+
+    const showResult = dieState?.spinnerHighlightVisible === true && !isDieRolling(dieState);
+    if (showResult) {
+      const result = document.createElement('div');
+      result.className = 'table-spinner-result';
+      result.textContent = getSpinnerSegmentLabel(dieState, selectedValue);
+      spinnerShell.appendChild(result);
+    }
+    return;
+  }
+
   if (dieType === 'marble') {
     const gradientStops = getMarbleGradientStops(dieState?.marbleHue);
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -7512,10 +8189,10 @@ function renderDieElement(dieId) {
   const screen = worldToScreen({ x: dieState.x, y: dieState.y });
   const screenWidth = snapToDevicePixel(dimensions.width * camera.scale, 2);
   const screenHeight = snapToDevicePixel(dimensions.height * camera.scale, 2);
-  die.style.left = `${screen.x}px`;
-  die.style.top = `${screen.y}px`;
-  die.style.width = `${screenWidth}px`;
-  die.style.height = `${screenHeight}px`;
+  setElementStylePx(die, 'left', screen.x);
+  setElementStylePx(die, 'top', screen.y);
+  setElementStylePx(die, 'width', screenWidth);
+  setElementStylePx(die, 'height', screenHeight);
 
   const isHeld = Boolean(dieState.holderClientId);
   const heldBySelf = Boolean(localClientId) && dieState.holderClientId === localClientId;
@@ -7537,13 +8214,16 @@ function renderDieElement(dieId) {
   }
   const baseZ = clamp(Math.round(dieState.z || 1), 1, DECK_UI_Z_INDEX - 1);
   const renderZ = isHeld ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
-  die.style.zIndex = String(renderZ);
+  setElementStyleValue(die, 'zIndex', String(renderZ));
 
   const now = Date.now();
   const rolling = isDieRolling(dieState, now);
+  const renderedDieValue = getRenderedDieValue(dieState, now);
+  const dieFaceRenderKey = buildDieFaceRenderKey(dieType, renderedDieValue, dieState);
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
   const isCounter = dieType === 'counter';
+  const isSpinner = dieType === 'spinner';
   const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
   const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
   if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
@@ -7601,6 +8281,7 @@ function renderDieElement(dieId) {
       : 0;
   die.classList.toggle('table-die-d20', dieType === 'd20');
   die.classList.toggle('table-die-d6', dieType === 'd6');
+  die.classList.toggle('table-die-spinner', isSpinner);
   die.classList.toggle('table-die-coin', dieType === 'coin');
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
@@ -7641,16 +8322,19 @@ function renderDieElement(dieId) {
   if (!canToggleLabelLock) {
     die.classList.remove('is-die-lock-hovered');
   }
-  const labelResizeHandle = die.querySelector('.table-label-resize-handle');
+  const labelResizeHandle =
+    die._labelResizeHandle instanceof HTMLElement ? die._labelResizeHandle : die.querySelector('.table-label-resize-handle');
   if (labelResizeHandle instanceof HTMLElement) {
     labelResizeHandle.classList.toggle('hidden', !canResizeDie);
   }
-  const labelLockControl = die.querySelector('.table-label-lock-control');
+  const labelLockControl =
+    die._labelLockControl instanceof HTMLElement ? die._labelLockControl : die.querySelector('.table-label-lock-control');
   if (labelLockControl instanceof HTMLElement) {
     labelLockControl.classList.toggle('hidden', !canToggleLabelLock);
     labelLockControl.classList.toggle('is-locked', isLabelLocked);
   }
-  const labelRotateControl = die.querySelector('.table-label-rotate-control');
+  const labelRotateControl =
+    die._labelRotateControl instanceof HTMLElement ? die._labelRotateControl : die.querySelector('.table-label-rotate-control');
   if (labelRotateControl instanceof HTMLElement) {
     labelRotateControl.classList.toggle('hidden', !canRotateLabel);
   }
@@ -7660,6 +8344,8 @@ function renderDieElement(dieId) {
     die.setAttribute('aria-label', 'media');
   } else if (dieType === 'counter') {
     die.setAttribute('aria-label', 'counter');
+  } else if (dieType === 'spinner') {
+    die.setAttribute('aria-label', 'spinner');
   } else if (dieType === 'marble') {
     die.setAttribute('aria-label', 'marble');
   } else {
@@ -7672,8 +8358,9 @@ function renderDieElement(dieId) {
     die.style.removeProperty('--marble-hue');
     die.style.removeProperty('--marble-warble-strength');
   }
+  const spinnerNeedleAngle = isSpinner ? getSpinnerNeedleAngle(dieState, now) : 0;
   if (dieType === 'label') {
-    const face = die.querySelector('.table-die-face');
+    const face = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
     if (face instanceof HTMLElement) {
       const fontPx = getLabelFontSizePx(dieState);
       face.style.fontSize = `${fontPx.toFixed(2)}px`;
@@ -7684,7 +8371,64 @@ function renderDieElement(dieId) {
       }
     }
   }
-  renderDieFace(dieId, die, dieType, getRenderedDieValue(dieState, now), dieState);
+  const dieFace = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
+  if (die.dataset.faceRenderKey !== dieFaceRenderKey || (isLabel && hasActiveLabelEditor)) {
+    renderDieFace(dieId, die, dieFace, dieType, renderedDieValue, dieState);
+    die.dataset.faceRenderKey = dieFaceRenderKey;
+  }
+  if (isSpinner) {
+    const spinnerNeedleGroup = die.querySelector('.table-spinner-needle-group');
+    if (spinnerNeedleGroup instanceof SVGElement) {
+      spinnerNeedleGroup.setAttribute('transform', `rotate(${spinnerNeedleAngle.toFixed(3)} 50 50)`);
+    }
+    const spinnerSegments = die.querySelectorAll('.table-spinner-segment');
+    const spinnerLabels = die.querySelectorAll('.table-spinner-label');
+    const highlightActive = dieState?.spinnerHighlightVisible === true;
+    if (spinnerSegments.length > 0) {
+      if (!highlightActive) {
+        for (const segmentElement of spinnerSegments) {
+          if (!(segmentElement instanceof SVGElement)) {
+            continue;
+          }
+          segmentElement.classList.remove('is-active', 'is-dimmed');
+        }
+      } else {
+        const segmentCount = getSpinnerSegmentCount(dieState);
+        const activeIndex = getSpinnerSegmentIndexForAngle(spinnerNeedleAngle, segmentCount);
+        for (const segmentElement of spinnerSegments) {
+          if (!(segmentElement instanceof SVGElement)) {
+            continue;
+          }
+          const segmentIndex = Number(segmentElement.getAttribute('data-spinner-index'));
+          const isActive = Number.isFinite(segmentIndex) && segmentIndex === activeIndex;
+          segmentElement.classList.toggle('is-active', isActive);
+          segmentElement.classList.toggle('is-dimmed', !isActive);
+        }
+      }
+    }
+    if (spinnerLabels.length > 0) {
+      if (!highlightActive) {
+        for (const labelElement of spinnerLabels) {
+          if (!(labelElement instanceof SVGElement)) {
+            continue;
+          }
+          labelElement.classList.remove('is-active', 'is-dimmed');
+        }
+      } else {
+        const segmentCount = getSpinnerSegmentCount(dieState);
+        const activeIndex = getSpinnerSegmentIndexForAngle(spinnerNeedleAngle, segmentCount);
+        for (const labelElement of spinnerLabels) {
+          if (!(labelElement instanceof SVGElement)) {
+            continue;
+          }
+          const labelIndex = Number(labelElement.getAttribute('data-spinner-index'));
+          const isActive = Number.isFinite(labelIndex) && labelIndex === activeIndex;
+          labelElement.classList.toggle('is-active', isActive);
+          labelElement.classList.toggle('is-dimmed', !isActive);
+        }
+      }
+    }
+  }
   return rolling;
 }
 
@@ -7748,6 +8492,7 @@ function ensureCardElement(cardId) {
       }
     });
     card.appendChild(image);
+    card._cardImage = image;
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'table-card-resize-handle hidden';
@@ -7764,6 +8509,7 @@ function ensureCardElement(cardId) {
       card.classList.remove('is-resize-hovered');
     });
     card.appendChild(resizeHandle);
+    card._cardResizeHandle = resizeHandle;
 
     const lockControl = document.createElement('button');
     lockControl.type = 'button';
@@ -7779,6 +8525,7 @@ function ensureCardElement(cardId) {
       event.stopPropagation();
     });
     card.appendChild(lockControl);
+    card._cardLockControl = lockControl;
 
     const rotateControl = document.createElement('button');
     rotateControl.type = 'button';
@@ -7800,6 +8547,7 @@ function ensureCardElement(cardId) {
       event.stopPropagation();
     });
     card.appendChild(rotateControl);
+    card._cardRotateControl = rotateControl;
 
     card.addEventListener('pointerdown', (event) => {
       onCardPointerDown(event, cardId);
@@ -8101,6 +8849,7 @@ function renderLocalHandCards() {
   });
 
   const trayWidth = tableRoot?.clientWidth || window.innerWidth || 0;
+  lastRenderedHandTrayWidth = trayWidth;
   let localHandIds = [...sortedLocalHandIds];
   if (handReorderState?.cardId) {
     const reordered = handReorderState.order.filter((cardId) => localHandIds.includes(cardId));
@@ -8359,16 +9108,17 @@ function renderCardElement(cardId) {
 
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
-  const shouldAlwaysCoverDrawings = cardDeckState?.coverDrawings === true;
-  const shouldLiftAboveOldDrawings = cardState.drawLifted === true;
+  const isCoolStackCard = isCoolJpegsStackCard(cardState);
+  const shouldAlwaysCoverDrawings = !isCoolStackCard && cardDeckState?.coverDrawings === true;
+  const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
   const baseCardSize = getCardTableDimensions(cardState);
   const cardWorldX = cardState.inDeck && cardDeckState ? cardDeckState.x : discardCenter ? discardCenter.x : auctionCenter ? auctionCenter.x : cardState.x;
   const cardWorldY = cardState.inDeck && cardDeckState ? cardDeckState.y : discardCenter ? discardCenter.y : auctionCenter ? auctionCenter.y : cardState.y;
   const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
-  card.style.left = `${screen.x}px`;
-  card.style.top = `${screen.y}px`;
+  setElementStylePx(card, 'left', screen.x);
+  setElementStylePx(card, 'top', screen.y);
   const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
   const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
   const cardScreenWidth = cardState.inAuction
@@ -8377,8 +9127,8 @@ function renderCardElement(cardId) {
   const cardScreenHeight = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldHeight * camera.scale)
     : snapToDevicePixel(baseCardSize.height * camera.scale);
-  card.style.width = `${cardScreenWidth}px`;
-  card.style.height = `${cardScreenHeight}px`;
+  setElementStylePx(card, 'width', cardScreenWidth);
+  setElementStylePx(card, 'height', cardScreenHeight);
   const heldBySelf = Boolean(localClientId) && cardState.holderClientId === localClientId;
   const heldByOther = Boolean(cardState.holderClientId) && cardState.holderClientId !== localClientId;
   const isHeld = Boolean(cardState.holderClientId);
@@ -8386,14 +9136,16 @@ function renderCardElement(cardId) {
     selectedCardIds.delete(cardId);
     syncSelectionDeleteButtonUi();
   }
-  if (isHeld) {
+  if (isHeld && !isCoolStackCard) {
     const overlayLayer = ensureHeldCardLayer();
     if (overlayLayer && card.parentElement !== overlayLayer) {
       overlayLayer.appendChild(card);
     }
   } else {
     let tableCardLayer = cardLayer;
-    if (shouldAlwaysCoverDrawings && coverCardLayer) {
+    if (isCoolStackCard && stackLayer) {
+      tableCardLayer = stackLayer;
+    } else if (shouldAlwaysCoverDrawings && coverCardLayer) {
       tableCardLayer = coverCardLayer;
     } else if (shouldLiftAboveOldDrawings && promotedCardLayer) {
       tableCardLayer = promotedCardLayer;
@@ -8405,8 +9157,8 @@ function renderCardElement(cardId) {
 
   const rawBaseZ = Math.round(cardState.z || 1);
   const baseZ = clamp(rawBaseZ, 1, DECK_UI_Z_INDEX - 1);
-  const renderZ = isHeld ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
-  card.style.zIndex = String(renderZ);
+  const renderZ = isHeld && !isCoolStackCard ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
+  setElementStyleValue(card, 'zIndex', String(renderZ));
   card.classList.toggle('is-hand-preview-hidden', handDropPreview?.cardId === cardId);
   card.classList.toggle('is-held-by-self', heldBySelf);
   card.classList.toggle('is-held-by-other', heldByOther);
@@ -8415,7 +9167,7 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-in-discard', cardState.inDiscard);
   card.classList.toggle('is-in-auction', cardState.inAuction);
   card.classList.toggle('is-discard-returning', discardReturnAnimatingCardIds.has(cardId));
-  card.classList.toggle('is-cover-drawings', !isHeld && shouldAlwaysCoverDrawings);
+  card.classList.toggle('is-cover-drawings', !isHeld && !isCoolStackCard && shouldAlwaysCoverDrawings);
   const isImageComponent = isImageComponentCard(cardState);
   const isStickerComponent = isStickerComponentCard(cardState);
   const isComponentLocked = isNativeImageComponentLocked(cardState);
@@ -8455,24 +9207,27 @@ function renderCardElement(cardId) {
     card.classList.remove('is-rotate-hovered');
   }
 
-  const resizeHandle = card.querySelector('.table-card-resize-handle');
+  const resizeHandle =
+    card._cardResizeHandle instanceof HTMLElement ? card._cardResizeHandle : card.querySelector('.table-card-resize-handle');
   if (resizeHandle instanceof HTMLElement) {
     resizeHandle.classList.toggle('hidden', !isResizableImage);
   }
-  const lockControl = card.querySelector('.table-card-lock-control');
+  const lockControl =
+    card._cardLockControl instanceof HTMLElement ? card._cardLockControl : card.querySelector('.table-card-lock-control');
   if (lockControl instanceof HTMLElement) {
     lockControl.classList.toggle('hidden', !isNativeImageMode);
     lockControl.classList.toggle('is-locked', isComponentLocked);
     lockControl.setAttribute('aria-label', isComponentLocked ? 'unlock image' : 'lock image');
   }
-  const rotateControl = card.querySelector('.table-card-rotate-control');
+  const rotateControl =
+    card._cardRotateControl instanceof HTMLElement ? card._cardRotateControl : card.querySelector('.table-card-rotate-control');
   if (rotateControl instanceof HTMLElement) {
     const canShowImageRotateControl = isNativeImageMode && !isComponentLocked;
     rotateControl.classList.toggle('hidden', !canShowImageRotateControl);
     rotateControl.setAttribute('aria-label', 'rotate image');
   }
 
-  const image = card.querySelector('img');
+  const image = card._cardImage instanceof HTMLImageElement ? card._cardImage : card.querySelector('img');
   if (image) {
     if (isStickerComponentNativeMode) {
       image.style.imageRendering = stickerImageRenderingMode;
@@ -8570,6 +9325,12 @@ function renderCardElement(cardId) {
 }
 
 function renderAllCards() {
+  renderTableCardsAndDeckControls();
+  renderLocalHandCards();
+  setLocalHandCountLabel();
+}
+
+function renderTableCardsAndDeckControls() {
   syncCoverDrawingsGamesLayerState();
   if (resizingImageCardId && !cards.has(resizingImageCardId)) {
     resizingImageCardId = '';
@@ -8581,8 +9342,6 @@ function renderAllCards() {
     renderCardElement(cardId);
   }
   renderDeckControls();
-  renderLocalHandCards();
-  setLocalHandCountLabel();
 }
 
 function getGridCellSizeForScale(scale) {
@@ -8834,30 +9593,43 @@ function renderAllDrawingStrokes() {
 }
 
 function applyCamera() {
+  if (cameraRenderRafId) {
+    window.cancelAnimationFrame(cameraRenderRafId);
+    cameraRenderRafId = 0;
+  }
   clampCameraToViewport();
   if (camera.scale <= LOW_ZOOM_PIXEL_SNAP_SCALE) {
     camera.panX = snapScreenTranslation(camera.panX);
     camera.panY = snapScreenTranslation(camera.panY);
   }
+  const cameraTransform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
   if (playspaceLayer) {
-    const gridLineSize = getGridLineSizeForScale(camera.scale);
-    const gridCellSize = getGridCellSizeForScale(camera.scale);
-    const gridDotOpacityFactor = getGridDotOpacityFactorForScale(camera.scale);
-    const gridDotScaleFactor = getGridDotScaleFactorForScale(camera.scale);
-    playspaceLayer.style.setProperty('--grid-line-size', `${gridLineSize}px`);
-    playspaceLayer.style.setProperty('--grid-cell-size', `${gridCellSize}px`);
-    playspaceLayer.style.setProperty('--grid-dot-opacity-factor', gridDotOpacityFactor.toFixed(3));
-    playspaceLayer.style.setProperty('--grid-dot-scale-factor', gridDotScaleFactor.toFixed(3));
-    playspaceLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
+    if (camera.scale !== lastAppliedGridScale) {
+      const gridLineSize = getGridLineSizeForScale(camera.scale);
+      const gridCellSize = getGridCellSizeForScale(camera.scale);
+      const gridDotOpacityFactor = getGridDotOpacityFactorForScale(camera.scale);
+      const gridDotScaleFactor = getGridDotScaleFactorForScale(camera.scale);
+      setElementStyleCustomProperty(playspaceLayer, '--grid-line-size', `${gridLineSize}px`);
+      setElementStyleCustomProperty(playspaceLayer, '--grid-cell-size', `${gridCellSize}px`);
+      setElementStyleCustomProperty(playspaceLayer, '--grid-dot-opacity-factor', gridDotOpacityFactor.toFixed(3));
+      setElementStyleCustomProperty(playspaceLayer, '--grid-dot-scale-factor', gridDotScaleFactor.toFixed(3));
+      lastAppliedGridScale = camera.scale;
+    }
+    setElementStyleValue(playspaceLayer, 'transform', cameraTransform);
   }
   if (drawingLayer) {
-    drawingLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
+    setElementStyleValue(drawingLayer, 'transform', cameraTransform);
   }
   if (drawingBackLayer) {
-    drawingBackLayer.style.transform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
+    setElementStyleValue(drawingBackLayer, 'transform', cameraTransform);
   }
   renderAllDice();
-  renderAllCards();
+  renderTableCardsAndDeckControls();
+  const viewportWidth = tableRoot?.clientWidth || window.innerWidth || 0;
+  if (viewportWidth !== lastRenderedHandTrayWidth) {
+    renderLocalHandCards();
+    setLocalHandCountLabel();
+  }
   renderMonsBoard();
   if (selectionBoxElement && !selectionBoxElement.classList.contains('hidden')) {
     const startWorldX = Number(selectionBoxElement.dataset.startWorldX || 0);
@@ -8869,6 +9641,16 @@ function applyCamera() {
   renderAllDots();
   syncMarbleFlickArrow();
   scheduleCameraViewPersist();
+}
+
+function scheduleApplyCamera() {
+  if (cameraRenderRafId) {
+    return;
+  }
+  cameraRenderRafId = window.requestAnimationFrame(() => {
+    cameraRenderRafId = 0;
+    applyCamera();
+  });
 }
 
 function setZoomAtClient(clientX, clientY, nextScale) {
@@ -9287,6 +10069,10 @@ function isDiceAddModalOpen() {
   return Boolean(diceAddModal && !diceAddModal.classList.contains('hidden'));
 }
 
+function isSpinnerAddModalOpen() {
+  return Boolean(spinnerAddModal && !spinnerAddModal.classList.contains('hidden'));
+}
+
 function isImageAddModalOpen() {
   return Boolean(imageAddModal && !imageAddModal.classList.contains('hidden'));
 }
@@ -9312,6 +10098,7 @@ function openRoomSettingsMenu() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
@@ -9609,11 +10396,85 @@ function setDiceAddCount(count) {
   syncDiceAddModalUi();
 }
 
+function syncSpinnerAddLabelsLength(segmentCount = activeSpinnerAddSegments) {
+  const normalizedCount = normalizeSpinnerSegmentCount(segmentCount);
+  const nextLabels = Array.from({ length: normalizedCount }, (_, index) =>
+    normalizeSpinnerLabelText(activeSpinnerAddLabels?.[index] || '')
+  );
+  activeSpinnerAddLabels = nextLabels;
+}
+
+function renderSpinnerAddTextInputs() {
+  if (!(spinnerAddTextInputs instanceof HTMLElement)) {
+    return;
+  }
+  spinnerAddTextInputs.textContent = '';
+  if (!spinnerAddTextEnabled) {
+    return;
+  }
+  const segmentCount = normalizeSpinnerSegmentCount(activeSpinnerAddSegments);
+  for (let index = 0; index < segmentCount; index += 1) {
+    const row = document.createElement('div');
+    row.className = 'spinner-add-text-row';
+
+    const label = document.createElement('span');
+    label.className = 'spinner-add-text-label';
+    label.textContent = `s${index + 1}`;
+    row.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'image-add-input';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.placeholder = `segment ${index + 1}`;
+    input.value = activeSpinnerAddLabels[index] || '';
+    input.addEventListener('input', () => {
+      const normalizedValue = normalizeSpinnerLabelText(input.value);
+      if (input.value !== normalizedValue) {
+        input.value = normalizedValue;
+      }
+      activeSpinnerAddLabels[index] = normalizedValue;
+    });
+    row.appendChild(input);
+
+    spinnerAddTextInputs.appendChild(row);
+  }
+}
+
+function syncSpinnerAddModalUi() {
+  const nextSegments = normalizeSpinnerSegmentCount(activeSpinnerAddSegments);
+  activeSpinnerAddSegments = nextSegments;
+  spinnerAddTextEnabled = spinnerAddTextEnabled === true;
+  syncSpinnerAddLabelsLength(nextSegments);
+  if (spinnerAddSegmentsInput) {
+    spinnerAddSegmentsInput.value = String(nextSegments);
+  }
+  if (spinnerAddTextToggle) {
+    spinnerAddTextToggle.checked = spinnerAddTextEnabled;
+  }
+  if (spinnerAddTextInputs) {
+    spinnerAddTextInputs.classList.toggle('hidden', !spinnerAddTextEnabled);
+  }
+  renderSpinnerAddTextInputs();
+}
+
+function setSpinnerAddSegmentCount(count) {
+  activeSpinnerAddSegments = normalizeSpinnerSegmentCount(count);
+  syncSpinnerAddModalUi();
+}
+
+function setSpinnerAddTextEnabled(enabled) {
+  spinnerAddTextEnabled = enabled === true;
+  syncSpinnerAddModalUi();
+}
+
 function openDiceAddModal() {
   if (!diceAddModal) {
     return;
   }
   closeMonsItemChoiceModal();
+  closeSpinnerAddModal();
   closeMediaAddModal();
   closeStickerAddModal();
   closeImageAddModal();
@@ -9628,6 +10489,28 @@ function closeDiceAddModal() {
     return;
   }
   diceAddModal.classList.add('hidden');
+}
+
+function openSpinnerAddModal() {
+  if (!spinnerAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeMediaAddModal();
+  closeStickerAddModal();
+  closeImageAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  syncSpinnerAddModalUi();
+  spinnerAddModal.classList.remove('hidden');
+}
+
+function closeSpinnerAddModal() {
+  if (!spinnerAddModal) {
+    return;
+  }
+  spinnerAddModal.classList.add('hidden');
 }
 
 function syncImageAddModalUi() {
@@ -9683,6 +10566,7 @@ function openImageAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeMediaAddModal();
   closeStickerAddModal();
   closeGameOptionsMenu();
@@ -9712,6 +10596,7 @@ function openStickerAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeImageAddModal();
   closeMediaAddModal();
   closeGameOptionsMenu();
@@ -9736,6 +10621,7 @@ function openMediaAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
   closeGameOptionsMenu();
@@ -9757,6 +10643,7 @@ function closeMediaAddModal() {
 
 function returnToAssetComponentMenuFromSubmenu() {
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
@@ -9772,6 +10659,7 @@ function openAssetMenu() {
     setDeleteModeEnabled(false);
   }
   closeDiceAddModal();
+  closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
@@ -10206,6 +11094,9 @@ superMetalMonsTile?.addEventListener('click', async () => {
 diceComponentTile?.addEventListener('click', () => {
   openDiceAddModal();
 });
+spinnerComponentTile?.addEventListener('click', () => {
+  openSpinnerAddModal();
+});
 coinComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnCoin().catch((error) => {
@@ -10249,6 +11140,35 @@ diceAddCloseButton?.addEventListener('click', () => {
 });
 diceAddBackButton?.addEventListener('click', () => {
   returnToAssetComponentMenuFromSubmenu();
+});
+spinnerAddCloseButton?.addEventListener('click', () => {
+  closeSpinnerAddModal();
+});
+spinnerAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+spinnerAddSegmentsInput?.addEventListener('input', () => {
+  const parsed = normalizeSpinnerSegmentCount(spinnerAddSegmentsInput.value, activeSpinnerAddSegments);
+  setSpinnerAddSegmentCount(parsed);
+});
+spinnerAddTextToggle?.addEventListener('change', () => {
+  setSpinnerAddTextEnabled(Boolean(spinnerAddTextToggle.checked));
+});
+spinnerAddConfirmButton?.addEventListener('click', () => {
+  const segmentCount = normalizeSpinnerSegmentCount(activeSpinnerAddSegments);
+  const textEnabled = spinnerAddTextEnabled === true;
+  const labels = textEnabled
+    ? normalizeSpinnerLabels(activeSpinnerAddLabels, segmentCount)
+    : Array.from({ length: segmentCount }, () => '');
+  closeSpinnerAddModal();
+  spawnSpinnerComponent({
+    segments: segmentCount,
+    labels,
+    textEnabled
+  }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
 });
 
 diceTypeD6Button?.addEventListener('click', () => {
@@ -10478,6 +11398,11 @@ diceAddModal?.addEventListener('pointerdown', (event) => {
     closeDiceAddModal();
   }
 });
+spinnerAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === spinnerAddModal) {
+    closeSpinnerAddModal();
+  }
+});
 imageAddModal?.addEventListener('pointerdown', (event) => {
   if (event.target === imageAddModal) {
     closeImageAddModal();
@@ -10533,6 +11458,10 @@ window.addEventListener('keydown', (event) => {
     closeDiceAddModal();
     return;
   }
+  if (isSpinnerAddModalOpen()) {
+    closeSpinnerAddModal();
+    return;
+  }
   if (isImageAddModalOpen()) {
     closeImageAddModal();
     return;
@@ -10583,6 +11512,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 syncDiceAddModalUi();
+syncSpinnerAddModalUi();
 syncImageAddModalUi();
 syncStickerPackTabsUi();
 syncStickerCategoryTabsUi();
@@ -11054,6 +11984,7 @@ initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
+initializeTileTilt(spinnerComponentTile);
 initializeTileTilt(counterComponentTile);
 initializeTileTilt(labelComponentTile);
 initializeTileTilt(imageComponentTile);
@@ -11471,7 +12402,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -11484,7 +12415,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -11623,6 +12554,7 @@ function upsertDot(id, payload) {
     const label = document.createElement('span');
     label.className = 'cursor-name';
     dot.appendChild(label);
+    dot._nameElement = label;
 
     cursorLayer.appendChild(dot);
     dots.set(id, dot);
@@ -11634,10 +12566,12 @@ function upsertDot(id, payload) {
   const isDrawing = payload?.drawMode === true;
   dot.classList.toggle('is-drawing', isDrawing);
   positionDot(dot);
-  dot.style.background = isDrawing ? 'transparent' : payload.color || colorFromId(payloadToken || id);
+  setElementStyleValue(dot, 'background', isDrawing ? 'transparent' : payload.color || colorFromId(payloadToken || id));
 
-  const nameElement = dot.querySelector('.cursor-name');
+  const nameElement =
+    dot._nameElement instanceof HTMLElement ? dot._nameElement : dot.querySelector('.cursor-name');
   if (nameElement) {
+    dot._nameElement = nameElement;
     const trimmedName = String(payload.name || '').trim();
     nameElement.textContent = trimmedName;
     nameElement.style.display = trimmedName ? 'inline-block' : 'none';
@@ -11650,7 +12584,7 @@ function renderRoomRoster(allCursors, localId) {
   }
 
   const handCountsByOwner = getHandCountsByOwner();
-  setLocalHandCountLabel();
+  setLocalHandCountLabel(handCountsByOwner);
   roomRoster.textContent = '';
   const entries = buildVisibleCursorEntries(allCursors, localId);
   if (entries.length === 0) {
@@ -11774,6 +12708,7 @@ shieldPointerEvents(assetMenuTabGameButton);
 shieldPointerEvents(assetMenuTabComponentButton);
 shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
+shieldPointerEvents(spinnerComponentTile);
 shieldPointerEvents(counterComponentTile);
 shieldPointerEvents(labelComponentTile);
 shieldPointerEvents(imageComponentTile);
@@ -11787,6 +12722,13 @@ shieldPointerEvents(diceTypeD6Button);
 shieldPointerEvents(diceTypeD20Button);
 shieldPointerEvents(diceCountRow);
 shieldPointerEvents(diceAddConfirmButton);
+shieldPointerEvents(spinnerAddModal);
+shieldPointerEvents(spinnerAddBackButton);
+shieldPointerEvents(spinnerAddCloseButton);
+shieldPointerEvents(spinnerAddSegmentsInput);
+shieldPointerEvents(spinnerAddTextToggle);
+shieldPointerEvents(spinnerAddTextInputs);
+shieldPointerEvents(spinnerAddConfirmButton);
 shieldPointerEvents(imageAddModal);
 shieldPointerEvents(imageAddBackButton);
 shieldPointerEvents(imageAddCloseButton);
@@ -12877,6 +13819,7 @@ async function startRealtimeSession() {
     if (dieElement) {
       dieElement.classList.remove('is-label-editing');
       delete dieElement.dataset.labelEditing;
+      delete dieElement.dataset.faceRenderKey;
     }
     labelEditState = null;
     renderDieElement(dieId);
@@ -14932,7 +15875,11 @@ async function startRealtimeSession() {
       patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch || {}, 'drawLifted')
         ? { ...patch, drawLifted: true }
         : patch;
-    cards.set(cardId, normalizeCardPayload({ ...existingCard, ...nextPatch }));
+    const nextCard = normalizeCardPayload({ ...existingCard, ...nextPatch });
+    cards.set(cardId, nextCard);
+    if (didCardDeckMetricsFieldsChange(existingCard, nextCard)) {
+      markCardDeckMetricsCacheDirty();
+    }
     renderCardElement(cardId);
   }
 
@@ -15053,8 +16000,7 @@ async function startRealtimeSession() {
       return false;
     }
     const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
-    const auctionIds = getAuctionCardIds(targetDeckId);
-    if (auctionIds.length === 0) {
+    if (getAuctionCardCount(targetDeckId) === 0) {
       return true;
     }
     return cardState.inAuction && normalizeDeckId(cardState.deckId) === targetDeckId;
@@ -15065,8 +16011,7 @@ async function startRealtimeSession() {
       return false;
     }
     const targetDeckId = normalizeDeckId(deckId);
-    const auctionIds = getAuctionCardIds(targetDeckId);
-    if (auctionIds.length === 0) {
+    if (getAuctionCardCount(targetDeckId) === 0) {
       return true;
     }
     return cardIds.every((cardId) => {
@@ -15079,25 +16024,13 @@ async function startRealtimeSession() {
   }
 
   function getDiscardTopZ(deckId = activeDeckId) {
-    const normalizedDeckId = normalizeDeckId(deckId);
-    let maxZ = 1;
-    for (const cardState of cards.values()) {
-      if (cardState.inDiscard && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-        maxZ = Math.max(maxZ, Number(cardState.z) || 1);
-      }
-    }
-    return maxZ;
+    const metrics = getDeckMetricsEntry(deckId);
+    return metrics ? metrics.topDiscardZ : 1;
   }
 
   function getAuctionTopZ(deckId = activeDeckId) {
-    const normalizedDeckId = normalizeDeckId(deckId);
-    let maxZ = 1;
-    for (const cardState of cards.values()) {
-      if (cardState.inAuction && normalizeDeckId(cardState.deckId) === normalizedDeckId) {
-        maxZ = Math.max(maxZ, Number(cardState.z) || 1);
-      }
-    }
-    return maxZ;
+    const metrics = getDeckMetricsEntry(deckId);
+    return metrics ? metrics.topAuctionZ : 1;
   }
 
   function getTopHandZ(ownerToken) {
@@ -16058,6 +16991,10 @@ async function startRealtimeSession() {
         y: nextY,
         holderClientId: clientId
       };
+      if (base?.type === 'spinner') {
+        patch.spinnerResultVisible = false;
+        patch.spinnerHighlightVisible = false;
+      }
       patchLocalDie(selectedDieId, patch);
       queueDiePatch(selectedDieId, patch);
     }
@@ -17169,6 +18106,15 @@ async function startRealtimeSession() {
         }
 
         const nextPieces = { ...normalized.pieces };
+        const movingSpawnTile = getMonsSpawnTileForPiece(movingPiece);
+        const isMovingToOwnSpawnTile = Boolean(
+          movingSpawnTile &&
+            movingSpawnTile.row === clampedRow &&
+            movingSpawnTile.col === clampedCol
+        );
+        const startingCarriedManaType = getMonsDrainerCarriedManaType(movingPiece);
+        const startingCarriedManaId = getMonsDrainerCarriedManaId(movingPiece);
+        let didDropStartingCarryAtOrigin = false;
         let nextMovingPiece = {
           ...movingPiece,
           row: clampedRow,
@@ -17188,10 +18134,29 @@ async function startRealtimeSession() {
             );
             if (droppedPiece) {
               nextPieces[droppedPiece.id] = droppedPiece;
+              didDropStartingCarryAtOrigin = true;
             }
           }
           delete nextPieces[targetPiece.id];
           nextMovingPiece = setMonsDrainerCarry(nextMovingPiece, targetPiece.type, targetPiece.id);
+        }
+        if (
+          getMonsPieceBaseType(movingPiece) === 'drainer' &&
+          isMovingToOwnSpawnTile &&
+          startingCarriedManaType &&
+          !didDropStartingCarryAtOrigin
+        ) {
+          const droppedPiece = createMonsManaPieceFromCarry(
+            nextPieces,
+            startingCarriedManaType,
+            startingCarriedManaId,
+            movingPiece.row,
+            movingPiece.col
+          );
+          if (droppedPiece) {
+            nextPieces[droppedPiece.id] = droppedPiece;
+            nextMovingPiece = clearMonsDrainerCarry(nextMovingPiece);
+          }
         }
         nextPieces[selectedPieceId] = {
           ...nextMovingPiece
@@ -17245,7 +18210,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -17288,7 +18253,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -17318,7 +18283,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     if (!result.committed || !result.snapshot?.val()) {
       return false;
@@ -17408,7 +18373,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -17576,7 +18541,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -17699,7 +18664,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     if (!result.committed || !result.snapshot?.val()) {
       renderMonsBoard();
@@ -17787,7 +18752,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -17934,7 +18899,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     monsPendingSpiritPush = null;
     monsPendingDemonRebound = null;
@@ -18353,16 +19318,26 @@ async function startRealtimeSession() {
           if (normalized.holderClientId && normalized.holderClientId !== clientId) {
             continue;
           }
-          const sides = getDieSides(normalized.type);
-          nextDice[dieId] = {
+          const sides = getDieSides(normalized.type, normalized);
+          const nextValue = getRandomIntInclusive(1, sides);
+          const isSpinner = normalized.type === 'spinner';
+          const rollDurationMs = isSpinner ? SPINNER_ROLL_DURATION_MS : DIE_ROLL_DURATION_MS;
+          const nextDie = {
             ...currentDie,
             type: normalized.type,
-            value: getRandomIntInclusive(1, sides),
+            value: nextValue,
             rollStartedAt: now,
-            rollDurationMs: DIE_ROLL_DURATION_MS,
+            rollDurationMs,
             rollSeed: getRandomIntInclusive(0, 0x7fffffff),
             updatedAt: now
           };
+          if (isSpinner) {
+            nextDie.spinnerResultVisible = true;
+            nextDie.spinnerHighlightVisible = true;
+            nextDie.spinnerStartAngle = getSpinnerNeedleAngle(normalized, now);
+            nextDie.spinnerSpinTurns = getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS);
+          }
+          nextDice[dieId] = nextDie;
           changed = true;
         }
         if (!changed) {
@@ -18467,7 +19442,7 @@ async function startRealtimeSession() {
     arrow.classList.remove('hidden');
   };
 
-  function getMarbleObstacleRects(marbleDieId) {
+  function getMarbleObstacleRects() {
     const obstacleRects = [];
     for (const gameState of monsGameStatesById.values()) {
       if (!gameState || gameState.enabled === false) {
@@ -18482,8 +19457,8 @@ async function startRealtimeSession() {
         bottom: Number(gameState.y) + height / 2
       });
     }
-    for (const [dieId, dieState] of diceById.entries()) {
-      if (dieId === marbleDieId || !isMediaDieState(dieState)) {
+    for (const dieState of diceById.values()) {
+      if (!isMediaDieState(dieState)) {
         continue;
       }
       const dimensions = getDieWorldDimensions(dieState);
@@ -18651,7 +19626,7 @@ async function startRealtimeSession() {
     return { x: nextX, y: nextY, velocityX, velocityY };
   }
 
-  function simulateMarbleStep(dieId, state, deltaSeconds) {
+  function simulateMarbleStep(dieId, state, deltaSeconds, obstacleRects = null) {
     const marbleState = diceById.get(dieId);
     if (!isMarbleDieState(marbleState)) {
       return null;
@@ -18662,7 +19637,7 @@ async function startRealtimeSession() {
     const maxX = WORLD_WIDTH - radius;
     const minY = radius;
     const maxY = WORLD_HEIGHT - radius;
-    const obstacleRects = getMarbleObstacleRects(dieId);
+    const collisionRects = Array.isArray(obstacleRects) ? obstacleRects : getMarbleObstacleRects();
     let nextX = Number(marbleState.x) || WORLD_WIDTH / 2;
     let nextY = Number(marbleState.y) || WORLD_HEIGHT / 2;
     let velocityX = Number(state.velocityX) || 0;
@@ -18692,7 +19667,7 @@ async function startRealtimeSession() {
         velocityY = -Math.abs(velocityY) * MARBLE_BOUNCE_RESTITUTION;
       }
 
-      for (const rect of obstacleRects) {
+      for (const rect of collisionRects) {
         const collision = resolveMarbleCollisionWithRect(nextX, nextY, radius, rect);
         if (!collision) {
           continue;
@@ -18759,6 +19734,7 @@ async function startRealtimeSession() {
     marbleMotionRafId = window.requestAnimationFrame((timestamp) => {
       marbleMotionRafId = 0;
       const now = Number(timestamp) || performance.now();
+      const obstacleRects = getMarbleObstacleRects();
       for (const [dieId, motionState] of Array.from(marbleMotionByDieId.entries())) {
         const dieState = diceById.get(dieId);
         if (!isMarbleDieState(dieState)) {
@@ -18781,7 +19757,7 @@ async function startRealtimeSession() {
         }
         const deltaSeconds = Math.max(0, now - motionState.lastFrameAt) / 1000;
         motionState.lastFrameAt = now;
-        const stepResult = simulateMarbleStep(dieId, motionState, deltaSeconds);
+        const stepResult = simulateMarbleStep(dieId, motionState, deltaSeconds, obstacleRects);
         if (!stepResult) {
           marbleMotionByDieId.delete(dieId);
           continue;
@@ -21397,6 +22373,10 @@ async function startRealtimeSession() {
       y: nextY,
       holderClientId: clientId
     };
+    if (dieDragState.type === 'spinner') {
+      movePatch.spinnerResultVisible = false;
+      movePatch.spinnerHighlightVisible = false;
+    }
     if (dieDragState.type === 'marble') {
       marbleMotionByDieId.delete(dieDragState.dieId);
       movePatch.moving = false;
@@ -21633,7 +22613,7 @@ async function startRealtimeSession() {
     if (targetOwnerTokens.length === 0) {
       return;
     }
-    if (getDeckCardIds(targetDeckId).length < targetOwnerTokens.length) {
+    if (getDeckCardCount(targetDeckId) < targetOwnerTokens.length) {
       return;
     }
 
@@ -21800,7 +22780,7 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
       },
-      { applyLocally: false }
+      MONS_ACTION_TRANSACTION_OPTIONS
     );
     if (!result.committed) {
       return false;
@@ -21976,6 +22956,53 @@ async function startRealtimeSession() {
   };
   spawnMarble = async () => {
     await spawnDice('marble', 1);
+  };
+  spawnSpinnerComponent = async (options = {}) => {
+    const segmentCount = normalizeSpinnerSegmentCount(options.segments);
+    const textEnabled = options.textEnabled === true;
+    const labels = textEnabled
+      ? normalizeSpinnerLabels(options.labels, segmentCount)
+      : Array.from({ length: segmentCount }, () => '');
+    const spinnerDimensions = getDieWorldDimensions('spinner');
+    const viewportCenter = getViewportWorldCenter();
+    const spawnCenterX = clamp(viewportCenter.x, spinnerDimensions.width / 2, WORLD_WIDTH - spinnerDimensions.width / 2);
+    const spawnCenterY = clamp(viewportCenter.y, spinnerDimensions.height / 2, WORLD_HEIGHT - spinnerDimensions.height / 2);
+    await runTransaction(
+      diceRef,
+      (currentDice) => {
+        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+        let nextTopZ = getTopObjectZ();
+        for (const payload of Object.values(baseDice)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+        }
+        nextTopZ += 1;
+        let nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+          nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        const initialValue = getRandomIntInclusive(1, segmentCount);
+        baseDice[nextDieId] = {
+          type: 'spinner',
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: nextTopZ,
+          value: initialValue,
+          spinnerSegments: segmentCount,
+          spinnerLabels: labels,
+          spinnerResultVisible: false,
+          spinnerHighlightVisible: false,
+          spinnerStartAngle: getSpinnerSegmentCenterAngle(initialValue, segmentCount),
+          spinnerSpinTurns: getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS),
+          holderClientId: null,
+          rollStartedAt: 0,
+          rollDurationMs: SPINNER_ROLL_DURATION_MS,
+          rollSeed: Math.floor(Math.random() * 0x7fffffff),
+          updatedAt: Date.now()
+        };
+        return baseDice;
+      },
+      { applyLocally: false }
+    );
   };
   spawnLabelComponent = async () => {
     const labelText = LABEL_DEFAULT_TEXT;
@@ -22487,6 +23514,10 @@ async function startRealtimeSession() {
       window.cancelAnimationFrame(diceRollAnimationRafId);
       diceRollAnimationRafId = 0;
     }
+    if (cameraRenderRafId) {
+      window.cancelAnimationFrame(cameraRenderRafId);
+      cameraRenderRafId = 0;
+    }
     if (marbleMotionRafId) {
       window.cancelAnimationFrame(marbleMotionRafId);
       marbleMotionRafId = 0;
@@ -22546,6 +23577,7 @@ async function startRealtimeSession() {
     drawingStrokes.clear();
     syncDrawActionButtonsState();
     cards.clear();
+    markCardDeckMetricsCacheDirty();
     diceById.clear();
     cardElements.clear();
     diceElements.clear();
@@ -22554,6 +23586,7 @@ async function startRealtimeSession() {
     deckStatesById.clear();
     activeDeckId = DECK_KEY;
     deckShuffleFxDeckId = DECK_KEY;
+    deckShuffleDarkenedCardId = '';
     deckDropIndicatorDeckId = '';
     discardDropIndicatorDeckId = '';
     auctionDropIndicatorDeckId = '';
@@ -22752,6 +23785,7 @@ async function startRealtimeSession() {
       }
       const allCards = snapshot.val() || {};
       const activeCardIds = new Set();
+      let cardDeckMetricsChanged = false;
 
       for (const [cardId, payload] of Object.entries(allCards)) {
         activeCardIds.add(cardId);
@@ -22761,6 +23795,9 @@ async function startRealtimeSession() {
           setDiscardReturnAnimating(cardId, true);
         }
         cards.set(cardId, nextCard);
+        if (!previousCard || didCardDeckMetricsFieldsChange(previousCard, nextCard)) {
+          cardDeckMetricsChanged = true;
+        }
       }
 
       let cardSelectionChanged = false;
@@ -22786,8 +23823,12 @@ async function startRealtimeSession() {
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        cardDeckMetricsChanged = true;
         staleCardLockRecoveryAttemptAtById.delete(cardId);
         staleCardLockRecoveryInFlight.delete(cardId);
+      }
+      if (cardDeckMetricsChanged) {
+        markCardDeckMetricsCacheDirty();
       }
       const nextActiveAuctionCardId = getActiveAuctionCardId();
       if (previousActiveAuctionCardId && previousActiveAuctionCardId !== nextActiveAuctionCardId) {
@@ -23180,6 +24221,10 @@ async function startRealtimeSession() {
       window.cancelAnimationFrame(diceRollAnimationRafId);
       diceRollAnimationRafId = 0;
     }
+    if (cameraRenderRafId) {
+      window.cancelAnimationFrame(cameraRenderRafId);
+      cameraRenderRafId = 0;
+    }
     if (marbleMotionRafId) {
       window.cancelAnimationFrame(marbleMotionRafId);
       marbleMotionRafId = 0;
@@ -23278,7 +24323,7 @@ async function startRealtimeSession() {
 
     camera.panX = midpointScreen.x - pinchState.worldX * camera.scale;
     camera.panY = midpointScreen.y - pinchState.worldY * camera.scale;
-    applyCamera();
+    scheduleApplyCamera();
   }
 
   function isEventOnCard(event) {
@@ -23536,7 +24581,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = mousePanState.startPanX + deltaX;
         camera.panY = mousePanState.startPanY + deltaY;
-        applyCamera();
+        scheduleApplyCamera();
         event.preventDefault();
         return;
       }
@@ -23579,7 +24624,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = mousePanState.startPanX + deltaX;
         camera.panY = mousePanState.startPanY + deltaY;
-        applyCamera();
+        scheduleApplyCamera();
         return;
       }
 
@@ -23606,7 +24651,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = touchPanState.startPanX + deltaX;
         camera.panY = touchPanState.startPanY + deltaY;
-        applyCamera();
+        scheduleApplyCamera();
       }
     }
   });
