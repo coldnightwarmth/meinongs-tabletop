@@ -16915,8 +16915,24 @@ async function startRealtimeSession() {
     const movedDistance = Math.hypot(event.clientX - groupDragState.startClientX, event.clientY - groupDragState.startClientY);
     const movedThreshold =
       groupDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    const wasMoved = groupDragState.moved;
     if (movedDistance > movedThreshold) {
       groupDragState.moved = true;
+    }
+    if (!wasMoved && groupDragState.moved) {
+      if (groupDragState.pointerType === 'touch' || groupDragState.pointerType === 'pen') {
+        if (groupDragState.anchorType === 'card' && groupDragState.anchorCardId) {
+          recentTouchTapByCardId.delete(groupDragState.anchorCardId);
+        } else if (groupDragState.anchorType === 'die' && groupDragState.anchorId) {
+          recentTouchTapByDieId.delete(groupDragState.anchorId);
+        }
+      } else if (groupDragState.pointerType === 'mouse') {
+        if (groupDragState.anchorType === 'card' && groupDragState.anchorCardId) {
+          recentMouseClickByCardId.delete(groupDragState.anchorCardId);
+        } else if (groupDragState.anchorType === 'die' && groupDragState.anchorId) {
+          recentMouseClickByDieId.delete(groupDragState.anchorId);
+        }
+      }
     }
     const deltaX = anchorNextX - anchorBase.x;
     const deltaY = anchorNextY - anchorBase.y;
@@ -22241,6 +22257,13 @@ async function startRealtimeSession() {
       });
       return;
     }
+    if (!isMouseSecondaryMarbleDrag) {
+      if (effectivePointerType === 'touch') {
+        rememberDieTouchTapCandidate(dieId, event);
+      } else if (event.pointerType === 'mouse' && event.button === 0) {
+        rememberDieMouseClickCandidate(dieId, event);
+      }
+    }
 
     if (!isMouseSecondaryMarbleDrag && hasAnyGroupSelection()) {
       if (selectedDiceIds.has(dieId) && beginGroupDragFromDie(event, dieId)) {
@@ -22358,8 +22381,16 @@ async function startRealtimeSession() {
     const nextY = clamp(dieDragState.startY + deltaY, dieBounds.minY, dieBounds.maxY);
     const movedDistance = Math.hypot(event.clientX - dieDragState.startClientX, event.clientY - dieDragState.startClientY);
     const movedThreshold = dieDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    const wasMoved = dieDragState.moved;
     if (movedDistance > movedThreshold) {
       dieDragState.moved = true;
+    }
+    if (!wasMoved && dieDragState.moved) {
+      if (dieDragState.pointerType === 'touch' || dieDragState.pointerType === 'pen') {
+        recentTouchTapByDieId.delete(dieDragState.dieId);
+      } else if (dieDragState.pointerType === 'mouse') {
+        recentMouseClickByDieId.delete(dieDragState.dieId);
+      }
     }
     const moveSinceLastEvent = Math.hypot(event.clientX - dieDragState.lastClientX, event.clientY - dieDragState.lastClientY);
     if (moveSinceLastEvent >= 0.5) {
