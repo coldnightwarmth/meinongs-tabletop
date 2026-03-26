@@ -81,6 +81,8 @@ const imageAddConfirmButton = document.getElementById('imageAddConfirmButton');
 const stickerAddModal = document.getElementById('stickerAddModal');
 const stickerAddBackButton = document.getElementById('stickerAddBackButton');
 const stickerAddCloseButton = document.getElementById('stickerAddCloseButton');
+const stickerPackTabs = document.getElementById('stickerPackTabs');
+const stickerCategoryTabs = document.getElementById('stickerCategoryTabs');
 const stickerAddGallery = document.getElementById('stickerAddGallery');
 const stickerAddConfirmButton = document.getElementById('stickerAddConfirmButton');
 const stickerAddRandomButton = document.getElementById('stickerAddRandomButton');
@@ -232,6 +234,7 @@ const STICKER_COMPONENT_MIN_WORLD_SIZE = 72;
 const STICKER_COMPONENT_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 2;
 const STICKER_COMPONENT_MAX_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT * 2;
 const STICKER_SMOOTH_MAX_SCREEN_SIZE = 72;
+const STICKER_DEFAULT_SPAWN_SIZE = 192;
 const STICKER_EDGE_OVERFLOW = 350;
 const STICKER_ROTATE_MIN_RADIUS_WORLD = 8;
 const DIE_ROLL_DURATION_MS = 850;
@@ -246,16 +249,38 @@ const LABEL_EDGE_OVERFLOW = 700;
 const LABEL_CHAR_WORLD_WIDTH = 11;
 const LABEL_LINE_WORLD_HEIGHT = 30;
 const LABEL_PADDING_WORLD_X = 28;
-const LABEL_PADDING_WORLD_Y = 18;
+const LABEL_PADDING_WORLD_Y = 0;
 const LABEL_TEXT_MAX_LENGTH = 1200;
 const LABEL_TEXT_SCALE_DEFAULT = 1;
 const LABEL_TEXT_SCALE_SPAWN = 3;
 const LABEL_TEXT_SCALE_MIN = 0.58;
 const LABEL_TEXT_SCALE_MAX = 24;
 const LABEL_FONT_SIZE_FACTOR = 0.58;
+const LABEL_TEXT_LINE_HEIGHT = 1.2;
 const LABEL_DEFAULT_SPAWN_WIDTH = 332;
 const LABEL_MEASURE_BUFFER_X = 8;
-const LABEL_MEASURE_BUFFER_Y = 6;
+const LABEL_MEASURE_BUFFER_Y = 0;
+const STICKER_PACK_PLAY_THINGS = 'play-things';
+const STICKER_PACK_SWAG = 'swag-pack';
+const STICKER_PACK_EMOJI = 'emoji-pack';
+const STICKER_PACK_KEYS = [STICKER_PACK_PLAY_THINGS, STICKER_PACK_SWAG, STICKER_PACK_EMOJI];
+const STICKER_CATEGORY_KEYS = ['characters', 'mons', 'emoji', 'other'];
+const STICKER_FILTER_KEYS_BY_PACK = {
+  [STICKER_PACK_PLAY_THINGS]: [],
+  [STICKER_PACK_SWAG]: ['characters', 'mons', 'other'],
+  [STICKER_PACK_EMOJI]: ['characters', 'mons', 'emoji', 'other']
+};
+const STICKER_MANIFEST_URL = './assets/sticker-manifest.json';
+const STICKER_PACK_BASE_PATH_BY_KEY = {
+  [STICKER_PACK_PLAY_THINGS]: './assets/play%20things',
+  [STICKER_PACK_SWAG]: './assets/swagpack',
+  [STICKER_PACK_EMOJI]: './assets/emojipack'
+};
+const STICKER_PACK_PREVIEW_BASE_PATH_BY_KEY = {
+  [STICKER_PACK_PLAY_THINGS]: './assets/play%20things',
+  [STICKER_PACK_SWAG]: './assets/swagpack-preview',
+  [STICKER_PACK_EMOJI]: './assets/emojipack-preview'
+};
 const STICKER_ASSET_FILE_NAMES = [
   '777.png',
   'ace of spades.png',
@@ -341,6 +366,182 @@ const STICKER_ASSET_ITEMS = STICKER_ASSET_FILE_NAMES.map((fileName) => {
     label: safeFileName.replace(/\.[a-z0-9]+$/i, '')
   };
 });
+const DEFAULT_STICKER_CATALOG = buildDefaultStickerCatalog();
+
+function createEmptyStickerCategoryMap() {
+  return {
+    characters: [],
+    mons: [],
+    emoji: [],
+    other: []
+  };
+}
+
+function normalizeStickerPackKey(packKey) {
+  const normalizedPackKey = String(packKey || '').trim().toLowerCase();
+  return STICKER_PACK_KEYS.includes(normalizedPackKey) ? normalizedPackKey : STICKER_PACK_PLAY_THINGS;
+}
+
+function normalizeStickerCategoryKey(category) {
+  const normalizedCategory = String(category || '').trim().toLowerCase();
+  return STICKER_CATEGORY_KEYS.includes(normalizedCategory) ? normalizedCategory : '';
+}
+
+function getStickerAvailableCategoriesForPack(packKey) {
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  const categories = STICKER_FILTER_KEYS_BY_PACK[normalizedPackKey];
+  return Array.isArray(categories) ? categories : [];
+}
+
+function normalizeStickerFileNames(rawFileNames) {
+  if (!Array.isArray(rawFileNames)) {
+    return [];
+  }
+  const seen = new Set();
+  const normalized = [];
+  for (const rawFileName of rawFileNames) {
+    const safeFileName = String(rawFileName || '').trim();
+    if (!safeFileName || seen.has(safeFileName)) {
+      continue;
+    }
+    seen.add(safeFileName);
+    normalized.push(safeFileName);
+  }
+  return normalized;
+}
+
+function buildStickerItem(fileName, packKey, category = '') {
+  const safeFileName = String(fileName || '').trim();
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  const normalizedCategory = normalizeStickerCategoryKey(category);
+  if (!safeFileName) {
+    return null;
+  }
+  const basePath = STICKER_PACK_BASE_PATH_BY_KEY[normalizedPackKey];
+  const previewBasePath = STICKER_PACK_PREVIEW_BASE_PATH_BY_KEY[normalizedPackKey] || basePath;
+  if (!basePath) {
+    return null;
+  }
+  const encodedFileName = encodeURIComponent(safeFileName);
+  const src =
+    normalizedPackKey === STICKER_PACK_PLAY_THINGS
+      ? `${basePath}/${encodedFileName}`
+      : `${basePath}/${normalizedCategory || 'other'}/${encodedFileName}`;
+  const previewSrc =
+    normalizedPackKey === STICKER_PACK_PLAY_THINGS
+      ? src
+      : `${previewBasePath}/${normalizedCategory || 'other'}/${encodedFileName}`;
+  return {
+    fileName: safeFileName,
+    src,
+    previewSrc,
+    label: safeFileName.replace(/\.[a-z0-9]+$/i, ''),
+    pack: normalizedPackKey,
+    category: normalizedCategory || 'other'
+  };
+}
+
+function buildStickerItemsForPack(fileNames, packKey, category = '') {
+  const items = [];
+  const normalizedFiles = normalizeStickerFileNames(fileNames);
+  for (const fileName of normalizedFiles) {
+    const item = buildStickerItem(fileName, packKey, category);
+    if (!item) {
+      continue;
+    }
+    items.push(item);
+  }
+  return items;
+}
+
+function buildDefaultStickerCatalog() {
+  const byCategory = createEmptyStickerCategoryMap();
+  byCategory.other = STICKER_ASSET_ITEMS.map((item) => ({
+    ...item,
+    previewSrc: item.src,
+    pack: STICKER_PACK_PLAY_THINGS,
+    category: 'other'
+  }));
+  return {
+    [STICKER_PACK_PLAY_THINGS]: {
+      all: [...byCategory.other],
+      byCategory
+    },
+    [STICKER_PACK_SWAG]: {
+      all: [],
+      byCategory: createEmptyStickerCategoryMap()
+    },
+    [STICKER_PACK_EMOJI]: {
+      all: [],
+      byCategory: createEmptyStickerCategoryMap()
+    }
+  };
+}
+
+function cloneStickerCategoryMap(source) {
+  const next = createEmptyStickerCategoryMap();
+  for (const category of STICKER_CATEGORY_KEYS) {
+    const sourceItems = Array.isArray(source?.[category]) ? source[category] : [];
+    next[category] = sourceItems.filter(Boolean).map((item) => ({ ...item }));
+  }
+  return next;
+}
+
+function cloneStickerCatalog(sourceCatalog) {
+  const cloned = {};
+  for (const packKey of STICKER_PACK_KEYS) {
+    const sourcePack = sourceCatalog?.[packKey];
+    if (!sourcePack || typeof sourcePack !== 'object') {
+      cloned[packKey] = {
+        all: [],
+        byCategory: createEmptyStickerCategoryMap()
+      };
+      continue;
+    }
+    const byCategory = cloneStickerCategoryMap(sourcePack.byCategory);
+    const all = Array.isArray(sourcePack.all) ? sourcePack.all.filter(Boolean).map((item) => ({ ...item })) : [];
+    cloned[packKey] = {
+      all,
+      byCategory
+    };
+  }
+  return cloned;
+}
+
+function mergeStickerCatalogWithManifest(manifestPayload) {
+  const catalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
+  const payload = manifestPayload && typeof manifestPayload === 'object' ? manifestPayload : {};
+  const playThings = buildStickerItemsForPack(payload.playThings, STICKER_PACK_PLAY_THINGS);
+  if (playThings.length > 0) {
+    catalog[STICKER_PACK_PLAY_THINGS].all = playThings;
+    catalog[STICKER_PACK_PLAY_THINGS].byCategory.other = [...playThings];
+  }
+
+  const mapPackFromManifest = (manifestKey, packKey) => {
+    const manifestPack = payload?.[manifestKey];
+    if (!manifestPack || typeof manifestPack !== 'object') {
+      return;
+    }
+    const byCategory = createEmptyStickerCategoryMap();
+    let all = [];
+    for (const category of STICKER_CATEGORY_KEYS) {
+      const items = buildStickerItemsForPack(manifestPack[category], packKey, category);
+      byCategory[category] = items;
+      if (items.length > 0) {
+        all = all.concat(items);
+      }
+    }
+    catalog[packKey] = {
+      all,
+      byCategory
+    };
+  };
+
+  mapPackFromManifest('swagPack', STICKER_PACK_SWAG);
+  mapPackFromManifest('emojiPack', STICKER_PACK_EMOJI);
+
+  return catalog;
+}
 const D6_PIP_LAYOUTS = {
   1: [[50, 50]],
   2: [[30, 30], [70, 70]],
@@ -678,6 +879,7 @@ let lastHandHoverClientX = Number.NaN;
 let lastHandHoverClientY = Number.NaN;
 let resizingImageCardId = '';
 let rotatingStickerCardId = '';
+let rotatingLabelDieId = '';
 let resizingLabelDieId = '';
 let resizingMediaDieId = '';
 let latestRoomCursors = {};
@@ -700,7 +902,15 @@ let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
 let activeDiceAddType = 'd6';
 let activeDiceAddCount = 1;
-let activeStickerAssetFileName = STICKER_ASSET_ITEMS[0]?.fileName || '';
+let stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
+let stickerManifestLoaded = false;
+let stickerManifestLoadPromise = null;
+let activeStickerPackKey = STICKER_PACK_PLAY_THINGS;
+let activeStickerCategoryFiltersByPack = {
+  [STICKER_PACK_SWAG]: new Set(getStickerAvailableCategoriesForPack(STICKER_PACK_SWAG)),
+  [STICKER_PACK_EMOJI]: new Set(getStickerAvailableCategoriesForPack(STICKER_PACK_EMOJI))
+};
+let activeStickerAssetSrc = '';
 let roomTitleValue = defaultRoomTitle;
 let isRoomTitleEditing = false;
 let isRoomOwner = false;
@@ -783,6 +993,8 @@ let onHandCardPointerDown = () => {};
 let onDiePointerDown = () => {};
 let onDieContextMenu = () => {};
 let onLabelResizePointerDown = () => {};
+let onLabelLockControlPointerDown = () => {};
+let onLabelRotatePointerDown = () => {};
 let onDeckMovePointerDown = () => {};
 let onMonsMovePointerDown = () => {};
 let onMonsUndoButtonClick = () => {};
@@ -790,6 +1002,9 @@ let onMonsFlipButtonClick = () => {};
 let onMonsBoardTilePointerDown = () => {};
 let onMonsSideClaimClick = () => {};
 let onDrawingStrokePointerDown = () => {};
+let onPlayerColorChanged = () => {};
+let onPlayerColorPickerPointerDown = () => {};
+let onPlayerColorPickerClosed = () => {};
 let drawModeEnabled = false;
 let deleteModeEnabled = false;
 let activeDrawTool = DRAW_TOOL_FREE;
@@ -1224,6 +1439,14 @@ function normalizeDieType(type) {
   return type === 'd20' ? 'd20' : 'd6';
 }
 
+function isLabelDieState(dieState) {
+  return normalizeDieType(dieState?.type) === 'label';
+}
+
+function isLabelDieLocked(dieState) {
+  return isLabelDieState(dieState) && dieState?.labelLocked === true;
+}
+
 function getDieSides(type) {
   const normalizedType = normalizeDieType(type);
   if (normalizedType === 'label' || normalizedType === 'media') {
@@ -1306,7 +1529,10 @@ function measureLabelWorldDimensions(textValue, options = {}) {
   const lines = normalizedText.length > 0 ? normalizedText.split('\n') : [''];
   const textScale = getLabelTextScale(options.textScale, LABEL_TEXT_SCALE_DEFAULT);
   const charWorldWidth = Math.max(1, LABEL_CHAR_WORLD_WIDTH * textScale);
-  const lineWorldHeight = Math.max(1, LABEL_LINE_WORLD_HEIGHT * textScale);
+  const lineWorldHeight = Math.max(
+    1,
+    LABEL_LINE_WORLD_HEIGHT * textScale * LABEL_FONT_SIZE_FACTOR * LABEL_TEXT_LINE_HEIGHT
+  );
   const paddingX = LABEL_PADDING_WORLD_X;
   const paddingY = LABEL_PADDING_WORLD_Y;
   const maxWidthConstraint = clamp(
@@ -1495,6 +1721,8 @@ function normalizeDicePayload(payload) {
   const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
   const text = normalizeLabelText(payload?.text);
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
+  const labelLocked = type === 'label' ? payload?.labelLocked === true : false;
+  const labelRotation = type === 'label' ? normalizeStickerRotationDegrees(payload?.labelRotation) : 0;
   let mediaProvider = type === 'media' ? normalizeMediaProvider(payload?.mediaProvider) : '';
   let mediaSourceUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaSourceUrl) : '';
   let mediaEmbedUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaEmbedUrl) : '';
@@ -1530,6 +1758,7 @@ function normalizeDicePayload(payload) {
   const mediaStartNonceRaw = type === 'media' ? Number(payload?.mediaStartNonce) : 0;
   const mediaStartedAt = Number.isFinite(mediaStartedAtRaw) && mediaStartedAtRaw > 0 ? Math.floor(mediaStartedAtRaw) : 0;
   const mediaStartNonce = Number.isFinite(mediaStartNonceRaw) ? Math.floor(mediaStartNonceRaw) : 0;
+  const normalizedHolderClientId = labelLocked ? null : holderClientId;
   return {
     type,
     x: Number.isFinite(nextX)
@@ -1543,6 +1772,8 @@ function normalizeDicePayload(payload) {
     text,
     textColor,
     textScale,
+    labelLocked,
+    labelRotation,
     labelWidth: dimensions.width,
     labelHeight: dimensions.height,
     mediaProvider,
@@ -1553,7 +1784,7 @@ function normalizeDicePayload(payload) {
     mediaWidth: dimensions.width,
     mediaHeight: dimensions.height,
     drawLifted,
-    holderClientId,
+    holderClientId: normalizedHolderClientId,
     rollStartedAt: type === 'label' || type === 'media' ? 0 : Number.isFinite(rollStartedAt) ? Math.max(0, rollStartedAt) : 0,
     rollDurationMs: Number.isFinite(rollDurationMs) ? clamp(Math.round(rollDurationMs), 120, 3000) : DIE_ROLL_DURATION_MS,
     rollSeed: Number.isFinite(rollSeed) ? rollSeed : 0
@@ -6237,6 +6468,32 @@ function isVisualImageComponentCard(cardState) {
   return componentType === 'image' || componentType === 'sticker';
 }
 
+function isTwoSidedImageComponentCard(cardState) {
+  if (!isImageComponentCard(cardState)) {
+    return false;
+  }
+  if (cardState?.componentTwoSided === true) {
+    return true;
+  }
+  if (cardState?.componentBackBlank === true) {
+    return true;
+  }
+  return Boolean(normalizeImageComponentSrc(cardState?.backSrc || ''));
+}
+
+function isCardFlippable(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return false;
+  }
+  if (isStickerComponentCard(cardState)) {
+    return false;
+  }
+  if (isImageComponentCard(cardState)) {
+    return isTwoSidedImageComponentCard(cardState);
+  }
+  return true;
+}
+
 function canCardUseDeckZones(cardState) {
   return !isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false;
 }
@@ -6245,7 +6502,7 @@ function canCardEnterHand(cardState) {
   if (!cardState) {
     return false;
   }
-  return !isNonCardImageComponentCard(cardState);
+  return !isNativeImageComponentCard(cardState);
 }
 
 function getCardPositionOverflow(cardState) {
@@ -6343,6 +6600,9 @@ function fitSizeToAspectWithinBounds(preferredWidth, preferredHeight, bounds, as
 
 function getFaceWhenEnteringHand(cardState) {
   if (!isVisualImageComponentCard(cardState)) {
+    return 'front';
+  }
+  if (isImageComponentCard(cardState) && !isTwoSidedImageComponentCard(cardState)) {
     return 'front';
   }
   return cardState?.face === 'back' ? 'back' : 'front';
@@ -6462,7 +6722,29 @@ function getStickerImageRenderingMode(screenWidth, screenHeight) {
   return minDimension <= STICKER_SMOOTH_MAX_SCREEN_SIZE ? 'auto' : 'pixelated';
 }
 
+function isAlwaysSmoothStickerSource(src) {
+  const normalizedSrc = String(src || '').trim().toLowerCase();
+  if (!normalizedSrc) {
+    return false;
+  }
+  return normalizedSrc.includes('/assets/swagpack/') || normalizedSrc.includes('/assets/emojipack/');
+}
+
+function shouldUseNormalizedStickerSpawnSize(src) {
+  return isAlwaysSmoothStickerSource(src);
+}
+
+function isAlwaysSmoothStickerCard(cardState) {
+  if (!isStickerComponentCard(cardState)) {
+    return false;
+  }
+  return isAlwaysSmoothStickerSource(cardState?.frontSrc) || isAlwaysSmoothStickerSource(cardState?.backSrc);
+}
+
 function getStickerImageRenderingModeForCard(cardState, cameraScale) {
+  if (isAlwaysSmoothStickerCard(cardState)) {
+    return 'auto';
+  }
   const scale = Math.max(0, Number(cameraScale) || 0);
   if (scale <= 0) {
     return 'auto';
@@ -6561,6 +6843,13 @@ function normalizeCardPayload(payload) {
   const componentRotation = componentType && componentCardSized === false ? normalizeStickerRotationDegrees(payload?.componentRotation) : 0;
   const componentFrontBlank = isImageComponent ? payload?.componentFrontBlank === true : false;
   const componentBackBlank = isImageComponent ? payload?.componentBackBlank === true : false;
+  const componentTwoSided = isImageComponent
+    ? (
+      payload?.componentTwoSided === true ||
+      componentBackBlank ||
+      Boolean(normalizeImageComponentSrc(payload?.backSrc || ''))
+    )
+    : false;
   const componentFrontColor = isImageComponent ? normalizeHexColor(payload?.componentFrontColor || '#ffffff') : '#ffffff';
   const componentBackColor = isImageComponent ? normalizeHexColor(payload?.componentBackColor || '#ffffff') : '#ffffff';
   const normalizedFrontSrc = componentType
@@ -6588,7 +6877,11 @@ function normalizeCardPayload(payload) {
   const inDeck = Boolean(payload?.inDeck);
   const inDiscard = Boolean(payload?.inDiscard);
   const inAuction = Boolean(payload?.inAuction);
-  const face = inAuction || isStickerComponent ? 'front' : payload?.face === 'front' ? 'front' : 'back';
+  const face = inAuction || isStickerComponent || (isImageComponent && !componentTwoSided)
+    ? 'front'
+    : payload?.face === 'front'
+      ? 'front'
+      : 'back';
   const boundsWidth = inAuction || inDeck || inDiscard ? CARD_WIDTH : componentSize.width;
   const boundsHeight = inAuction || inDeck || inDiscard ? CARD_HEIGHT : componentSize.height;
   const overflow = isStickerComponent && !inDeck && !inDiscard && !inAuction ? STICKER_EDGE_OVERFLOW : 0;
@@ -6605,6 +6898,7 @@ function normalizeCardPayload(payload) {
     backSrc,
     componentType,
     componentCardSized,
+    componentTwoSided,
     componentFrontBlank,
     componentBackBlank,
     componentFrontColor,
@@ -6668,6 +6962,47 @@ function ensureDieElement(dieId) {
     });
     die.appendChild(resizeHandle);
 
+    const lockControl = document.createElement('div');
+    lockControl.className = 'table-label-lock-control hidden';
+    lockControl.setAttribute('aria-hidden', 'true');
+    lockControl.innerHTML =
+      '<svg class="lock-icon lock-icon-closed" viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.4 11V8.8C7.4 6.28 9.48 4.2 12 4.2C14.52 4.2 16.6 6.28 16.6 8.8V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="6.2" y="10.6" width="11.6" height="9.2" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 14.4V16.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="lock-icon lock-icon-open" viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 10.8V8.8C15.5 6.28 13.52 4.2 11 4.2C8.48 4.2 6.5 6.28 6.5 8.8V10.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="6.2" y="10.6" width="11.6" height="9.2" rx="2" stroke="currentColor" stroke-width="2"/><path d="M12 14.4V16.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    lockControl.addEventListener('pointerdown', (event) => {
+      onLabelLockControlPointerDown(event, dieId);
+    });
+    lockControl.addEventListener('pointerenter', () => {
+      die.classList.add('is-die-lock-hovered');
+    });
+    lockControl.addEventListener('pointerleave', () => {
+      die.classList.remove('is-die-lock-hovered');
+    });
+    lockControl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    die.appendChild(lockControl);
+
+    const rotateControl = document.createElement('button');
+    rotateControl.type = 'button';
+    rotateControl.className = 'table-label-rotate-control hidden';
+    rotateControl.setAttribute('aria-label', 'rotate label');
+    rotateControl.innerHTML =
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M20 4V10H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 10A8 8 0 1 1 17 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    rotateControl.addEventListener('pointerdown', (event) => {
+      onLabelRotatePointerDown(event, dieId);
+    });
+    rotateControl.addEventListener('pointerenter', () => {
+      die.classList.add('is-die-rotate-hovered');
+    });
+    rotateControl.addEventListener('pointerleave', () => {
+      die.classList.remove('is-die-rotate-hovered');
+    });
+    rotateControl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    die.appendChild(rotateControl);
+
     die.addEventListener('pointerdown', (event) => {
       onDiePointerDown(event, dieId);
     });
@@ -6707,8 +7042,13 @@ function renderDieFace(dieId, die, dieType, faceValue, dieState) {
   const isMedia = dieType === 'media';
   if (isLabel) {
     teardownMediaController(dieId);
-    if (die.dataset.labelEditing === '1') {
+    const activeEditor = face.querySelector('.table-label-editor');
+    if (die.dataset.labelEditing === '1' && activeEditor instanceof HTMLTextAreaElement) {
       return;
+    }
+    if (die.dataset.labelEditing === '1') {
+      die.classList.remove('is-label-editing');
+      delete die.dataset.labelEditing;
     }
     face.classList.add('table-label-text');
     face.textContent = normalizeLabelText(dieState?.text || '');
@@ -6876,12 +7216,38 @@ function renderDieElement(dieId) {
   const rolling = isDieRolling(dieState, now);
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
+  const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
+  const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
+  if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
+    die.classList.remove('is-label-editing');
+    delete die.dataset.labelEditing;
+  }
+  const isLabelLocked = isLabelDieLocked(dieState);
+  if (isLabelLocked && selectedDiceIds.has(dieId)) {
+    selectedDiceIds.delete(dieId);
+  }
+  const labelRotationDeg = isLabel ? normalizeStickerRotationDegrees(dieState.labelRotation) : 0;
+  die.style.setProperty('--die-rotation-deg', `${labelRotationDeg}deg`);
   const isResizingLabel = resizingLabelDieId === dieId;
   const isResizingMedia = resizingMediaDieId === dieId;
-  const isLabelEditing = die.dataset.labelEditing === '1';
+  const isRotatingLabel = rotatingLabelDieId === dieId;
+  const isLabelEditing = isLabel && die.dataset.labelEditing === '1' && hasActiveLabelEditor;
+  const canToggleLabelLock =
+    isLabel &&
+    !heldByOther &&
+    !drawModeEnabled &&
+    !isLabelEditing;
   const canResizeLabel =
     isLabel &&
     !heldByOther &&
+    !isLabelLocked &&
+    !drawModeEnabled &&
+    !deleteModeEnabled &&
+    !isLabelEditing;
+  const canRotateLabel =
+    isLabel &&
+    !heldByOther &&
+    !isLabelLocked &&
     !drawModeEnabled &&
     !deleteModeEnabled &&
     !isLabelEditing;
@@ -6896,20 +7262,39 @@ function renderDieElement(dieId) {
   die.classList.toggle('table-die-coin', dieType === 'coin');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
+  die.classList.toggle('is-label-locked', isLabelLocked);
+  die.classList.toggle('is-label-lockable', canToggleLabelLock);
   die.classList.toggle('is-held-by-self', heldBySelf);
   die.classList.toggle('is-held-by-other', heldByOther);
   die.classList.toggle('is-group-selected', selectedDiceIds.has(dieId));
   die.classList.toggle('is-rolling', rolling);
   die.classList.toggle('is-resizable-label', canResizeLabel);
   die.classList.toggle('is-resizing-label', isResizingLabel);
+  die.classList.toggle('is-rotatable-label', canRotateLabel);
+  die.classList.toggle('is-rotating-label', isRotatingLabel);
   die.classList.toggle('is-resizable-media', canResizeMedia);
   die.classList.toggle('is-resizing-media', isResizingMedia);
   if (!isResizingLabel && !isResizingMedia && !canResizeDie) {
     die.classList.remove('is-die-resize-hovered');
   }
+  if (!isRotatingLabel && !canRotateLabel) {
+    die.classList.remove('is-die-rotate-hovered');
+  }
+  if (!canToggleLabelLock) {
+    die.classList.remove('is-die-lock-hovered');
+  }
   const labelResizeHandle = die.querySelector('.table-label-resize-handle');
   if (labelResizeHandle instanceof HTMLElement) {
     labelResizeHandle.classList.toggle('hidden', !canResizeDie);
+  }
+  const labelLockControl = die.querySelector('.table-label-lock-control');
+  if (labelLockControl instanceof HTMLElement) {
+    labelLockControl.classList.toggle('hidden', !canToggleLabelLock);
+    labelLockControl.classList.toggle('is-locked', isLabelLocked);
+  }
+  const labelRotateControl = die.querySelector('.table-label-rotate-control');
+  if (labelRotateControl instanceof HTMLElement) {
+    labelRotateControl.classList.toggle('hidden', !canRotateLabel);
   }
   if (dieType === 'label') {
     die.setAttribute('aria-label', 'label');
@@ -6935,6 +7320,15 @@ function renderDieElement(dieId) {
 }
 
 function renderAllDice() {
+  if (resizingLabelDieId && !diceById.has(resizingLabelDieId)) {
+    resizingLabelDieId = '';
+  }
+  if (resizingMediaDieId && !diceById.has(resizingMediaDieId)) {
+    resizingMediaDieId = '';
+  }
+  if (rotatingLabelDieId && !diceById.has(rotatingLabelDieId)) {
+    rotatingLabelDieId = '';
+  }
   let hasRolling = false;
   for (const dieId of diceById.keys()) {
     if (renderDieElement(dieId)) {
@@ -7435,10 +7829,15 @@ function renderLocalHandCards() {
       continue;
     }
 
-    const handBlankFaceColor = getImageComponentFaceBlankColor(cardState, 'front');
-    handCard.classList.toggle('is-image-component-blank-face', Boolean(handBlankFaceColor));
-    if (handBlankFaceColor) {
-      handCard.style.setProperty('--image-card-blank-color', handBlankFaceColor);
+    const handShowingFront =
+      !isImageComponentCard(cardState) ||
+      !isTwoSidedImageComponentCard(cardState) ||
+      cardState.face !== 'back';
+    const handFaceKey = handShowingFront ? 'front' : 'back';
+    const handFaceBlankColor = getImageComponentFaceBlankColor(cardState, handFaceKey);
+    handCard.classList.toggle('is-image-component-blank-face', Boolean(handFaceBlankColor));
+    if (handFaceBlankColor) {
+      handCard.style.setProperty('--image-card-blank-color', handFaceBlankColor);
       handDisplayPendingByCard.delete(cardId);
       handCard.classList.remove('is-front-pending');
       if (image.getAttribute('src')) {
@@ -7448,9 +7847,25 @@ function renderLocalHandCards() {
     }
     handCard.style.removeProperty('--image-card-blank-color');
 
+    if (!handShowingFront) {
+      handDisplayPendingByCard.delete(cardId);
+      handCard.classList.remove('is-front-pending');
+      const backDisplaySrc = getCardBackDisplaySrc(cardState);
+      if (backDisplaySrc) {
+        if (!imageHasSource(image, backDisplaySrc)) {
+          image.src = backDisplaySrc;
+        }
+      } else if (image.getAttribute('src')) {
+        image.removeAttribute('src');
+      }
+      continue;
+    }
+
     const isStickerNativeHandCard = isStickerComponentCard(cardState) && cardState.componentCardSized === false;
     if (isStickerNativeHandCard) {
-      image.style.imageRendering = getStickerImageRenderingMode(HAND_CARD_WIDTH, HAND_CARD_HEIGHT);
+      image.style.imageRendering = isAlwaysSmoothStickerCard(cardState)
+        ? 'auto'
+        : getStickerImageRenderingMode(HAND_CARD_WIDTH, HAND_CARD_HEIGHT);
     } else {
       image.style.removeProperty('image-rendering');
     }
@@ -7693,7 +8108,9 @@ function renderCardElement(cardId) {
     }
     const previousFace = cardFaces.get(cardId);
     const showingFront = cardState.face === 'front';
+    const previousFaceKey = previousFace === 'back' ? 'back' : 'front';
     const blankFaceColor = getImageComponentFaceBlankColor(cardState, showingFront ? 'front' : 'back');
+    const shouldAnimateImageCardFlip = isImageComponent && cardState.componentCardSized !== false;
     const hasLoadedImage = Boolean(image.getAttribute('src'));
     card.classList.toggle('is-image-component-blank-face', Boolean(blankFaceColor));
     if (blankFaceColor) {
@@ -7766,7 +8183,7 @@ function renderCardElement(cardId) {
 
     card.classList.toggle('is-front-pending', showingFront && !displaySrc);
 
-    if (previousFace && previousFace !== cardState.face && hasLoadedImage) {
+    if (previousFace && previousFace !== cardState.face && (hasLoadedImage || shouldAnimateImageCardFlip)) {
       animateCardFlip(cardId, card, image, displaySrc);
     } else if (displaySrc) {
       if (!imageHasSource(image, displaySrc)) {
@@ -8331,6 +8748,9 @@ syncClearTableButtonState();
 if (cursorColorInput) {
   cursorColorInput.value = playerState.color;
 }
+cursorColorInput?.addEventListener('pointerdown', () => {
+  onPlayerColorPickerPointerDown();
+});
 
 if (nameInput) {
   nameInput.value = playerState.name;
@@ -8365,10 +8785,18 @@ nameInput?.addEventListener('blur', () => {
 });
 
 cursorColorInput?.addEventListener('input', () => {
-  playerState.color = normalizeHexColor(cursorColorInput.value);
+  const nextColor = normalizeHexColor(cursorColorInput.value);
+  playerState.color = nextColor;
   localStorage.setItem('tabletop-player-color', playerState.color);
   syncCursorState();
   refreshMonsClaimLabelsOnly();
+  onPlayerColorChanged(nextColor);
+});
+cursorColorInput?.addEventListener('change', () => {
+  onPlayerColorPickerClosed();
+});
+cursorColorInput?.addEventListener('blur', () => {
+  onPlayerColorPickerClosed();
 });
 
 function submitAuctionBidFromUi() {
@@ -8492,20 +8920,138 @@ function setMediaAddValidationMessage(message = '', options = {}) {
   mediaAddInput?.classList.toggle('is-invalid', markInvalid);
 }
 
-function setActiveStickerAsset(fileName) {
-  const normalizedFileName = String(fileName || '').trim();
-  const hasMatch = STICKER_ASSET_ITEMS.some((item) => item.fileName === normalizedFileName);
-  activeStickerAssetFileName = hasMatch
-    ? normalizedFileName
-    : STICKER_ASSET_ITEMS[0]?.fileName || '';
+function getStickerPackEntry(packKey = activeStickerPackKey) {
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  const entry = stickerCatalog?.[normalizedPackKey];
+  if (!entry || typeof entry !== 'object') {
+    return {
+      all: [],
+      byCategory: createEmptyStickerCategoryMap()
+    };
+  }
+  const all = Array.isArray(entry.all) ? entry.all : [];
+  const byCategory = entry.byCategory && typeof entry.byCategory === 'object' ? entry.byCategory : createEmptyStickerCategoryMap();
+  return { all, byCategory };
+}
+
+function getStickerCategoryFilterSet(packKey = activeStickerPackKey) {
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  if (normalizedPackKey === STICKER_PACK_PLAY_THINGS) {
+    return null;
+  }
+  const allowedCategories = getStickerAvailableCategoriesForPack(normalizedPackKey);
+  let filters = activeStickerCategoryFiltersByPack[normalizedPackKey];
+  if (!(filters instanceof Set)) {
+    filters = new Set(allowedCategories);
+    activeStickerCategoryFiltersByPack[normalizedPackKey] = filters;
+    return filters;
+  }
+  for (const category of Array.from(filters)) {
+    if (!allowedCategories.includes(category)) {
+      filters.delete(category);
+    }
+  }
+  if (filters.size === 0 && allowedCategories.length > 0) {
+    for (const category of allowedCategories) {
+      filters.add(category);
+    }
+  }
+  return filters;
+}
+
+function getStickerVisibleItemsForPack(packKey = activeStickerPackKey) {
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  const packEntry = getStickerPackEntry(normalizedPackKey);
+  if (normalizedPackKey === STICKER_PACK_PLAY_THINGS) {
+    return [...packEntry.all];
+  }
+  const filters = getStickerCategoryFilterSet(normalizedPackKey);
+  const visible = [];
+  const availableCategories = getStickerAvailableCategoriesForPack(normalizedPackKey);
+  for (const category of availableCategories) {
+    if (!(filters instanceof Set) || !filters.has(category)) {
+      continue;
+    }
+    const categoryItems = Array.isArray(packEntry.byCategory?.[category]) ? packEntry.byCategory[category] : [];
+    if (categoryItems.length > 0) {
+      visible.push(...categoryItems);
+    }
+  }
+  return visible;
+}
+
+function getStickerSelectionPool(packKey = activeStickerPackKey) {
+  const visibleItems = getStickerVisibleItemsForPack(packKey);
+  return visibleItems.length > 0 ? visibleItems : [];
+}
+
+function getSelectedStickerItem() {
+  const selectionPool = getStickerSelectionPool(activeStickerPackKey);
+  if (!activeStickerAssetSrc) {
+    return null;
+  }
+  return selectionPool.find((item) => item.src === activeStickerAssetSrc) || null;
+}
+
+function syncStickerAddConfirmButtonState() {
+  if (!(stickerAddConfirmButton instanceof HTMLButtonElement)) {
+    return;
+  }
+  const hasSelection = Boolean(getSelectedStickerItem());
+  stickerAddConfirmButton.disabled = !hasSelection;
+  stickerAddConfirmButton.classList.toggle('is-disabled', !hasSelection);
+}
+
+function setActiveStickerAsset(src) {
+  const normalizedSrc = String(src || '').trim();
+  const selectionPool = getStickerSelectionPool(activeStickerPackKey);
+  const hasMatch = selectionPool.some((item) => item.src === normalizedSrc);
+  activeStickerAssetSrc = hasMatch ? normalizedSrc : '';
   if (!(stickerAddGallery instanceof HTMLElement)) {
+    syncStickerAddConfirmButtonState();
     return;
   }
   const itemButtons = stickerAddGallery.querySelectorAll('.sticker-add-item');
   for (const itemButton of itemButtons) {
-    const isActive = itemButton.getAttribute('data-sticker-file') === activeStickerAssetFileName;
+    const isActive = itemButton.getAttribute('data-sticker-src') === activeStickerAssetSrc;
     itemButton.classList.toggle('is-active', isActive);
     itemButton.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
+  syncStickerAddConfirmButtonState();
+}
+
+function syncStickerPackTabsUi() {
+  if (!(stickerPackTabs instanceof HTMLElement)) {
+    return;
+  }
+  const packButtons = stickerPackTabs.querySelectorAll('.sticker-pack-tab[data-sticker-pack]');
+  for (const button of packButtons) {
+    const packKey = normalizeStickerPackKey(button.getAttribute('data-sticker-pack'));
+    const isActive = packKey === activeStickerPackKey;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  }
+}
+
+function syncStickerCategoryTabsUi() {
+  if (!(stickerCategoryTabs instanceof HTMLElement)) {
+    return;
+  }
+  const showCategoryFilters = activeStickerPackKey !== STICKER_PACK_PLAY_THINGS;
+  const availableCategories = getStickerAvailableCategoriesForPack(activeStickerPackKey);
+  stickerCategoryTabs.classList.toggle('hidden', !showCategoryFilters);
+  const gridColumns = Math.max(1, availableCategories.length || 1);
+  stickerCategoryTabs.style.gridTemplateColumns = `repeat(${gridColumns}, minmax(0, 1fr))`;
+  const activeFilters = getStickerCategoryFilterSet(activeStickerPackKey);
+  const categoryButtons = stickerCategoryTabs.querySelectorAll('.sticker-category-tab[data-sticker-category]');
+  for (const button of categoryButtons) {
+    const category = normalizeStickerCategoryKey(button.getAttribute('data-sticker-category'));
+    const isAvailable = showCategoryFilters && category && availableCategories.includes(category);
+    const isActive = isAvailable && activeFilters instanceof Set && activeFilters.has(category);
+    button.classList.toggle('hidden', !isAvailable);
+    button.disabled = !isAvailable;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   }
 }
 
@@ -8513,21 +9059,20 @@ function ensureStickerAddGallery() {
   if (!(stickerAddGallery instanceof HTMLElement)) {
     return;
   }
-  if (stickerAddGallery.dataset.initialized === '1') {
-    setActiveStickerAsset(activeStickerAssetFileName);
-    return;
-  }
   stickerAddGallery.textContent = '';
-  for (const stickerItem of STICKER_ASSET_ITEMS) {
+  const items = getStickerVisibleItemsForPack(activeStickerPackKey);
+  for (const stickerItem of items) {
     const itemButton = document.createElement('button');
     itemButton.type = 'button';
     itemButton.className = 'sticker-add-item';
-    itemButton.setAttribute('data-sticker-file', stickerItem.fileName);
+    itemButton.setAttribute('data-sticker-src', stickerItem.src);
+    itemButton.setAttribute('data-sticker-pack', stickerItem.pack);
+    itemButton.setAttribute('data-sticker-category', stickerItem.category || 'other');
     itemButton.setAttribute('role', 'option');
     itemButton.setAttribute('aria-selected', 'false');
 
     const itemImage = document.createElement('img');
-    itemImage.src = stickerItem.src;
+    itemImage.src = stickerItem.previewSrc || stickerItem.src;
     itemImage.alt = stickerItem.label;
     itemImage.loading = 'lazy';
     itemImage.decoding = 'async';
@@ -8535,13 +9080,81 @@ function ensureStickerAddGallery() {
     itemButton.appendChild(itemImage);
 
     itemButton.addEventListener('click', () => {
-      setActiveStickerAsset(stickerItem.fileName);
+      const shouldDeselect = activeStickerAssetSrc === stickerItem.src;
+      setActiveStickerAsset(shouldDeselect ? '' : stickerItem.src);
     });
 
     stickerAddGallery.appendChild(itemButton);
   }
-  stickerAddGallery.dataset.initialized = '1';
-  setActiveStickerAsset(activeStickerAssetFileName);
+  setActiveStickerAsset(activeStickerAssetSrc);
+}
+
+function setActiveStickerPack(packKey, options = {}) {
+  const normalizedPackKey = normalizeStickerPackKey(packKey);
+  activeStickerPackKey = normalizedPackKey;
+  if (normalizedPackKey !== STICKER_PACK_PLAY_THINGS) {
+    getStickerCategoryFilterSet(normalizedPackKey);
+  }
+  syncStickerPackTabsUi();
+  syncStickerCategoryTabsUi();
+  if (options.refreshGallery !== false) {
+    ensureStickerAddGallery();
+  }
+}
+
+function toggleStickerCategoryFilter(category) {
+  if (activeStickerPackKey === STICKER_PACK_PLAY_THINGS) {
+    return;
+  }
+  const normalizedCategory = normalizeStickerCategoryKey(category);
+  if (!normalizedCategory) {
+    return;
+  }
+  const allowedCategories = getStickerAvailableCategoriesForPack(activeStickerPackKey);
+  if (!allowedCategories.includes(normalizedCategory)) {
+    return;
+  }
+  const filters = getStickerCategoryFilterSet(activeStickerPackKey);
+  if (!(filters instanceof Set)) {
+    return;
+  }
+  if (filters.has(normalizedCategory)) {
+    filters.delete(normalizedCategory);
+  } else {
+    filters.add(normalizedCategory);
+  }
+  syncStickerCategoryTabsUi();
+  ensureStickerAddGallery();
+}
+
+async function loadStickerManifestIfNeeded() {
+  if (stickerManifestLoaded) {
+    return;
+  }
+  if (stickerManifestLoadPromise) {
+    await stickerManifestLoadPromise;
+    return;
+  }
+  stickerManifestLoadPromise = (async () => {
+    try {
+      const response = await fetch(STICKER_MANIFEST_URL, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`failed to load sticker manifest (${response.status})`);
+      }
+      const payload = await response.json();
+      stickerCatalog = mergeStickerCatalogWithManifest(payload);
+      stickerManifestLoaded = true;
+    } catch (error) {
+      console.warn('Sticker manifest unavailable; falling back to default stickers.', error);
+      stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
+    } finally {
+      if (isStickerAddModalOpen()) {
+        setActiveStickerPack(activeStickerPackKey);
+      }
+      stickerManifestLoadPromise = null;
+    }
+  })();
+  await stickerManifestLoadPromise;
 }
 
 function syncDiceAddModalUi() {
@@ -8611,6 +9224,20 @@ function syncImageAddModalUi() {
   }
 }
 
+function syncImageAddColorPreview(inputElement) {
+  if (!(inputElement instanceof HTMLInputElement)) {
+    return;
+  }
+  const normalizedColor = normalizeHexColor(inputElement.value || '#ffffff');
+  if (inputElement.value !== normalizedColor) {
+    inputElement.value = normalizedColor;
+  }
+  const colorWrap = inputElement.closest('.image-add-color-wrap');
+  if (colorWrap instanceof HTMLElement) {
+    colorWrap.style.setProperty('--image-add-picker-color', normalizedColor);
+  }
+}
+
 function setImageAddValidationMessage(message = '', options = {}) {
   const normalizedMessage = String(message || '').trim();
   if (imageAddError) {
@@ -8639,10 +9266,10 @@ function openImageAddModal() {
   closeAssetMenu();
   setImageAddValidationMessage('');
   if (imageAddFrontBlankColorInput) {
-    imageAddFrontBlankColorInput.value = normalizeHexColor(imageAddFrontBlankColorInput.value || '#ffffff');
+    syncImageAddColorPreview(imageAddFrontBlankColorInput);
   }
   if (imageAddBackBlankColorInput) {
-    imageAddBackBlankColorInput.value = normalizeHexColor(imageAddBackBlankColorInput.value || '#ffffff');
+    syncImageAddColorPreview(imageAddBackBlankColorInput);
   }
   syncImageAddModalUi();
   imageAddModal.classList.remove('hidden');
@@ -8666,9 +9293,11 @@ function openStickerAddModal() {
   closeMediaAddModal();
   closeGameOptionsMenu();
   closeAssetMenu();
-  ensureStickerAddGallery();
-  setActiveStickerAsset(activeStickerAssetFileName);
+  setActiveStickerPack(activeStickerPackKey);
   stickerAddModal.classList.remove('hidden');
+  loadStickerManifestIfNeeded().catch((error) => {
+    console.error(error);
+  });
 }
 
 function closeStickerAddModal() {
@@ -9196,10 +9825,10 @@ imageAddBackInput?.addEventListener('input', () => {
   setImageAddValidationMessage('');
 });
 imageAddFrontBlankColorInput?.addEventListener('input', () => {
-  imageAddFrontBlankColorInput.value = normalizeHexColor(imageAddFrontBlankColorInput.value || '#ffffff');
+  syncImageAddColorPreview(imageAddFrontBlankColorInput);
 });
 imageAddBackBlankColorInput?.addEventListener('input', () => {
-  imageAddBackBlankColorInput.value = normalizeHexColor(imageAddBackBlankColorInput.value || '#ffffff');
+  syncImageAddColorPreview(imageAddBackBlankColorInput);
 });
 imageAddConfirmButton?.addEventListener('click', () => {
   const frontBlank = Boolean(imageAddFrontBlankCheckbox?.checked);
@@ -9239,8 +9868,24 @@ stickerAddCloseButton?.addEventListener('click', () => {
 stickerAddBackButton?.addEventListener('click', () => {
   returnToAssetComponentMenuFromSubmenu();
 });
+stickerPackTabs?.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('.sticker-pack-tab[data-sticker-pack]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  const nextPack = target.getAttribute('data-sticker-pack');
+  setActiveStickerPack(nextPack);
+});
+stickerCategoryTabs?.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('.sticker-category-tab[data-sticker-category]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  const category = target.getAttribute('data-sticker-category');
+  toggleStickerCategoryFilter(category);
+});
 stickerAddConfirmButton?.addEventListener('click', () => {
-  const selectedSticker = STICKER_ASSET_ITEMS.find((item) => item.fileName === activeStickerAssetFileName) || STICKER_ASSET_ITEMS[0];
+  const selectedSticker = getSelectedStickerItem();
   if (!selectedSticker?.src) {
     return;
   }
@@ -9251,14 +9896,15 @@ stickerAddConfirmButton?.addEventListener('click', () => {
   });
 });
 stickerAddRandomButton?.addEventListener('click', () => {
-  if (!Array.isArray(STICKER_ASSET_ITEMS) || STICKER_ASSET_ITEMS.length === 0) {
+  const stickerPool = getStickerSelectionPool(activeStickerPackKey);
+  if (!Array.isArray(stickerPool) || stickerPool.length === 0) {
     return;
   }
-  const randomSticker = STICKER_ASSET_ITEMS[Math.floor(Math.random() * STICKER_ASSET_ITEMS.length)];
+  const randomSticker = stickerPool[Math.floor(Math.random() * stickerPool.length)];
   if (!randomSticker?.src) {
     return;
   }
-  setActiveStickerAsset(randomSticker.fileName);
+  setActiveStickerAsset(randomSticker.src);
   closeStickerAddModal();
   spawnStickerComponent(randomSticker.src).catch((error) => {
     console.error(error);
@@ -9452,6 +10098,8 @@ window.addEventListener('keydown', (event) => {
 
 syncDiceAddModalUi();
 syncImageAddModalUi();
+syncStickerPackTabsUi();
+syncStickerCategoryTabsUi();
 
 function initializeTileTilt(tile) {
   if (!tile) {
@@ -9725,6 +10373,59 @@ function setStickerTileIconSrc(tile, nextSrc, options = {}) {
   });
 }
 
+function getStickerTileShuffleBuckets() {
+  const packOrder = [STICKER_PACK_PLAY_THINGS, STICKER_PACK_SWAG, STICKER_PACK_EMOJI];
+  return packOrder.map((packKey) => {
+    const entry = getStickerPackEntry(packKey);
+    const seen = new Set();
+    const sources = [];
+    for (const item of entry.all || []) {
+      const src = String(item?.src || '').trim();
+      if (!src || seen.has(src)) {
+        continue;
+      }
+      seen.add(src);
+      sources.push(src);
+    }
+    return sources;
+  });
+}
+
+function pickRandomStickerTileShuffleSrc(currentSrc = '') {
+  const normalizedCurrentSrc = String(currentSrc || '').trim();
+  const buckets = getStickerTileShuffleBuckets();
+  const nonEmptyBuckets = buckets.filter((bucket) => bucket.length > 0);
+  if (nonEmptyBuckets.length === 0) {
+    return '';
+  }
+  const selectedBucket =
+    buckets.length === 3 && buckets.every((bucket) => bucket.length > 0)
+      ? buckets[Math.floor(Math.random() * 3)]
+      : nonEmptyBuckets[Math.floor(Math.random() * nonEmptyBuckets.length)];
+  if (selectedBucket.length === 0) {
+    return '';
+  }
+  let nextSrc = selectedBucket[Math.floor(Math.random() * selectedBucket.length)];
+  if (selectedBucket.length > 1 && nextSrc === normalizedCurrentSrc) {
+    let guard = 0;
+    while (nextSrc === normalizedCurrentSrc && guard < 10) {
+      nextSrc = selectedBucket[Math.floor(Math.random() * selectedBucket.length)];
+      guard += 1;
+    }
+  }
+  if (nextSrc === normalizedCurrentSrc) {
+    const alternateBuckets = nonEmptyBuckets.filter((bucket) => bucket.some((src) => src !== normalizedCurrentSrc));
+    if (alternateBuckets.length > 0) {
+      const altBucket = alternateBuckets[Math.floor(Math.random() * alternateBuckets.length)];
+      const filteredSources = altBucket.filter((src) => src !== normalizedCurrentSrc);
+      if (filteredSources.length > 0) {
+        nextSrc = filteredSources[Math.floor(Math.random() * filteredSources.length)];
+      }
+    }
+  }
+  return String(nextSrc || '').trim();
+}
+
 function initializeStickerTileIconShuffle(tile) {
   if (!tile) {
     return;
@@ -9733,7 +10434,7 @@ function initializeStickerTileIconShuffle(tile) {
   if (!iconPair) {
     return;
   }
-  const stickerSources = STICKER_ASSET_ITEMS.map((item) => String(item?.src || '').trim()).filter(Boolean);
+  const stickerSources = getStickerTileShuffleBuckets().flat().filter(Boolean);
   if (stickerSources.length === 0) {
     return;
   }
@@ -9764,13 +10465,9 @@ function initializeStickerTileIconShuffle(tile) {
     const currentPair = ensureStickerTileIconLayers(tile);
     const currentIcon = getStickerTileActiveIcon(currentPair);
     const currentSrc = String(currentIcon?.getAttribute('src') || '').trim();
-    let nextSrc = stickerSources[Math.floor(Math.random() * stickerSources.length)];
-    if (stickerSources.length > 1 && nextSrc === currentSrc) {
-      let guard = 0;
-      while (nextSrc === currentSrc && guard < 8) {
-        nextSrc = stickerSources[Math.floor(Math.random() * stickerSources.length)];
-        guard += 1;
-      }
+    const nextSrc = pickRandomStickerTileShuffleSrc(currentSrc);
+    if (!nextSrc) {
+      return;
     }
     setStickerTileIconSrc(tile, nextSrc, { animate: true });
   });
@@ -9792,6 +10489,7 @@ initializeTileTilt(mediaComponentTile);
 initializeDiceTilePipShuffle(diceComponentTile);
 initializeLabelTileLetterShuffle(labelComponentTile);
 initializeStickerTileIconShuffle(stickerComponentTile);
+loadStickerManifestIfNeeded().catch(() => {});
 
 function normalizeHexColor(value) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -10721,6 +11419,7 @@ async function startRealtimeSession() {
   let cardRotateState = null;
   let dieDragState = null;
   let labelResizeState = null;
+  let labelRotateState = null;
   let groupDragState = null;
   let selectionBoxState = null;
   let suppressNextCardContextMenu = false;
@@ -10761,6 +11460,7 @@ async function startRealtimeSession() {
   const deleteModeUndoHistory = [];
   let deleteModeUndoPending = false;
   let labelEditState = null;
+  let labelColorTrackingState = null;
   latestPresenceByToken = {};
   let latestRawCursorsById = {};
   let hasLoadedPresenceSnapshot = false;
@@ -11258,6 +11958,10 @@ async function startRealtimeSession() {
     return normalizeDieType(dieState?.type) === 'label';
   }
 
+  function isLabelDieLocked(dieState) {
+    return isLabelDieState(dieState) && dieState?.labelLocked === true;
+  }
+
   function isMediaDieState(dieState) {
     return normalizeDieType(dieState?.type) === 'media';
   }
@@ -11312,10 +12016,91 @@ async function startRealtimeSession() {
     if (!isLabelDieState(dieState)) {
       return;
     }
+    if (isLabelDieLocked(dieState)) {
+      return;
+    }
     const patch = buildLabelDimensionsPatch(nextText, dieState);
     patchLocalDie(targetDieId, patch);
     queueDiePatch(targetDieId, patch);
   }
+
+  function beginLabelColorTrackingFromEditor() {
+    if (!labelEditState || labelEditState.closing) {
+      labelColorTrackingState = null;
+      return;
+    }
+    const targetDieId = String(labelEditState.dieId || '').trim();
+    const editor = labelEditState.editor;
+    if (!targetDieId || !(editor instanceof HTMLTextAreaElement)) {
+      labelColorTrackingState = null;
+      return;
+    }
+    const selectionStart = Number(editor.selectionStart);
+    const selectionEnd = Number(editor.selectionEnd);
+    if (!Number.isFinite(selectionStart) || !Number.isFinite(selectionEnd) || selectionEnd <= selectionStart) {
+      labelColorTrackingState = null;
+      return;
+    }
+    labelColorTrackingState = {
+      dieId: targetDieId,
+      selectionStart,
+      selectionEnd
+    };
+  }
+
+  function applyLabelHighlightColorFromPlayer(nextColor = playerState.color) {
+    let targetDieId = '';
+    if (labelEditState && !labelEditState.closing) {
+      const editor = labelEditState.editor;
+      if (editor instanceof HTMLTextAreaElement) {
+        const selectionStart = Number(editor.selectionStart);
+        const selectionEnd = Number(editor.selectionEnd);
+        if (Number.isFinite(selectionStart) && Number.isFinite(selectionEnd) && selectionEnd > selectionStart) {
+          targetDieId = String(labelEditState.dieId || '').trim();
+        }
+      }
+    }
+    if (!targetDieId) {
+      const pending = labelColorTrackingState;
+      if (
+        pending &&
+        Number.isFinite(Number(pending?.selectionStart)) &&
+        Number.isFinite(Number(pending?.selectionEnd)) &&
+        Number(pending.selectionEnd) > Number(pending.selectionStart)
+      ) {
+        targetDieId = String(pending.dieId || '').trim();
+      }
+    }
+    if (!targetDieId) {
+      return;
+    }
+
+    const normalizedColor = normalizeHexColor(nextColor || playerState.color || '#ff7a59');
+    const dieState = diceById.get(targetDieId);
+    if (!isLabelDieState(dieState)) {
+      labelColorTrackingState = null;
+      return;
+    }
+    const patch = {
+      textColor: normalizedColor
+    };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+
+    if (labelEditState?.dieId === targetDieId && labelEditState.editor instanceof HTMLTextAreaElement) {
+      labelEditState.editor.style.color = normalizedColor;
+    }
+  }
+
+  onPlayerColorPickerPointerDown = () => {
+    beginLabelColorTrackingFromEditor();
+  };
+  onPlayerColorPickerClosed = () => {
+    labelColorTrackingState = null;
+  };
+  onPlayerColorChanged = (nextColor) => {
+    applyLabelHighlightColorFromPlayer(nextColor);
+  };
 
   function closeLabelEditor(options = {}) {
     if (!labelEditState) {
@@ -11351,6 +12136,9 @@ async function startRealtimeSession() {
     if (!isLabelDieState(dieState)) {
       return;
     }
+    if (isLabelDieLocked(dieState)) {
+      return;
+    }
     if (dieState.holderClientId && dieState.holderClientId !== clientId) {
       return;
     }
@@ -11372,11 +12160,23 @@ async function startRealtimeSession() {
     dieElement.classList.remove('is-resizable-label');
     dieElement.classList.remove('is-label-resize-hovered');
     dieElement.classList.remove('is-die-resize-hovered');
+    dieElement.classList.remove('is-die-lock-hovered');
+    dieElement.classList.remove('is-die-rotate-hovered');
     dieElement.classList.remove('is-resizing-label');
+    dieElement.classList.remove('is-rotating-label');
     const resizeHandle = dieElement.querySelector('.table-label-resize-handle');
     if (resizeHandle instanceof HTMLElement) {
       resizeHandle.classList.add('hidden');
     }
+    const lockControl = dieElement.querySelector('.table-label-lock-control');
+    if (lockControl instanceof HTMLElement) {
+      lockControl.classList.add('hidden');
+    }
+    const rotateControl = dieElement.querySelector('.table-label-rotate-control');
+    if (rotateControl instanceof HTMLElement) {
+      rotateControl.classList.add('hidden');
+    }
+    face.classList.remove('table-label-text');
     face.textContent = '';
     const editor = document.createElement('textarea');
     editor.className = 'table-label-editor';
@@ -11506,6 +12306,7 @@ async function startRealtimeSession() {
       cardRotateState ||
       dieDragState ||
       labelResizeState ||
+      labelRotateState ||
       groupDragState ||
       handReorderState ||
       deckDragState ||
@@ -11526,7 +12327,15 @@ async function startRealtimeSession() {
     if (labelEditState) {
       closeLabelEditor({ commit: true });
     }
-    const hasCardDrag = Boolean(cardDragState || cardResizeState || cardRotateState || dieDragState || labelResizeState || groupDragState);
+    const hasCardDrag = Boolean(
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState
+    );
     const hasSelectedObjects = hasAnyGroupSelection();
     if (!hasCardDrag && !hasSelectedObjects) {
       return;
@@ -11548,6 +12357,9 @@ async function startRealtimeSession() {
     }
     if (labelResizeState?.dieId) {
       dieIdsToRelease.add(labelResizeState.dieId);
+    }
+    if (labelRotateState?.dieId) {
+      dieIdsToRelease.add(labelRotateState.dieId);
     }
     if (groupDragState?.basePositions instanceof Map) {
       for (const cardId of groupDragState.basePositions.keys()) {
@@ -11584,6 +12396,8 @@ async function startRealtimeSession() {
     rotatingStickerCardId = '';
     dieDragState = null;
     labelResizeState = null;
+    labelRotateState = null;
+    rotatingLabelDieId = '';
     resizingLabelDieId = '';
     resizingMediaDieId = '';
     groupDragState = null;
@@ -11673,7 +12487,12 @@ async function startRealtimeSession() {
       if (!dieState || dieState.holderClientId !== clientId) {
         continue;
       }
-      if (dieDragState?.dieId === dieId || labelResizeState?.dieId === dieId || movableSelectedDieIds.has(dieId)) {
+      if (
+        dieDragState?.dieId === dieId ||
+        labelResizeState?.dieId === dieId ||
+        labelRotateState?.dieId === dieId ||
+        movableSelectedDieIds.has(dieId)
+      ) {
         continue;
       }
       patchLocalDie(dieId, { holderClientId: null });
@@ -13790,7 +14609,7 @@ async function startRealtimeSession() {
   function getMovableSelectedDieIds() {
     return Array.from(selectedDiceIds).filter((dieId) => {
       const dieState = diceById.get(dieId);
-      return Boolean(dieState) && dieState.holderClientId === clientId;
+      return Boolean(dieState) && !isLabelDieLocked(dieState) && dieState.holderClientId === clientId;
     });
   }
 
@@ -13946,6 +14765,9 @@ async function startRealtimeSession() {
 
     for (const [dieId, dieState] of diceById.entries()) {
       if (!dieState) {
+        continue;
+      }
+      if (isLabelDieLocked(dieState)) {
         continue;
       }
       if (dieState.holderClientId && dieState.holderClientId !== clientId) {
@@ -14109,7 +14931,15 @@ async function startRealtimeSession() {
   }
 
   function beginGroupDrag(event, cardId) {
-    if (!selectedCardIds.has(cardId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState) {
+    if (
+      !selectedCardIds.has(cardId) ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState
+    ) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -14149,7 +14979,16 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromDeck(event, deckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    if (!selectedDeckIds.has(normalizedDeckId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
+    if (
+      !selectedDeckIds.has(normalizedDeckId) ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -14189,7 +15028,16 @@ async function startRealtimeSession() {
 
   function beginGroupDragFromMons(event, gameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
-    if (!selectedMonsGameIds.has(normalizedGameId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
+    if (
+      !selectedMonsGameIds.has(normalizedGameId) ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -14228,7 +15076,17 @@ async function startRealtimeSession() {
   }
 
   function beginGroupDragFromDie(event, dieId) {
-    if (!selectedDiceIds.has(dieId) || cardDragState || cardResizeState || cardRotateState || labelResizeState || dieDragState || groupDragState || handReorderState) {
+    if (
+      !selectedDiceIds.has(dieId) ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      dieDragState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return false;
     }
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
@@ -16568,11 +17426,19 @@ async function startRealtimeSession() {
   }
 
   async function handleCardFlip(cardId) {
+    const existingCardState = cards.get(cardId);
+    if (!isCardFlippable(existingCardState)) {
+      return;
+    }
     const cardRef = ref(db, `${roomPath}/cards/${cardId}`);
     await runTransaction(
       cardRef,
       (currentCard) => {
         if (!currentCard || typeof currentCard !== 'object') {
+          return;
+        }
+        const normalizedCard = normalizeCardPayload(currentCard);
+        if (!isCardFlippable(normalizedCard)) {
           return;
         }
         if (currentCard.inAuction === true) {
@@ -16601,12 +17467,15 @@ async function startRealtimeSession() {
     if (!anchorCard || anchorCard.holderClientId !== clientId) {
       return false;
     }
+    if (!isCardFlippable(anchorCard)) {
+      return false;
+    }
 
     const sourceFace = anchorCard.face === 'front' ? 'front' : 'back';
     const nextFace = sourceFace === 'front' ? 'back' : 'front';
     const selectedIds = getMovableSelectedIds().filter((cardId) => {
       const cardState = cards.get(cardId);
-      return Boolean(cardState) && cardState.face === sourceFace;
+      return Boolean(cardState) && isCardFlippable(cardState) && cardState.face === sourceFace;
     });
     if (selectedIds.length === 0) {
       return false;
@@ -16623,6 +17492,10 @@ async function startRealtimeSession() {
   }
 
   async function handleCardFlipIntent(cardId) {
+    const cardState = cards.get(cardId);
+    if (!isCardFlippable(cardState)) {
+      return;
+    }
     const flippedGroup = await handleSelectedGroupFlip(cardId);
     if (flippedGroup) {
       return;
@@ -16631,6 +17504,10 @@ async function startRealtimeSession() {
   }
 
   async function handleRightClickFlipIntent(cardId) {
+    const cardState = cards.get(cardId);
+    if (!isCardFlippable(cardState)) {
+      return;
+    }
     if (selectedCardIds.size > 0) {
       const now = Date.now();
       if (now < selectedRightClickFlipCooldownUntil) {
@@ -16710,6 +17587,9 @@ async function startRealtimeSession() {
   async function handleDieRollIntent(anchorDieId) {
     const anchorDieState = diceById.get(anchorDieId);
     if (isLabelDieState(anchorDieState)) {
+      if (isLabelDieLocked(anchorDieState)) {
+        return;
+      }
       beginLabelEditing(anchorDieId);
       return;
     }
@@ -17020,6 +17900,69 @@ async function startRealtimeSession() {
     };
   }
 
+  async function handleLabelLockControlPointerDown(event, dieId) {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (deleteModeEnabled) {
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+
+    const existingDie = diceById.get(dieId);
+    if (!isLabelDieState(existingDie)) {
+      return;
+    }
+    if (isLabelDieEditing(dieId)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+
+    const nextLocked = !isLabelDieLocked(existingDie);
+    const lockPatch = {
+      labelLocked: nextLocked
+    };
+    if (nextLocked) {
+      selectedDiceIds.delete(dieId);
+      lockPatch.holderClientId = null;
+    }
+
+    patchLocalDie(dieId, lockPatch);
+    queueDiePatch(dieId, lockPatch);
+    if (nextLocked) {
+      releaseDieLock(dieId).catch((error) => {
+        console.error(error);
+      });
+    }
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
   async function handleLabelResizePointerDown(event, dieId) {
     if (drawModeEnabled) {
       return;
@@ -17042,7 +17985,16 @@ async function startRealtimeSession() {
     event.preventDefault();
     event.stopPropagation();
 
-    if (dieDragState || labelResizeState || cardDragState || cardResizeState || cardRotateState || groupDragState || handReorderState) {
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return;
     }
     if (hasAnyGroupSelection()) {
@@ -17052,6 +18004,9 @@ async function startRealtimeSession() {
     const existingDie = diceById.get(dieId);
     const resizeKind = isLabelDieState(existingDie) ? 'label' : isMediaDieState(existingDie) ? 'media' : '';
     if (!resizeKind) {
+      return;
+    }
+    if (resizeKind === 'label' && isLabelDieLocked(existingDie)) {
       return;
     }
     if (resizeKind === 'label' && isLabelDieEditing(dieId)) {
@@ -17072,7 +18027,7 @@ async function startRealtimeSession() {
 
     const latestDie = diceById.get(dieId) || existingDie;
     if (
-      (resizeKind === 'label' && (!isLabelDieState(latestDie) || isLabelDieEditing(dieId))) ||
+      (resizeKind === 'label' && (!isLabelDieState(latestDie) || isLabelDieEditing(dieId) || isLabelDieLocked(latestDie))) ||
       (resizeKind === 'media' && !isMediaDieState(latestDie))
     ) {
       await releaseDieLock(dieId);
@@ -17252,6 +18207,199 @@ async function startRealtimeSession() {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
+  async function handleLabelRotatePointerDown(event, dieId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+
+    if (hasAnyGroupSelection()) {
+      releaseAllSelectedObjects();
+    }
+
+    const existingDie = diceById.get(dieId);
+    if (!isLabelDieState(existingDie) || isLabelDieLocked(existingDie) || isLabelDieEditing(dieId)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireDieLock(dieId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+
+    const latestDie = diceById.get(dieId) || existingDie;
+    if (!isLabelDieState(latestDie) || isLabelDieLocked(latestDie) || isLabelDieEditing(dieId)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+    const pointerAngleDeg = getStickerPointerAngleDegrees(latestDie.x, latestDie.y, event.clientX, event.clientY);
+    if (!Number.isFinite(pointerAngleDeg)) {
+      await releaseDieLock(dieId);
+      return;
+    }
+
+    const currentRotationDeg = normalizeStickerRotationDegrees(latestDie.labelRotation);
+    labelRotateState = {
+      dieId,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      centerX: latestDie.x,
+      centerY: latestDie.y,
+      baseRotationDeg: currentRotationDeg,
+      startPointerAngleDeg: pointerAngleDeg,
+      lastPointerAngleDeg: pointerAngleDeg,
+      pointerAngleUnwrappedDeg: pointerAngleDeg,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      moved: false
+    };
+    rotatingLabelDieId = dieId;
+    renderDieElement(dieId);
+
+    const startPatch = {
+      holderClientId: clientId
+    };
+    patchLocalDie(dieId, startPatch);
+    queueDiePatch(dieId, startPatch);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleLabelRotateMove(event) {
+    if (!labelRotateState || event.pointerId !== labelRotateState.pointerId) {
+      return;
+    }
+    if (labelRotateState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+      handleLabelRotateEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        pointerType: labelRotateState.pointerType,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const moveSinceLastEvent = Math.hypot(
+      event.clientX - labelRotateState.lastClientX,
+      event.clientY - labelRotateState.lastClientY
+    );
+    if (moveSinceLastEvent >= 0.5) {
+      labelRotateState.lastMotionAt = Date.now();
+    }
+    labelRotateState.lastClientX = event.clientX;
+    labelRotateState.lastClientY = event.clientY;
+
+    const movedDistance = Math.hypot(
+      event.clientX - labelRotateState.startClientX,
+      event.clientY - labelRotateState.startClientY
+    );
+    const movedThreshold = labelRotateState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
+    if (movedDistance > movedThreshold) {
+      labelRotateState.moved = true;
+    }
+
+    const pointerAngleDeg = getStickerPointerAngleDegrees(
+      labelRotateState.centerX,
+      labelRotateState.centerY,
+      event.clientX,
+      event.clientY
+    );
+    if (!Number.isFinite(pointerAngleDeg)) {
+      return;
+    }
+    const pointerDeltaDeg = normalizeAngleDeltaDegrees(pointerAngleDeg - labelRotateState.lastPointerAngleDeg);
+    labelRotateState.pointerAngleUnwrappedDeg += pointerDeltaDeg;
+    labelRotateState.lastPointerAngleDeg = pointerAngleDeg;
+    let nextRotationDeg =
+      labelRotateState.baseRotationDeg +
+      (labelRotateState.pointerAngleUnwrappedDeg - labelRotateState.startPointerAngleDeg);
+    if (event.shiftKey) {
+      nextRotationDeg = Math.round(nextRotationDeg / 90) * 90;
+    }
+    nextRotationDeg = normalizeStickerRotationDegrees(nextRotationDeg);
+    const rotatePatch = {
+      labelRotation: nextRotationDeg,
+      holderClientId: clientId
+    };
+    patchLocalDie(labelRotateState.dieId, rotatePatch);
+    queueDiePatch(labelRotateState.dieId, rotatePatch);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleLabelRotateEnd(event) {
+    if (!labelRotateState || event.pointerId !== labelRotateState.pointerId) {
+      return;
+    }
+    if (
+      event.type === 'pointerup' &&
+      labelRotateState.pointerType === 'mouse' &&
+      event.button !== 0 &&
+      (event.buttons & 1) !== 0
+    ) {
+      return;
+    }
+
+    const finishedRotate = labelRotateState;
+    labelRotateState = null;
+    rotatingLabelDieId = '';
+    renderDieElement(finishedRotate.dieId);
+    diceElements.get(finishedRotate.dieId)?.classList.remove('is-die-rotate-hovered');
+
+    const releasePatch = {
+      holderClientId: null
+    };
+    patchLocalDie(finishedRotate.dieId, releasePatch);
+    queueDiePatch(finishedRotate.dieId, releasePatch);
+    releaseDieLock(finishedRotate.dieId).catch((error) => {
+      console.error(error);
+    });
+
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
   async function handleStickerLockControlPointerDown(event, cardId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       event.preventDefault();
@@ -17272,7 +18420,16 @@ async function startRealtimeSession() {
     if (drawModeEnabled) {
       return;
     }
-    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+    if (
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState ||
+      dieDragState
+    ) {
       return;
     }
 
@@ -17341,7 +18498,16 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+    if (
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState ||
+      dieDragState
+    ) {
       return;
     }
 
@@ -17539,7 +18705,16 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState || dieDragState) {
+    if (
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState ||
+      dieDragState
+    ) {
       return;
     }
 
@@ -17772,7 +18947,15 @@ async function startRealtimeSession() {
     }
     rememberTouchTapCandidate(cardId, event);
 
-    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
+    if (
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return;
     }
 
@@ -17916,7 +19099,8 @@ async function startRealtimeSession() {
 
     const tableRect = tableRoot?.getBoundingClientRect();
     const releaseToTableY = tableRect ? tableRect.bottom - HAND_DROP_REGION_HEIGHT - 26 : window.innerHeight - HAND_DROP_REGION_HEIGHT - 26;
-    const canEnterHand = canCardEnterHand(activeCard);
+    const handCardState = cards.get(handReorderState.cardId);
+    const canEnterHand = canCardEnterHand(handCardState);
     const overHandDropRegion = canEnterHand && isClientInHandDropRegion(event.clientY);
     handReorderState.releaseToTable = event.clientY < releaseToTableY;
     if (handReorderState.releaseToTable) {
@@ -17930,7 +19114,6 @@ async function startRealtimeSession() {
       setHandDropPreview(null);
     }
     const worldPoint = handReorderState.releaseToTable ? screenToWorldFromClient(event.clientX, event.clientY) : null;
-    const handCardState = cards.get(handReorderState.cardId);
     const canUseDeckZones = canCardUseDeckZones(handCardState);
     const deckTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'deck') : '';
     const discardTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'discard') : '';
@@ -18112,7 +19295,16 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    if (cardDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || deckDragState || handReorderState) {
+    if (
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      deckDragState ||
+      handReorderState
+    ) {
       return;
     }
 
@@ -18180,7 +19372,8 @@ async function startRealtimeSession() {
     if (!wasMoved && cardDragState.moved && (cardDragState.pointerType === 'touch' || cardDragState.pointerType === 'pen')) {
       recentTouchTapByCardId.delete(cardDragState.cardId);
     }
-    const overHandDropRegion = isClientInHandDropRegion(event.clientY);
+    const canEnterHand = canCardEnterHand(activeCard);
+    const overHandDropRegion = canEnterHand && isClientInHandDropRegion(event.clientY);
     setHandDropGlow(overHandDropRegion);
     if (overHandDropRegion) {
       setHandDropPreview(cardDragState.cardId, event.clientX);
@@ -18362,6 +19555,16 @@ async function startRealtimeSession() {
       console.error(error);
     });
   };
+  onLabelLockControlPointerDown = (event, dieId) => {
+    handleLabelLockControlPointerDown(event, dieId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onLabelRotatePointerDown = (event, dieId) => {
+    handleLabelRotatePointerDown(event, dieId).catch((error) => {
+      console.error(error);
+    });
+  };
   onDieContextMenu = (event, dieId) => {
     event.preventDefault();
     event.stopPropagation();
@@ -18446,11 +19649,25 @@ async function startRealtimeSession() {
       }
     }
 
-    if (dieDragState || labelResizeState || cardDragState || cardResizeState || cardRotateState || groupDragState || handReorderState) {
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return;
     }
     const dieState = diceById.get(dieId);
     if (!dieState) {
+      return;
+    }
+    if (isLabelDieLocked(dieState)) {
+      selectedDiceIds.delete(dieId);
+      renderDieElement(dieId);
       return;
     }
     if (dieState.holderClientId && dieState.holderClientId !== clientId) {
@@ -18608,7 +19825,16 @@ async function startRealtimeSession() {
       }
     }
     const targetDeckState = getDeckStateById(targetDeckId);
-    if (!targetDeckState || deckDragState || cardResizeState || cardRotateState || labelResizeState || groupDragState || handReorderState) {
+    if (
+      !targetDeckState ||
+      deckDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
       return;
     }
 
@@ -19116,6 +20342,8 @@ async function startRealtimeSession() {
           text: labelText,
           textColor: labelColor,
           textScale: labelLayout.textScale,
+          labelLocked: false,
+          labelRotation: 0,
           labelWidth: labelLayout.labelWidth,
           labelHeight: labelLayout.labelHeight,
           holderClientId: null,
@@ -19201,7 +20429,9 @@ async function startRealtimeSession() {
       ? { width: CARD_WIDTH, height: CARD_HEIGHT }
       : frontBlank
         ? { width: CARD_WIDTH, height: CARD_HEIGHT }
-        : await loadImageNaturalSize(normalizedFrontSrc);
+        : (isStickerComponent && shouldUseNormalizedStickerSpawnSize(normalizedFrontSrc))
+          ? { width: STICKER_DEFAULT_SPAWN_SIZE, height: STICKER_DEFAULT_SPAWN_SIZE }
+          : await loadImageNaturalSize(normalizedFrontSrc);
     const nativeSize = isStickerComponent && !useCardSize
       ? clampStickerSquareSize(nativeSizeBase.width, nativeSizeBase.height)
       : nativeSizeBase;
@@ -19237,6 +20467,7 @@ async function startRealtimeSession() {
           backSrc: normalizedBackSrc,
           componentType,
           componentCardSized: useCardSize,
+          componentTwoSided: twoSided,
           componentFrontBlank: frontBlank,
           componentBackBlank: backBlank,
           componentFrontColor: frontBlankColor,
@@ -19528,6 +20759,8 @@ async function startRealtimeSession() {
     rotatingStickerCardId = '';
     dieDragState = null;
     labelResizeState = null;
+    labelRotateState = null;
+    rotatingLabelDieId = '';
     resizingLabelDieId = '';
     resizingMediaDieId = '';
     groupDragState = null;
@@ -19901,7 +21134,7 @@ async function startRealtimeSession() {
       }
       if (labelEditState) {
         const editingState = diceById.get(labelEditState.dieId);
-        if (!editingState || !isLabelDieState(editingState)) {
+        if (!editingState || !isLabelDieState(editingState) || isLabelDieLocked(editingState)) {
           closeLabelEditor({ commit: false });
         }
       }
@@ -19919,6 +21152,10 @@ async function startRealtimeSession() {
           labelResizeState = null;
           resizingLabelDieId = '';
           resizingMediaDieId = '';
+        }
+        if (labelRotateState?.dieId === dieId) {
+          labelRotateState = null;
+          rotatingLabelDieId = '';
         }
         selectedDiceIds.delete(dieId);
         clearMediaPlaybackTrackingForDie(dieId);
@@ -20153,6 +21390,9 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleLabelResizeMove);
   window.addEventListener('pointerup', handleLabelResizeEnd);
   window.addEventListener('pointercancel', handleLabelResizeEnd);
+  window.addEventListener('pointermove', handleLabelRotateMove);
+  window.addEventListener('pointerup', handleLabelRotateEnd);
+  window.addEventListener('pointercancel', handleLabelRotateEnd);
   window.addEventListener('pointermove', handleHandReorderMove);
   window.addEventListener('pointerup', handleHandReorderEnd);
   window.addEventListener('pointercancel', handleHandReorderEnd);
