@@ -354,8 +354,11 @@
               </span>
               <span class="asset-label">hnefatafl</span>
             </button>
-            <button class="asset-gallery-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="goTile" class="asset-gallery-item asset-gallery-item-cool" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-preview-box-go" aria-hidden="true">
+                <img class="asset-preview-image" src="./assets/go-preview.svg" alt="" loading="lazy" decoding="async" />
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">go</span>
             </button>
             <button class="asset-gallery-item" type="button">
@@ -364,15 +367,31 @@
             </button>
             <button class="asset-gallery-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">cowboy chess <span class="asset-label-meta">(coming soon)</span></span>
+              <span class="asset-label">codegame</span>
             </button>
             <button class="asset-gallery-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">unearthed <span class="asset-label-meta">(coming soon)</span></span>
+              <span class="asset-label">guess who?</span>
             </button>
             <button class="asset-gallery-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">house show <span class="asset-label-meta">(coming soon)</span></span>
+              <span class="asset-label">cowboy chess</span>
+            </button>
+            <button class="asset-gallery-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">house show</span>
+            </button>
+            <button class="asset-gallery-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">unearthed</span>
+            </button>
+            <button class="asset-gallery-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">arcade machine</span>
+            </button>
+            <button class="asset-gallery-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">minigolf</span>
             </button>
           </div>
 
@@ -467,49 +486,29 @@
               </span>
               <span class="asset-label">spinner</span>
             </button>
+            <button id="pokerDeckComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-poker"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect class="poker-icon-card" x="5.1" y="2.7" width="13.8" height="18.6" rx="2.2" />
+                  <rect class="poker-icon-card-edge" x="5.1" y="2.7" width="13.8" height="18.6" rx="2.2" />
+                  <text class="poker-icon-rank" x="7.15" y="8.1">A</text>
+                  <text class="poker-icon-suit poker-icon-suit-center" x="12" y="15.5">♠</text>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">poker deck</span>
+            </button>
             <button class="asset-gallery-item asset-component-item" type="button">
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">chips</span>
-            </button>
-            <button id="labelComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
-              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
-                <svg
-                  class="asset-component-icon asset-component-icon-label"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <text x="12" y="15.8" text-anchor="middle">Abc</text>
-                </svg>
-                <span class="asset-preview-gloss"></span>
-              </span>
-              <span class="asset-label">label</span>
-            </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">note</span>
-            </button>
-            <button id="imageComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
-              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
-                <svg
-                  class="asset-component-icon asset-component-icon-image"
-                  viewBox="0 0 24 24"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <rect x="4.2" y="5.2" width="15.6" height="13.6" rx="1.8" stroke="currentColor" stroke-width="1.75" />
-                  <circle cx="9.2" cy="10" r="1.35" fill="currentColor" opacity="0.74" />
-                  <path d="M6.4 16.4L10.6 12.2L13.2 14.8L16 12L17.6 13.6V16.4H6.4Z" fill="currentColor" opacity="0.84" />
-                </svg>
-                <span class="asset-preview-gloss"></span>
-              </span>
-              <span class="asset-label">image/card</span>
             </button>
             <button id="counterComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
               <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
@@ -566,6 +565,46 @@
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">timer</span>
             </button>
+            <button id="labelComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-label"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <text x="12" y="15.8" text-anchor="middle">Abc</text>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">label</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">note</span>
+            </button>
+            <button id="imageComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-image"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="5.2" width="15.6" height="13.6" rx="1.8" stroke="currentColor" stroke-width="1.75" />
+                  <circle cx="9.2" cy="10" r="1.35" fill="currentColor" opacity="0.74" />
+                  <path d="M6.4 16.4L10.6 12.2L13.2 14.8L16 12L17.6 13.6V16.4H6.4Z" fill="currentColor" opacity="0.84" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">image/card</span>
+            </button>
             <button id="stickerComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
               <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
                 <img
@@ -578,14 +617,6 @@
                 <span class="asset-preview-gloss"></span>
               </span>
               <span class="asset-label">stickers</span>
-            </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">stack point</span>
-            </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
-              <span class="asset-label">playmat</span>
             </button>
             <button id="marbleComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
               <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
@@ -617,6 +648,30 @@
                 <span class="asset-preview-gloss"></span>
               </span>
               <span class="asset-label">marble</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">meeple</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">stack point</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">secret area</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">generator</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">flora/fauna</span>
+            </button>
+            <button class="asset-gallery-item asset-component-item" type="button">
+              <span class="asset-placeholder-box" aria-hidden="true"></span>
+              <span class="asset-label">music box</span>
             </button>
             <button id="mediaComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
               <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
@@ -1358,10 +1413,40 @@
             </button>
           </div>
           <div class="game-options-actions">
+            <div id="gameOptionsBoardSizeRow" class="game-options-board-size-row hidden">
+              <span class="game-options-board-size-label">board size</span>
+              <div class="game-options-board-size-options">
+                <button
+                  type="button"
+                  class="game-options-board-size-option"
+                  data-go-board-size="9"
+                  aria-label="set board size to 9 by 9"
+                >9x9</button>
+                <button
+                  type="button"
+                  class="game-options-board-size-option is-active"
+                  data-go-board-size="13"
+                  aria-label="set board size to 13 by 13"
+                >13x13</button>
+                <button
+                  type="button"
+                  class="game-options-board-size-option"
+                  data-go-board-size="19"
+                  aria-label="set board size to 19 by 19"
+                >19x19</button>
+              </div>
+            </div>
             <label id="gameOptionsShowCoordinatesRow" class="image-add-toggle game-options-toggle" for="gameOptionsShowCoordinatesToggle">
               <span class="image-add-toggle-label">show coordinates</span>
               <span class="image-add-toggle-control">
                 <input id="gameOptionsShowCoordinatesToggle" class="image-add-toggle-input" type="checkbox" />
+                <span class="image-add-toggle-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <label id="gameOptionsIncludeDiscardRow" class="image-add-toggle game-options-toggle" for="gameOptionsIncludeDiscardToggle">
+              <span class="image-add-toggle-label">include discard</span>
+              <span class="image-add-toggle-control">
+                <input id="gameOptionsIncludeDiscardToggle" class="image-add-toggle-input" type="checkbox" />
                 <span class="image-add-toggle-slider" aria-hidden="true"></span>
               </span>
             </label>

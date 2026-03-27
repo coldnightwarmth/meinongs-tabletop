@@ -53,9 +53,11 @@ const assetComponentGallery = document.getElementById('assetComponentGallery');
 const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
+const goTile = document.getElementById('goTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const spinnerComponentTile = document.getElementById('spinnerComponentTile');
+const pokerDeckComponentTile = document.getElementById('pokerDeckComponentTile');
 const counterComponentTile = document.getElementById('counterComponentTile');
 const labelComponentTile = document.getElementById('labelComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
@@ -124,6 +126,12 @@ const gameOptionsTitleText = document.getElementById('gameOptionsTitleText');
 const gameOptionsCloseButton = document.getElementById('gameOptionsCloseButton');
 const gameOptionsShowCoordinatesRow = document.getElementById('gameOptionsShowCoordinatesRow');
 const gameOptionsShowCoordinatesToggle = document.getElementById('gameOptionsShowCoordinatesToggle');
+const gameOptionsBoardSizeRow = document.getElementById('gameOptionsBoardSizeRow');
+const gameOptionsBoardSizeButtons = Array.from(
+  document.querySelectorAll('.game-options-board-size-option[data-go-board-size]')
+);
+const gameOptionsIncludeDiscardRow = document.getElementById('gameOptionsIncludeDiscardRow');
+const gameOptionsIncludeDiscardToggle = document.getElementById('gameOptionsIncludeDiscardToggle');
 const gameOptionsCoverDrawingsToggle = document.getElementById('gameOptionsCoverDrawingsToggle');
 const gameOptionsResetButton = document.getElementById('gameOptionsResetButton');
 const gameOptionsPutAwayButton = document.getElementById('gameOptionsPutAwayButton');
@@ -210,6 +218,7 @@ const DRAW_TOOL_BOX = 'box';
 const DRAW_TOOL_DRAG_MIN_DISTANCE = 3;
 const DELETE_FADE_DURATION_MS = 170;
 const ROOM_LINK_COPY_FEEDBACK_MS = 1300;
+const ASSET_ELEMENT_LOAD_TIMEOUT_MS = 12000;
 const CURSOR_PENCIL_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20L8.8 18.8L19.2 8.4C19.8 7.8 19.8 6.9 19.2 6.3L17.7 4.8C17.1 4.2 16.2 4.2 15.6 4.8L5.2 15.2L4 20Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.8 6.6L17.4 10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>';
 const HAND_DROP_REGION_HEIGHT = 110;
@@ -230,8 +239,12 @@ const PRESENCE_STALE_TIMEOUT_MS = 45000;
 const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
 const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
 const DECK_KEY = 'cool-jpegs';
+const POKER_DECK_KEY = 'poker-deck';
+const DECK_KIND_COOL = 'cool-jpegs';
+const DECK_KIND_POKER = 'poker';
 const MONS_GAME_KEY = 'super-metal-mons';
 const TAFL_GAME_KEY = 'hnefatafl';
+const GO_GAME_KEY = 'go';
 const CARD_BACK_IMAGE_SRC = './assets/back.png';
 const TAFL_BOARD_IMAGE_SRC = './assets/hnefatafl-board.svg?v=20260327b';
 const MONS_BOARD_SIZE = 11;
@@ -249,6 +262,45 @@ const TAFL_GRID_HEIGHT_RATIO = 640 / TAFL_BOARD_CANVAS_HEIGHT;
 const TAFL_THRONE_ROW = 5;
 const TAFL_THRONE_COL = 5;
 const TAFL_UNDO_HISTORY_LIMIT = 30;
+const GO_BOARD_SIZE_DEFAULT = 13;
+const GO_BOARD_SIZE_OPTIONS = Object.freeze([9, 13, 19]);
+const GO_BOARD_CANVAS_WIDTH = 680;
+const GO_BOARD_CANVAS_HEIGHT = 680;
+const GO_GRID_LEFT_RATIO = 48 / GO_BOARD_CANVAS_WIDTH;
+const GO_GRID_TOP_RATIO = 48 / GO_BOARD_CANVAS_HEIGHT;
+const GO_GRID_WIDTH_RATIO = (GO_BOARD_CANVAS_WIDTH - 96) / GO_BOARD_CANVAS_WIDTH;
+const GO_GRID_HEIGHT_RATIO = (GO_BOARD_CANVAS_HEIGHT - 96) / GO_BOARD_CANVAS_HEIGHT;
+const GO_UNDO_HISTORY_LIMIT = 80;
+const GO_BOARD_LABELS = 'ABCDEFGHJKLMNOPQRST';
+const GO_STAR_POINT_COORDS_BY_SIZE = Object.freeze({
+  9: Object.freeze([
+    Object.freeze({ row: 2, col: 2 }),
+    Object.freeze({ row: 2, col: 6 }),
+    Object.freeze({ row: 4, col: 4 }),
+    Object.freeze({ row: 6, col: 2 }),
+    Object.freeze({ row: 6, col: 6 })
+  ]),
+  13: Object.freeze([
+    Object.freeze({ row: 3, col: 3 }), // D10
+    Object.freeze({ row: 9, col: 3 }), // D4
+    Object.freeze({ row: 6, col: 6 }), // G7
+    Object.freeze({ row: 3, col: 9 }), // K10
+    Object.freeze({ row: 9, col: 9 }) // K4
+  ]),
+  19: Object.freeze([
+    Object.freeze({ row: 3, col: 3 }),
+    Object.freeze({ row: 3, col: 9 }),
+    Object.freeze({ row: 3, col: 15 }),
+    Object.freeze({ row: 9, col: 3 }),
+    Object.freeze({ row: 9, col: 9 }),
+    Object.freeze({ row: 9, col: 15 }),
+    Object.freeze({ row: 15, col: 3 }),
+    Object.freeze({ row: 15, col: 9 }),
+    Object.freeze({ row: 15, col: 15 })
+  ])
+});
+const GO_CAPTURE_FX_DURATION_MS = 440;
+const GO_PLACE_PULSE_DURATION_MS = 220;
 const TAFL_HUD_MIN_HEIGHT = 24;
 const TAFL_HUD_DEFAULT_HEIGHT = 80;
 const TAFL_HUD_HEIGHT_RATIO = TAFL_HUD_DEFAULT_HEIGHT / MONS_BOARD_WORLD_HEIGHT;
@@ -849,6 +901,100 @@ const COOL_JPEGS_FRONT_IMAGES = Array.from({ length: 75 }, (_, index) => `${CARD
 const COOL_JPEGS_FRONT_IMAGES_LOW = COOL_JPEGS_FRONT_IMAGES.map((src) =>
   src.replace(CARD_FRONT_HIGH_RES_PREFIX, CARD_FRONT_LOW_RES_PREFIX)
 );
+const POKER_RANK_SEQUENCE = Object.freeze(['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']);
+const POKER_SUIT_SEQUENCE = Object.freeze([
+  Object.freeze({ key: 'spades', symbol: '♠', color: '#17171a' }),
+  Object.freeze({ key: 'hearts', symbol: '♥', color: '#c82439' }),
+  Object.freeze({ key: 'diamonds', symbol: '♦', color: '#c82439' }),
+  Object.freeze({ key: 'clubs', symbol: '♣', color: '#17171a' })
+]);
+
+function encodeSvgDataUri(svgMarkup) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    String(svgMarkup || '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  )}`;
+}
+
+function escapePokerSvgText(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function createPokerFaceSvgDataUri(rank, suit) {
+  const safeRank = escapePokerSvgText(rank);
+  const safeSuit = escapePokerSvgText(suit?.symbol || '');
+  const suitColor = String(suit?.color || '#17171a');
+  const rankFontSize = 52;
+  const rankLetterSpacingAttr = safeRank === '10' ? ' letter-spacing="-2.2"' : '';
+  const cornerSuitSize = 40;
+  const centerSuitSize = 154;
+  const cardFaceWidth = 330;
+  const cardFaceHeight = 462;
+  const topRankX = 36;
+  const topRankY = 66;
+  const topSuitX = 37;
+  const topSuitY = 108;
+  const bottomRankX = cardFaceWidth - topRankX;
+  const bottomRankY = cardFaceHeight - topRankY;
+  const bottomSuitX = cardFaceWidth - topSuitX;
+  const bottomSuitY = cardFaceHeight - topSuitY;
+  const centerSuitX = 165;
+  const centerSuitY = 222;
+  return encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 462">
+      <rect x="0" y="0" width="330" height="462" rx="24" fill="#ffffff"/>
+      <rect x="8" y="8" width="314" height="446" rx="20" fill="none" stroke="#d5d9df" stroke-width="3.2"/>
+      <g fill="${suitColor}">
+        <text x="${topRankX}" y="${topRankY}" text-anchor="start" font-family="Georgia, 'Times New Roman', serif" font-size="${rankFontSize}" font-weight="700"${rankLetterSpacingAttr}>${safeRank}</text>
+        <text x="${topSuitX}" y="${topSuitY}" text-anchor="start" font-family="Georgia, 'Times New Roman', serif" font-size="${cornerSuitSize}" font-weight="700">${safeSuit}</text>
+        <text x="${bottomRankX}" y="${bottomRankY}" text-anchor="start" font-family="Georgia, 'Times New Roman', serif" font-size="${rankFontSize}" font-weight="700"${rankLetterSpacingAttr} transform="rotate(180 ${bottomRankX} ${bottomRankY})">${safeRank}</text>
+        <text x="${bottomSuitX}" y="${bottomSuitY}" text-anchor="start" font-family="Georgia, 'Times New Roman', serif" font-size="${cornerSuitSize}" font-weight="700" transform="rotate(180 ${bottomSuitX} ${bottomSuitY})">${safeSuit}</text>
+      </g>
+      <text
+        x="${centerSuitX}"
+        y="${centerSuitY}"
+        fill="${suitColor}"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="${centerSuitSize}"
+        font-weight="700"
+      >${safeSuit}</text>
+    </svg>
+  `);
+}
+
+function createPokerBackSvgDataUri() {
+  return encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 462">
+      <defs>
+        <linearGradient id="pokerBackGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1c3f8f"/>
+          <stop offset="100%" stop-color="#132d67"/>
+        </linearGradient>
+        <pattern id="pokerBackPattern" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="28" height="28" fill="#1f4ea9"/>
+          <rect width="14" height="14" fill="#2b61c4"/>
+          <rect x="14" y="14" width="14" height="14" fill="#2b61c4"/>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="330" height="462" rx="24" fill="#0f224d"/>
+      <rect x="10" y="10" width="310" height="442" rx="20" fill="url(#pokerBackGradient)"/>
+      <rect x="24" y="24" width="282" height="414" rx="15" fill="url(#pokerBackPattern)"/>
+      <rect x="34" y="34" width="262" height="394" rx="14" fill="none" stroke="#f3f7ff" stroke-width="3" opacity="0.88"/>
+      <rect x="52" y="52" width="226" height="358" rx="12" fill="none" stroke="#dce8ff" stroke-width="1.9" opacity="0.55"/>
+    </svg>
+  `);
+}
+
+const POKER_CARD_BACK_IMAGE_SRC = createPokerBackSvgDataUri();
+const POKER_FRONT_IMAGES = Object.freeze(
+  POKER_SUIT_SEQUENCE.flatMap((suit) => POKER_RANK_SEQUENCE.map((rank) => createPokerFaceSvgDataUri(rank, suit)))
+);
 
 function shouldUseCleanRoomPaths() {
   const host = window.location.hostname.toLowerCase();
@@ -950,6 +1096,9 @@ let youtubeIframeApiPromise = null;
 let soundCloudWidgetApiPromise = null;
 let roomBadgeWidthSyncRafId = 0;
 let frontImagePendingLoadCount = 0;
+let elementAssetPendingLoadCount = 0;
+let assetElementLoadObserver = null;
+const trackedAssetElementLoads = new WeakMap();
 
 let localPosition = { x: 0.5, y: 0.5 };
 let syncCursorState = () => {};
@@ -977,6 +1126,13 @@ const lastRenderedTaflWinnerById = new Map();
 let activeTaflGameId = TAFL_GAME_KEY;
 let taflSelectionPieceId = '';
 let taflSelectionGameId = '';
+let goGameState = null;
+const goGameStatesById = new Map();
+const goBoardElementsById = new Map();
+const goHoverByGameId = new Map();
+const lastRenderedGoMoveTickById = new Map();
+const goPlacementPulseByGameId = new Map();
+let activeGoGameId = GO_GAME_KEY;
 let monsMoveButton = null;
 let monsOptionsButton = null;
 let monsUndoButton = null;
@@ -1035,6 +1191,7 @@ let rotatingLabelDieId = '';
 let resizingLabelDieId = '';
 let resizingMediaDieId = '';
 let taflDragState = null;
+let goDragState = null;
 let latestRoomCursors = {};
 let heldCardLayer = null;
 let selectionBoxElement = null;
@@ -1050,6 +1207,8 @@ let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
 let gameOptionsShowCoordinatesToggleSyncing = false;
+let gameOptionsBoardSizeButtonsSyncing = false;
+let gameOptionsIncludeDiscardToggleSyncing = false;
 let gameOptionsCoverDrawingsToggleSyncing = false;
 let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
 let clearTableWarningResolver = null;
@@ -1080,26 +1239,41 @@ let roomBackgroundPattern = ROOM_BACKGROUND_PATTERN_GRID;
 let spawnCoolJpegsDeck = async () => {
   showStatusMessage('Firebase connection is required before adding a deck.');
 };
+let spawnPokerDeck = async () => {
+  showStatusMessage('Firebase connection is required before adding a poker deck.');
+};
 let spawnSuperMetalMonsBoard = async () => {
   showStatusMessage('Firebase connection is required before adding super metal mons.');
 };
 let spawnHnefataflBoard = async () => {
   showStatusMessage('Firebase connection is required before adding hnefatafl.');
 };
+let spawnGoBoard = async () => {
+  showStatusMessage('Firebase connection is required before adding go.');
+};
 let resetHnefataflGame = async () => {
   showStatusMessage('Firebase connection is required before resetting hnefatafl.');
+};
+let resetGoGame = async () => {
+  showStatusMessage('Firebase connection is required before resetting go.');
 };
 let putAwayHnefataflGame = async () => {
   showStatusMessage('Firebase connection is required before putting hnefatafl away.');
 };
+let putAwayGoGame = async () => {
+  showStatusMessage('Firebase connection is required before putting go away.');
+};
 let onDeleteTaflGameInRemoveMode = async () => {
   showStatusMessage('Firebase connection is required before removing hnefatafl.');
 };
+let onDeleteGoGameInRemoveMode = async () => {
+  showStatusMessage('Firebase connection is required before removing go.');
+};
 let resetCoolJpegsGame = async () => {
-  showStatusMessage('Firebase connection is required before resetting cool jpegs.');
+  showStatusMessage('Firebase connection is required before resetting this deck.');
 };
 let putAwayCoolJpegsGame = async () => {
-  showStatusMessage('Firebase connection is required before putting cool jpegs away.');
+  showStatusMessage('Firebase connection is required before putting this deck away.');
 };
 let resetSuperMetalMonsGame = async () => {
   showStatusMessage('Firebase connection is required before resetting super metal mons.');
@@ -1108,6 +1282,12 @@ let putAwaySuperMetalMonsGame = async () => {
   showStatusMessage('Firebase connection is required before putting super metal mons away.');
 };
 let setGameShowCoordinatesPreference = async () => {
+  showStatusMessage('Firebase connection is required before updating game options.');
+};
+let setGameGoBoardSizePreference = async () => {
+  showStatusMessage('Firebase connection is required before updating game options.');
+};
+let setGameIncludeDiscardPreference = async () => {
   showStatusMessage('Firebase connection is required before updating game options.');
 };
 let setGameCoverDrawingsPreference = async () => {
@@ -1191,11 +1371,19 @@ let onMonsMovePointerDown = () => {};
 let onTaflMovePointerDown = () => {};
 let onTaflDragMove = () => {};
 let onTaflDragEnd = () => {};
+let onGoMovePointerDown = () => {};
+let onGoDragMove = () => {};
+let onGoDragEnd = () => {};
 let onTaflPiecePointerDown = () => {};
 let onTaflBoardTilePointerDown = () => {};
 let onTaflSideClaimClick = () => {};
 let onTaflUndoButtonClick = () => {};
 let onTaflWinResetButtonClick = () => {};
+let onGoBoardIntersectionPointerDown = () => {};
+let onGoSideClaimClick = () => {};
+let onGoUndoButtonClick = () => {};
+let onGoPassButtonClick = () => {};
+let onGoWinResetButtonClick = () => {};
 let onMonsUndoButtonClick = () => {};
 let onMonsFlipButtonClick = () => {};
 let onMonsBoardTilePointerDown = () => {};
@@ -1288,6 +1476,31 @@ function getTaflColumnLabelText(index) {
 function getTaflRowLabelText(index) {
   const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, TAFL_BOARD_SIZE - 1);
   return String(TAFL_BOARD_SIZE - normalizedIndex);
+}
+
+function normalizeGoBoardSize(value) {
+  const numeric = Math.round(Number(value));
+  if (GO_BOARD_SIZE_OPTIONS.includes(numeric)) {
+    return numeric;
+  }
+  return GO_BOARD_SIZE_DEFAULT;
+}
+
+function getGoStarPointCoords(boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  return GO_STAR_POINT_COORDS_BY_SIZE[normalizedBoardSize] || GO_STAR_POINT_COORDS_BY_SIZE[GO_BOARD_SIZE_DEFAULT];
+}
+
+function getGoColumnLabelText(index, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, normalizedBoardSize - 1);
+  return GO_BOARD_LABELS[normalizedIndex] || '';
+}
+
+function getGoRowLabelText(index, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, normalizedBoardSize - 1);
+  return String(normalizedBoardSize - normalizedIndex);
 }
 
 function setMonsBoardCoordinatesVisibility(boardSvgElement, shouldShow = true) {
@@ -1559,6 +1772,22 @@ function normalizeDeckId(rawDeckId) {
   return normalized;
 }
 
+function isPokerDeckId(rawDeckId) {
+  const normalizedDeckId = normalizeDeckId(rawDeckId);
+  return normalizedDeckId === POKER_DECK_KEY || normalizedDeckId.startsWith(`${POKER_DECK_KEY}-copy-`);
+}
+
+function normalizeDeckKind(rawKind, deckId = '') {
+  const normalizedKind = String(rawKind || '').trim().toLowerCase();
+  if (normalizedKind === DECK_KIND_POKER || normalizedKind === POKER_DECK_KEY) {
+    return DECK_KIND_POKER;
+  }
+  if (normalizedKind === DECK_KIND_COOL || normalizedKind === DECK_KEY) {
+    return DECK_KIND_COOL;
+  }
+  return isPokerDeckId(deckId) ? DECK_KIND_POKER : DECK_KIND_COOL;
+}
+
 function normalizeMonsGameId(rawMonsGameId) {
   const normalized = String(rawMonsGameId || '').trim().toLowerCase();
   if (!normalized) {
@@ -1575,6 +1804,14 @@ function normalizeTaflGameId(rawTaflGameId) {
   return normalized;
 }
 
+function normalizeGoGameId(rawGoGameId) {
+  const normalized = String(rawGoGameId || '').trim().toLowerCase();
+  if (!normalized) {
+    return GO_GAME_KEY;
+  }
+  return normalized;
+}
+
 function isMonsGameId(rawGameId) {
   const normalized = normalizeMonsGameId(rawGameId);
   return normalized === MONS_GAME_KEY || normalized.startsWith(`${MONS_GAME_KEY}-copy-`);
@@ -1583,6 +1820,11 @@ function isMonsGameId(rawGameId) {
 function isTaflGameId(rawGameId) {
   const normalized = normalizeTaflGameId(rawGameId);
   return normalized === TAFL_GAME_KEY || normalized.startsWith(`${TAFL_GAME_KEY}-copy-`);
+}
+
+function isGoGameId(rawGameId) {
+  const normalized = normalizeGoGameId(rawGameId);
+  return normalized === GO_GAME_KEY || normalized.startsWith(`${GO_GAME_KEY}-copy-`);
 }
 
 function setActiveDeckId(nextDeckId) {
@@ -1618,9 +1860,28 @@ function setActiveTaflGameId(nextTaflGameId) {
   }
 }
 
+function setActiveGoGameId(nextGoGameId) {
+  const normalizedGoGameId = normalizeGoGameId(nextGoGameId);
+  activeGoGameId = normalizedGoGameId;
+  goGameState = goGameStatesById.get(normalizedGoGameId) || null;
+}
+
 function getDeckStateById(deckId = activeDeckId) {
   const normalizedDeckId = normalizeDeckId(deckId);
   return deckStatesById.get(normalizedDeckId) || null;
+}
+
+function getDeckKind(deckId = activeDeckId) {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  return normalizeDeckKind(getDeckStateById(normalizedDeckId)?.kind, normalizedDeckId);
+}
+
+function deckSupportsAuction(deckId = activeDeckId) {
+  return getDeckKind(deckId) !== DECK_KIND_POKER;
+}
+
+function isDeckDiscardEnabled(deckId = activeDeckId) {
+  return getDeckStateById(deckId)?.includeDiscard !== false;
 }
 
 function getMonsGameStateById(gameId = activeMonsGameId) {
@@ -1631,6 +1892,11 @@ function getMonsGameStateById(gameId = activeMonsGameId) {
 function getTaflGameStateById(gameId = activeTaflGameId) {
   const normalizedTaflGameId = normalizeTaflGameId(gameId);
   return taflGameStatesById.get(normalizedTaflGameId) || null;
+}
+
+function getGoGameStateById(gameId = activeGoGameId) {
+  const normalizedGoGameId = normalizeGoGameId(gameId);
+  return goGameStatesById.get(normalizedGoGameId) || null;
 }
 
 function patchTouchesPosition(patch) {
@@ -1655,12 +1921,20 @@ function isTaflShowCoordinatesEnabled(gameId = activeTaflGameId) {
   return Boolean(getTaflGameStateById(gameId)?.showCoordinates !== false);
 }
 
+function isGoShowCoordinatesEnabled(gameId = activeGoGameId) {
+  return Boolean(getGoGameStateById(gameId)?.showCoordinates !== false);
+}
+
 function isMonsCoverDrawingsEnabled(gameId = activeMonsGameId) {
   return Boolean(getMonsGameStateById(gameId)?.coverDrawings === true);
 }
 
 function isTaflCoverDrawingsEnabled(gameId = activeTaflGameId) {
   return Boolean(getTaflGameStateById(gameId)?.coverDrawings === true);
+}
+
+function isGoCoverDrawingsEnabled(gameId = activeGoGameId) {
+  return Boolean(getGoGameStateById(gameId)?.coverDrawings === true);
 }
 
 function hasAnyCoverDrawingsGames() {
@@ -1675,6 +1949,11 @@ function hasAnyCoverDrawingsGames() {
     }
   }
   for (const gameState of taflGameStatesById.values()) {
+    if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
+      return true;
+    }
+  }
+  for (const gameState of goGameStatesById.values()) {
     if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
       return true;
     }
@@ -2444,6 +2723,48 @@ function buildCoolJpegsDeck(options = {}) {
       z: baseZ + index,
       face: 'back',
       frontSrc: COOL_JPEGS_FRONT_IMAGES[index],
+      deckBackSrc: CARD_BACK_IMAGE_SRC,
+      deckId: nextDeckId,
+      inDeck: startInDeck,
+      inDiscard: false,
+      inAuction: false,
+      drawLifted: false,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null,
+      updatedAt: Date.now()
+    };
+  }
+  return deck;
+}
+
+function buildPokerDeck(options = {}) {
+  const {
+    instanceId = 'default',
+    deckId: requestedDeckId = '',
+    center: requestedCenter = getDeckCenterPosition(),
+    inDeck: startInDeck = true,
+    zStart = 1
+  } = options;
+  const deck = {};
+  const normalizedRequestedDeckId = normalizeDeckId(requestedDeckId);
+  const safeId = String(instanceId || 'default').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'default';
+  const cardIdPrefix = normalizedRequestedDeckId || (safeId === 'default' ? POKER_DECK_KEY : `${POKER_DECK_KEY}-${safeId}`);
+  const nextDeckId = normalizeDeckId(cardIdPrefix);
+  const center = {
+    x: clamp(Number(requestedCenter?.x) || WORLD_WIDTH / 2, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2),
+    y: clamp(Number(requestedCenter?.y) || WORLD_HEIGHT / 2, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2)
+  };
+  const baseZ = Number.isFinite(Number(zStart)) ? Number(zStart) : 1;
+  for (let index = 0; index < POKER_FRONT_IMAGES.length; index += 1) {
+    const cardId = `${cardIdPrefix}-${String(index + 1).padStart(3, '0')}`;
+    deck[cardId] = {
+      x: center.x,
+      y: center.y,
+      z: baseZ + index,
+      face: 'back',
+      frontSrc: POKER_FRONT_IMAGES[index],
+      deckBackSrc: POKER_CARD_BACK_IMAGE_SRC,
       deckId: nextDeckId,
       inDeck: startInDeck,
       inDiscard: false,
@@ -2473,18 +2794,22 @@ function getMonsBoardTileFill(row, col) {
   return (row + col) % 2 === 0 ? MONS_TILE_LIGHT_COLOR : MONS_TILE_DARK_COLOR;
 }
 
-function normalizeDeckPayload(payload) {
+function normalizeDeckPayload(payload, deckId = '') {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextShuffleTick = Number(payload?.shuffleTick);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const includeDiscard = payload?.includeDiscard !== false;
   const coverDrawings = payload?.coverDrawings === true;
+  const kind = normalizeDeckKind(payload?.kind, deckId);
   return {
     x: Number.isFinite(nextX) ? clamp(nextX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2) : WORLD_HEIGHT / 2,
     shuffleTick: Number.isFinite(nextShuffleTick) ? nextShuffleTick : 0,
     holderClientId,
-    coverDrawings
+    includeDiscard,
+    coverDrawings,
+    kind
   };
 }
 
@@ -3324,6 +3649,603 @@ function buildFreshTaflGamePayload(options = {}) {
   };
 }
 
+function normalizeGoStoneColor(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'black' || normalized === 'white') {
+    return normalized;
+  }
+  return '';
+}
+
+function normalizeGoWinnerColor(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'black' || normalized === 'white' || normalized === 'draw') {
+    return normalized;
+  }
+  return '';
+}
+
+function getOpposingGoColor(color) {
+  const normalized = normalizeGoStoneColor(color);
+  if (normalized === 'black') {
+    return 'white';
+  }
+  if (normalized === 'white') {
+    return 'black';
+  }
+  return '';
+}
+
+function isGoInBounds(row, col, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  return row >= 0 && row < normalizedBoardSize && col >= 0 && col < normalizedBoardSize;
+}
+
+function getGoBoardKey(row, col) {
+  return `${row}:${col}`;
+}
+
+function parseGoBoardKey(key, boardSize = null) {
+  const [rowRaw, colRaw] = String(key || '').split(':');
+  const row = Math.round(Number(rowRaw));
+  const col = Math.round(Number(colRaw));
+  if (!Number.isFinite(row) || !Number.isFinite(col)) {
+    return null;
+  }
+  if (boardSize !== null && boardSize !== undefined) {
+    const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+    if (!isGoInBounds(row, col, normalizedBoardSize)) {
+      return null;
+    }
+  }
+  return { row, col };
+}
+
+function normalizeGoKoPayload(payload, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const row = Number(payload.row);
+  const col = Number(payload.col);
+  if (!Number.isFinite(row) || !Number.isFinite(col)) {
+    return null;
+  }
+  const normalizedRow = Math.round(row);
+  const normalizedCol = Math.round(col);
+  if (!isGoInBounds(normalizedRow, normalizedCol, normalizedBoardSize)) {
+    return null;
+  }
+  const color = normalizeGoStoneColor(payload.color);
+  return {
+    row: normalizedRow,
+    col: normalizedCol,
+    color: color || ''
+  };
+}
+
+function normalizeGoCapturesPayload(payload) {
+  const black = Number(payload?.black);
+  const white = Number(payload?.white);
+  return {
+    black: Number.isFinite(black) ? Math.max(0, Math.round(black)) : 0,
+    white: Number.isFinite(white) ? Math.max(0, Math.round(white)) : 0
+  };
+}
+
+function normalizeGoScorePayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const blackTotal = Number(payload.blackTotal);
+  const whiteTotal = Number(payload.whiteTotal);
+  const blackArea = Number(payload.blackArea);
+  const whiteArea = Number(payload.whiteArea);
+  const blackStones = Number(payload.blackStones);
+  const whiteStones = Number(payload.whiteStones);
+  const blackCaptures = Number(payload.blackCaptures);
+  const whiteCaptures = Number(payload.whiteCaptures);
+  if (
+    !Number.isFinite(blackTotal) ||
+    !Number.isFinite(whiteTotal) ||
+    !Number.isFinite(blackArea) ||
+    !Number.isFinite(whiteArea) ||
+    !Number.isFinite(blackStones) ||
+    !Number.isFinite(whiteStones) ||
+    !Number.isFinite(blackCaptures) ||
+    !Number.isFinite(whiteCaptures)
+  ) {
+    return null;
+  }
+  return {
+    blackTotal: Number(blackTotal),
+    whiteTotal: Number(whiteTotal),
+    blackArea: Math.max(0, Math.round(blackArea)),
+    whiteArea: Math.max(0, Math.round(whiteArea)),
+    blackStones: Math.max(0, Math.round(blackStones)),
+    whiteStones: Math.max(0, Math.round(whiteStones)),
+    blackCaptures: Math.max(0, Math.round(blackCaptures)),
+    whiteCaptures: Math.max(0, Math.round(whiteCaptures))
+  };
+}
+
+function normalizeGoStonesPayload(payload, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const stones = {};
+  if (!payload || typeof payload !== 'object') {
+    return stones;
+  }
+  for (const [rawKey, rawColor] of Object.entries(payload)) {
+    const position = parseGoBoardKey(rawKey, normalizedBoardSize);
+    const color = normalizeGoStoneColor(rawColor);
+    if (!position || !color) {
+      continue;
+    }
+    stones[getGoBoardKey(position.row, position.col)] = color;
+  }
+  return stones;
+}
+
+function normalizeGoLastMovePayload(payload, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const type = payload.type === 'pass' ? 'pass' : 'place';
+  const color = normalizeGoStoneColor(payload.color);
+  if (!color) {
+    return null;
+  }
+  const normalized = {
+    type,
+    color
+  };
+  if (type === 'place') {
+    const row = Number(payload.row);
+    const col = Number(payload.col);
+    if (!Number.isFinite(row) || !Number.isFinite(col)) {
+      return null;
+    }
+    const normalizedRow = Math.round(row);
+    const normalizedCol = Math.round(col);
+    if (!isGoInBounds(normalizedRow, normalizedCol, normalizedBoardSize)) {
+      return null;
+    }
+    normalized.row = normalizedRow;
+    normalized.col = normalizedCol;
+    const captured = Number(payload.captured);
+    normalized.captured = Number.isFinite(captured) ? Math.max(0, Math.round(captured)) : 0;
+    const capturedStonesSource = Array.isArray(payload.capturedStones) ? payload.capturedStones : [];
+    const capturedFallbackColor = getOpposingGoColor(color);
+    const capturedStones = capturedStonesSource
+      .map((entry) => normalizeGoCapturedStoneEntryPayload(entry, capturedFallbackColor, normalizedBoardSize))
+      .filter(Boolean);
+    normalized.capturedStones = capturedStones;
+  }
+  return normalized;
+}
+
+function normalizeGoCapturedStoneEntryPayload(payload, fallbackColor = '', boardSize = GO_BOARD_SIZE_DEFAULT) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const row = Number(payload.row);
+  const col = Number(payload.col);
+  if (!Number.isFinite(row) || !Number.isFinite(col)) {
+    return null;
+  }
+  const normalizedRow = Math.round(row);
+  const normalizedCol = Math.round(col);
+  if (!isGoInBounds(normalizedRow, normalizedCol, normalizedBoardSize)) {
+    return null;
+  }
+  const normalizedColor = normalizeGoStoneColor(payload.color) || normalizeGoStoneColor(fallbackColor) || '';
+  if (!normalizedColor) {
+    return null;
+  }
+  return {
+    row: normalizedRow,
+    col: normalizedCol,
+    color: normalizedColor
+  };
+}
+
+function normalizeGoUndoSnapshotPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const boardSize = normalizeGoBoardSize(payload.boardSize);
+  const actorPlayerToken =
+    typeof payload.actorPlayerToken === 'string' && payload.actorPlayerToken ? payload.actorPlayerToken : '';
+  const actorClientId = typeof payload.actorClientId === 'string' && payload.actorClientId ? payload.actorClientId : '';
+  const createdAtRaw = Number(payload.createdAt);
+  const moveTickRaw = Number(payload.moveTick);
+  return {
+    boardSize,
+    stones: normalizeGoStonesPayload(payload.stones, boardSize),
+    turn: normalizeGoStoneColor(payload.turn) || 'black',
+    captures: normalizeGoCapturesPayload(payload.captures),
+    passStreak: Math.max(0, Math.round(Number(payload.passStreak) || 0)),
+    winner: normalizeGoWinnerColor(payload.winner),
+    score: normalizeGoScorePayload(payload.score),
+    ko: normalizeGoKoPayload(payload.ko, boardSize),
+    moveTick: Number.isFinite(moveTickRaw) ? moveTickRaw : 0,
+    lastMove: normalizeGoLastMovePayload(payload.lastMove, boardSize),
+    actorPlayerToken,
+    actorClientId,
+    createdAt: Number.isFinite(createdAtRaw) ? createdAtRaw : 0
+  };
+}
+
+function normalizeGoUndoHistoryPayload(payload) {
+  const entries = [];
+  if (!payload || typeof payload !== 'object') {
+    return entries;
+  }
+  const sourceEntries = Array.isArray(payload) ? payload : Object.values(payload);
+  for (const entryPayload of sourceEntries) {
+    const entry = normalizeGoUndoSnapshotPayload(entryPayload);
+    if (!entry || !entry.stones || typeof entry.stones !== 'object') {
+      continue;
+    }
+    entries.push(entry);
+  }
+  if (entries.length <= GO_UNDO_HISTORY_LIMIT) {
+    return entries;
+  }
+  return entries.slice(entries.length - GO_UNDO_HISTORY_LIMIT);
+}
+
+function appendGoUndoHistoryEntry(historyPayload, entryPayload) {
+  const entry = normalizeGoUndoSnapshotPayload(entryPayload);
+  if (!entry) {
+    return normalizeGoUndoHistoryPayload(historyPayload);
+  }
+  const history = normalizeGoUndoHistoryPayload(historyPayload);
+  history.push(entry);
+  if (history.length <= GO_UNDO_HISTORY_LIMIT) {
+    return history;
+  }
+  return history.slice(history.length - GO_UNDO_HISTORY_LIMIT);
+}
+
+function canCurrentPlayerUndoGoEntry(entryPayload) {
+  if (!entryPayload || typeof entryPayload !== 'object') {
+    return false;
+  }
+  const actorPlayerToken =
+    typeof entryPayload.actorPlayerToken === 'string' && entryPayload.actorPlayerToken
+      ? entryPayload.actorPlayerToken
+      : '';
+  const actorClientId =
+    typeof entryPayload.actorClientId === 'string' && entryPayload.actorClientId ? entryPayload.actorClientId : '';
+  if (actorPlayerToken) {
+    return Boolean(localPlayerToken) && actorPlayerToken === localPlayerToken;
+  }
+  if (actorClientId) {
+    return Boolean(localClientId) && actorClientId === localClientId;
+  }
+  return false;
+}
+
+function normalizeGoClaimsPayload(payload) {
+  return {
+    black: normalizeTaflSideClaimsPayload(payload?.black),
+    white: normalizeTaflSideClaimsPayload(payload?.white)
+  };
+}
+
+function getGoSideClaimEntries(gamePayload, side) {
+  const normalizedSide = side === 'black' ? 'black' : side === 'white' ? 'white' : '';
+  if (!normalizedSide) {
+    return [];
+  }
+  const claims = normalizeGoClaimsPayload(gamePayload?.claims);
+  return claims[normalizedSide];
+}
+
+function getLocalPlayerClaimedGoSide(gamePayload) {
+  if (!localPlayerToken) {
+    return '';
+  }
+  if (getGoSideClaimEntries(gamePayload, 'black').some((entry) => entry.token === localPlayerToken)) {
+    return 'black';
+  }
+  if (getGoSideClaimEntries(gamePayload, 'white').some((entry) => entry.token === localPlayerToken)) {
+    return 'white';
+  }
+  return '';
+}
+
+function canCurrentPlayerControlGoColorFromPayload(gamePayload, color) {
+  const normalizedColor = normalizeGoStoneColor(color);
+  if (!normalizedColor) {
+    return false;
+  }
+  const localClaimedSide = getLocalPlayerClaimedGoSide(gamePayload);
+  if (localClaimedSide && localClaimedSide !== normalizedColor) {
+    return false;
+  }
+  const sideClaims = getGoSideClaimEntries(gamePayload, normalizedColor);
+  if (sideClaims.length === 0) {
+    return true;
+  }
+  if (!localPlayerToken) {
+    return false;
+  }
+  return sideClaims.some((entry) => entry.token === localPlayerToken);
+}
+
+function normalizeGoGamePayload(payload) {
+  const nextWidth = Number(payload?.width);
+  const nextHeight = Number(payload?.height);
+  const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : MONS_BOARD_WORLD_WIDTH;
+  const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : MONS_BOARD_WORLD_HEIGHT;
+  const boardSize = normalizeGoBoardSize(payload?.boardSize);
+  const nextX = Number(payload?.x);
+  const nextY = Number(payload?.y);
+  const nextMoveTick = Number(payload?.moveTick);
+  const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  return {
+    enabled: payload?.enabled !== false,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    boardSize,
+    stones: normalizeGoStonesPayload(payload?.stones, boardSize),
+    claims: normalizeGoClaimsPayload(payload?.claims),
+    captures: normalizeGoCapturesPayload(payload?.captures),
+    turn: normalizeGoStoneColor(payload?.turn) || 'black',
+    passStreak: Math.max(0, Math.round(Number(payload?.passStreak) || 0)),
+    winner: normalizeGoWinnerColor(payload?.winner),
+    score: normalizeGoScorePayload(payload?.score),
+    ko: normalizeGoKoPayload(payload?.ko, boardSize),
+    moveTick: Number.isFinite(nextMoveTick) ? nextMoveTick : 0,
+    lastMove: normalizeGoLastMovePayload(payload?.lastMove, boardSize),
+    undoHistory: normalizeGoUndoHistoryPayload(payload?.undoHistory),
+    holderClientId,
+    showCoordinates: payload?.showCoordinates !== false,
+    coverDrawings: payload?.coverDrawings === true
+  };
+}
+
+function buildFreshGoGamePayload(options = {}) {
+  const nextWidth = Number(options?.width);
+  const nextHeight = Number(options?.height);
+  const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : MONS_BOARD_WORLD_WIDTH;
+  const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : MONS_BOARD_WORLD_HEIGHT;
+  const boardSize = normalizeGoBoardSize(options?.boardSize);
+  const nextX = Number(options?.x);
+  const nextY = Number(options?.y);
+  const showCoordinates = options?.showCoordinates !== false;
+  const coverDrawings = options?.coverDrawings === true;
+  return {
+    enabled: true,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    boardSize,
+    stones: {},
+    claims: normalizeGoClaimsPayload(options?.claims),
+    captures: {
+      black: 0,
+      white: 0
+    },
+    turn: 'black',
+    passStreak: 0,
+    winner: '',
+    score: null,
+    ko: null,
+    moveTick: 0,
+    lastMove: null,
+    undoHistory: [],
+    holderClientId: null,
+    showCoordinates,
+    coverDrawings,
+    updatedAt: Date.now()
+  };
+}
+
+function buildGoUndoSnapshotPayloadFromGame(gamePayload, actorPlayerToken = '', actorClientId = '') {
+  if (!gamePayload || typeof gamePayload !== 'object') {
+    return null;
+  }
+  const normalized = normalizeGoGamePayload(gamePayload);
+  return {
+    boardSize: normalizeGoBoardSize(normalized.boardSize),
+    stones: normalizeGoStonesPayload(normalized.stones, normalized.boardSize),
+    turn: normalizeGoStoneColor(normalized.turn) || 'black',
+    captures: normalizeGoCapturesPayload(normalized.captures),
+    passStreak: Math.max(0, Math.round(Number(normalized.passStreak) || 0)),
+    winner: normalizeGoWinnerColor(normalized.winner),
+    score: normalizeGoScorePayload(normalized.score),
+    ko: normalizeGoKoPayload(normalized.ko, normalized.boardSize),
+    moveTick: Number(normalized.moveTick) || 0,
+    lastMove: normalizeGoLastMovePayload(normalized.lastMove, normalized.boardSize),
+    actorPlayerToken: typeof actorPlayerToken === 'string' && actorPlayerToken ? actorPlayerToken : '',
+    actorClientId: typeof actorClientId === 'string' && actorClientId ? actorClientId : '',
+    createdAt: Date.now()
+  };
+}
+
+function getGoNeighborPoints(row, col, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  return [
+    { row: row - 1, col },
+    { row: row + 1, col },
+    { row, col: col - 1 },
+    { row, col: col + 1 }
+  ].filter((point) => isGoInBounds(point.row, point.col, normalizedBoardSize));
+}
+
+function collectGoGroupAndLiberties(stones, startRow, startCol, expectedColor = '', boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const color = expectedColor || normalizeGoStoneColor(stones?.[getGoBoardKey(startRow, startCol)]);
+  if (!color || !isGoInBounds(startRow, startCol, normalizedBoardSize)) {
+    return {
+      color: '',
+      stones: new Set(),
+      liberties: new Set()
+    };
+  }
+  const visited = new Set();
+  const liberties = new Set();
+  const queue = [{ row: startRow, col: startCol }];
+  while (queue.length > 0) {
+    const point = queue.pop();
+    const key = getGoBoardKey(point.row, point.col);
+    if (visited.has(key)) {
+      continue;
+    }
+    if (stones[key] !== color) {
+      continue;
+    }
+    visited.add(key);
+    for (const neighbor of getGoNeighborPoints(point.row, point.col, normalizedBoardSize)) {
+      const neighborKey = getGoBoardKey(neighbor.row, neighbor.col);
+      const neighborColor = normalizeGoStoneColor(stones[neighborKey]);
+      if (!neighborColor) {
+        liberties.add(neighborKey);
+        continue;
+      }
+      if (neighborColor === color && !visited.has(neighborKey)) {
+        queue.push(neighbor);
+      }
+    }
+  }
+  return {
+    color,
+    stones: visited,
+    liberties
+  };
+}
+
+function analyzeGoPlacementOutcome(stonesPayload, row, col, turnColor, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const turn = normalizeGoStoneColor(turnColor);
+  if (!turn || !isGoInBounds(row, col, normalizedBoardSize)) {
+    return null;
+  }
+  const targetRow = clamp(Math.round(Number(row)), 0, normalizedBoardSize - 1);
+  const targetCol = clamp(Math.round(Number(col)), 0, normalizedBoardSize - 1);
+  const currentStones = normalizeGoStonesPayload(stonesPayload, normalizedBoardSize);
+  const targetKey = getGoBoardKey(targetRow, targetCol);
+  if (normalizeGoStoneColor(currentStones[targetKey])) {
+    return null;
+  }
+  const nextStones = {
+    ...currentStones,
+    [targetKey]: turn
+  };
+  const opponent = getOpposingGoColor(turn);
+  const capturedKeysSet = new Set();
+  for (const neighbor of getGoNeighborPoints(targetRow, targetCol, normalizedBoardSize)) {
+    const neighborKey = getGoBoardKey(neighbor.row, neighbor.col);
+    if (normalizeGoStoneColor(nextStones[neighborKey]) !== opponent) {
+      continue;
+    }
+    const group = collectGoGroupAndLiberties(nextStones, neighbor.row, neighbor.col, opponent, normalizedBoardSize);
+    if (group.liberties.size > 0) {
+      continue;
+    }
+    for (const stoneKey of group.stones) {
+      if (normalizeGoStoneColor(nextStones[stoneKey]) === opponent) {
+        delete nextStones[stoneKey];
+        capturedKeysSet.add(stoneKey);
+      }
+    }
+  }
+  const placedGroup = collectGoGroupAndLiberties(nextStones, targetRow, targetCol, turn, normalizedBoardSize);
+  if (placedGroup.liberties.size === 0) {
+    return null;
+  }
+  return {
+    targetRow,
+    targetCol,
+    turn,
+    opponent,
+    nextStones,
+    capturedKeysSet,
+    placedGroup
+  };
+}
+
+function getGoScoreFromBoard(stonesPayload, capturesPayload, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const stones = normalizeGoStonesPayload(stonesPayload, normalizedBoardSize);
+  const captures = normalizeGoCapturesPayload(capturesPayload);
+  let blackStones = 0;
+  let whiteStones = 0;
+  for (const color of Object.values(stones)) {
+    if (color === 'black') {
+      blackStones += 1;
+    } else if (color === 'white') {
+      whiteStones += 1;
+    }
+  }
+  let blackArea = 0;
+  let whiteArea = 0;
+  const visitedEmpty = new Set();
+  for (let row = 0; row < normalizedBoardSize; row += 1) {
+    for (let col = 0; col < normalizedBoardSize; col += 1) {
+      const key = getGoBoardKey(row, col);
+      if (stones[key] || visitedEmpty.has(key)) {
+        continue;
+      }
+      const queue = [{ row, col }];
+      const region = [];
+      const borderingColors = new Set();
+      while (queue.length > 0) {
+        const point = queue.pop();
+        const pointKey = getGoBoardKey(point.row, point.col);
+        if (visitedEmpty.has(pointKey)) {
+          continue;
+        }
+        if (stones[pointKey]) {
+          borderingColors.add(stones[pointKey]);
+          continue;
+        }
+        visitedEmpty.add(pointKey);
+        region.push(pointKey);
+        for (const neighbor of getGoNeighborPoints(point.row, point.col, normalizedBoardSize)) {
+          const neighborKey = getGoBoardKey(neighbor.row, neighbor.col);
+          const neighborColor = normalizeGoStoneColor(stones[neighborKey]);
+          if (!neighborColor) {
+            if (!visitedEmpty.has(neighborKey)) {
+              queue.push(neighbor);
+            }
+          } else {
+            borderingColors.add(neighborColor);
+          }
+        }
+      }
+      if (borderingColors.size === 1) {
+        const owner = borderingColors.has('black') ? 'black' : borderingColors.has('white') ? 'white' : '';
+        if (owner === 'black') {
+          blackArea += region.length;
+        } else if (owner === 'white') {
+          whiteArea += region.length;
+        }
+      }
+    }
+  }
+  const blackTotal = blackStones + blackArea + captures.black;
+  const whiteTotal = whiteStones + whiteArea + captures.white;
+  return {
+    blackTotal,
+    whiteTotal,
+    blackArea,
+    whiteArea,
+    blackStones,
+    whiteStones,
+    blackCaptures: captures.black,
+    whiteCaptures: captures.white
+  };
+}
+
 function getDeckCardIds(deckId = activeDeckId) {
   const metrics = getDeckMetricsEntry(deckId);
   return metrics ? metrics.inDeckIds.slice() : [];
@@ -3413,6 +4335,10 @@ function srcMatchesVariant(candidateSrc, variantSrc) {
   return normalizeSrcForCompare(candidateSrc) === normalizeSrcForCompare(variantSrc);
 }
 
+function isInlineDataImageSrc(src) {
+  return typeof src === 'string' && src.startsWith('data:image/');
+}
+
 function imageHasSource(image, src) {
   if (!(image instanceof HTMLImageElement) || !src) {
     return false;
@@ -3425,10 +4351,10 @@ function imageHasSource(image, src) {
 }
 
 function chooseLoadedFrontDisplaySrc(preferredSrc, fallbackSrc, currentSrc) {
-  if (preferredSrc && srcMatchesVariant(currentSrc, preferredSrc) && isFrontImageLoaded(preferredSrc)) {
+  if (preferredSrc && srcMatchesVariant(currentSrc, preferredSrc)) {
     return preferredSrc;
   }
-  if (fallbackSrc && srcMatchesVariant(currentSrc, fallbackSrc) && isFrontImageLoaded(fallbackSrc)) {
+  if (fallbackSrc && srcMatchesVariant(currentSrc, fallbackSrc)) {
     return fallbackSrc;
   }
   if (preferredSrc && isFrontImageLoaded(preferredSrc)) {
@@ -3441,12 +4367,19 @@ function chooseLoadedFrontDisplaySrc(preferredSrc, fallbackSrc, currentSrc) {
 }
 
 function isFrontImageLoaded(src) {
+  if (isInlineDataImageSrc(src)) {
+    return true;
+  }
   return frontImageLoadState.get(src) === 'loaded';
 }
 
 function ensureFrontImageLoaded(src) {
   if (!src || typeof src !== 'string') {
     return Promise.resolve(false);
+  }
+  if (isInlineDataImageSrc(src)) {
+    frontImageLoadState.set(src, 'loaded');
+    return Promise.resolve(true);
   }
 
   if (isFrontImageLoaded(src)) {
@@ -3642,6 +4575,11 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
   const preferredLayer = stackLayer || cardLayer;
 
   const topDeckZ = getDeckTopZ(targetDeckId);
+  const topDeckCardId = getDeckMetricsEntry(targetDeckId)?.topDeckCardId || '';
+  const topDeckCard = topDeckCardId ? cards.get(topDeckCardId) : null;
+  const shuffleBackSrc = topDeckCard
+    ? getCardBackDisplaySrc(topDeckCard)
+    : (getDeckKind(targetDeckId) === DECK_KIND_POKER ? POKER_CARD_BACK_IMAGE_SRC : CARD_BACK_IMAGE_SRC);
   const baseZ = Math.max(1, topDeckZ - 2);
   const effectWidth = cardScreenWidth * 0.96;
   const effectHeight = cardScreenHeight * 0.96;
@@ -3652,6 +4590,9 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
 
   for (let index = 0; index < deckShuffleFxCards.length; index += 1) {
     const cardBack = deckShuffleFxCards[index];
+    if (shuffleBackSrc && !imageHasSource(cardBack, shuffleBackSrc)) {
+      cardBack.src = shuffleBackSrc;
+    }
     if (preferredLayer && cardBack.parentElement !== preferredLayer) {
       preferredLayer.appendChild(cardBack);
     }
@@ -3841,7 +4782,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   optionsButton.className = 'deck-control-button deck-options-button hidden';
   optionsButton.dataset.stackScope = 'deck';
   optionsButton.dataset.deckId = normalizedDeckId;
-  optionsButton.setAttribute('aria-label', 'cool jpegs options');
+  optionsButton.setAttribute('aria-label', 'deck options');
   optionsButton.innerHTML =
     '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="6.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17.5" cy="12" r="1.7"/></svg>';
   optionsButton.addEventListener('click', (event) => {
@@ -4002,6 +4943,8 @@ function renderDeckControls() {
 
   for (const deckId of deckIds) {
     const targetDeckState = getDeckStateById(deckId);
+    const supportsAuction = deckSupportsAuction(deckId);
+    const discardEnabled = isDeckDiscardEnabled(deckId);
     const deckMetrics = metricsByDeck.get(deckId) || EMPTY_DECK_CARD_METRICS;
     const inDeckCount = deckMetrics.inDeckCount;
     const inDiscardCount = deckMetrics.inDiscardCount;
@@ -4027,7 +4970,7 @@ function renderDeckControls() {
 
     const deckScreen = worldToScreen({ x: targetDeckState.x, y: targetDeckState.y });
     const discardScreen = worldToScreen(getDiscardCenterPosition(deckId));
-    const auctionScreen = worldToScreen(getAuctionCenterPosition(deckId));
+    const auctionScreen = supportsAuction ? worldToScreen(getAuctionCenterPosition(deckId)) : null;
     const controlsY = deckScreen.y + cardScreenHeight / 2 + DECK_COUNT_OFFSET_Y;
     const deckHovered = deckDropIndicatorVisible && deckDropIndicatorDeckId === deckId;
 
@@ -4057,8 +5000,12 @@ function renderDeckControls() {
     deckUi.dealOneButton.disabled = !canDealToAllPlayers;
     deckUi.dealOneButton.classList.toggle('is-disabled', !canDealToAllPlayers);
 
-    const moveControlX = auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15;
-    const moveControlY = auctionScreen.y + auctionSlotScreenHeight / 2 - controlSize / 2;
+    const moveControlX = supportsAuction
+      ? auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15
+      : deckScreen.x + cardScreenWidth / 2 + controlGap + controlSize / 2 + 15;
+    const moveControlY = supportsAuction
+      ? auctionScreen.y + auctionSlotScreenHeight / 2 - controlSize / 2
+      : deckScreen.y + cardScreenHeight / 2 - controlSize / 2;
     deckUi.moveButton.classList.remove('hidden');
     setElementStylePx(deckUi.moveButton, 'left', moveControlX);
     setElementStylePx(deckUi.moveButton, 'top', moveControlY);
@@ -4069,11 +5016,17 @@ function renderDeckControls() {
 
     deckUi.optionsButton.classList.remove('hidden');
     setElementStylePx(deckUi.optionsButton, 'left', moveControlX);
-    setElementStylePx(deckUi.optionsButton, 'top', auctionScreen.y + auctionSlotScreenHeight / 2 - (controlSize * 1.5 + controlGap));
+    setElementStylePx(
+      deckUi.optionsButton,
+      'top',
+      supportsAuction
+        ? auctionScreen.y + auctionSlotScreenHeight / 2 - (controlSize * 1.5 + controlGap)
+        : deckScreen.y + cardScreenHeight / 2 - (controlSize * 1.5 + controlGap)
+    );
     setElementStylePx(deckUi.optionsButton, 'width', controlSize);
     setElementStylePx(deckUi.optionsButton, 'height', controlSize);
 
-    const discardResetVisible = inDiscardCount > 0;
+    const discardResetVisible = discardEnabled && inDiscardCount > 0;
     deckUi.discardResetButton.classList.toggle('hidden', !discardResetVisible);
     if (discardResetVisible) {
       setElementStylePx(deckUi.discardResetButton, 'left', discardScreen.x - cardScreenWidth / 2 - controlGap - controlSize / 2);
@@ -4083,31 +5036,46 @@ function renderDeckControls() {
     }
 
     const discardHovered = discardDropIndicatorVisible && discardDropIndicatorDeckId === deckId;
-    deckUi.discardSlot.classList.remove('hidden');
-    setElementStylePx(deckUi.discardSlot, 'left', discardScreen.x);
-    setElementStylePx(deckUi.discardSlot, 'top', discardScreen.y);
-    setElementStylePx(deckUi.discardSlot, 'width', cardScreenWidth);
-    setElementStylePx(deckUi.discardSlot, 'height', cardScreenHeight);
-    deckUi.discardSlot.classList.toggle('is-empty', inDiscardCount === 0);
-    deckUi.discardSlot.classList.toggle('is-hovered', discardHovered);
-    deckUi.discardLabel.classList.toggle('hidden', inDiscardCount > 0);
+    if (discardEnabled) {
+      deckUi.discardSlot.classList.remove('hidden');
+      setElementStylePx(deckUi.discardSlot, 'left', discardScreen.x);
+      setElementStylePx(deckUi.discardSlot, 'top', discardScreen.y);
+      setElementStylePx(deckUi.discardSlot, 'width', cardScreenWidth);
+      setElementStylePx(deckUi.discardSlot, 'height', cardScreenHeight);
+      deckUi.discardSlot.classList.toggle('is-empty', inDiscardCount === 0);
+      deckUi.discardSlot.classList.toggle('is-hovered', discardHovered);
+      deckUi.discardLabel.classList.toggle('hidden', inDiscardCount > 0);
+    } else {
+      deckUi.discardSlot.classList.add('hidden');
+      deckUi.discardSlot.classList.remove('is-empty');
+      deckUi.discardSlot.classList.remove('is-hovered');
+      deckUi.discardLabel.classList.add('hidden');
+    }
 
-    const auctionHovered = auctionDropIndicatorVisible && auctionDropIndicatorDeckId === deckId;
-    deckUi.auctionSlot.classList.remove('hidden');
-    setElementStylePx(deckUi.auctionSlot, 'left', auctionScreen.x);
-    setElementStylePx(deckUi.auctionSlot, 'top', auctionScreen.y);
-    setElementStylePx(deckUi.auctionSlot, 'width', auctionSlotScreenWidth);
-    setElementStylePx(deckUi.auctionSlot, 'height', auctionSlotScreenHeight);
-    setElementStyleCustomProperty(
-      deckUi.auctionSlot,
-      '--auction-icon-occupied-top',
-      `${auctionSlotScreenHeight / 2 + auctionCardScreenHeight / 2 + DECK_COUNT_OFFSET_Y}px`
-    );
-    setElementStyleCustomProperty(deckUi.auctionSlot, '--auction-icon-occupied-size', `${auctionIconOccupiedSize}px`);
-    deckUi.auctionSlot.classList.toggle('is-empty', inAuctionCount === 0);
-    deckUi.auctionSlot.classList.toggle('is-hovered', auctionHovered);
-    deckUi.auctionSlot.classList.toggle('is-occupied', inAuctionCount > 0);
-    deckUi.auctionLabel.classList.remove('hidden');
+    if (supportsAuction && auctionScreen) {
+      const auctionHovered = auctionDropIndicatorVisible && auctionDropIndicatorDeckId === deckId;
+      deckUi.auctionSlot.classList.remove('hidden');
+      setElementStylePx(deckUi.auctionSlot, 'left', auctionScreen.x);
+      setElementStylePx(deckUi.auctionSlot, 'top', auctionScreen.y);
+      setElementStylePx(deckUi.auctionSlot, 'width', auctionSlotScreenWidth);
+      setElementStylePx(deckUi.auctionSlot, 'height', auctionSlotScreenHeight);
+      setElementStyleCustomProperty(
+        deckUi.auctionSlot,
+        '--auction-icon-occupied-top',
+        `${auctionSlotScreenHeight / 2 + auctionCardScreenHeight / 2 + DECK_COUNT_OFFSET_Y}px`
+      );
+      setElementStyleCustomProperty(deckUi.auctionSlot, '--auction-icon-occupied-size', `${auctionIconOccupiedSize}px`);
+      deckUi.auctionSlot.classList.toggle('is-empty', inAuctionCount === 0);
+      deckUi.auctionSlot.classList.toggle('is-hovered', auctionHovered);
+      deckUi.auctionSlot.classList.toggle('is-occupied', inAuctionCount > 0);
+      deckUi.auctionLabel.classList.remove('hidden');
+    } else {
+      deckUi.auctionSlot.classList.add('hidden');
+      deckUi.auctionSlot.classList.remove('is-empty');
+      deckUi.auctionSlot.classList.remove('is-hovered');
+      deckUi.auctionSlot.classList.remove('is-occupied');
+      deckUi.auctionLabel.classList.add('hidden');
+    }
 
     deckUi.deckCountBadge.classList.remove('hidden');
     setElementStylePx(deckUi.deckCountBadge, 'left', deckScreen.x);
@@ -4156,10 +5124,10 @@ function renderDeckControls() {
   const deckDropTargetScreen = deckDropTargetState
     ? worldToScreen({ x: deckDropTargetState.x, y: deckDropTargetState.y })
     : null;
-  const discardDropTargetScreen = discardDropIndicatorDeckId
+  const discardDropTargetScreen = discardDropIndicatorDeckId && isDeckDiscardEnabled(discardDropIndicatorDeckId)
     ? worldToScreen(getDiscardCenterPosition(discardDropIndicatorDeckId))
     : null;
-  const auctionDropTargetScreen = auctionDropIndicatorDeckId
+  const auctionDropTargetScreen = auctionDropIndicatorDeckId && deckSupportsAuction(auctionDropIndicatorDeckId)
     ? worldToScreen(getAuctionCenterPosition(auctionDropIndicatorDeckId))
     : null;
 
@@ -4730,13 +5698,13 @@ function renderTaflSideClaimsList(listElement, claims, side, claimButton = null)
   for (const entry of sideClaims) {
     const display = resolveTaflClaimDisplay(entry);
     const row = document.createElement('div');
-    row.className = 'tafl-side-claim-row';
+    row.className = 'mons-side-claim-row';
     const dot = document.createElement('span');
-    dot.className = 'tafl-side-claim-dot';
+    dot.className = 'mons-side-claim-dot';
     dot.style.background = display.color;
     row.appendChild(dot);
     const name = document.createElement('span');
-    name.className = 'tafl-side-claim-name';
+    name.className = 'mons-side-claim-name';
     name.textContent = display.name;
     name.style.color = display.color;
     row.appendChild(name);
@@ -5580,6 +6548,12 @@ function refreshTaflClaimLabelsOnly() {
   for (const [gameId, taflUi] of taflBoardElementsById.entries()) {
     const gameState = getTaflGameStateById(gameId);
     if (!gameState || gameState.enabled === false) {
+      if (taflUi?.attackerClaimsList) {
+        taflUi.attackerClaimsList.classList.add('hidden');
+      }
+      if (taflUi?.defenderClaimsList) {
+        taflUi.defenderClaimsList.classList.add('hidden');
+      }
       continue;
     }
     renderTaflSideClaimsList(
@@ -5593,6 +6567,57 @@ function refreshTaflClaimLabelsOnly() {
       gameState.claims?.defender,
       'defender',
       taflUi?.defenderClaimButton
+    );
+    const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
+    const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
+    const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    positionMonsSideClaimsLists(
+      taflUi?.attackerClaimsList,
+      taflUi?.defenderClaimsList,
+      taflUi?.attackerClaimButton,
+      taflUi?.defenderClaimButton,
+      boardScreen,
+      boardScreenWidth,
+      boardScreenHeight
+    );
+  }
+}
+
+function refreshGoClaimLabelsOnly() {
+  for (const [gameId, goUi] of goBoardElementsById.entries()) {
+    const gameState = getGoGameStateById(gameId);
+    if (!gameState || gameState.enabled === false) {
+      if (goUi?.blackClaimsList) {
+        goUi.blackClaimsList.classList.add('hidden');
+      }
+      if (goUi?.whiteClaimsList) {
+        goUi.whiteClaimsList.classList.add('hidden');
+      }
+      continue;
+    }
+    renderGoSideClaimsList(
+      goUi?.blackClaimsList,
+      gameState.claims?.black,
+      'black',
+      goUi?.blackClaimButton
+    );
+    renderGoSideClaimsList(
+      goUi?.whiteClaimsList,
+      gameState.claims?.white,
+      'white',
+      goUi?.whiteClaimButton
+    );
+    const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
+    const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
+    const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    positionMonsSideClaimsLists(
+      goUi?.blackClaimsList,
+      goUi?.whiteClaimsList,
+      goUi?.blackClaimButton,
+      goUi?.whiteClaimButton,
+      boardScreen,
+      boardScreenWidth,
+      boardScreenHeight
     );
   }
 }
@@ -7140,6 +8165,8 @@ function removeTaflBoardUi(taflUi) {
   taflUi.shell?.remove();
   taflUi.moveButton?.remove();
   taflUi.optionsButton?.remove();
+  taflUi.attackerClaimsList?.remove();
+  taflUi.defenderClaimsList?.remove();
 }
 
 function removeTaflBoardElements() {
@@ -7189,6 +8216,16 @@ function ensureTaflBoardUi(gameId) {
     taflUi?.winButton?.isConnected &&
     taflUi?.winClash?.isConnected
   ) {
+    taflUi.attackerClaimsList?.classList.add('mons-side-claims', 'mons-side-claims-black');
+    taflUi.attackerClaimsList?.classList.remove('tafl-side-claims', 'tafl-side-claims-attacker', 'tafl-side-claims-defender');
+    taflUi.defenderClaimsList?.classList.add('mons-side-claims', 'mons-side-claims-white');
+    taflUi.defenderClaimsList?.classList.remove('tafl-side-claims', 'tafl-side-claims-attacker', 'tafl-side-claims-defender');
+    if (taflUi.attackerClaimsList?.parentElement !== tableRoot) {
+      tableRoot?.appendChild(taflUi.attackerClaimsList);
+    }
+    if (taflUi.defenderClaimsList?.parentElement !== tableRoot) {
+      tableRoot?.appendChild(taflUi.defenderClaimsList);
+    }
     return taflUi;
   }
 
@@ -7324,9 +8361,8 @@ function ensureTaflBoardUi(gameId) {
   defenderClaimButton.appendChild(defenderAvatar);
   defenderButtonWrap.appendChild(defenderClaimButton);
   const defenderClaimsList = document.createElement('div');
-  defenderClaimsList.className = 'tafl-side-claims tafl-side-claims-defender is-empty';
+  defenderClaimsList.className = 'mons-side-claims mons-side-claims-white is-empty hidden';
   defenderCluster.appendChild(defenderButtonWrap);
-  defenderCluster.appendChild(defenderClaimsList);
 
   const centerCluster = document.createElement('div');
   centerCluster.className = 'mons-hud-center tafl-hud-center';
@@ -7380,9 +8416,8 @@ function ensureTaflBoardUi(gameId) {
   attackerClaimButton.appendChild(attackerAvatar);
   attackerButtonWrap.appendChild(attackerClaimButton);
   const attackerClaimsList = document.createElement('div');
-  attackerClaimsList.className = 'tafl-side-claims tafl-side-claims-attacker is-empty';
+  attackerClaimsList.className = 'mons-side-claims mons-side-claims-black is-empty hidden';
   attackerCluster.appendChild(attackerButtonWrap);
-  attackerCluster.appendChild(attackerClaimsList);
 
   hud.appendChild(defenderCluster);
   hud.appendChild(centerCluster);
@@ -7478,6 +8513,8 @@ function ensureTaflBoardUi(gameId) {
   });
   shieldPointerEvents(optionsButton);
   tableRoot.appendChild(optionsButton);
+  tableRoot.appendChild(attackerClaimsList);
+  tableRoot.appendChild(defenderClaimsList);
 
   taflUi = {
     gameId: normalizedGameId,
@@ -8299,6 +9336,15 @@ function renderTaflBoards() {
       boardScreenWidth,
       boardScreenHeight
     );
+    positionMonsSideClaimsLists(
+      taflUi.attackerClaimsList,
+      taflUi.defenderClaimsList,
+      taflUi.attackerClaimButton,
+      taflUi.defenderClaimButton,
+      boardScreen,
+      boardScreenWidth,
+      boardScreenHeight
+    );
 
     const moveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
     const moveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
@@ -8336,6 +9382,1010 @@ function renderTaflBoards() {
     taflBoardElementsById.delete(gameId);
     lastRenderedTaflMoveTickById.delete(normalizeTaflGameId(gameId));
     lastRenderedTaflWinnerById.delete(normalizeTaflGameId(gameId));
+  }
+}
+
+function getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const gridLeft = boardScreenWidth * GO_GRID_LEFT_RATIO;
+  const gridTop = boardRenderHeight * GO_GRID_TOP_RATIO;
+  const gridWidth = boardScreenWidth * GO_GRID_WIDTH_RATIO;
+  const gridHeight = boardRenderHeight * GO_GRID_HEIGHT_RATIO;
+  const stepX = gridWidth / Math.max(1, normalizedBoardSize - 1);
+  const stepY = gridHeight / Math.max(1, normalizedBoardSize - 1);
+  return {
+    gridLeft,
+    gridTop,
+    gridWidth,
+    gridHeight,
+    stepX,
+    stepY
+  };
+}
+
+function getGoIntersectionFromLocalPoint(localX, localY, width, height, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  if (!Number.isFinite(localX) || !Number.isFinite(localY) || !width || !height) {
+    return null;
+  }
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const metrics = getGoGridMetrics(width, height, normalizedBoardSize);
+  const relCol = (localX - metrics.gridLeft) / Math.max(1, metrics.stepX);
+  const relRow = (localY - metrics.gridTop) / Math.max(1, metrics.stepY);
+  if (
+    relCol < -0.55 ||
+    relCol > normalizedBoardSize - 1 + 0.55 ||
+    relRow < -0.55 ||
+    relRow > normalizedBoardSize - 1 + 0.55
+  ) {
+    return null;
+  }
+  const col = clamp(Math.round(relCol), 0, normalizedBoardSize - 1);
+  const row = clamp(Math.round(relRow), 0, normalizedBoardSize - 1);
+  return { row, col };
+}
+
+function renderGoSideClaimsList(listElement, claims, side, claimButton = null) {
+  if (!(listElement instanceof HTMLElement)) {
+    return;
+  }
+  listElement.textContent = '';
+  const normalizedClaims = normalizeTaflSideClaimsPayload(claims);
+  const fragment = document.createDocumentFragment();
+  for (const entry of normalizedClaims) {
+    const display = resolveTaflClaimDisplay(entry);
+    const row = document.createElement('div');
+    row.className = 'mons-side-claim-row';
+    const dot = document.createElement('span');
+    dot.className = 'mons-side-claim-dot';
+    dot.style.backgroundColor = display.color;
+    const name = document.createElement('span');
+    name.className = 'mons-side-claim-name';
+    name.textContent = display.name;
+    name.style.color = display.color;
+    row.appendChild(dot);
+    row.appendChild(name);
+    fragment.appendChild(row);
+  }
+  if (normalizedClaims.length > 0) {
+    listElement.appendChild(fragment);
+  }
+  listElement.classList.toggle('is-empty', normalizedClaims.length === 0);
+  if (claimButton instanceof HTMLElement && localPlayerToken) {
+    claimButton.classList.toggle(
+      'is-selected',
+      normalizedClaims.some((entry) => entry.token === localPlayerToken)
+    );
+  }
+  if (claimButton instanceof HTMLElement) {
+    claimButton.classList.toggle('is-claimed', normalizedClaims.length > 0);
+  }
+  listElement.classList.toggle('mons-side-claims-black', side === 'black');
+  listElement.classList.toggle('mons-side-claims-white', side === 'white');
+}
+
+function clearGoHoverIntersection(gameId) {
+  const normalizedGameId = normalizeGoGameId(gameId || activeGoGameId);
+  if (!goHoverByGameId.has(normalizedGameId)) {
+    return;
+  }
+  goHoverByGameId.delete(normalizedGameId);
+  renderGoBoards();
+}
+
+function setGoHoverIntersection(gameId, row, col, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  const normalizedGameId = normalizeGoGameId(gameId || activeGoGameId);
+  if (!Number.isFinite(row) || !Number.isFinite(col)) {
+    clearGoHoverIntersection(normalizedGameId);
+    return;
+  }
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const nextRow = clamp(Math.round(row), 0, normalizedBoardSize - 1);
+  const nextCol = clamp(Math.round(col), 0, normalizedBoardSize - 1);
+  const previous = goHoverByGameId.get(normalizedGameId);
+  if (previous && previous.row === nextRow && previous.col === nextCol) {
+    return;
+  }
+  goHoverByGameId.set(normalizedGameId, { row: nextRow, col: nextCol });
+  renderGoBoards();
+}
+
+function removeGoBoardUi(goUi) {
+  if (!goUi || typeof goUi !== 'object') {
+    return;
+  }
+  const normalizedGameId = normalizeGoGameId(goUi.gameId);
+  lastRenderedGoMoveTickById.delete(normalizedGameId);
+  goPlacementPulseByGameId.delete(normalizedGameId);
+  goHoverByGameId.delete(normalizedGameId);
+  goUi.shell?.remove();
+  goUi.moveButton?.remove();
+  goUi.optionsButton?.remove();
+  goUi.blackClaimsList?.remove();
+  goUi.whiteClaimsList?.remove();
+}
+
+function removeGoBoardElements() {
+  for (const goUi of goBoardElementsById.values()) {
+    removeGoBoardUi(goUi);
+  }
+  goBoardElementsById.clear();
+  goHoverByGameId.clear();
+  lastRenderedGoMoveTickById.clear();
+  goPlacementPulseByGameId.clear();
+  if (activeGameOptionsTarget.startsWith('go:')) {
+    closeGameOptionsMenu();
+  }
+}
+
+function ensureGoBoardUi(gameId, boardSize = GO_BOARD_SIZE_DEFAULT) {
+  if (!tableRoot || !gameLayer) {
+    return null;
+  }
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const normalizedBoardSize = normalizeGoBoardSize(boardSize);
+  const starPoints = getGoStarPointCoords(normalizedBoardSize);
+  let goUi = goBoardElementsById.get(normalizedGameId) || null;
+  if (
+    goUi?.shell?.isConnected &&
+    goUi?.boardSize === normalizedBoardSize &&
+    goUi?.boardSurface?.isConnected &&
+    goUi?.boardOverlay?.isConnected &&
+    goUi?.gridLayer?.isConnected &&
+    goUi?.coordinateLayer?.isConnected &&
+    Array.isArray(goUi?.coordinateColLabels) &&
+    goUi.coordinateColLabels.length === normalizedBoardSize &&
+    goUi.coordinateColLabels.every((label) => label?.isConnected) &&
+    Array.isArray(goUi?.coordinateRowLabels) &&
+    goUi.coordinateRowLabels.length === normalizedBoardSize &&
+    goUi.coordinateRowLabels.every((label) => label?.isConnected) &&
+    Array.isArray(goUi?.starPointNodes) &&
+    goUi.starPointNodes.length === starPoints.length &&
+    goUi.starPointNodes.every((dot) => dot?.isConnected) &&
+    goUi?.hintLayer?.isConnected &&
+    goUi?.fxLayer?.isConnected &&
+    goUi?.stoneLayer?.isConnected &&
+    goUi?.hud?.isConnected &&
+    goUi?.blackClaimButton?.isConnected &&
+    goUi?.whiteClaimButton?.isConnected &&
+    goUi?.blackClaimsList?.isConnected &&
+    goUi?.whiteClaimsList?.isConnected &&
+    goUi?.blackScore?.isConnected &&
+    goUi?.whiteScore?.isConnected &&
+    goUi?.undoButton?.isConnected &&
+    goUi?.passButton?.isConnected &&
+    goUi?.statusLabel?.isConnected &&
+    goUi?.winOverlay?.isConnected &&
+    goUi?.winDialog?.isConnected &&
+    goUi?.winTitle?.isConnected &&
+    goUi?.winScore?.isConnected &&
+    goUi?.winButton?.isConnected &&
+    goUi?.moveButton?.isConnected &&
+    goUi?.optionsButton?.isConnected
+  ) {
+    goUi.blackClaimsList?.classList.add('mons-side-claims', 'mons-side-claims-black');
+    goUi.blackClaimsList?.classList.remove('tafl-side-claims', 'tafl-side-claims-attacker', 'tafl-side-claims-defender');
+    goUi.whiteClaimsList?.classList.add('mons-side-claims', 'mons-side-claims-white');
+    goUi.whiteClaimsList?.classList.remove('tafl-side-claims', 'tafl-side-claims-attacker', 'tafl-side-claims-defender');
+    if (goUi.blackClaimsList?.parentElement !== tableRoot) {
+      tableRoot?.appendChild(goUi.blackClaimsList);
+    }
+    if (goUi.whiteClaimsList?.parentElement !== tableRoot) {
+      tableRoot?.appendChild(goUi.whiteClaimsList);
+    }
+    return goUi;
+  }
+
+  removeGoBoardUi(goUi);
+
+  const shell = document.createElement('div');
+  shell.className = 'mons-game-shell tafl-game-shell go-game-shell hidden';
+  shell.dataset.goGameId = normalizedGameId;
+  shell.dataset.drawPassthrough = 'true';
+  shell.setAttribute('aria-label', 'Go board');
+  shieldPointerEvents(shell, { allowDrawPassthrough: true, allowMiddleMousePan: true });
+  shell.addEventListener('pointerdown', (event) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteGoGameInRemoveMode(normalizedGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (normalizeGoGameId(activeGoGameId) === normalizedGameId) {
+      return;
+    }
+    setActiveGoGameId(normalizedGameId);
+    renderGoBoards();
+  });
+
+  const boardSurface = document.createElement('div');
+  boardSurface.className = 'go-board-surface';
+  shell.appendChild(boardSurface);
+
+  const boardOverlay = document.createElement('div');
+  boardOverlay.className = 'go-board-overlay';
+  shieldPointerEvents(boardOverlay, { allowDrawPassthrough: true, allowMiddleMousePan: true });
+  boardOverlay.addEventListener('pointerdown', (event) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteGoGameInRemoveMode(normalizedGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    const rect = boardOverlay.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const boardState = getGoGameStateById(normalizedGameId);
+    const boardStateSize = normalizeGoBoardSize(boardState?.boardSize);
+    const intersection = getGoIntersectionFromLocalPoint(localX, localY, rect.width, rect.height, boardStateSize);
+    if (!intersection) {
+      return;
+    }
+    onGoBoardIntersectionPointerDown(event, intersection.row, intersection.col, normalizedGameId);
+  });
+  boardOverlay.addEventListener('pointermove', (event) => {
+    if (drawModeEnabled || deleteModeEnabled) {
+      clearGoHoverIntersection(normalizedGameId);
+      return;
+    }
+    const rect = boardOverlay.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      clearGoHoverIntersection(normalizedGameId);
+      return;
+    }
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    const boardState = getGoGameStateById(normalizedGameId);
+    const boardStateSize = normalizeGoBoardSize(boardState?.boardSize);
+    const intersection = getGoIntersectionFromLocalPoint(localX, localY, rect.width, rect.height, boardStateSize);
+    if (!intersection) {
+      clearGoHoverIntersection(normalizedGameId);
+      return;
+    }
+    setGoHoverIntersection(normalizedGameId, intersection.row, intersection.col, boardStateSize);
+  });
+  boardOverlay.addEventListener('pointerleave', () => {
+    clearGoHoverIntersection(normalizedGameId);
+  });
+  boardSurface.appendChild(boardOverlay);
+
+  const gridLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  gridLayer.classList.add('go-grid-layer');
+  gridLayer.setAttribute('aria-hidden', 'true');
+  gridLayer.setAttribute('focusable', 'false');
+  boardOverlay.appendChild(gridLayer);
+
+  const verticalLines = [];
+  const horizontalLines = [];
+  for (let index = 0; index < normalizedBoardSize; index += 1) {
+    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    vLine.classList.add('go-grid-line');
+    gridLayer.appendChild(vLine);
+    verticalLines.push(vLine);
+    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hLine.classList.add('go-grid-line');
+    gridLayer.appendChild(hLine);
+    horizontalLines.push(hLine);
+  }
+
+  const starPointNodes = [];
+  for (let index = 0; index < starPoints.length; index += 1) {
+    const starPoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    starPoint.classList.add('go-star-point');
+    gridLayer.appendChild(starPoint);
+    starPointNodes.push(starPoint);
+  }
+
+  const coordinateLayer = document.createElement('div');
+  coordinateLayer.className = 'go-coordinate-layer';
+  const coordinateColLabels = [];
+  const coordinateRowLabels = [];
+  for (let col = 0; col < normalizedBoardSize; col += 1) {
+    const label = document.createElement('span');
+    label.className = 'go-board-coordinate go-board-coordinate-col';
+    label.setAttribute('data-go-axis', 'col');
+    label.setAttribute('data-go-index', String(col));
+    label.textContent = getGoColumnLabelText(col, normalizedBoardSize);
+    coordinateLayer.appendChild(label);
+    coordinateColLabels.push(label);
+  }
+  for (let row = 0; row < normalizedBoardSize; row += 1) {
+    const label = document.createElement('span');
+    label.className = 'go-board-coordinate go-board-coordinate-row';
+    label.setAttribute('data-go-axis', 'row');
+    label.setAttribute('data-go-index', String(row));
+    label.textContent = getGoRowLabelText(row, normalizedBoardSize);
+    coordinateLayer.appendChild(label);
+    coordinateRowLabels.push(label);
+  }
+  boardOverlay.appendChild(coordinateLayer);
+
+  const hintLayer = document.createElement('div');
+  hintLayer.className = 'go-hint-layer';
+  boardOverlay.appendChild(hintLayer);
+
+  const fxLayer = document.createElement('div');
+  fxLayer.className = 'go-fx-layer';
+  boardOverlay.appendChild(fxLayer);
+
+  const stoneLayer = document.createElement('div');
+  stoneLayer.className = 'go-stone-layer';
+  boardOverlay.appendChild(stoneLayer);
+
+  const hud = document.createElement('div');
+  hud.className = 'mons-hud go-hud';
+  shell.appendChild(hud);
+
+  const blackCluster = document.createElement('div');
+  blackCluster.className = 'mons-hud-player mons-hud-player-black go-hud-side';
+  const blackButtonWrap = document.createElement('span');
+  blackButtonWrap.className = 'mons-hud-avatar-wrap';
+  const blackClaimButton = document.createElement('button');
+  blackClaimButton.type = 'button';
+  blackClaimButton.className = 'mons-hud-avatar-button tafl-side-claim-button go-side-claim-button';
+  blackClaimButton.dataset.goSide = 'black';
+  blackClaimButton.addEventListener('click', (event) => {
+    onGoSideClaimClick(event, 'black', normalizedGameId);
+  });
+  shieldPointerEvents(blackClaimButton);
+  const blackIcon = document.createElement('span');
+  blackIcon.className = 'go-hud-stone-icon go-hud-stone-icon-black';
+  blackClaimButton.appendChild(blackIcon);
+  blackButtonWrap.appendChild(blackClaimButton);
+  const blackScore = document.createElement('span');
+  blackScore.className = 'go-hud-score';
+  blackScore.textContent = '0';
+  const blackClaimsList = document.createElement('div');
+  blackClaimsList.className = 'mons-side-claims mons-side-claims-black is-empty hidden';
+  blackCluster.appendChild(blackButtonWrap);
+  blackCluster.appendChild(blackScore);
+
+  const centerCluster = document.createElement('div');
+  centerCluster.className = 'mons-hud-center go-hud-center';
+  const undoButton = document.createElement('button');
+  undoButton.type = 'button';
+  undoButton.className = 'mons-undo-button go-undo-button';
+  undoButton.setAttribute('aria-label', 'undo last go move');
+  undoButton.innerHTML =
+    '<svg viewBox="0 0 512 512" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M125.7 160H176c17.7 0 32 14.3 32 32s-14.3 32-32 32H48c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32v51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z" fill="currentColor"/></svg>';
+  undoButton.addEventListener('click', (event) => {
+    onGoUndoButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(undoButton);
+  const passButton = document.createElement('button');
+  passButton.type = 'button';
+  passButton.className = 'mons-undo-button go-pass-button';
+  passButton.textContent = 'pass';
+  passButton.addEventListener('click', (event) => {
+    onGoPassButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(passButton);
+  const statusLabel = document.createElement('span');
+  statusLabel.className = 'go-hud-status';
+  statusLabel.textContent = '';
+  centerCluster.appendChild(undoButton);
+  centerCluster.appendChild(passButton);
+  centerCluster.appendChild(statusLabel);
+
+  const whiteCluster = document.createElement('div');
+  whiteCluster.className = 'mons-hud-player mons-hud-player-white go-hud-side';
+  const whiteButtonWrap = document.createElement('span');
+  whiteButtonWrap.className = 'mons-hud-avatar-wrap';
+  const whiteClaimButton = document.createElement('button');
+  whiteClaimButton.type = 'button';
+  whiteClaimButton.className = 'mons-hud-avatar-button tafl-side-claim-button go-side-claim-button';
+  whiteClaimButton.dataset.goSide = 'white';
+  whiteClaimButton.addEventListener('click', (event) => {
+    onGoSideClaimClick(event, 'white', normalizedGameId);
+  });
+  shieldPointerEvents(whiteClaimButton);
+  const whiteIcon = document.createElement('span');
+  whiteIcon.className = 'go-hud-stone-icon go-hud-stone-icon-white';
+  whiteClaimButton.appendChild(whiteIcon);
+  whiteButtonWrap.appendChild(whiteClaimButton);
+  const whiteScore = document.createElement('span');
+  whiteScore.className = 'go-hud-score';
+  whiteScore.textContent = '0';
+  const whiteClaimsList = document.createElement('div');
+  whiteClaimsList.className = 'mons-side-claims mons-side-claims-white is-empty hidden';
+  whiteCluster.appendChild(whiteScore);
+  whiteCluster.appendChild(whiteButtonWrap);
+
+  hud.appendChild(blackCluster);
+  hud.appendChild(centerCluster);
+  hud.appendChild(whiteCluster);
+
+  const winOverlay = document.createElement('div');
+  winOverlay.className = 'go-win-overlay';
+  winOverlay.setAttribute('aria-hidden', 'true');
+  const winDialog = document.createElement('div');
+  winDialog.className = 'go-win-dialog';
+  const winTitle = document.createElement('div');
+  winTitle.className = 'go-win-title';
+  const winScore = document.createElement('div');
+  winScore.className = 'go-win-score';
+  const winButton = document.createElement('button');
+  winButton.type = 'button';
+  winButton.className = 'tafl-win-button go-win-button';
+  winButton.textContent = 'play again';
+  winButton.addEventListener('click', (event) => {
+    onGoWinResetButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(winButton);
+  winDialog.appendChild(winTitle);
+  winDialog.appendChild(winScore);
+  winDialog.appendChild(winButton);
+  winOverlay.appendChild(winDialog);
+  shell.appendChild(winOverlay);
+
+  gameLayer.appendChild(shell);
+
+  const moveButton = document.createElement('button');
+  moveButton.type = 'button';
+  moveButton.className = 'deck-control-button deck-move-button mons-move-button go-move-button hidden';
+  moveButton.dataset.stackScope = 'go';
+  moveButton.dataset.goGameId = normalizedGameId;
+  moveButton.setAttribute('aria-label', 'move go board');
+  moveButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  moveButton.addEventListener('pointerdown', (event) => {
+    onGoMovePointerDown(event, normalizedGameId);
+  });
+  shieldPointerEvents(moveButton);
+  tableRoot.appendChild(moveButton);
+
+  const optionsButton = document.createElement('button');
+  optionsButton.type = 'button';
+  optionsButton.className = 'deck-control-button deck-options-button mons-options-button go-options-button hidden';
+  optionsButton.dataset.stackScope = 'go';
+  optionsButton.dataset.goGameId = normalizedGameId;
+  optionsButton.setAttribute('aria-label', 'go options');
+  optionsButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="6.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17.5" cy="12" r="1.7"/></svg>';
+  optionsButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
+    openGameOptionsMenu(GO_GAME_KEY, normalizedGameId);
+  });
+  shieldPointerEvents(optionsButton);
+  tableRoot.appendChild(optionsButton);
+  tableRoot.appendChild(blackClaimsList);
+  tableRoot.appendChild(whiteClaimsList);
+
+  goUi = {
+    gameId: normalizedGameId,
+    boardSize: normalizedBoardSize,
+    shell,
+    boardSurface,
+    boardOverlay,
+    gridLayer,
+    verticalLines,
+    horizontalLines,
+    starPointNodes,
+    coordinateLayer,
+    coordinateColLabels,
+    coordinateRowLabels,
+    hintLayer,
+    fxLayer,
+    stoneLayer,
+    hud,
+    blackClaimButton,
+    whiteClaimButton,
+    blackClaimsList,
+    whiteClaimsList,
+    blackScore,
+    whiteScore,
+    undoButton,
+    passButton,
+    statusLabel,
+    winOverlay,
+    winDialog,
+    winTitle,
+    winScore,
+    winButton,
+    moveButton,
+    optionsButton
+  };
+  goBoardElementsById.set(normalizedGameId, goUi);
+  return goUi;
+}
+
+function setGoBoardDragFloating(gameId, shouldFloat) {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const goUi = ensureGoBoardUi(normalizedGameId, getGoGameStateById(normalizedGameId)?.boardSize);
+  if (!goUi?.shell) {
+    return;
+  }
+  const shouldCoverDrawings = isGoCoverDrawingsEnabled(normalizedGameId);
+  if (shouldFloat) {
+    if (goUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(goUi.shell);
+    }
+    goUi.shell.classList.toggle('is-cover-drawings', shouldCoverDrawings);
+    goUi.shell.classList.add('is-drag-floating');
+    return;
+  }
+  if (shouldCoverDrawings) {
+    if (goUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(goUi.shell);
+    }
+    goUi.shell.classList.add('is-cover-drawings');
+  } else {
+    if (goUi.shell.parentElement !== gameLayer) {
+      gameLayer.appendChild(goUi.shell);
+    }
+    goUi.shell.classList.remove('is-cover-drawings');
+  }
+  goUi.shell.classList.remove('is-drag-floating');
+}
+
+function renderGoWinOverlayForBoard(goUi, gameState, boardScreenWidth) {
+  const winOverlay = goUi?.winOverlay;
+  const winDialog = goUi?.winDialog;
+  const winTitle = goUi?.winTitle;
+  const winScore = goUi?.winScore;
+  if (
+    !(winOverlay instanceof HTMLElement) ||
+    !(winDialog instanceof HTMLElement) ||
+    !(winTitle instanceof HTMLElement) ||
+    !(winScore instanceof HTMLElement)
+  ) {
+    return;
+  }
+  const stableWidth = snapToDevicePixel(clamp(boardScreenWidth - 18, 180, 300), 180);
+  setElementStylePx(winDialog, 'width', stableWidth);
+  setElementStylePx(winDialog, 'maxWidth', stableWidth);
+  const winner = normalizeGoWinnerColor(gameState?.winner);
+  if (!winner) {
+    winOverlay.classList.remove('is-visible');
+    winOverlay.setAttribute('aria-hidden', 'true');
+    winTitle.textContent = '';
+    winScore.textContent = '';
+    return;
+  }
+  const score = normalizeGoScorePayload(gameState?.score);
+  if (winner === 'black') {
+    winTitle.textContent = 'BLACK WINS';
+  } else if (winner === 'white') {
+    winTitle.textContent = 'WHITE WINS';
+  } else {
+    winTitle.textContent = 'DRAW';
+  }
+  if (score) {
+    winScore.textContent = `B ${score.blackTotal} • W ${score.whiteTotal}`;
+  } else {
+    winScore.textContent = '';
+  }
+  winOverlay.classList.add('is-visible');
+  winOverlay.setAttribute('aria-hidden', 'false');
+}
+
+function renderGoHudForBoard(goUi, gameState, boardScreenWidth, boardScreenHeight) {
+  const hud = goUi?.hud;
+  const blackClaimButton = goUi?.blackClaimButton;
+  const whiteClaimButton = goUi?.whiteClaimButton;
+  const blackClaimsList = goUi?.blackClaimsList;
+  const whiteClaimsList = goUi?.whiteClaimsList;
+  const blackScore = goUi?.blackScore;
+  const whiteScore = goUi?.whiteScore;
+  const undoButton = goUi?.undoButton;
+  const passButton = goUi?.passButton;
+  const statusLabel = goUi?.statusLabel;
+  if (
+    !(hud instanceof HTMLElement) ||
+    !(blackClaimButton instanceof HTMLButtonElement) ||
+    !(whiteClaimButton instanceof HTMLButtonElement) ||
+    !(blackClaimsList instanceof HTMLElement) ||
+    !(whiteClaimsList instanceof HTMLElement) ||
+    !(blackScore instanceof HTMLElement) ||
+    !(whiteScore instanceof HTMLElement) ||
+    !(undoButton instanceof HTMLButtonElement) ||
+    !(passButton instanceof HTMLButtonElement) ||
+    !(statusLabel instanceof HTMLElement)
+  ) {
+    return TAFL_HUD_MIN_HEIGHT;
+  }
+  const hudHeight = snapToDevicePixel(
+    Math.max(
+      TAFL_HUD_MIN_HEIGHT,
+      boardScreenHeight - boardScreenWidth,
+      boardScreenHeight * TAFL_HUD_HEIGHT_RATIO
+    ),
+    TAFL_HUD_MIN_HEIGHT
+  );
+  setElementStylePx(hud, 'width', boardScreenWidth);
+  setElementStylePx(hud, 'height', hudHeight);
+  const sideIconSize = 26;
+  setElementStylePx(blackClaimButton, 'width', sideIconSize);
+  setElementStylePx(blackClaimButton, 'height', sideIconSize);
+  setElementStylePx(whiteClaimButton, 'width', sideIconSize);
+  setElementStylePx(whiteClaimButton, 'height', sideIconSize);
+
+  const captures = normalizeGoCapturesPayload(gameState?.captures);
+  blackScore.textContent = String(captures.black);
+  whiteScore.textContent = String(captures.white);
+  renderGoSideClaimsList(blackClaimsList, gameState?.claims?.black, 'black', blackClaimButton);
+  renderGoSideClaimsList(whiteClaimsList, gameState?.claims?.white, 'white', whiteClaimButton);
+
+  const undoHistory = normalizeGoUndoHistoryPayload(gameState?.undoHistory);
+  const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
+  const canUndo = Boolean(topUndoEntry) && canCurrentPlayerUndoGoEntry(topUndoEntry);
+  const showUndoAtZoom = shouldShowMonsHudPotions(boardScreenWidth);
+  undoButton.classList.toggle('hidden', !showUndoAtZoom);
+  undoButton.disabled = !canUndo;
+  undoButton.classList.toggle('is-disabled', !canUndo);
+
+  const winner = normalizeGoWinnerColor(gameState?.winner);
+  const turn = normalizeGoStoneColor(gameState?.turn) || 'black';
+  blackClaimButton.classList.toggle('is-active-turn', !winner && turn === 'black');
+  whiteClaimButton.classList.toggle('is-active-turn', !winner && turn === 'white');
+  const canPass = !winner && canCurrentPlayerControlGoColorFromPayload(gameState, turn);
+  passButton.classList.toggle('hidden', !showUndoAtZoom);
+  passButton.disabled = !canPass;
+  passButton.classList.toggle('is-disabled', !canPass);
+  statusLabel.textContent = '';
+  statusLabel.classList.add('hidden');
+  return hudHeight;
+}
+
+function renderGoCoordinatesForBoard(goUi, gameState, boardScreenWidth, boardRenderHeight) {
+  const coordinateLayer = goUi?.coordinateLayer;
+  const coordinateColLabels = Array.isArray(goUi?.coordinateColLabels) ? goUi.coordinateColLabels : [];
+  const coordinateRowLabels = Array.isArray(goUi?.coordinateRowLabels) ? goUi.coordinateRowLabels : [];
+  const boardSize = normalizeGoBoardSize(gameState?.boardSize);
+  if (!(coordinateLayer instanceof HTMLElement)) {
+    return;
+  }
+  const shouldShowCoordinates = gameState?.showCoordinates !== false;
+  coordinateLayer.classList.toggle('hidden', !shouldShowCoordinates);
+  if (!shouldShowCoordinates) {
+    return;
+  }
+  const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
+  const labelFontSize = Math.max(1, Math.min(metrics.stepX, metrics.stepY) * 0.24);
+  const leftOffset = metrics.stepX * 0.62;
+  const topOffset = metrics.stepY * 0.58;
+  coordinateLayer.style.setProperty('--go-coordinate-font-size', `${labelFontSize}px`);
+  for (let col = 0; col < boardSize; col += 1) {
+    const label = coordinateColLabels[col];
+    if (!(label instanceof HTMLElement)) {
+      continue;
+    }
+    const left = metrics.gridLeft + col * metrics.stepX;
+    const top = metrics.gridTop - topOffset;
+    label.textContent = getGoColumnLabelText(col, boardSize);
+    label.style.left = `${left.toFixed(3)}px`;
+    label.style.top = `${top.toFixed(3)}px`;
+  }
+  for (let row = 0; row < boardSize; row += 1) {
+    const label = coordinateRowLabels[row];
+    if (!(label instanceof HTMLElement)) {
+      continue;
+    }
+    const left = metrics.gridLeft - leftOffset;
+    const top = metrics.gridTop + row * metrics.stepY;
+    label.textContent = getGoRowLabelText(row, boardSize);
+    label.style.left = `${left.toFixed(3)}px`;
+    label.style.top = `${top.toFixed(3)}px`;
+  }
+}
+
+function getGoPlacementPulse(gameId) {
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const pulse = goPlacementPulseByGameId.get(normalizedGameId);
+  if (!pulse || typeof pulse !== 'object') {
+    return null;
+  }
+  const pulseKey = typeof pulse.key === 'string' ? pulse.key : '';
+  const expiresAt = Number(pulse.expiresAt);
+  const now = Date.now();
+  if (!pulseKey || !Number.isFinite(expiresAt) || expiresAt <= now) {
+    goPlacementPulseByGameId.delete(normalizedGameId);
+    return null;
+  }
+  return {
+    key: pulseKey,
+    expiresAt
+  };
+}
+
+function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boardRenderHeight) {
+  const boardSize = normalizeGoBoardSize(gameState?.boardSize);
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const moveTick = Number(gameState?.moveTick) || 0;
+  const previousMoveTick = lastRenderedGoMoveTickById.get(normalizedGameId);
+  if (previousMoveTick === moveTick) {
+    return;
+  }
+  lastRenderedGoMoveTickById.set(normalizedGameId, moveTick);
+  if (!Number.isFinite(previousMoveTick) || previousMoveTick <= 0 || moveTick <= 0) {
+    return;
+  }
+  const lastMove = normalizeGoLastMovePayload(gameState?.lastMove, boardSize);
+  if (!lastMove || lastMove.type !== 'place') {
+    return;
+  }
+  const placedKey = getGoBoardKey(lastMove.row, lastMove.col);
+  goPlacementPulseByGameId.set(normalizedGameId, {
+    key: placedKey,
+    expiresAt: Date.now() + GO_PLACE_PULSE_DURATION_MS
+  });
+
+  const fxLayer = goUi?.fxLayer;
+  if (!(fxLayer instanceof HTMLElement)) {
+    return;
+  }
+  const capturedSource = Array.isArray(lastMove.capturedStones) ? lastMove.capturedStones : [];
+  if (capturedSource.length === 0) {
+    return;
+  }
+
+  const fallbackCapturedColor = getOpposingGoColor(lastMove.color) || 'black';
+  const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
+  const stoneSize = Math.max(7, Math.min(metrics.stepX, metrics.stepY) * 0.9 - 1);
+  for (const capturedEntry of capturedSource) {
+    const entry = normalizeGoCapturedStoneEntryPayload(capturedEntry, fallbackCapturedColor, boardSize);
+    if (!entry) {
+      continue;
+    }
+    const burst = document.createElement('div');
+    burst.className = 'go-capture-burst';
+    const stoneX = metrics.gridLeft + entry.col * metrics.stepX;
+    const stoneY = metrics.gridTop + entry.row * metrics.stepY;
+    setElementStylePx(burst, 'left', stoneX);
+    setElementStylePx(burst, 'top', stoneY);
+    burst.style.setProperty('--go-stone-size', `${stoneSize}px`);
+
+    const ghost = document.createElement('span');
+    ghost.className = `go-stone go-stone-${entry.color} go-capture-ghost`;
+    burst.appendChild(ghost);
+
+    fxLayer.appendChild(burst);
+    window.requestAnimationFrame(() => {
+      burst.classList.add('is-active');
+    });
+    window.setTimeout(() => {
+      burst.remove();
+    }, GO_CAPTURE_FX_DURATION_MS + 260);
+  }
+}
+
+function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidth, boardRenderHeight) {
+  const gridLayer = goUi?.gridLayer;
+  const verticalLines = Array.isArray(goUi?.verticalLines) ? goUi.verticalLines : [];
+  const horizontalLines = Array.isArray(goUi?.horizontalLines) ? goUi.horizontalLines : [];
+  const starPointNodes = Array.isArray(goUi?.starPointNodes) ? goUi.starPointNodes : [];
+  const hintLayer = goUi?.hintLayer;
+  const stoneLayer = goUi?.stoneLayer;
+  const boardSize = normalizeGoBoardSize(gameState?.boardSize);
+  const starPoints = getGoStarPointCoords(boardSize);
+  if (
+    !(gridLayer instanceof SVGElement) ||
+    !(hintLayer instanceof HTMLElement) ||
+    !(stoneLayer instanceof HTMLElement)
+  ) {
+    return;
+  }
+  const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
+  gridLayer.setAttribute('viewBox', `0 0 ${boardScreenWidth} ${boardRenderHeight}`);
+  for (let index = 0; index < boardSize; index += 1) {
+    const x = metrics.gridLeft + index * metrics.stepX;
+    const y = metrics.gridTop + index * metrics.stepY;
+    const vLine = verticalLines[index];
+    if (vLine) {
+      vLine.setAttribute('x1', String(x));
+      vLine.setAttribute('x2', String(x));
+      vLine.setAttribute('y1', String(metrics.gridTop));
+      vLine.setAttribute('y2', String(metrics.gridTop + metrics.gridHeight));
+    }
+    const hLine = horizontalLines[index];
+    if (hLine) {
+      hLine.setAttribute('x1', String(metrics.gridLeft));
+      hLine.setAttribute('x2', String(metrics.gridLeft + metrics.gridWidth));
+      hLine.setAttribute('y1', String(y));
+      hLine.setAttribute('y2', String(y));
+    }
+  }
+  const starPointRadius = Math.max(1.8, Math.min(metrics.stepX, metrics.stepY) * 0.085);
+  for (let index = 0; index < starPoints.length; index += 1) {
+    const starPoint = starPoints[index];
+    const dot = starPointNodes[index];
+    if (!(dot instanceof SVGCircleElement)) {
+      continue;
+    }
+    const x = metrics.gridLeft + starPoint.col * metrics.stepX;
+    const y = metrics.gridTop + starPoint.row * metrics.stepY;
+    dot.setAttribute('cx', String(x));
+    dot.setAttribute('cy', String(y));
+    dot.setAttribute('r', String(starPointRadius));
+  }
+
+  stoneLayer.textContent = '';
+  hintLayer.textContent = '';
+  const stoneSize = Math.max(7, Math.min(metrics.stepX, metrics.stepY) * 0.9 - 1);
+  const stones = normalizeGoStonesPayload(gameState?.stones, boardSize);
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const pulse = getGoPlacementPulse(normalizedGameId);
+  const pulseStoneKey = pulse?.key || '';
+  const hover = goHoverByGameId.get(normalizedGameId);
+  const winner = normalizeGoWinnerColor(gameState?.winner);
+  const turn = normalizeGoStoneColor(gameState?.turn) || 'black';
+  const ko = normalizeGoKoPayload(gameState?.ko, boardSize);
+  let hoverPlacement = null;
+  if (
+    hover &&
+    !winner &&
+    canCurrentPlayerControlGoColorFromPayload(gameState, turn) &&
+    (!ko || ko.row !== hover.row || ko.col !== hover.col)
+  ) {
+    hoverPlacement = analyzeGoPlacementOutcome(stones, hover.row, hover.col, turn, boardSize);
+  }
+  const capturePreviewKeys = hoverPlacement?.capturedKeysSet instanceof Set ? hoverPlacement.capturedKeysSet : null;
+  for (const [key, color] of Object.entries(stones)) {
+    const position = parseGoBoardKey(key, boardSize);
+    const normalizedColor = normalizeGoStoneColor(color);
+    if (!position || !normalizedColor) {
+      continue;
+    }
+    const stone = document.createElement('span');
+    stone.className = `go-stone go-stone-${normalizedColor}`;
+    if (capturePreviewKeys?.has(key)) {
+      stone.classList.add('is-capture-preview');
+    }
+    if (pulseStoneKey && pulseStoneKey === key) {
+      stone.classList.add('is-placed-pop');
+    }
+    const x = metrics.gridLeft + position.col * metrics.stepX;
+    const y = metrics.gridTop + position.row * metrics.stepY;
+    setElementStylePx(stone, 'left', x);
+    setElementStylePx(stone, 'top', y);
+    setElementStylePx(stone, 'width', stoneSize);
+    setElementStylePx(stone, 'height', stoneSize);
+    stoneLayer.appendChild(stone);
+  }
+
+  if (!hoverPlacement || !hover) {
+    return;
+  }
+  const ghost = document.createElement('span');
+  ghost.className = `go-stone go-stone-ghost go-stone-${turn}`;
+  const hoverX = metrics.gridLeft + hover.col * metrics.stepX;
+  const hoverY = metrics.gridTop + hover.row * metrics.stepY;
+  setElementStylePx(ghost, 'left', hoverX);
+  setElementStylePx(ghost, 'top', hoverY);
+  setElementStylePx(ghost, 'width', stoneSize);
+  setElementStylePx(ghost, 'height', stoneSize);
+  hintLayer.appendChild(ghost);
+}
+
+function renderGoBoards() {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  const activeId = normalizeGoGameId(activeGoGameId);
+  const controlSize = MONS_MOVE_CONTROL_SIZE;
+  const controlGap = DECK_CONTROL_GAP;
+  const visibleIds = new Set();
+
+  for (const [gameId, gameState] of goGameStatesById.entries()) {
+    if (!gameState || gameState.enabled === false) {
+      continue;
+    }
+    const normalizedGameId = normalizeGoGameId(gameId);
+    const boardSize = normalizeGoBoardSize(gameState?.boardSize);
+    const goUi = ensureGoBoardUi(normalizedGameId, boardSize);
+    if (!goUi?.shell || !goUi.moveButton || !goUi.optionsButton) {
+      continue;
+    }
+    visibleIds.add(normalizedGameId);
+
+    const boardShouldCoverDrawings = gameState.coverDrawings === true;
+    if (goUi.shell.classList.contains('is-drag-floating')) {
+      goUi.shell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
+    } else if (boardShouldCoverDrawings) {
+      if (goUi.shell.parentElement !== tableRoot) {
+        tableRoot.appendChild(goUi.shell);
+      }
+      goUi.shell.classList.add('is-cover-drawings');
+    } else {
+      if (goUi.shell.parentElement !== gameLayer) {
+        gameLayer.appendChild(goUi.shell);
+      }
+      goUi.shell.classList.remove('is-cover-drawings');
+    }
+
+    const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
+    const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
+    const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    goUi.shell.classList.remove('hidden');
+    setElementStylePx(goUi.shell, 'left', boardScreen.x);
+    setElementStylePx(goUi.shell, 'top', boardScreen.y);
+    setElementStylePx(goUi.shell, 'width', boardScreenWidth);
+    setElementStylePx(goUi.shell, 'height', boardScreenHeight);
+    syncTaflShellHudThemeStyles(goUi);
+
+    const hudHeight = renderGoHudForBoard(goUi, gameState, boardScreenWidth, boardScreenHeight);
+    const boardRenderHeight = Math.max(1, boardScreenHeight - hudHeight);
+    goUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
+    renderGoCoordinatesForBoard(goUi, gameState, boardScreenWidth, boardRenderHeight);
+    triggerGoMoveFxForBoard(goUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
+    renderGoStonesAndHintsForBoard(goUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
+    renderGoWinOverlayForBoard(goUi, gameState, boardScreenWidth);
+    positionMonsSideClaimsLists(
+      goUi.blackClaimsList,
+      goUi.whiteClaimsList,
+      goUi.blackClaimButton,
+      goUi.whiteClaimButton,
+      boardScreen,
+      boardScreenWidth,
+      boardScreenHeight
+    );
+
+    const moveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
+    const moveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
+    goUi.moveButton.classList.remove('hidden');
+    setElementStylePx(goUi.moveButton, 'left', moveButtonX);
+    setElementStylePx(goUi.moveButton, 'top', moveButtonY);
+    setElementStylePx(goUi.moveButton, 'width', controlSize);
+    setElementStylePx(goUi.moveButton, 'height', controlSize);
+    goUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
+
+    goUi.optionsButton.classList.remove('hidden');
+    setElementStylePx(goUi.optionsButton, 'left', moveButtonX);
+    setElementStylePx(goUi.optionsButton, 'top', moveButtonY - controlSize - controlGap);
+    setElementStylePx(goUi.optionsButton, 'width', controlSize);
+    setElementStylePx(goUi.optionsButton, 'height', controlSize);
+
+    if (normalizedGameId === activeId) {
+      const shellParent = boardShouldCoverDrawings ? tableRoot : gameLayer;
+      if (goUi.shell.parentElement === shellParent) {
+        shellParent.appendChild(goUi.shell);
+      }
+      tableRoot.appendChild(goUi.optionsButton);
+      tableRoot.appendChild(goUi.moveButton);
+    }
+  }
+
+  for (const [gameId, goUi] of Array.from(goBoardElementsById.entries())) {
+    if (visibleIds.has(gameId)) {
+      continue;
+    }
+    if (activeGameOptionsTarget === `go:${gameId}`) {
+      closeGameOptionsMenu();
+    }
+    removeGoBoardUi(goUi);
+    goBoardElementsById.delete(gameId);
+    goHoverByGameId.delete(gameId);
+    lastRenderedGoMoveTickById.delete(gameId);
+    goPlacementPulseByGameId.delete(gameId);
   }
 }
 
@@ -9324,7 +11374,8 @@ function getCardBackDisplaySrc(cardState) {
     const fallbackFrontSrc = normalizeImageComponentSrc(cardState.frontSrc);
     return fallbackFrontSrc || CARD_BACK_IMAGE_SRC;
   }
-  return CARD_BACK_IMAGE_SRC;
+  const deckBackSrc = normalizeImageComponentSrc(cardState?.deckBackSrc || '');
+  return deckBackSrc || CARD_BACK_IMAGE_SRC;
 }
 
 function getImageComponentFaceBlankColor(cardState, face = 'front') {
@@ -9376,6 +11427,7 @@ function normalizeCardPayload(payload) {
   const normalizedFrontSrc = componentType
     ? (isImageComponent && componentFrontBlank ? '' : normalizeImageComponentSrc(rawFrontSrc))
     : toHighResFrontSrc(rawFrontSrc);
+  const deckBackSrc = componentType ? '' : normalizeImageComponentSrc(payload?.deckBackSrc || '');
   const backSrc = isImageComponent ? normalizeImageComponentSrc(payload?.backSrc || '') : '';
   const componentSize = componentType && !componentCardSized
     ? (isStickerComponent
@@ -9429,6 +11481,7 @@ function normalizeCardPayload(payload) {
     componentAspectRatio,
     componentWidth: componentSize.width,
     componentHeight: componentSize.height,
+    deckBackSrc,
     deckId,
     inDeck,
     inDiscard,
@@ -10385,13 +12438,13 @@ function ensureCardElement(cardId) {
     image.loading = 'lazy';
     image.addEventListener('load', () => {
       const loadedSrc = image.getAttribute('src') || '';
-      if (loadedSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX) || loadedSrc.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
+      if (loadedSrc) {
         frontImageLoadState.set(loadedSrc, 'loaded');
       }
     });
     image.addEventListener('error', () => {
       const failedSrc = image.getAttribute('src') || '';
-      if (failedSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX) || failedSrc.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
+      if (failedSrc) {
         frontImageLoadState.set(failedSrc, 'error');
       }
     });
@@ -10685,13 +12738,13 @@ function ensureHandCardElement(cardId) {
     image.loading = 'lazy';
     image.addEventListener('load', () => {
       const loadedSrc = image.getAttribute('src') || '';
-      if (loadedSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX) || loadedSrc.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
+      if (loadedSrc) {
         frontImageLoadState.set(loadedSrc, 'loaded');
       }
     });
     image.addEventListener('error', () => {
       const failedSrc = image.getAttribute('src') || '';
-      if (failedSrc.startsWith(CARD_FRONT_HIGH_RES_PREFIX) || failedSrc.startsWith(CARD_FRONT_LOW_RES_PREFIX)) {
+      if (failedSrc) {
         frontImageLoadState.set(failedSrc, 'error');
       }
     });
@@ -11536,6 +13589,7 @@ function applyCamera() {
   }
   renderMonsBoard();
   renderTaflBoards();
+  renderGoBoards();
   if (selectionBoxElement && !selectionBoxElement.classList.contains('hidden')) {
     const startWorldX = Number(selectionBoxElement.dataset.startWorldX || 0);
     const startWorldY = Number(selectionBoxElement.dataset.startWorldY || 0);
@@ -11654,6 +13708,7 @@ function setLightMode(enabled, options = {}) {
   tableRoot.classList.toggle('light-mode', nextEnabled);
   setModeIcon(nextEnabled);
   renderTaflBoards();
+  renderGoBoards();
 
   if (!shouldAnimate) {
     return;
@@ -12604,8 +14659,9 @@ function isTabletopCompletelyEmpty() {
   const hasDecks = deckStatesById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasTaflBoards && !hasDrawings;
+  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasTaflBoards && !hasGoBoards && !hasDrawings;
 }
 
 function hasRemovableDeleteTargets() {
@@ -12614,8 +14670,9 @@ function hasRemovableDeleteTargets() {
   const hasDecks = deckStatesById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return hasCards || hasDice || hasDecks || hasMonsBoards || hasTaflBoards || hasDrawings;
+  return hasCards || hasDice || hasDecks || hasMonsBoards || hasTaflBoards || hasGoBoards || hasDrawings;
 }
 
 function syncRemoveComponentsButtonState() {
@@ -12667,6 +14724,13 @@ function resolveGameOptionsTitle(targetKey) {
   if (targetKey === TAFL_GAME_KEY || String(targetKey || '').startsWith('tafl:')) {
     return 'hnefatafl';
   }
+  if (targetKey === GO_GAME_KEY || String(targetKey || '').startsWith('go:')) {
+    return 'go';
+  }
+  const targetDeckId = getDeckIdFromGameOptionsTarget(targetKey);
+  if (targetDeckId) {
+    return getDeckKind(targetDeckId) === DECK_KIND_POKER ? 'poker deck' : 'cool jpegs';
+  }
   return 'cool jpegs';
 }
 
@@ -12694,6 +14758,14 @@ function getTaflGameIdFromGameOptionsTarget(target) {
   return normalizeTaflGameId(raw.slice('tafl:'.length));
 }
 
+function getGoGameIdFromGameOptionsTarget(target) {
+  const raw = String(target || '');
+  if (!raw.startsWith('go:')) {
+    return '';
+  }
+  return normalizeGoGameId(raw.slice('go:'.length));
+}
+
 function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
   const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
   if (targetMonsGameId) {
@@ -12703,6 +14775,10 @@ function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTa
   if (targetTaflGameId) {
     return isTaflCoverDrawingsEnabled(targetTaflGameId);
   }
+  const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+  if (targetGoGameId) {
+    return isGoCoverDrawingsEnabled(targetGoGameId);
+  }
   const targetDeckId = getDeckIdFromGameOptionsTarget(target);
   if (targetDeckId) {
     return isDeckCoverDrawingsEnabled(targetDeckId);
@@ -12710,8 +14786,36 @@ function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTa
   return false;
 }
 
+function canConfigureIncludeDiscardForGameOptionsTarget(target = activeGameOptionsTarget) {
+  return Boolean(getDeckIdFromGameOptionsTarget(target));
+}
+
+function canConfigureGoBoardSizeForGameOptionsTarget(target = activeGameOptionsTarget) {
+  return Boolean(getGoGameIdFromGameOptionsTarget(target));
+}
+
+function getGoBoardSizeForGameOptionsTarget(target = activeGameOptionsTarget) {
+  const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+  if (!targetGoGameId) {
+    return GO_BOARD_SIZE_DEFAULT;
+  }
+  return normalizeGoBoardSize(getGoGameStateById(targetGoGameId)?.boardSize);
+}
+
+function isIncludeDiscardEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
+  const targetDeckId = getDeckIdFromGameOptionsTarget(target);
+  if (!targetDeckId) {
+    return true;
+  }
+  return isDeckDiscardEnabled(targetDeckId);
+}
+
 function canConfigureCoordinatesForGameOptionsTarget(target = activeGameOptionsTarget) {
-  return Boolean(getMonsGameIdFromGameOptionsTarget(target) || getTaflGameIdFromGameOptionsTarget(target));
+  return Boolean(
+    getMonsGameIdFromGameOptionsTarget(target) ||
+      getTaflGameIdFromGameOptionsTarget(target) ||
+      getGoGameIdFromGameOptionsTarget(target)
+  );
 }
 
 function isShowCoordinatesEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
@@ -12722,6 +14826,10 @@ function isShowCoordinatesEnabledForGameOptionsTarget(target = activeGameOptions
   const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(target);
   if (targetTaflGameId) {
     return isTaflShowCoordinatesEnabled(targetTaflGameId);
+  }
+  const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+  if (targetGoGameId) {
+    return isGoShowCoordinatesEnabled(targetGoGameId);
   }
   return true;
 }
@@ -12742,6 +14850,24 @@ function syncGameOptionsShowCoordinatesToggleState() {
   gameOptionsShowCoordinatesToggleSyncing = false;
 }
 
+function syncGameOptionsBoardSizeState() {
+  const canConfigure = canConfigureGoBoardSizeForGameOptionsTarget(activeGameOptionsTarget);
+  if (gameOptionsBoardSizeRow) {
+    gameOptionsBoardSizeRow.classList.toggle('hidden', !canConfigure);
+  }
+  const activeBoardSize = canConfigure ? getGoBoardSizeForGameOptionsTarget(activeGameOptionsTarget) : GO_BOARD_SIZE_DEFAULT;
+  gameOptionsBoardSizeButtonsSyncing = true;
+  for (const button of gameOptionsBoardSizeButtons) {
+    if (!(button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const optionSize = normalizeGoBoardSize(button.dataset.goBoardSize);
+    button.disabled = !canConfigure;
+    button.classList.toggle('is-active', canConfigure && optionSize === activeBoardSize);
+  }
+  gameOptionsBoardSizeButtonsSyncing = false;
+}
+
 function syncGameOptionsCoverDrawingsToggleState() {
   if (!gameOptionsCoverDrawingsToggle) {
     return;
@@ -12751,6 +14877,22 @@ function syncGameOptionsCoverDrawingsToggleState() {
   gameOptionsCoverDrawingsToggle.checked = hasTarget && isCoverDrawingsEnabledForGameOptionsTarget(activeGameOptionsTarget);
   gameOptionsCoverDrawingsToggle.disabled = !hasTarget;
   gameOptionsCoverDrawingsToggleSyncing = false;
+}
+
+function syncGameOptionsIncludeDiscardToggleState() {
+  if (!gameOptionsIncludeDiscardToggle) {
+    return;
+  }
+  const canConfigure = canConfigureIncludeDiscardForGameOptionsTarget(activeGameOptionsTarget);
+  if (gameOptionsIncludeDiscardRow) {
+    gameOptionsIncludeDiscardRow.classList.toggle('hidden', !canConfigure);
+  }
+  gameOptionsIncludeDiscardToggleSyncing = true;
+  gameOptionsIncludeDiscardToggle.checked = canConfigure
+    ? isIncludeDiscardEnabledForGameOptionsTarget(activeGameOptionsTarget)
+    : true;
+  gameOptionsIncludeDiscardToggle.disabled = !canConfigure;
+  gameOptionsIncludeDiscardToggleSyncing = false;
 }
 
 function openGameOptionsMenu(targetKey, targetId = '') {
@@ -12766,6 +14908,9 @@ function openGameOptionsMenu(targetKey, targetId = '') {
   } else if (targetKey === TAFL_GAME_KEY) {
     const normalizedTaflGameId = normalizeTaflGameId(targetId || activeTaflGameId || TAFL_GAME_KEY);
     activeGameOptionsTarget = `tafl:${normalizedTaflGameId}`;
+  } else if (targetKey === GO_GAME_KEY) {
+    const normalizedGoGameId = normalizeGoGameId(targetId || activeGoGameId || GO_GAME_KEY);
+    activeGameOptionsTarget = `go:${normalizedGoGameId}`;
   } else {
     activeGameOptionsTarget = `deck:${normalizeDeckId(targetId || activeDeckId || DECK_KEY)}`;
   }
@@ -12776,6 +14921,8 @@ function openGameOptionsMenu(targetKey, targetId = '') {
     gameOptionsTitle.textContent = titleText;
   }
   syncGameOptionsShowCoordinatesToggleState();
+  syncGameOptionsBoardSizeState();
+  syncGameOptionsIncludeDiscardToggleState();
   syncGameOptionsCoverDrawingsToggleState();
   gameOptionsModal.classList.remove('hidden');
 }
@@ -12787,10 +14934,14 @@ function closeGameOptionsMenu() {
   gameOptionsModal.classList.add('hidden');
   activeGameOptionsTarget = '';
   syncGameOptionsShowCoordinatesToggleState();
+  syncGameOptionsBoardSizeState();
+  syncGameOptionsIncludeDiscardToggleState();
   syncGameOptionsCoverDrawingsToggleState();
 }
 
 syncGameOptionsShowCoordinatesToggleState();
+syncGameOptionsBoardSizeState();
+syncGameOptionsIncludeDiscardToggleState();
 syncGameOptionsCoverDrawingsToggleState();
 
 function closeClearTableWarningModal(shouldContinue = false) {
@@ -12863,21 +15014,23 @@ function openInstanceWarningModal() {
 }
 
 function hasGameInstanceOnTable(gameKey) {
-  if (gameKey !== DECK_KEY) {
+  const requestedDeckKind = gameKey === POKER_DECK_KEY ? DECK_KIND_POKER : gameKey === DECK_KEY ? DECK_KIND_COOL : '';
+  if (!requestedDeckKind) {
     return false;
   }
-  if (deckStatesById.size > 0) {
-    return true;
+  for (const [deckId, deckState] of deckStatesById.entries()) {
+    if (normalizeDeckKind(deckState?.kind, deckId) === requestedDeckKind) {
+      return true;
+    }
   }
   for (const cardState of cards.values()) {
-    if (!cardState || typeof cardState !== 'object') {
+    if (!cardState || typeof cardState !== 'object' || isVisualImageComponentCard(cardState)) {
       continue;
     }
-    // Ignore user-added image/sticker components when checking for cool jpegs duplicates.
-    if (isVisualImageComponentCard(cardState)) {
-      continue;
+    const deckId = normalizeDeckId(cardState.deckId || (requestedDeckKind === DECK_KIND_POKER ? POKER_DECK_KEY : DECK_KEY));
+    if (normalizeDeckKind(getDeckStateById(deckId)?.kind, deckId) === requestedDeckKind) {
+      return true;
     }
-    return true;
   }
   return false;
 }
@@ -12903,6 +15056,11 @@ async function handleGameOptionsReset() {
     await resetHnefataflGame(targetTaflGameId);
     return;
   }
+  const targetGoGameId = getGoGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetGoGameId) {
+    await resetGoGame(targetGoGameId);
+    return;
+  }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
   await resetCoolJpegsGame(targetDeckId || activeDeckId);
 }
@@ -12919,6 +15077,11 @@ async function handleGameOptionsPutAway() {
   const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(activeGameOptionsTarget);
   if (targetTaflGameId) {
     await putAwayHnefataflGame(targetTaflGameId);
+    return;
+  }
+  const targetGoGameId = getGoGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetGoGameId) {
+    await putAwayGoGame(targetGoGameId);
     return;
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
@@ -13008,6 +15171,29 @@ gameOptionsShowCoordinatesToggle?.addEventListener('change', () => {
     syncGameOptionsShowCoordinatesToggleState();
   });
 });
+for (const sizeButton of gameOptionsBoardSizeButtons) {
+  sizeButton?.addEventListener('click', () => {
+    if (gameOptionsBoardSizeButtonsSyncing || !activeGameOptionsTarget) {
+      return;
+    }
+    const requestedSize = normalizeGoBoardSize(sizeButton.dataset.goBoardSize);
+    setGameGoBoardSizePreference(activeGameOptionsTarget, requestedSize).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+      syncGameOptionsBoardSizeState();
+    });
+  });
+}
+gameOptionsIncludeDiscardToggle?.addEventListener('change', () => {
+  if (gameOptionsIncludeDiscardToggleSyncing || !activeGameOptionsTarget) {
+    return;
+  }
+  setGameIncludeDiscardPreference(activeGameOptionsTarget, gameOptionsIncludeDiscardToggle.checked).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+    syncGameOptionsIncludeDiscardToggleState();
+  });
+});
 gameOptionsCoverDrawingsToggle?.addEventListener('change', () => {
   if (gameOptionsCoverDrawingsToggleSyncing || !activeGameOptionsTarget) {
     return;
@@ -13080,11 +15266,26 @@ hnefataflTile?.addEventListener('click', () => {
   });
 });
 
+goTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnGoBoard().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
 diceComponentTile?.addEventListener('click', () => {
   openDiceAddModal();
 });
 spinnerComponentTile?.addEventListener('click', () => {
   openSpinnerAddModal();
+});
+pokerDeckComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnPokerDeck().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
 });
 coinComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
@@ -14010,9 +16211,11 @@ renderTaflTileSpawnPreview(hnefataflTile);
 initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(hnefataflTile);
+initializeTileTilt(goTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(spinnerComponentTile);
+initializeTileTilt(pokerDeckComponentTile);
 initializeTileTilt(counterComponentTile);
 initializeTileTilt(labelComponentTile);
 initializeTileTilt(imageComponentTile);
@@ -14198,14 +16401,184 @@ function scheduleRoomBadgeWidthSync() {
   roomBadgeWidthSyncRafId = window.requestAnimationFrame(syncRoomBadgeWidthVar);
 }
 
-function setFrontImagePendingLoadCount(nextCount) {
-  frontImagePendingLoadCount = Math.max(0, Number(nextCount) || 0);
+function getTotalPendingAssetLoadCount() {
+  return Math.max(0, frontImagePendingLoadCount) + Math.max(0, elementAssetPendingLoadCount);
+}
+
+function syncAssetLoadingStatusVisibility() {
+  const totalPending = getTotalPendingAssetLoadCount();
   if (assetLoadingStatus) {
-    assetLoadingStatus.classList.toggle('hidden', frontImagePendingLoadCount <= 0);
+    assetLoadingStatus.classList.toggle('hidden', totalPending <= 0);
   }
-  if (frontImagePendingLoadCount > 0) {
+  if (totalPending > 0) {
     scheduleRoomBadgeWidthSync();
   }
+}
+
+function setElementAssetPendingLoadCount(nextCount) {
+  elementAssetPendingLoadCount = Math.max(0, Number(nextCount) || 0);
+  syncAssetLoadingStatusVisibility();
+}
+
+function beginElementAssetLoad() {
+  setElementAssetPendingLoadCount(elementAssetPendingLoadCount + 1);
+  let settled = false;
+  return () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    setElementAssetPendingLoadCount(elementAssetPendingLoadCount - 1);
+  };
+}
+
+function clearTrackedAssetElementLoad(element, options = {}) {
+  const tracker = trackedAssetElementLoads.get(element);
+  if (!tracker) {
+    return;
+  }
+  element.removeEventListener('load', tracker.onResolve);
+  element.removeEventListener('error', tracker.onResolve);
+  if (tracker.timeoutId) {
+    window.clearTimeout(tracker.timeoutId);
+  }
+  trackedAssetElementLoads.delete(element);
+  if (options.resolvePending !== false) {
+    tracker.finish();
+  }
+}
+
+function isTrackedImageElementLoaded(image) {
+  if (!(image instanceof HTMLImageElement)) {
+    return true;
+  }
+  if (!image.complete) {
+    return false;
+  }
+  return image.naturalWidth > 0 || image.naturalHeight > 0;
+}
+
+function getTrackableAssetElementSrc(element) {
+  if (element instanceof HTMLImageElement) {
+    return String(element.currentSrc || element.getAttribute('src') || '').trim();
+  }
+  if (element instanceof HTMLIFrameElement) {
+    return String(element.getAttribute('src') || '').trim();
+  }
+  return '';
+}
+
+function trackAssetElementLoadIfNeeded(element) {
+  if (!(element instanceof HTMLImageElement || element instanceof HTMLIFrameElement)) {
+    return;
+  }
+
+  const src = getTrackableAssetElementSrc(element);
+  const existingTracker = trackedAssetElementLoads.get(element);
+  if (!src) {
+    clearTrackedAssetElementLoad(element);
+    return;
+  }
+  if (existingTracker && existingTracker.src === src) {
+    if (element instanceof HTMLImageElement && isTrackedImageElementLoaded(element)) {
+      clearTrackedAssetElementLoad(element);
+    }
+    return;
+  }
+
+  clearTrackedAssetElementLoad(element);
+
+  if (element instanceof HTMLImageElement && isTrackedImageElementLoaded(element)) {
+    return;
+  }
+
+  const finish = beginElementAssetLoad();
+  let settled = false;
+  const onResolve = () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    clearTrackedAssetElementLoad(element, { resolvePending: false });
+    finish();
+  };
+  const timeoutId = window.setTimeout(onResolve, ASSET_ELEMENT_LOAD_TIMEOUT_MS);
+
+  trackedAssetElementLoads.set(element, {
+    src,
+    timeoutId,
+    onResolve,
+    finish
+  });
+  element.addEventListener('load', onResolve);
+  element.addEventListener('error', onResolve);
+
+  if (element instanceof HTMLImageElement && isTrackedImageElementLoaded(element)) {
+    onResolve();
+  }
+}
+
+function forEachTrackableAssetElement(rootNode, visitor) {
+  if (typeof visitor !== 'function') {
+    return;
+  }
+  if (!(rootNode instanceof Element || rootNode instanceof DocumentFragment)) {
+    return;
+  }
+  if (rootNode instanceof HTMLImageElement || rootNode instanceof HTMLIFrameElement) {
+    visitor(rootNode);
+  }
+  const descendants = rootNode.querySelectorAll?.('img, iframe');
+  if (!descendants) {
+    return;
+  }
+  for (const element of descendants) {
+    if (element instanceof HTMLImageElement || element instanceof HTMLIFrameElement) {
+      visitor(element);
+    }
+  }
+}
+
+function initializeAssetElementLoadTracking() {
+  if (!tableRoot || assetElementLoadObserver) {
+    return;
+  }
+
+  forEachTrackableAssetElement(tableRoot, trackAssetElementLoadIfNeeded);
+
+  assetElementLoadObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'attributes') {
+        if (mutation.target instanceof HTMLImageElement || mutation.target instanceof HTMLIFrameElement) {
+          trackAssetElementLoadIfNeeded(mutation.target);
+        }
+        continue;
+      }
+      if (mutation.type !== 'childList') {
+        continue;
+      }
+      for (const removedNode of mutation.removedNodes) {
+        forEachTrackableAssetElement(removedNode, (element) => {
+          clearTrackedAssetElementLoad(element);
+        });
+      }
+      for (const addedNode of mutation.addedNodes) {
+        forEachTrackableAssetElement(addedNode, trackAssetElementLoadIfNeeded);
+      }
+    }
+  });
+
+  assetElementLoadObserver.observe(tableRoot, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['src']
+  });
+}
+
+function setFrontImagePendingLoadCount(nextCount) {
+  frontImagePendingLoadCount = Math.max(0, Number(nextCount) || 0);
+  syncAssetLoadingStatusVisibility();
 }
 
 function setRealtimeStatus(text) {
@@ -14709,6 +17082,8 @@ function getActivePlayerTokensForDeal() {
     .map((entry) => entry.token);
 }
 
+initializeAssetElementLoadTracking();
+
 if (hasPlaceholderConfig(firebaseConfig)) {
   showStatusMessage('Add your Firebase config in firebase-config.js to enable realtime syncing.');
 } else {
@@ -14737,6 +17112,7 @@ shieldPointerEvents(assetMenuTabComponentButton);
 shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
 shieldPointerEvents(spinnerComponentTile);
+shieldPointerEvents(pokerDeckComponentTile);
 shieldPointerEvents(counterComponentTile);
 shieldPointerEvents(labelComponentTile);
 shieldPointerEvents(imageComponentTile);
@@ -14797,6 +17173,11 @@ shieldPointerEvents(instanceWarningCancelButton);
 shieldPointerEvents(gameOptionsModal);
 shieldPointerEvents(gameOptionsCloseButton);
 shieldPointerEvents(gameOptionsShowCoordinatesToggle);
+shieldPointerEvents(gameOptionsBoardSizeRow);
+for (const sizeButton of gameOptionsBoardSizeButtons) {
+  shieldPointerEvents(sizeButton);
+}
+shieldPointerEvents(gameOptionsIncludeDiscardToggle);
 shieldPointerEvents(gameOptionsCoverDrawingsToggle);
 shieldPointerEvents(gameOptionsResetButton);
 shieldPointerEvents(gameOptionsPutAwayButton);
@@ -15114,6 +17495,11 @@ async function startRealtimeSession() {
     return ref(db, `${roomPath}/games/${normalizedGameId}`);
   }
 
+  function getGoGameRef(gameId = activeGoGameId) {
+    const normalizedGameId = normalizeGoGameId(gameId);
+    return ref(db, `${roomPath}/games/${normalizedGameId}`);
+  }
+
   function getUniqueConnectedElements(elements) {
     const uniqueElements = [];
     const seen = new Set();
@@ -15303,6 +17689,16 @@ async function startRealtimeSession() {
       return;
     }
 
+    if (kind === 'go-game') {
+      const gameId = normalizeGoGameId(entry.gameId || activeGoGameId);
+      const gamePayload = cloneDeleteUndoPayload(entry.gamePayload);
+      if (!gameId || !gamePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/games/${gameId}`), gamePayload);
+      return;
+    }
+
     if (kind === 'mons-piece') {
       const gameId = normalizeMonsGameId(entry.gameId || activeMonsGameId);
       const pieceId = String(entry.pieceId || '').trim();
@@ -15406,6 +17802,15 @@ async function startRealtimeSession() {
       return [];
     }
     return getUniqueConnectedElements([taflUi.shell, taflUi.moveButton, taflUi.optionsButton]);
+  }
+
+  function getGoGameDeleteFadeElements(gameId = activeGoGameId) {
+    const targetGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const goUi = goBoardElementsById.get(targetGameId);
+    if (!goUi) {
+      return [];
+    }
+    return getUniqueConnectedElements([goUi.shell, goUi.moveButton, goUi.optionsButton]);
   }
 
   function getMonsPieceDeleteFadeElement(pieceId, gameId = activeMonsGameId) {
@@ -15564,6 +17969,25 @@ async function startRealtimeSession() {
     if (didDelete && gameSnapshot) {
       pushDeleteModeUndoEntry({
         kind: 'tafl-game',
+        gameId: targetGameId,
+        gamePayload: gameSnapshot
+      });
+    }
+  }
+
+  async function deleteGoGameInRemoveMode(gameId = activeGoGameId) {
+    const targetGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const gameSnapshot = cloneDeleteUndoPayload(getGoGameStateById(targetGameId));
+    const didDelete = await runDeleteWithFade(
+      `go-game:${targetGameId}`,
+      getGoGameDeleteFadeElements(targetGameId),
+      async () => {
+        await putAwayGoGame(targetGameId);
+      }
+    );
+    if (didDelete && gameSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'go-game',
         gameId: targetGameId,
         gamePayload: gameSnapshot
       });
@@ -16140,6 +18564,7 @@ async function startRealtimeSession() {
       deckDragState ||
       monsDragState ||
       taflDragState ||
+      goDragState ||
       selectionBoxState
     );
   }
@@ -16232,7 +18657,8 @@ async function startRealtimeSession() {
       labelResizeState ||
       labelRotateState ||
       groupDragState ||
-      taflDragState
+      taflDragState ||
+      goDragState
     );
     const hasSelectedObjects = hasAnyGroupSelection();
     const hasMarbleFlick = Boolean(marbleFlickState);
@@ -16304,6 +18730,8 @@ async function startRealtimeSession() {
     groupDragState = null;
     const cancelledTaflDragState = taflDragState;
     taflDragState = null;
+    const cancelledGoDragState = goDragState;
+    goDragState = null;
     selectionBoxState = null;
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
@@ -16352,6 +18780,15 @@ async function startRealtimeSession() {
       patchLocalTaflGame({ holderClientId: null }, cancelledTaflGameId);
       queueMonsPatch({ holderClientId: null }, cancelledTaflGameId);
       releaseMonsBoardLock(cancelledTaflGameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    if (cancelledGoDragState?.gameId) {
+      const cancelledGoGameId = normalizeGoGameId(cancelledGoDragState.gameId);
+      setGoBoardDragFloating(cancelledGoGameId, false);
+      patchLocalGoGame({ holderClientId: null }, cancelledGoGameId);
+      queueMonsPatch({ holderClientId: null }, cancelledGoGameId);
+      releaseMonsBoardLock(cancelledGoGameId).catch((error) => {
         console.error(error);
       });
     }
@@ -16442,6 +18879,20 @@ async function startRealtimeSession() {
         continue;
       }
       patchLocalTaflGame({ holderClientId: null }, normalizedGameId);
+      queueMonsPatch({ holderClientId: null }, normalizedGameId);
+      releaseMonsBoardLock(normalizedGameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const [gameId, gameState] of goGameStatesById.entries()) {
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      const normalizedGameId = normalizeGoGameId(gameId);
+      if (goDragState?.gameId === normalizedGameId) {
+        continue;
+      }
+      patchLocalGoGame({ holderClientId: null }, normalizedGameId);
       queueMonsPatch({ holderClientId: null }, normalizedGameId);
       releaseMonsBoardLock(normalizedGameId).catch((error) => {
         console.error(error);
@@ -16996,8 +19447,10 @@ async function startRealtimeSession() {
   }
 
   function setDiscardDropIndicator(visible, deckId = activeDeckId) {
-    const nextVisible = Boolean(cardDragState || groupDragState || handReorderState?.releaseToTable) && Boolean(visible);
-    const nextDeckId = nextVisible ? normalizeDeckId(deckId) : '';
+    const normalizedDeckId = normalizeDeckId(deckId);
+    const canShowForDeck = isDeckDiscardEnabled(normalizedDeckId);
+    const nextVisible = Boolean(cardDragState || groupDragState || handReorderState?.releaseToTable) && Boolean(visible) && canShowForDeck;
+    const nextDeckId = nextVisible ? normalizedDeckId : '';
     if (discardDropIndicatorVisible === nextVisible && discardDropIndicatorDeckId === nextDeckId) {
       return;
     }
@@ -17007,8 +19460,10 @@ async function startRealtimeSession() {
   }
 
   function setAuctionDropIndicator(visible, deckId = activeDeckId) {
-    const nextVisible = Boolean(cardDragState || groupDragState || handReorderState?.releaseToTable) && Boolean(visible);
-    const nextDeckId = nextVisible ? normalizeDeckId(deckId) : '';
+    const normalizedDeckId = normalizeDeckId(deckId);
+    const canShowForDeck = deckSupportsAuction(normalizedDeckId);
+    const nextVisible = Boolean(cardDragState || groupDragState || handReorderState?.releaseToTable) && Boolean(visible) && canShowForDeck;
+    const nextDeckId = nextVisible ? normalizedDeckId : '';
     if (auctionDropIndicatorVisible === nextVisible && auctionDropIndicatorDeckId === nextDeckId) {
       return;
     }
@@ -18215,6 +20670,7 @@ async function startRealtimeSession() {
             y: center.y,
             shuffleTick: 0,
             holderClientId: null,
+            includeDiscard: true,
             coverDrawings: false
           };
           patchLocalDeck(nextDeck, targetDeckId);
@@ -18307,8 +20763,8 @@ async function startRealtimeSession() {
 
   function patchLocalDeck(patch, deckId = activeDeckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    const baseDeck = getDeckStateById(normalizedDeckId) || normalizeDeckPayload(getDeckCenterPosition(normalizedDeckId));
-    const nextDeck = normalizeDeckPayload({ ...baseDeck, ...patch });
+    const baseDeck = getDeckStateById(normalizedDeckId) || normalizeDeckPayload(getDeckCenterPosition(normalizedDeckId), normalizedDeckId);
+    const nextDeck = normalizeDeckPayload({ ...baseDeck, ...patch }, normalizedDeckId);
     deckStatesById.set(normalizedDeckId, nextDeck);
     if (normalizeDeckId(activeDeckId) === normalizedDeckId) {
       deckState = nextDeck;
@@ -18339,6 +20795,18 @@ async function startRealtimeSession() {
     }
     syncCoverDrawingsGamesLayerState();
     renderTaflBoards();
+  }
+
+  function patchLocalGoGame(patch, gameId = activeGoGameId) {
+    const normalizedGameId = normalizeGoGameId(gameId);
+    const baseGame = getGoGameStateById(normalizedGameId) || normalizeGoGamePayload({});
+    const nextGame = normalizeGoGamePayload({ ...baseGame, ...patch });
+    goGameStatesById.set(normalizedGameId, nextGame);
+    if (normalizeGoGameId(activeGoGameId) === normalizedGameId) {
+      goGameState = nextGame;
+    }
+    syncCoverDrawingsGamesLayerState();
+    renderGoBoards();
   }
 
   function getTopCardZ() {
@@ -18377,9 +20845,15 @@ async function startRealtimeSession() {
       let matches = false;
       let center = { x: candidateDeckState.x, y: candidateDeckState.y };
       if (region === 'discard') {
+        if (!isDeckDiscardEnabled(candidateDeckId)) {
+          continue;
+        }
         center = getDiscardCenterPosition(candidateDeckId);
         matches = Math.abs(x - center.x) <= CARD_WIDTH / 2 && Math.abs(y - center.y) <= CARD_HEIGHT / 2;
       } else if (region === 'auction') {
+        if (!deckSupportsAuction(candidateDeckId)) {
+          continue;
+        }
         center = getAuctionCenterPosition(candidateDeckId);
         matches =
           Math.abs(x - center.x) <= (CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
@@ -18409,7 +20883,7 @@ async function startRealtimeSession() {
 
   function isPositionOverDiscard(x, y, deckId = activeDeckId) {
     const targetDeckState = getDeckStateById(deckId);
-    if (!targetDeckState) {
+    if (!targetDeckState || !isDeckDiscardEnabled(deckId)) {
       return false;
     }
     const discardCenter = getDiscardCenterPosition(deckId);
@@ -18417,6 +20891,9 @@ async function startRealtimeSession() {
   }
 
   function isPositionOverAuction(x, y, deckId = activeDeckId) {
+    if (!deckSupportsAuction(deckId)) {
+      return false;
+    }
     const targetDeckState = getDeckStateById(deckId);
     if (!targetDeckState) {
       return false;
@@ -18434,6 +20911,9 @@ async function startRealtimeSession() {
       return false;
     }
     const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
+    if (!deckSupportsAuction(targetDeckId)) {
+      return false;
+    }
     if (getAuctionCardCount(targetDeckId) === 0) {
       return true;
     }
@@ -18445,6 +20925,9 @@ async function startRealtimeSession() {
       return false;
     }
     const targetDeckId = normalizeDeckId(deckId);
+    if (!deckSupportsAuction(targetDeckId)) {
+      return false;
+    }
     if (getAuctionCardCount(targetDeckId) === 0) {
       return true;
     }
@@ -18534,6 +21017,9 @@ async function startRealtimeSession() {
 
   function buildDiscardPlacementPatch(nextZ = getDiscardTopZ() + 1, deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
+    if (!isDeckDiscardEnabled(targetDeckId)) {
+      return null;
+    }
     const discardCenter = getDiscardCenterPosition(targetDeckId);
     return {
       x: discardCenter.x,
@@ -18560,11 +21046,15 @@ async function startRealtimeSession() {
     if (!targetDeckState || !isPositionOverDiscard(cardState.x, cardState.y, targetDeckId)) {
       return null;
     }
-    return buildDiscardPlacementPatch(getDiscardTopZ(targetDeckId) + 1, targetDeckId);
+    const placementPatch = buildDiscardPlacementPatch(getDiscardTopZ(targetDeckId) + 1, targetDeckId);
+    return placementPatch || null;
   }
 
   function buildAuctionPlacementPatch(nextZ = getAuctionTopZ() + 1, deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
+    if (!deckSupportsAuction(targetDeckId)) {
+      return null;
+    }
     const auctionCenter = getAuctionCenterPosition(targetDeckId);
     return {
       x: auctionCenter.x,
@@ -19668,6 +22158,9 @@ async function startRealtimeSession() {
       let nextDiscardZ = getDiscardTopZ(discardTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
         const patch = buildDiscardPlacementPatch(nextDiscardZ, discardTargetDeckId);
+        if (!patch) {
+          continue;
+        }
         nextDiscardZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
@@ -24449,7 +26942,7 @@ async function startRealtimeSession() {
         const mainDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'deck') : '';
         const releasePatch = canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
-          : canUseDeckZones && Boolean(discardDeckId)
+          : canUseDeckZones && Boolean(discardDeckId) && isDeckDiscardEnabled(discardDeckId)
             ? buildDiscardPlacementPatch(topZ, discardDeckId)
             : canUseDeckZones && Boolean(mainDeckId)
               ? {
@@ -26106,6 +28599,532 @@ async function startRealtimeSession() {
   onDeleteTaflGameInRemoveMode = async (gameId = activeTaflGameId) => {
     await deleteTaflGameInRemoveMode(gameId);
   };
+
+  async function toggleGoSideClaim(side, gameId = activeGoGameId) {
+    const normalizedSide = side === 'black' ? 'black' : side === 'white' ? 'white' : '';
+    if (!normalizedSide || !localPlayerToken) {
+      return false;
+    }
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const otherSide = normalizedSide === 'black' ? 'white' : 'black';
+    const result = await runTransaction(
+      getGoGameRef(targetGoGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeGoGamePayload(currentGame);
+        const claims = normalizeGoClaimsPayload(normalized.claims);
+        const nextSideClaims = [...claims[normalizedSide]];
+        const nextOtherSideClaims = [...claims[otherSide]];
+        const currentSideIndex = nextSideClaims.findIndex((entry) => entry?.token === localPlayerToken);
+        if (currentSideIndex >= 0) {
+          nextSideClaims.splice(currentSideIndex, 1);
+        } else {
+          const otherSideIndex = nextOtherSideClaims.findIndex((entry) => entry?.token === localPlayerToken);
+          if (otherSideIndex >= 0) {
+            nextOtherSideClaims.splice(otherSideIndex, 1);
+          }
+          if (nextSideClaims.length >= 2) {
+            return currentGame;
+          }
+          nextSideClaims.push({
+            token: localPlayerToken,
+            name: String(playerState.name || '').trim().slice(0, 24),
+            color: normalizeHexColor(playerState.color)
+          });
+        }
+        return {
+          ...normalized,
+          claims: {
+            [normalizedSide]: nextSideClaims,
+            [otherSide]: nextOtherSideClaims
+          },
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeGoGamePayload(result.snapshot.val());
+    goGameStatesById.set(targetGoGameId, normalized);
+    if (normalizeGoGameId(activeGoGameId) === targetGoGameId) {
+      goGameState = normalized;
+    }
+    renderGoBoards();
+    return true;
+  }
+
+  async function placeGoStoneAtIntersection(row, col, gameId = activeGoGameId) {
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const requestedRow = Math.round(Number(row));
+    const requestedCol = Math.round(Number(col));
+    if (!Number.isFinite(requestedRow) || !Number.isFinite(requestedCol)) {
+      return false;
+    }
+    let moved = false;
+    const result = await runTransaction(
+      getGoGameRef(targetGoGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeGoGamePayload(currentGame);
+        if (normalized.enabled === false || normalizeGoWinnerColor(normalized.winner)) {
+          return currentGame;
+        }
+        const boardSize = normalizeGoBoardSize(normalized.boardSize);
+        const targetRow = clamp(requestedRow, 0, boardSize - 1);
+        const targetCol = clamp(requestedCol, 0, boardSize - 1);
+        const turn = normalizeGoStoneColor(normalized.turn) || 'black';
+        if (!canCurrentPlayerControlGoColorFromPayload(normalized, turn)) {
+          return currentGame;
+        }
+        const ko = normalizeGoKoPayload(normalized.ko, boardSize);
+        if (ko && ko.row === targetRow && ko.col === targetCol && (!ko.color || ko.color === turn)) {
+          return currentGame;
+        }
+        const placement = analyzeGoPlacementOutcome(normalized.stones, targetRow, targetCol, turn, boardSize);
+        if (!placement) {
+          return currentGame;
+        }
+        const { nextStones, capturedKeysSet, placedGroup, opponent } = placement;
+
+        const capturedCount = capturedKeysSet.size;
+        const capturedEntries = Array.from(capturedKeysSet)
+          .map((stoneKey) => {
+            const parsed = parseGoBoardKey(stoneKey, boardSize);
+            if (!parsed) {
+              return null;
+            }
+            return {
+              row: parsed.row,
+              col: parsed.col,
+              color: opponent
+            };
+          })
+          .filter(Boolean);
+        let nextKo = null;
+        if (capturedCount === 1 && placedGroup.stones.size === 1 && placedGroup.liberties.size === 1) {
+          const onlyLibertyKey = Array.from(placedGroup.liberties)[0] || '';
+          const capturedKey = Array.from(capturedKeysSet)[0] || '';
+          const koPoint = parseGoBoardKey(onlyLibertyKey, boardSize);
+          const capturedPoint = parseGoBoardKey(capturedKey, boardSize);
+          if (
+            koPoint &&
+            capturedPoint &&
+            koPoint.row === capturedPoint.row &&
+            koPoint.col === capturedPoint.col
+          ) {
+            nextKo = {
+              row: koPoint.row,
+              col: koPoint.col,
+              color: opponent
+            };
+          }
+        }
+
+        const undoEntry = buildGoUndoSnapshotPayloadFromGame(normalized, localPlayerToken, clientId);
+        const nextCaptures = normalizeGoCapturesPayload(normalized.captures);
+        nextCaptures[turn] = (Number(nextCaptures[turn]) || 0) + capturedCount;
+        moved = true;
+        return {
+          ...normalized,
+          stones: nextStones,
+          captures: nextCaptures,
+          turn: opponent,
+          passStreak: 0,
+          winner: '',
+          score: null,
+          ko: nextKo,
+          moveTick: (Number(normalized.moveTick) || 0) + 1,
+          lastMove: {
+            type: 'place',
+            color: turn,
+            row: targetRow,
+            col: targetCol,
+            captured: capturedCount,
+            capturedStones: capturedEntries
+          },
+          undoHistory: appendGoUndoHistoryEntry(normalized.undoHistory, undoEntry),
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !moved || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeGoGamePayload(result.snapshot.val());
+    goGameStatesById.set(targetGoGameId, normalized);
+    if (normalizeGoGameId(activeGoGameId) === targetGoGameId) {
+      goGameState = normalized;
+    }
+    renderGoBoards();
+    return true;
+  }
+
+  async function passGoTurn(gameId = activeGoGameId) {
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    let moved = false;
+    const result = await runTransaction(
+      getGoGameRef(targetGoGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeGoGamePayload(currentGame);
+        if (normalized.enabled === false || normalizeGoWinnerColor(normalized.winner)) {
+          return currentGame;
+        }
+        const turn = normalizeGoStoneColor(normalized.turn) || 'black';
+        if (!canCurrentPlayerControlGoColorFromPayload(normalized, turn)) {
+          return currentGame;
+        }
+        const boardSize = normalizeGoBoardSize(normalized.boardSize);
+        const undoEntry = buildGoUndoSnapshotPayloadFromGame(normalized, localPlayerToken, clientId);
+        const nextPassStreak = Math.max(0, Math.round(Number(normalized.passStreak) || 0)) + 1;
+        const nextTurn = getOpposingGoColor(turn) || 'black';
+        let nextWinner = '';
+        let nextScore = null;
+        if (nextPassStreak >= 2) {
+          nextScore = getGoScoreFromBoard(normalized.stones, normalized.captures, boardSize);
+          if (nextScore.blackTotal > nextScore.whiteTotal) {
+            nextWinner = 'black';
+          } else if (nextScore.whiteTotal > nextScore.blackTotal) {
+            nextWinner = 'white';
+          } else {
+            nextWinner = 'draw';
+          }
+        }
+        moved = true;
+        return {
+          ...normalized,
+          turn: nextTurn,
+          passStreak: nextPassStreak,
+          winner: nextWinner,
+          score: nextScore,
+          ko: null,
+          moveTick: (Number(normalized.moveTick) || 0) + 1,
+          lastMove: {
+            type: 'pass',
+            color: turn
+          },
+          undoHistory: appendGoUndoHistoryEntry(normalized.undoHistory, undoEntry),
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !moved || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeGoGamePayload(result.snapshot.val());
+    goGameStatesById.set(targetGoGameId, normalized);
+    if (normalizeGoGameId(activeGoGameId) === targetGoGameId) {
+      goGameState = normalized;
+    }
+    renderGoBoards();
+    return true;
+  }
+
+  async function undoGoLastAction(gameId = activeGoGameId) {
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const result = await runTransaction(
+      getGoGameRef(targetGoGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeGoGamePayload(currentGame);
+        const undoHistory = normalizeGoUndoHistoryPayload(normalized.undoHistory);
+        if (undoHistory.length === 0) {
+          return currentGame;
+        }
+        const topUndoEntry = undoHistory[undoHistory.length - 1];
+        if (!canCurrentPlayerUndoGoEntry(topUndoEntry)) {
+          return currentGame;
+        }
+        return {
+          ...normalized,
+          boardSize: normalizeGoBoardSize(topUndoEntry.boardSize),
+          stones: normalizeGoStonesPayload(topUndoEntry.stones, topUndoEntry.boardSize),
+          turn: normalizeGoStoneColor(topUndoEntry.turn) || 'black',
+          captures: normalizeGoCapturesPayload(topUndoEntry.captures),
+          passStreak: Math.max(0, Math.round(Number(topUndoEntry.passStreak) || 0)),
+          winner: normalizeGoWinnerColor(topUndoEntry.winner),
+          score: normalizeGoScorePayload(topUndoEntry.score),
+          ko: normalizeGoKoPayload(topUndoEntry.ko, topUndoEntry.boardSize),
+          moveTick: (Number(normalized.moveTick) || 0) + 1,
+          lastMove: normalizeGoLastMovePayload(topUndoEntry.lastMove, topUndoEntry.boardSize),
+          undoHistory: undoHistory.slice(0, -1),
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeGoGamePayload(result.snapshot.val());
+    goGameStatesById.set(targetGoGameId, normalized);
+    if (normalizeGoGameId(activeGoGameId) === targetGoGameId) {
+      goGameState = normalized;
+    }
+    renderGoBoards();
+    return true;
+  }
+
+  const handleGoMovePointerDownLocal = async (event, gameId = activeGoGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await onDeleteGoGameInRemoveMode(gameId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    if (normalizeGoGameId(activeGoGameId) !== targetGoGameId) {
+      setActiveGoGameId(targetGoGameId);
+    }
+    if (goDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState || taflDragState) {
+      return;
+    }
+    const targetGoGameState = getGoGameStateById(targetGoGameId);
+    if (!targetGoGameState) {
+      return;
+    }
+    if (targetGoGameState.holderClientId && targetGoGameState.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireMonsBoardLock(targetGoGameId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseMonsBoardLock(targetGoGameId);
+      return;
+    }
+
+    goDragState = {
+      gameId: targetGoGameId,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: targetGoGameState.x,
+      startY: targetGoGameState.y,
+      width: targetGoGameState.width,
+      height: targetGoGameState.height
+    };
+
+    patchLocalGoGame({ holderClientId: clientId }, targetGoGameId);
+    queueMonsPatch({ holderClientId: clientId }, targetGoGameId);
+    setGoBoardDragFloating(targetGoGameId, true);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+
+  const handleGoDragMoveLocal = (event) => {
+    if (!goDragState || event.pointerId !== goDragState.pointerId) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      handleGoDragEndLocal({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const targetGoGameId = normalizeGoGameId(goDragState.gameId || activeGoGameId);
+    const deltaX = (event.clientX - goDragState.startClientX) / camera.scale;
+    const deltaY = (event.clientY - goDragState.startClientY) / camera.scale;
+    const nextX = clamp(
+      goDragState.startX + deltaX,
+      goDragState.width / 2,
+      WORLD_WIDTH - goDragState.width / 2
+    );
+    const nextY = clamp(
+      goDragState.startY + deltaY,
+      goDragState.height / 2,
+      WORLD_HEIGHT - goDragState.height / 2
+    );
+
+    const patch = {
+      x: nextX,
+      y: nextY,
+      holderClientId: clientId
+    };
+    patchLocalGoGame(patch, targetGoGameId);
+    queueMonsPatch(patch, targetGoGameId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  };
+
+  const handleGoDragEndLocal = (event) => {
+    if (!goDragState || event.pointerId !== goDragState.pointerId) {
+      return;
+    }
+    if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
+      return;
+    }
+
+    const targetGoGameId = normalizeGoGameId(goDragState.gameId || activeGoGameId);
+    goDragState = null;
+    setGoBoardDragFloating(targetGoGameId, false);
+    patchLocalGoGame({ holderClientId: null }, targetGoGameId);
+    queueMonsPatch({ holderClientId: null }, targetGoGameId);
+    releaseMonsBoardLock(targetGoGameId).catch((error) => {
+      console.error(error);
+    });
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+
+  onGoMovePointerDown = (event, gameId = activeGoGameId) => {
+    handleGoMovePointerDownLocal(event, gameId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onGoDragMove = (event) => {
+    handleGoDragMoveLocal(event);
+  };
+  onGoDragEnd = (event) => {
+    handleGoDragEndLocal(event);
+  };
+  onGoBoardIntersectionPointerDown = (event, row, col, gameId = activeGoGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    const targetGameId = normalizeGoGameId(gameId || activeGoGameId);
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteGoGameInRemoveMode(targetGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (
+      goDragState ||
+      monsDragState ||
+      taflDragState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+    if (normalizeGoGameId(activeGoGameId) !== targetGameId) {
+      setActiveGoGameId(targetGameId);
+    }
+    placeGoStoneAtIntersection(row, col, targetGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+  onGoSideClaimClick = (event, side, gameId = activeGoGameId) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    if (normalizeGoGameId(activeGoGameId) !== targetGoGameId) {
+      setActiveGoGameId(targetGoGameId);
+      renderGoBoards();
+    }
+    toggleGoSideClaim(side, targetGoGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onGoUndoButtonClick = (event, gameId = activeGoGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    if (normalizeGoGameId(activeGoGameId) !== targetGoGameId) {
+      setActiveGoGameId(targetGoGameId);
+      renderGoBoards();
+    }
+    undoGoLastAction(targetGoGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onGoPassButtonClick = (event, gameId = activeGoGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    if (normalizeGoGameId(activeGoGameId) !== targetGoGameId) {
+      setActiveGoGameId(targetGoGameId);
+      renderGoBoards();
+    }
+    passGoTurn(targetGoGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onGoWinResetButtonClick = (event, gameId = activeGoGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    const targetState = getGoGameStateById(targetGoGameId);
+    if (!targetState || !normalizeGoWinnerColor(targetState.winner)) {
+      return;
+    }
+    resetGoGame(targetGoGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onDeleteGoGameInRemoveMode = async (gameId = activeGoGameId) => {
+    await deleteGoGameInRemoveMode(gameId);
+  };
+
   onMonsUndoButtonClick = (event, gameId = activeMonsGameId) => {
     if (event) {
       event.preventDefault();
@@ -26171,6 +29190,7 @@ async function startRealtimeSession() {
     if (!normalizedSrc) {
       return { width: CARD_WIDTH, height: CARD_HEIGHT };
     }
+    const finishPendingLoad = beginElementAssetLoad();
     return new Promise((resolve) => {
       const image = new Image();
       image.decoding = 'async';
@@ -26180,6 +29200,7 @@ async function startRealtimeSession() {
           return;
         }
         settled = true;
+        finishPendingLoad();
         if (success && Number.isFinite(image.naturalWidth) && Number.isFinite(image.naturalHeight) && image.naturalWidth > 0 && image.naturalHeight > 0) {
           resolve(clampImageComponentSize(image.naturalWidth, image.naturalHeight));
           return;
@@ -26551,7 +29572,53 @@ async function startRealtimeSession() {
       y: spawnCenter.y,
       shuffleTick: 0,
       holderClientId: null,
+      includeDiscard: true,
       coverDrawings: false,
+      kind: DECK_KIND_COOL,
+      updatedAt: serverTimestamp()
+    });
+    setActiveDeckId(nextDeckId);
+  };
+
+  spawnPokerDeck = async () => {
+    const viewportCenter = getViewportWorldCenter();
+    const spawnCenter = {
+      x: clamp(viewportCenter.x, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2),
+      y: clamp(viewportCenter.y, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2)
+    };
+    const hasBasePokerDeck =
+      deckStatesById.has(POKER_DECK_KEY) ||
+      Array.from(cards.values()).some((cardState) => normalizeDeckId(cardState?.deckId || '') === POKER_DECK_KEY);
+    const nextDeckId = hasBasePokerDeck
+      ? `${POKER_DECK_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+      : POKER_DECK_KEY;
+
+    await runTransaction(
+      cardsRef,
+      (currentCards) => {
+        const baseCards = currentCards && typeof currentCards === 'object' ? currentCards : {};
+        const extraStack = buildPokerDeck({
+          deckId: nextDeckId,
+          center: spawnCenter,
+          inDeck: true,
+          zStart: 1
+        });
+        return {
+          ...baseCards,
+          ...extraStack
+        };
+      },
+      { applyLocally: false }
+    );
+
+    await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
+      x: spawnCenter.x,
+      y: spawnCenter.y,
+      shuffleTick: 0,
+      holderClientId: null,
+      includeDiscard: true,
+      coverDrawings: false,
+      kind: DECK_KIND_POKER,
       updatedAt: serverTimestamp()
     });
     setActiveDeckId(nextDeckId);
@@ -26646,6 +29713,51 @@ async function startRealtimeSession() {
     }
   };
 
+  spawnGoBoard = async () => {
+    const viewportCenter = getViewportWorldCenter();
+    const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
+    const spawnY = clamp(viewportCenter.y, MONS_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - MONS_BOARD_WORLD_HEIGHT / 2);
+    let createdGoGameId = '';
+    const result = await runTransaction(
+      gamesRef,
+      (currentGames) => {
+        const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+        const existingGoIds = Object.keys(baseGames).filter((rawGameId) => {
+          if (!isGoGameId(rawGameId)) {
+            return false;
+          }
+          const payload = baseGames[rawGameId];
+          return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+        });
+        let nextGoGameId =
+          existingGoIds.length === 0 && !baseGames[GO_GAME_KEY]
+            ? GO_GAME_KEY
+            : `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        while (Object.prototype.hasOwnProperty.call(baseGames, nextGoGameId)) {
+          nextGoGameId = `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        }
+        createdGoGameId = nextGoGameId;
+        return {
+          ...baseGames,
+          [nextGoGameId]: buildFreshGoGamePayload({
+            x: spawnX,
+            y: spawnY,
+            width: MONS_BOARD_WORLD_WIDTH,
+            height: MONS_BOARD_WORLD_HEIGHT
+          })
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed) {
+      return;
+    }
+    if (createdGoGameId) {
+      setActiveGoGameId(createdGoGameId);
+      renderGoBoards();
+    }
+  };
+
   resetHnefataflGame = async (gameId = activeTaflGameId) => {
     const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     await runTransaction(
@@ -26671,6 +29783,32 @@ async function startRealtimeSession() {
     renderTaflBoards();
   };
 
+  resetGoGame = async (gameId = activeGoGameId) => {
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    await runTransaction(
+      getGoGameRef(targetGoGameId),
+      (currentGame) => {
+        const normalized =
+          currentGame && typeof currentGame === 'object'
+            ? normalizeGoGamePayload(currentGame)
+            : normalizeGoGamePayload({ enabled: true });
+        return buildFreshGoGamePayload({
+          x: normalized.x,
+          y: normalized.y,
+          width: normalized.width,
+          height: normalized.height,
+          boardSize: normalized.boardSize,
+          claims: normalized.claims,
+          showCoordinates: normalized.showCoordinates !== false,
+          coverDrawings: normalized.coverDrawings === true
+        });
+      },
+      { applyLocally: false }
+    );
+    setActiveGoGameId(targetGoGameId);
+    renderGoBoards();
+  };
+
   putAwayHnefataflGame = async (gameId = activeTaflGameId) => {
     const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     await update(gamesRef, {
@@ -26678,10 +29816,32 @@ async function startRealtimeSession() {
     });
   };
 
+  putAwayGoGame = async (gameId = activeGoGameId) => {
+    const targetGoGameId = normalizeGoGameId(gameId || activeGoGameId);
+    await update(gamesRef, {
+      [targetGoGameId]: null
+    });
+  };
+
   resetCoolJpegsGame = async (deckId = activeDeckId) => {
     const targetDeckId = normalizeDeckId(deckId);
     const center = getDeckCenterPosition(targetDeckId);
+    const deckKind = getDeckKind(targetDeckId);
+    const includeDiscard = isDeckDiscardEnabled(targetDeckId);
     const shouldCoverDrawings = isDeckCoverDrawingsEnabled(targetDeckId);
+    const nextDeckCards = deckKind === DECK_KIND_POKER
+      ? buildPokerDeck({
+        deckId: targetDeckId,
+        center,
+        inDeck: true,
+        zStart: 1
+      })
+      : buildCoolJpegsDeck({
+        deckId: targetDeckId,
+        center,
+        inDeck: true,
+        zStart: 1
+      });
     await runTransaction(
       cardsRef,
       (currentCards) => {
@@ -26697,12 +29857,7 @@ async function startRealtimeSession() {
         }
         return {
           ...baseCards,
-          ...buildCoolJpegsDeck({
-            deckId: targetDeckId,
-            center,
-            inDeck: true,
-            zStart: 1
-          })
+          ...nextDeckCards
         };
       },
       { applyLocally: false }
@@ -26712,7 +29867,9 @@ async function startRealtimeSession() {
       y: center.y,
       shuffleTick: 0,
       holderClientId: null,
+      includeDiscard,
       coverDrawings: shouldCoverDrawings,
+      kind: deckKind,
       updatedAt: serverTimestamp()
     });
   };
@@ -26795,6 +29952,16 @@ async function startRealtimeSession() {
       renderTaflBoards();
       return;
     }
+    const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+    if (targetGoGameId) {
+      if (!getGoGameStateById(targetGoGameId)) {
+        return;
+      }
+      patchLocalGoGame({ coverDrawings: shouldCoverDrawings }, targetGoGameId);
+      queueMonsPatch({ coverDrawings: shouldCoverDrawings }, targetGoGameId);
+      renderGoBoards();
+      return;
+    }
     const targetDeckId = getDeckIdFromGameOptionsTarget(target) || activeDeckId;
     if (!targetDeckId || !getDeckStateById(targetDeckId)) {
       return;
@@ -26802,6 +29969,56 @@ async function startRealtimeSession() {
     patchLocalDeck({ coverDrawings: shouldCoverDrawings }, targetDeckId);
     queueDeckPatch({ coverDrawings: shouldCoverDrawings }, targetDeckId);
     renderAllCards();
+  };
+
+  setGameIncludeDiscardPreference = async (target, enabled) => {
+    const targetDeckId = getDeckIdFromGameOptionsTarget(target) || activeDeckId;
+    if (!targetDeckId || !getDeckStateById(targetDeckId)) {
+      return;
+    }
+    const shouldIncludeDiscard = enabled !== false;
+    if (isDeckDiscardEnabled(targetDeckId) === shouldIncludeDiscard) {
+      syncGameOptionsIncludeDiscardToggleState();
+      return;
+    }
+
+    if (!shouldIncludeDiscard) {
+      const discardCenter = getDiscardCenterPosition(targetDeckId);
+      const discardCardIds = getDiscardCardIds(targetDeckId).sort((leftId, rightId) => {
+        const left = cards.get(leftId);
+        const right = cards.get(rightId);
+        return (Number(left?.z) || 0) - (Number(right?.z) || 0);
+      });
+      let nextTableZ = getTopCardZ() + 1;
+      for (const cardId of discardCardIds) {
+        if (!cards.has(cardId)) {
+          continue;
+        }
+        const patch = {
+          x: discardCenter.x,
+          y: discardCenter.y,
+          z: nextTableZ,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null
+        };
+        nextTableZ += 1;
+        patchLocalCard(cardId, patch);
+        queueCardPatch(cardId, patch);
+        releaseCardLock(cardId).catch((error) => {
+          console.error(error);
+        });
+      }
+      setDiscardDropIndicator(false, targetDeckId);
+    }
+
+    patchLocalDeck({ includeDiscard: shouldIncludeDiscard }, targetDeckId);
+    queueDeckPatch({ includeDiscard: shouldIncludeDiscard }, targetDeckId);
+    syncGameOptionsIncludeDiscardToggleState();
+    renderDeckControls();
   };
 
   setGameShowCoordinatesPreference = async (target, enabled) => {
@@ -26824,7 +30041,55 @@ async function startRealtimeSession() {
       patchLocalTaflGame({ showCoordinates: shouldShowCoordinates }, targetTaflGameId);
       queueMonsPatch({ showCoordinates: shouldShowCoordinates }, targetTaflGameId);
       renderTaflBoards();
+      return;
     }
+    const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+    if (targetGoGameId) {
+      if (!getGoGameStateById(targetGoGameId)) {
+        return;
+      }
+      patchLocalGoGame({ showCoordinates: shouldShowCoordinates }, targetGoGameId);
+      queueMonsPatch({ showCoordinates: shouldShowCoordinates }, targetGoGameId);
+      renderGoBoards();
+    }
+  };
+
+  setGameGoBoardSizePreference = async (target, boardSize) => {
+    const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
+    if (!targetGoGameId) {
+      return;
+    }
+    const targetState = getGoGameStateById(targetGoGameId);
+    if (!targetState) {
+      return;
+    }
+    const nextBoardSize = normalizeGoBoardSize(boardSize);
+    if (normalizeGoBoardSize(targetState.boardSize) === nextBoardSize) {
+      syncGameOptionsBoardSizeState();
+      return;
+    }
+    clearGoHoverIntersection(targetGoGameId);
+    const resizedState = normalizeGoGamePayload({
+      ...targetState,
+      boardSize: nextBoardSize
+    });
+    const nextPatch = {
+      boardSize: nextBoardSize,
+      stones: resizedState.stones,
+      captures: resizedState.captures,
+      turn: resizedState.turn,
+      passStreak: 0,
+      winner: '',
+      score: null,
+      ko: null,
+      moveTick: (Number(targetState.moveTick) || 0) + 1,
+      lastMove: null,
+      undoHistory: []
+    };
+    patchLocalGoGame(nextPatch, targetGoGameId);
+    queueMonsPatch(nextPatch, targetGoGameId);
+    syncGameOptionsBoardSizeState();
+    renderGoBoards();
   };
 
   putAwaySuperMetalMonsGame = async (gameId = activeMonsGameId) => {
@@ -26907,6 +30172,7 @@ async function startRealtimeSession() {
     deckDragState = null;
     monsDragState = null;
     taflDragState = null;
+    goDragState = null;
     handReorderState = null;
     handDropPreview = null;
     syncHandHoverDragLock();
@@ -26932,6 +30198,7 @@ async function startRealtimeSession() {
     removeAllDeckUiArtifacts();
     removeMonsBoardElements();
     removeTaflBoardElements();
+    removeGoBoardElements();
     closeDiceAddModal();
     closeStickerAddModal();
     closeMonsItemChoiceModal();
@@ -27027,6 +30294,11 @@ async function startRealtimeSession() {
     activeTaflGameId = TAFL_GAME_KEY;
     taflSelectionPieceId = '';
     taflSelectionGameId = '';
+    goGameState = null;
+    goGameStatesById.clear();
+    goBoardElementsById.clear();
+    goHoverByGameId.clear();
+    activeGoGameId = GO_GAME_KEY;
     syncCoverDrawingsGamesLayerState();
     setLocalHandCountLabel();
     setHandHoverDragLock(false);
@@ -27136,6 +30408,7 @@ async function startRealtimeSession() {
     scheduleAuctionBidUiRender();
     refreshMonsClaimLabelsOnly();
     refreshTaflClaimLabelsOnly();
+    refreshGoClaimLabelsOnly();
 
     const displayCount = visibleEntries.length + 1;
     setRealtimeStatus(`connected • players: ${displayCount}`);
@@ -27449,7 +30722,7 @@ async function startRealtimeSession() {
       let shouldTriggerShuffleFx = false;
       let shuffleFxDeckId = '';
       for (const [nextDeckId, rawDeckPayload] of nextDeckEntries) {
-        const normalizedDeck = normalizeDeckPayload(rawDeckPayload);
+        const normalizedDeck = normalizeDeckPayload(rawDeckPayload, nextDeckId);
         const previousDeckState = deckStatesById.get(nextDeckId) || null;
         if (previousDeckState && normalizedDeck.shuffleTick !== previousDeckState.shuffleTick) {
           shouldTriggerShuffleFx = true;
@@ -27517,8 +30790,16 @@ async function startRealtimeSession() {
       const nextGamesRaw = snapshot.val();
       const nextMonsEntries = [];
       const nextTaflEntries = [];
+      const nextGoEntries = [];
       if (nextGamesRaw && typeof nextGamesRaw === 'object') {
         for (const [rawGameId, rawGamePayload] of Object.entries(nextGamesRaw)) {
+          if (isGoGameId(rawGameId)) {
+            if (!rawGamePayload || typeof rawGamePayload !== 'object' || rawGamePayload.enabled === false) {
+              continue;
+            }
+            nextGoEntries.push([normalizeGoGameId(rawGameId), normalizeGoGamePayload(rawGamePayload)]);
+            continue;
+          }
           if (isTaflGameId(rawGameId)) {
             if (!rawGamePayload || typeof rawGamePayload !== 'object' || rawGamePayload.enabled === false) {
               continue;
@@ -27558,6 +30839,17 @@ async function startRealtimeSession() {
         }
         taflGameStatesById.delete(existingTaflGameId);
       }
+      const nextGoIds = new Set();
+      for (const [nextGoGameId, nextGoGameState] of nextGoEntries) {
+        goGameStatesById.set(nextGoGameId, nextGoGameState);
+        nextGoIds.add(nextGoGameId);
+      }
+      for (const existingGoGameId of Array.from(goGameStatesById.keys())) {
+        if (nextGoIds.has(existingGoGameId)) {
+          continue;
+        }
+        goGameStatesById.delete(existingGoGameId);
+      }
       let monsSelectionChanged = false;
       for (const selectedMonsGameId of Array.from(selectedMonsGameIds)) {
         if (nextMonsIds.has(selectedMonsGameId)) {
@@ -27574,6 +30866,10 @@ async function startRealtimeSession() {
       }
       const optionsTaflGameId = getTaflGameIdFromGameOptionsTarget(activeGameOptionsTarget);
       if (optionsTaflGameId && !nextTaflIds.has(optionsTaflGameId)) {
+        closeGameOptionsMenu();
+      }
+      const optionsGoGameId = getGoGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+      if (optionsGoGameId && !nextGoIds.has(optionsGoGameId)) {
         closeGameOptionsMenu();
       }
       syncGameOptionsCoverDrawingsToggleState();
@@ -27609,8 +30905,21 @@ async function startRealtimeSession() {
         }
       }
 
+      if (nextGoIds.size === 0) {
+        setActiveGoGameId(GO_GAME_KEY);
+        goGameState = null;
+      } else {
+        let fallbackGoGameId = normalizeGoGameId(activeGoGameId);
+        if (!nextGoIds.has(fallbackGoGameId)) {
+          fallbackGoGameId = nextGoIds.has(GO_GAME_KEY) ? GO_GAME_KEY : nextGoEntries[0]?.[0] || GO_GAME_KEY;
+        }
+        setActiveGoGameId(fallbackGoGameId);
+      }
+
+      syncCoverDrawingsGamesLayerState();
       renderMonsBoard();
       renderTaflBoards();
+      renderGoBoards();
       if (monsSelectionChanged) {
         syncSelectionDeleteButtonUi();
       }
@@ -27619,7 +30928,7 @@ async function startRealtimeSession() {
     (error) => {
       console.error(error);
       setRealtimeStatus('firebase: read blocked');
-      showStatusMessage('Super Metal Mons board sync failed. Check Realtime Database rules for room path access.');
+      showStatusMessage('Game board sync failed. Check Realtime Database rules for room path access.');
     }
   );
 
@@ -27688,6 +30997,9 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', onTaflDragMove);
   window.addEventListener('pointerup', onTaflDragEnd);
   window.addEventListener('pointercancel', onTaflDragEnd);
+  window.addEventListener('pointermove', onGoDragMove);
+  window.addEventListener('pointerup', onGoDragEnd);
+  window.addEventListener('pointercancel', onGoDragEnd);
 
   handReclaimIntervalId = window.setInterval(() => {
     scheduleHandReclaimCheck();

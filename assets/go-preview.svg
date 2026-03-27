@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" role="img" aria-label="Go board preview">
+  <defs>
+    <linearGradient id="goBoardFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dcb27c"/>
+      <stop offset="1" stop-color="#c69968"/>
+    </linearGradient>
+    <radialGradient id="goBoardGlow" cx="50%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#ffe0a6" stop-opacity="0.4"/>
+      <stop offset="0.64" stop-color="#ffe0a6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="goBoardNoise" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.56" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.18"/>
+      </feComponentTransfer>
+    </filter>
+    <radialGradient id="goStoneBlack" cx="33%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#979797"/>
+      <stop offset="0.45" stop-color="#222222"/>
+      <stop offset="1" stop-color="#080808"/>
+    </radialGradient>
+    <radialGradient id="goStoneWhite" cx="34%" cy="28%" r="82%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.65" stop-color="#ececec"/>
+      <stop offset="1" stop-color="#c2c2c2"/>
+    </radialGradient>
+    <filter id="goStoneShadow" x="-80%" y="-80%" width="260%" height="260%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="680" height="680" rx="22" fill="url(#goBoardFill)"/>
+  <rect x="0" y="0" width="680" height="680" rx="22" fill="url(#goBoardGlow)"/>
+  <rect x="0" y="0" width="680" height="680" rx="22" fill="#5d3e21" filter="url(#goBoardNoise)" opacity="0.12"/>
+
+  <g stroke="#2c190c" stroke-opacity="0.48" stroke-width="1.35" fill="none">
+    <line x1="48" y1="48" x2="48" y2="624"/>
+    <line x1="96" y1="48" x2="96" y2="624"/>
+    <line x1="144" y1="48" x2="144" y2="624"/>
+    <line x1="192" y1="48" x2="192" y2="624"/>
+    <line x1="240" y1="48" x2="240" y2="624"/>
+    <line x1="288" y1="48" x2="288" y2="624"/>
+    <line x1="336" y1="48" x2="336" y2="624"/>
+    <line x1="384" y1="48" x2="384" y2="624"/>
+    <line x1="432" y1="48" x2="432" y2="624"/>
+    <line x1="480" y1="48" x2="480" y2="624"/>
+    <line x1="528" y1="48" x2="528" y2="624"/>
+    <line x1="576" y1="48" x2="576" y2="624"/>
+    <line x1="624" y1="48" x2="624" y2="624"/>
+
+    <line x1="48" y1="48" x2="624" y2="48"/>
+    <line x1="48" y1="96" x2="624" y2="96"/>
+    <line x1="48" y1="144" x2="624" y2="144"/>
+    <line x1="48" y1="192" x2="624" y2="192"/>
+    <line x1="48" y1="240" x2="624" y2="240"/>
+    <line x1="48" y1="288" x2="624" y2="288"/>
+    <line x1="48" y1="336" x2="624" y2="336"/>
+    <line x1="48" y1="384" x2="624" y2="384"/>
+    <line x1="48" y1="432" x2="624" y2="432"/>
+    <line x1="48" y1="480" x2="624" y2="480"/>
+    <line x1="48" y1="528" x2="624" y2="528"/>
+    <line x1="48" y1="576" x2="624" y2="576"/>
+    <line x1="48" y1="624" x2="624" y2="624"/>
+  </g>
+
+  <g fill="#3a2311" opacity="0.62">
+    <circle cx="192" cy="192" r="4.3"/>
+    <circle cx="480" cy="192" r="4.3"/>
+    <circle cx="336" cy="336" r="4.3"/>
+    <circle cx="192" cy="480" r="4.3"/>
+    <circle cx="480" cy="480" r="4.3"/>
+  </g>
+
+  <g filter="url(#goStoneShadow)">
+    <circle cx="144" cy="96" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="384" cy="144" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="240" cy="192" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="528" cy="240" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="336" cy="288" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="432" cy="384" r="17" fill="url(#goStoneBlack)"/>
+    <circle cx="240" cy="432" r="17" fill="url(#goStoneBlack)"/>
+
+    <circle cx="288" cy="96" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="480" cy="144" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="96" cy="192" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="336" cy="240" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="480" cy="288" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="576" cy="384" r="17" fill="url(#goStoneWhite)"/>
+    <circle cx="384" cy="432" r="17" fill="url(#goStoneWhite)"/>
+  </g>
+</svg>
