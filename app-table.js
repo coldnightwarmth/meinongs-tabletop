@@ -117,6 +117,9 @@ const clearTableWarningNoButton = document.getElementById('clearTableWarningNoBu
 const drawClearWarningModal = document.getElementById('drawClearWarningModal');
 const drawClearWarningYesButton = document.getElementById('drawClearWarningYesButton');
 const drawClearWarningNoButton = document.getElementById('drawClearWarningNoButton');
+const goBoardResizeWarningModal = document.getElementById('goBoardResizeWarningModal');
+const goBoardResizeWarningYesButton = document.getElementById('goBoardResizeWarningYesButton');
+const goBoardResizeWarningNoButton = document.getElementById('goBoardResizeWarningNoButton');
 const instanceWarningModal = document.getElementById('instanceWarningModal');
 const instanceWarningContinueButton = document.getElementById('instanceWarningContinueButton');
 const instanceWarningCancelButton = document.getElementById('instanceWarningCancelButton');
@@ -1131,6 +1134,7 @@ const goGameStatesById = new Map();
 const goBoardElementsById = new Map();
 const goHoverByGameId = new Map();
 const lastRenderedGoMoveTickById = new Map();
+const lastRenderedGoCaptureFxByGameId = new Map();
 const goPlacementPulseByGameId = new Map();
 let activeGoGameId = GO_GAME_KEY;
 let monsMoveButton = null;
@@ -1213,6 +1217,7 @@ let gameOptionsCoverDrawingsToggleSyncing = false;
 let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
 let clearTableWarningResolver = null;
 let drawClearWarningResolver = null;
+let goBoardResizeWarningResolver = null;
 let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
 let activeDiceAddType = 'd6';
@@ -9495,6 +9500,7 @@ function removeGoBoardUi(goUi) {
   }
   const normalizedGameId = normalizeGoGameId(goUi.gameId);
   lastRenderedGoMoveTickById.delete(normalizedGameId);
+  lastRenderedGoCaptureFxByGameId.delete(normalizedGameId);
   goPlacementPulseByGameId.delete(normalizedGameId);
   goHoverByGameId.delete(normalizedGameId);
   goUi.shell?.remove();
@@ -9511,6 +9517,7 @@ function removeGoBoardElements() {
   goBoardElementsById.clear();
   goHoverByGameId.clear();
   lastRenderedGoMoveTickById.clear();
+  lastRenderedGoCaptureFxByGameId.clear();
   goPlacementPulseByGameId.clear();
   if (activeGameOptionsTarget.startsWith('go:')) {
     closeGameOptionsMenu();
@@ -10070,9 +10077,13 @@ function renderGoCoordinatesForBoard(goUi, gameState, boardScreenWidth, boardRen
     return;
   }
   const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
-  const labelFontSize = Math.max(1, Math.min(metrics.stepX, metrics.stepY) * 0.24);
-  const leftOffset = metrics.stepX * 0.62;
-  const topOffset = metrics.stepY * 0.58;
+  const isNineByNineBoard = boardSize === 9;
+  const labelFontScale = isNineByNineBoard ? 0.21 : 0.24;
+  const leftOffsetFactor = isNineByNineBoard ? 0.4 : 0.62;
+  const topOffsetFactor = isNineByNineBoard ? 0.36 : 0.58;
+  const labelFontSize = Math.max(1, Math.min(metrics.stepX, metrics.stepY) * labelFontScale);
+  const leftOffset = metrics.stepX * leftOffsetFactor;
+  const topOffset = metrics.stepY * topOffsetFactor;
   coordinateLayer.style.setProperty('--go-coordinate-font-size', `${labelFontSize}px`);
   for (let col = 0; col < boardSize; col += 1) {
     const label = coordinateColLabels[col];
@@ -10111,10 +10122,7 @@ function getGoPlacementPulse(gameId) {
     goPlacementPulseByGameId.delete(normalizedGameId);
     return null;
   }
-  return {
-    key: pulseKey,
-    expiresAt
-  };
+  return pulse;
 }
 
 function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boardRenderHeight) {
@@ -10129,6 +10137,8 @@ function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boar
   if (!Number.isFinite(previousMoveTick) || previousMoveTick <= 0 || moveTick <= 0) {
     return;
   }
+  // Reset any prior pulse when the move advances so each move drives a single clean placement pop.
+  goPlacementPulseByGameId.delete(normalizedGameId);
   const lastMove = normalizeGoLastMovePayload(gameState?.lastMove, boardSize);
   if (!lastMove || lastMove.type !== 'place') {
     return;
@@ -10136,7 +10146,9 @@ function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boar
   const placedKey = getGoBoardKey(lastMove.row, lastMove.col);
   goPlacementPulseByGameId.set(normalizedGameId, {
     key: placedKey,
-    expiresAt: Date.now() + GO_PLACE_PULSE_DURATION_MS
+    expiresAt: Date.now() + GO_PLACE_PULSE_DURATION_MS,
+    moveTick,
+    applied: false
   });
 
   const fxLayer = goUi?.fxLayer;
@@ -10147,10 +10159,24 @@ function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boar
   if (capturedSource.length === 0) {
     return;
   }
+  const now = Date.now();
+  const previousCaptureFx = lastRenderedGoCaptureFxByGameId.get(normalizedGameId);
+  if (
+    previousCaptureFx &&
+    Number(previousCaptureFx.moveTick) === moveTick &&
+    now - (Number(previousCaptureFx.at) || 0) < 1800
+  ) {
+    return;
+  }
+  lastRenderedGoCaptureFxByGameId.set(normalizedGameId, {
+    moveTick,
+    at: now
+  });
 
   const fallbackCapturedColor = getOpposingGoColor(lastMove.color) || 'black';
   const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
-  const stoneSize = Math.max(7, Math.min(metrics.stepX, metrics.stepY) * 0.9 - 1);
+  const stoneSize = Math.max(8, Math.round(Math.max(7, Math.min(metrics.stepX, metrics.stepY) * 0.9 - 1)));
+  const halfStoneSize = stoneSize / 2;
   for (const capturedEntry of capturedSource) {
     const entry = normalizeGoCapturedStoneEntryPayload(capturedEntry, fallbackCapturedColor, boardSize);
     if (!entry) {
@@ -10160,8 +10186,10 @@ function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boar
     burst.className = 'go-capture-burst';
     const stoneX = metrics.gridLeft + entry.col * metrics.stepX;
     const stoneY = metrics.gridTop + entry.row * metrics.stepY;
-    setElementStylePx(burst, 'left', stoneX);
-    setElementStylePx(burst, 'top', stoneY);
+    setElementStylePx(burst, 'left', Math.round(stoneX - halfStoneSize));
+    setElementStylePx(burst, 'top', Math.round(stoneY - halfStoneSize));
+    setElementStylePx(burst, 'width', stoneSize);
+    setElementStylePx(burst, 'height', stoneSize);
     burst.style.setProperty('--go-stone-size', `${stoneSize}px`);
 
     const ghost = document.createElement('span');
@@ -10169,12 +10197,43 @@ function triggerGoMoveFxForBoard(goUi, gameState, gameId, boardScreenWidth, boar
     burst.appendChild(ghost);
 
     fxLayer.appendChild(burst);
-    window.requestAnimationFrame(() => {
-      burst.classList.add('is-active');
-    });
-    window.setTimeout(() => {
+    let didFinalize = false;
+    const finalizeBurst = () => {
+      if (didFinalize) {
+        return;
+      }
+      didFinalize = true;
       burst.remove();
-    }, GO_CAPTURE_FX_DURATION_MS + 260);
+    };
+    let startedWithAnimationApi = false;
+    if (typeof ghost.animate === 'function') {
+      try {
+        const animation = ghost.animate(
+          [
+            { transform: 'translateZ(0) scale(1)', opacity: 1 },
+            { transform: 'translateZ(0) scale(0)', opacity: 0 }
+          ],
+          {
+            duration: 460,
+            easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)',
+            fill: 'forwards'
+          }
+        );
+        if (animation) {
+          startedWithAnimationApi = true;
+          animation.addEventListener('finish', finalizeBurst, { once: true });
+          animation.addEventListener('cancel', finalizeBurst, { once: true });
+        }
+      } catch {
+        startedWithAnimationApi = false;
+      }
+    }
+    if (!startedWithAnimationApi) {
+      window.requestAnimationFrame(() => {
+        burst.classList.add('is-active');
+      });
+    }
+    window.setTimeout(finalizeBurst, GO_CAPTURE_FX_DURATION_MS + 320);
   }
 }
 
@@ -10234,7 +10293,8 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
   const stones = normalizeGoStonesPayload(gameState?.stones, boardSize);
   const normalizedGameId = normalizeGoGameId(gameId);
   const pulse = getGoPlacementPulse(normalizedGameId);
-  const pulseStoneKey = pulse?.key || '';
+  const pulseStoneKey = pulse && pulse.applied !== true ? String(pulse.key || '') : '';
+  let didApplyPlacementPulse = false;
   const hover = goHoverByGameId.get(normalizedGameId);
   const winner = normalizeGoWinnerColor(gameState?.winner);
   const turn = normalizeGoStoneColor(gameState?.turn) || 'black';
@@ -10262,6 +10322,7 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
     }
     if (pulseStoneKey && pulseStoneKey === key) {
       stone.classList.add('is-placed-pop');
+      didApplyPlacementPulse = true;
     }
     const x = metrics.gridLeft + position.col * metrics.stepX;
     const y = metrics.gridTop + position.row * metrics.stepY;
@@ -10270,6 +10331,10 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
     setElementStylePx(stone, 'width', stoneSize);
     setElementStylePx(stone, 'height', stoneSize);
     stoneLayer.appendChild(stone);
+  }
+  if (didApplyPlacementPulse && pulse && pulse.applied !== true) {
+    pulse.applied = true;
+    goPlacementPulseByGameId.set(normalizedGameId, pulse);
   }
 
   if (!hoverPlacement || !hover) {
@@ -14990,6 +15055,29 @@ function openDrawClearWarningModal() {
   });
 }
 
+function closeGoBoardResizeWarningModal(shouldContinue = false) {
+  if (goBoardResizeWarningModal) {
+    goBoardResizeWarningModal.classList.add('hidden');
+  }
+  const resolver = goBoardResizeWarningResolver;
+  goBoardResizeWarningResolver = null;
+  resolver?.(Boolean(shouldContinue));
+}
+
+function openGoBoardResizeWarningModal() {
+  if (!goBoardResizeWarningModal) {
+    return Promise.resolve(true);
+  }
+  closeMonsItemChoiceModal();
+  if (goBoardResizeWarningResolver) {
+    return Promise.resolve(false);
+  }
+  goBoardResizeWarningModal.classList.remove('hidden');
+  return new Promise((resolve) => {
+    goBoardResizeWarningResolver = resolve;
+  });
+}
+
 function closeInstanceWarningModal(shouldContinue = false) {
   if (instanceWarningModal) {
     instanceWarningModal.classList.add('hidden');
@@ -15236,6 +15324,12 @@ drawClearWarningYesButton?.addEventListener('click', () => {
 });
 drawClearWarningNoButton?.addEventListener('click', () => {
   closeDrawClearWarningModal(false);
+});
+goBoardResizeWarningYesButton?.addEventListener('click', () => {
+  closeGoBoardResizeWarningModal(true);
+});
+goBoardResizeWarningNoButton?.addEventListener('click', () => {
+  closeGoBoardResizeWarningModal(false);
 });
 
 coolJpegsTile?.addEventListener('click', async () => {
@@ -15639,6 +15733,11 @@ drawClearWarningModal?.addEventListener('pointerdown', (event) => {
     closeDrawClearWarningModal(false);
   }
 });
+goBoardResizeWarningModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === goBoardResizeWarningModal) {
+    closeGoBoardResizeWarningModal(false);
+  }
+});
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') {
@@ -15674,6 +15773,10 @@ window.addEventListener('keydown', (event) => {
   }
   if (drawClearWarningModal && !drawClearWarningModal.classList.contains('hidden')) {
     closeDrawClearWarningModal(false);
+    return;
+  }
+  if (goBoardResizeWarningModal && !goBoardResizeWarningModal.classList.contains('hidden')) {
+    closeGoBoardResizeWarningModal(false);
     return;
   }
   if (instanceWarningModal && !instanceWarningModal.classList.contains('hidden')) {
@@ -16803,7 +16906,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -16816,7 +16919,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -17167,6 +17270,9 @@ shieldPointerEvents(clearTableWarningNoButton);
 shieldPointerEvents(drawClearWarningModal);
 shieldPointerEvents(drawClearWarningYesButton);
 shieldPointerEvents(drawClearWarningNoButton);
+shieldPointerEvents(goBoardResizeWarningModal);
+shieldPointerEvents(goBoardResizeWarningYesButton);
+shieldPointerEvents(goBoardResizeWarningNoButton);
 shieldPointerEvents(instanceWarningModal);
 shieldPointerEvents(instanceWarningContinueButton);
 shieldPointerEvents(instanceWarningCancelButton);
@@ -30063,21 +30169,53 @@ async function startRealtimeSession() {
     if (!targetState) {
       return;
     }
+    const currentBoardSize = normalizeGoBoardSize(targetState.boardSize);
     const nextBoardSize = normalizeGoBoardSize(boardSize);
-    if (normalizeGoBoardSize(targetState.boardSize) === nextBoardSize) {
+    if (currentBoardSize === nextBoardSize) {
       syncGameOptionsBoardSizeState();
       return;
     }
+    const isReducingBoardSize = nextBoardSize < currentBoardSize;
+    const isIncreasingBoardSize = nextBoardSize > currentBoardSize;
+    const currentStones = normalizeGoStonesPayload(targetState.stones, currentBoardSize);
+    const hasPlacedStones = Object.keys(currentStones).length > 0;
+    if (isReducingBoardSize && hasPlacedStones) {
+      const shouldContinue = await openGoBoardResizeWarningModal();
+      if (!shouldContinue) {
+        syncGameOptionsBoardSizeState();
+        return;
+      }
+    }
     clearGoHoverIntersection(targetGoGameId);
-    const resizedState = normalizeGoGamePayload({
-      ...targetState,
-      boardSize: nextBoardSize
-    });
+    let nextStones = currentStones;
+    let nextCaptures = normalizeGoCapturesPayload(targetState.captures);
+    let nextTurn = normalizeGoStoneColor(targetState.turn) || 'black';
+    if (isReducingBoardSize) {
+      nextStones = {};
+      nextCaptures = { black: 0, white: 0 };
+      nextTurn = 'black';
+    } else if (isIncreasingBoardSize) {
+      const offset = Math.floor((nextBoardSize - currentBoardSize) / 2);
+      const shiftedStones = {};
+      for (const [stoneKey, stoneColor] of Object.entries(currentStones)) {
+        const parsed = parseGoBoardKey(stoneKey, currentBoardSize);
+        if (!parsed) {
+          continue;
+        }
+        const shiftedRow = parsed.row + offset;
+        const shiftedCol = parsed.col + offset;
+        if (!isGoInBounds(shiftedRow, shiftedCol, nextBoardSize)) {
+          continue;
+        }
+        shiftedStones[getGoBoardKey(shiftedRow, shiftedCol)] = normalizeGoStoneColor(stoneColor) || 'black';
+      }
+      nextStones = shiftedStones;
+    }
     const nextPatch = {
       boardSize: nextBoardSize,
-      stones: resizedState.stones,
-      captures: resizedState.captures,
-      turn: resizedState.turn,
+      stones: nextStones,
+      captures: nextCaptures,
+      turn: nextTurn,
       passStreak: 0,
       winner: '',
       score: null,

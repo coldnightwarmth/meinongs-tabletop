@@ -1375,6 +1375,55 @@
         </div>
       </div>
 
+      <div
+        id="goBoardResizeWarningModal"
+        class="asset-menu-modal instance-warning-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="goBoardResizeWarningTitle"
+      >
+        <div class="asset-menu-dialog instance-warning-dialog clear-table-warning-dialog">
+          <h2 id="goBoardResizeWarningTitle" class="instance-warning-title">warning</h2>
+          <p class="instance-warning-text">warning: reducing board size will clear all stones. continue?</p>
+          <div class="instance-warning-actions">
+            <button
+              id="goBoardResizeWarningYesButton"
+              class="asset-clear-button instance-warning-continue"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M5 12.5L9.1 16.6L19 7.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>yes</span>
+            </button>
+            <button
+              id="goBoardResizeWarningNoButton"
+              class="asset-clear-button instance-warning-cancel"
+              type="button"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="14"
+                height="14"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+              </svg>
+              <span>no</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div id="gameOptionsModal" class="asset-menu-modal game-options-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameOptionsTitle">
         <div class="asset-menu-dialog game-options-dialog">
           <div class="asset-menu-header">
