@@ -58,8 +58,11 @@ const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const spinnerComponentTile = document.getElementById('spinnerComponentTile');
 const pokerDeckComponentTile = document.getElementById('pokerDeckComponentTile');
+const chipsComponentTile = document.getElementById('chipsComponentTile');
 const counterComponentTile = document.getElementById('counterComponentTile');
+const timerComponentTile = document.getElementById('timerComponentTile');
 const labelComponentTile = document.getElementById('labelComponentTile');
+const noteComponentTile = document.getElementById('noteComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
 const stickerComponentTile = document.getElementById('stickerComponentTile');
 const marbleComponentTile = document.getElementById('marbleComponentTile');
@@ -71,6 +74,14 @@ const diceTypeD6Button = document.getElementById('diceTypeD6Button');
 const diceTypeD20Button = document.getElementById('diceTypeD20Button');
 const diceCountRow = document.getElementById('diceCountRow');
 const diceAddConfirmButton = document.getElementById('diceAddConfirmButton');
+const chipsAddModal = document.getElementById('chipsAddModal');
+const chipsAddBackButton = document.getElementById('chipsAddBackButton');
+const chipsAddCloseButton = document.getElementById('chipsAddCloseButton');
+const chipsAddStackCountRow = document.getElementById('chipsAddStackCountRow');
+const chipsAddQuantityInput = document.getElementById('chipsAddQuantityInput');
+const chipsAddTextToggle = document.getElementById('chipsAddTextToggle');
+const chipsAddTextInputs = document.getElementById('chipsAddTextInputs');
+const chipsAddConfirmButton = document.getElementById('chipsAddConfirmButton');
 const spinnerAddModal = document.getElementById('spinnerAddModal');
 const spinnerAddBackButton = document.getElementById('spinnerAddBackButton');
 const spinnerAddCloseButton = document.getElementById('spinnerAddCloseButton');
@@ -355,13 +366,39 @@ const COUNTER_CONTROL_LABEL_HIDE_SCREEN_WIDTH = 112;
 const COUNTER_CONTROL_FONT_MIN_PX = 7;
 const COUNTER_CONTROL_FONT_MAX_PX = 12;
 const COUNTER_CONTROL_FONT_WIDTH_DIVISOR = 20;
+const TIMER_MAX_MINUTES = 99;
+const TIMER_MAX_ELAPSED_MS = (TIMER_MAX_MINUTES * 60 + 59) * 1000 + 999;
+const TIMER_SPLIT_LIMIT = 24;
+const TIMER_DIGIT_COUNT = 7;
+const TIMER_CONTROL_LABEL_HIDE_SCREEN_WIDTH = 134;
+const TIMER_CONTROL_FONT_MIN_PX = 7;
+const TIMER_CONTROL_FONT_MAX_PX = 12;
+const TIMER_CONTROL_FONT_WIDTH_DIVISOR = 23;
 const DIE_SIZE_D6 = 84;
 const DIE_SIZE_D20 = 92;
 const DIE_SIZE_COIN = 114;
+const DIE_SIZE_CHIP = 114;
 const DIE_SIZE_SPINNER = 312;
 const DIE_SIZE_COUNTER_WIDTH = 248;
 const DIE_SIZE_COUNTER_HEIGHT = 136;
+const DIE_SIZE_TIMER_WIDTH = 296;
+const DIE_SIZE_TIMER_HEIGHT = 204;
 const DIE_SIZE_MARBLE = 90;
+const CHIP_SET_MIN_STACKS = 1;
+const CHIP_SET_MAX_STACKS = 5;
+const CHIP_STACK_MIN_QUANTITY = 1;
+const CHIP_STACK_MAX_QUANTITY = 99;
+const CHIP_LABEL_MAX_LENGTH = 16;
+const CHIP_STACK_SPACING = 150;
+const CHIP_STACK_HALF_SIZE = DIE_SIZE_CHIP / 2;
+const CHIP_SPAWN_FADE_DURATION_MS = 170;
+const CHIP_STACK_DEFAULTS = Object.freeze([
+  { value: 1, color: '#ffffff', label: '1' },
+  { value: 5, color: '#ff4f4f', label: '5' },
+  { value: 25, color: '#55ff6b', label: '25' },
+  { value: 50, color: '#8f5cff', label: '50' },
+  { value: 100, color: '#8b5a2b', label: '100' }
+]);
 const SPINNER_MIN_SEGMENTS = 1;
 const SPINNER_MAX_SEGMENTS = 20;
 const SPINNER_DEFAULT_SEGMENTS = 8;
@@ -437,6 +474,14 @@ const LABEL_TEXT_LINE_HEIGHT = 1.2;
 const LABEL_DEFAULT_SPAWN_WIDTH = 332;
 const LABEL_MEASURE_BUFFER_X = 8;
 const LABEL_MEASURE_BUFFER_Y = 0;
+const NOTE_COMPONENT_SUBTYPE = 'note';
+const NOTE_TEXT_MAX_LENGTH = 24000;
+const NOTE_COMPONENT_DEFAULT_WORLD_SIZE = 252;
+const NOTE_COMPONENT_MIN_WORLD_SIZE = 150;
+const NOTE_COMPONENT_MAX_WORLD_SIZE = 760;
+const NOTE_FACE_LINE_WRAP_CHARS = 48;
+const NOTE_FACE_MAX_LINES = 24;
+const NOTE_HELD_VISUAL_SCALE = 1.123;
 const STICKER_PACK_PLAY_THINGS = 'play-things';
 const STICKER_PACK_SWAG = 'swag-pack';
 const STICKER_PACK_EMOJI = 'emoji-pack';
@@ -927,6 +972,107 @@ function escapePokerSvgText(value) {
     .replace(/>/g, '&gt;');
 }
 
+function normalizeNoteText(value) {
+  return String(value ?? '').replace(/\r\n?/g, '\n').slice(0, NOTE_TEXT_MAX_LENGTH);
+}
+
+function splitNoteTextIntoFaceLines(rawText, maxCharsPerLine = NOTE_FACE_LINE_WRAP_CHARS, maxLines = NOTE_FACE_MAX_LINES) {
+  const normalizedText = normalizeNoteText(rawText);
+  if (!normalizedText) {
+    return [];
+  }
+  const maxChars = Math.max(4, Math.floor(Number(maxCharsPerLine) || NOTE_FACE_LINE_WRAP_CHARS));
+  const lineLimit = Math.max(1, Math.floor(Number(maxLines) || NOTE_FACE_MAX_LINES));
+  const lines = [];
+  const pushLine = (line) => {
+    if (lines.length >= lineLimit) {
+      return false;
+    }
+    lines.push(line);
+    return lines.length < lineLimit;
+  };
+  const breakLongWord = (word) => {
+    let remaining = String(word || '');
+    while (remaining.length > maxChars && lines.length < lineLimit) {
+      const segment = remaining.slice(0, maxChars);
+      if (!pushLine(segment)) {
+        return '';
+      }
+      remaining = remaining.slice(maxChars);
+    }
+    return remaining;
+  };
+  for (const paragraph of normalizedText.split('\n')) {
+    if (lines.length >= lineLimit) {
+      break;
+    }
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      if (!pushLine('')) {
+        break;
+      }
+      continue;
+    }
+    let currentLine = '';
+    for (let word of words) {
+      if (lines.length >= lineLimit) {
+        break;
+      }
+      if (word.length > maxChars) {
+        if (currentLine) {
+          if (!pushLine(currentLine)) {
+            currentLine = '';
+            break;
+          }
+          currentLine = '';
+        }
+        word = breakLongWord(word);
+        if (!word) {
+          continue;
+        }
+      }
+      const candidate = currentLine ? `${currentLine} ${word}` : word;
+      if (candidate.length <= maxChars) {
+        currentLine = candidate;
+        continue;
+      }
+      if (!pushLine(currentLine)) {
+        currentLine = '';
+        break;
+      }
+      currentLine = word;
+    }
+    if (currentLine && lines.length < lineLimit) {
+      if (!pushLine(currentLine)) {
+        break;
+      }
+    }
+  }
+  return lines.slice(0, lineLimit);
+}
+
+function createNoteFaceSvgDataUri(rawText = '', face = 'front') {
+  const safeFace = face === 'back' ? 'back' : 'front';
+  const noteLines = splitNoteTextIntoFaceLines(rawText);
+  const textStartY = 18;
+  const textLineHeight = 10.6;
+  const textMarkup = noteLines
+    .map((line, index) => {
+      const safeLine = escapePokerSvgText(line);
+      const lineY = textStartY + index * textLineHeight;
+      return `<text x="10" y="${lineY}" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="9.8" fill="#3c341f">${safeLine}</text>`;
+    })
+    .join('');
+  const paperFill = safeFace === 'back' ? '#e8ce78' : '#f2d97f';
+  return encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+      <rect x="8" y="8" width="224" height="224" fill="${paperFill}" />
+      <rect x="8" y="8" width="224" height="224" fill="none" stroke="rgba(85,68,27,0.34)" stroke-width="2"/>
+      <g>${textMarkup}</g>
+    </svg>
+  `);
+}
+
 function createPokerFaceSvgDataUri(rank, suit) {
   const safeRank = escapePokerSvgText(rank);
   const safeSuit = escapePokerSvgText(suit?.symbol || '');
@@ -1088,6 +1234,9 @@ const frontImagePromises = new Map();
 const frontDisplayPendingByCard = new Map();
 const handCardElements = new Map();
 const handDisplayPendingByCard = new Map();
+const noteAttachmentRenderKeyByCardId = new Map();
+const noteAttachmentDisplayFaceByCardId = new Map();
+const noteAttachmentFaceSwapTimersByCardId = new Map();
 const discardReturnAnimatingCardIds = new Set();
 const discardReturnAnimationTimers = new Map();
 const drawingStrokes = new Map();
@@ -1110,8 +1259,10 @@ let localPlayerToken = '';
 let latestPresenceByToken = {};
 let deckState = null;
 const deckStatesById = new Map();
+const chipSetsById = new Map();
 let activeDeckId = DECK_KEY;
 const deckUiById = new Map();
+const chipSetUiById = new Map();
 let cardDeckMetricsCacheDirty = true;
 let cardDeckMetricsCache = {
   deckIds: [],
@@ -1172,12 +1323,16 @@ let monsCornerWaveLines = [];
 let deckDropIndicator = null;
 let discardDropIndicator = null;
 let auctionDropIndicator = null;
+let chipStackDropIndicator = null;
 let deckDropIndicatorVisible = false;
 let discardDropIndicatorVisible = false;
 let auctionDropIndicatorVisible = false;
+let chipStackDropIndicatorVisible = false;
 let deckDropIndicatorDeckId = '';
 let discardDropIndicatorDeckId = '';
 let auctionDropIndicatorDeckId = '';
+let chipStackDropIndicatorChipSetId = '';
+let chipStackDropIndicatorStackIndex = -1;
 let handTray = null;
 let handDropGlow = null;
 let handDropGlowVisible = false;
@@ -1222,6 +1377,10 @@ let instanceWarningResolver = null;
 let pendingMonsItemChoice = null;
 let activeDiceAddType = 'd6';
 let activeDiceAddCount = 1;
+let activeChipAddStackCount = 1;
+let activeChipAddQuantity = 20;
+let chipAddTextEnabled = false;
+let activeChipAddLabels = [];
 let activeSpinnerAddSegments = SPINNER_DEFAULT_SEGMENTS;
 let spinnerAddTextEnabled = false;
 let activeSpinnerAddLabels = [];
@@ -1301,11 +1460,17 @@ let setGameCoverDrawingsPreference = async () => {
 let spawnDice = async () => {
   showStatusMessage('Firebase connection is required before adding dice.');
 };
+let spawnChipStacksComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding chips.');
+};
 let spawnCoin = async () => {
   showStatusMessage('Firebase connection is required before adding coins.');
 };
 let spawnCounter = async () => {
   showStatusMessage('Firebase connection is required before adding counters.');
+};
+let spawnTimer = async () => {
+  showStatusMessage('Firebase connection is required before adding timers.');
 };
 let spawnMarble = async () => {
   showStatusMessage('Firebase connection is required before adding marbles.');
@@ -1321,6 +1486,9 @@ let spawnStickerComponent = async () => {
 };
 let spawnLabelComponent = async () => {
   showStatusMessage('Firebase connection is required before adding labels.');
+};
+let spawnNoteComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding notes.');
 };
 let spawnMediaComponent = async () => {
   showStatusMessage('Firebase connection is required before adding media.');
@@ -1367,7 +1535,10 @@ let onStickerLockControlPointerDown = () => {};
 let onHandCardPointerDown = () => {};
 let onDiePointerDown = () => {};
 let onDieContextMenu = () => {};
+let onChipStackPointerDown = () => {};
+let onChipSetMovePointerDown = () => {};
 let onCounterControlPointerDown = () => {};
+let onTimerControlPointerDown = () => {};
 let onLabelResizePointerDown = () => {};
 let onLabelLockControlPointerDown = () => {};
 let onLabelRotatePointerDown = () => {};
@@ -2126,6 +2297,9 @@ function normalizeDieType(type) {
   if (type === 'counter') {
     return 'counter';
   }
+  if (type === 'timer') {
+    return 'timer';
+  }
   if (type === 'marble') {
     return 'marble';
   }
@@ -2134,6 +2308,9 @@ function normalizeDieType(type) {
   }
   if (type === 'coin') {
     return 'coin';
+  }
+  if (type === 'chip') {
+    return 'chip';
   }
   return type === 'd20' ? 'd20' : 'd6';
 }
@@ -2163,6 +2340,216 @@ function normalizeSpinnerLabelText(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, SPINNER_LABEL_MAX_LENGTH);
+}
+
+function normalizeChipLabelText(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, CHIP_LABEL_MAX_LENGTH);
+}
+
+function normalizeChipStackCount(value, fallbackValue = CHIP_SET_MIN_STACKS) {
+  const parsed = Math.round(Number(value));
+  if (Number.isFinite(parsed)) {
+    return clamp(parsed, CHIP_SET_MIN_STACKS, CHIP_SET_MAX_STACKS);
+  }
+  const fallbackParsed = Math.round(Number(fallbackValue));
+  if (Number.isFinite(fallbackParsed)) {
+    return clamp(fallbackParsed, CHIP_SET_MIN_STACKS, CHIP_SET_MAX_STACKS);
+  }
+  return CHIP_SET_MIN_STACKS;
+}
+
+function normalizeChipStackQuantity(value, fallbackValue = CHIP_STACK_MIN_QUANTITY) {
+  const parsed = Math.round(Number(value));
+  if (Number.isFinite(parsed)) {
+    return clamp(parsed, CHIP_STACK_MIN_QUANTITY, CHIP_STACK_MAX_QUANTITY);
+  }
+  const fallbackParsed = Math.round(Number(fallbackValue));
+  if (Number.isFinite(fallbackParsed)) {
+    return clamp(fallbackParsed, CHIP_STACK_MIN_QUANTITY, CHIP_STACK_MAX_QUANTITY);
+  }
+  return CHIP_STACK_MIN_QUANTITY;
+}
+
+function normalizeChipStacksPayload(stacksPayload, stackCount = CHIP_SET_MIN_STACKS, options = {}) {
+  const normalizedStackCount = normalizeChipStackCount(stackCount);
+  const source = Array.isArray(stacksPayload) ? stacksPayload : [];
+  const fallbackQuantity = normalizeChipStackQuantity(
+    options.quantity,
+    CHIP_STACK_DEFAULTS[0]?.value ?? CHIP_STACK_MIN_QUANTITY
+  );
+  const stacks = [];
+  for (let index = 0; index < normalizedStackCount; index += 1) {
+    const baseSpec = CHIP_STACK_DEFAULTS[index] || CHIP_STACK_DEFAULTS[0];
+    const sourceStack = source[index] && typeof source[index] === 'object' ? source[index] : {};
+    const sourceCountRaw =
+      sourceStack.count ?? sourceStack.quantity ?? options.quantity ?? fallbackQuantity;
+    const normalizedCount = clamp(
+      Math.max(0, Math.round(Number(sourceCountRaw) || 0)),
+      0,
+      CHIP_STACK_MAX_QUANTITY
+    );
+    const valueCandidate = Number(sourceStack.value);
+    const normalizedValue = Number.isFinite(valueCandidate)
+      ? Math.max(0, Math.round(valueCandidate))
+      : baseSpec.value;
+    const labelCandidate = normalizeChipLabelText(sourceStack.label);
+    stacks.push({
+      count: normalizedCount,
+      value: normalizedValue,
+      color: normalizeHexColor(sourceStack.color || baseSpec.color),
+      label: labelCandidate || normalizeChipLabelText(baseSpec.label || String(baseSpec.value))
+    });
+  }
+  return stacks;
+}
+
+function getChipSetWorldWidth(chipSetState) {
+  const stackCount = normalizeChipStackCount(
+    chipSetState?.stackCount,
+    Array.isArray(chipSetState?.stacks) ? chipSetState.stacks.length : CHIP_SET_MIN_STACKS
+  );
+  return DIE_SIZE_CHIP + (stackCount - 1) * CHIP_STACK_SPACING;
+}
+
+function getChipSetCenterBounds(chipSetState) {
+  const width = getChipSetWorldWidth(chipSetState);
+  const halfWidth = width / 2;
+  const halfHeight = CHIP_STACK_HALF_SIZE;
+  return {
+    minX: Math.min(halfWidth, WORLD_WIDTH - halfWidth),
+    maxX: Math.max(halfWidth, WORLD_WIDTH - halfWidth),
+    minY: Math.min(halfHeight, WORLD_HEIGHT - halfHeight),
+    maxY: Math.max(halfHeight, WORLD_HEIGHT - halfHeight)
+  };
+}
+
+function getChipStackCenterFromNormalized(chipSetState, stackIndex) {
+  const stackCount = normalizeChipStackCount(
+    chipSetState?.stackCount,
+    Array.isArray(chipSetState?.stacks) ? chipSetState.stacks.length : CHIP_SET_MIN_STACKS
+  );
+  const clampedIndex = clamp(Math.round(Number(stackIndex) || 0), 0, stackCount - 1);
+  const centerX = Number(chipSetState?.x);
+  const centerY = Number(chipSetState?.y);
+  const startX = (Number.isFinite(centerX) ? centerX : WORLD_WIDTH / 2) - ((stackCount - 1) * CHIP_STACK_SPACING) / 2;
+  return {
+    x: startX + clampedIndex * CHIP_STACK_SPACING,
+    y: Number.isFinite(centerY) ? centerY : WORLD_HEIGHT / 2
+  };
+}
+
+function normalizeChipSetPayload(payload) {
+  const stackCount = normalizeChipStackCount(
+    payload?.stackCount,
+    Array.isArray(payload?.stacks) ? payload.stacks.length : CHIP_SET_MIN_STACKS
+  );
+  const stacks = normalizeChipStacksPayload(payload?.stacks, stackCount, {
+    quantity: payload?.stackQuantity
+  });
+  const bounds = getChipSetCenterBounds({ stackCount, stacks });
+  const normalizedX = Number(payload?.x);
+  const normalizedY = Number(payload?.y);
+  const normalizedZ = Math.round(Number(payload?.z) || 1);
+  const holderClientId =
+    typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  return {
+    x: Number.isFinite(normalizedX)
+      ? clamp(normalizedX, bounds.minX, bounds.maxX)
+      : clamp(WORLD_WIDTH / 2, bounds.minX, bounds.maxX),
+    y: Number.isFinite(normalizedY)
+      ? clamp(normalizedY, bounds.minY, bounds.maxY)
+      : clamp(WORLD_HEIGHT / 2, bounds.minY, bounds.maxY),
+    z: clamp(Number.isFinite(normalizedZ) ? normalizedZ : 1, 1, DECK_UI_Z_INDEX - 1),
+    holderClientId,
+    stackCount,
+    stacks
+  };
+}
+
+function getChipStackCenter(chipSetState, stackIndex) {
+  const normalized = normalizeChipSetPayload(chipSetState);
+  return getChipStackCenterFromNormalized(normalized, stackIndex);
+}
+
+function normalizeChipNumericValue(value, fallbackValue = 1) {
+  const parsed = Math.round(Number(value));
+  if (Number.isFinite(parsed)) {
+    return Math.max(0, parsed);
+  }
+  const fallbackParsed = Math.round(Number(fallbackValue));
+  if (Number.isFinite(fallbackParsed)) {
+    return Math.max(0, fallbackParsed);
+  }
+  return 1;
+}
+
+function doesChipMatchStackSpec(chipColor, chipValue, stackState) {
+  if (!stackState || typeof stackState !== 'object') {
+    return false;
+  }
+  const normalizedChipColor = normalizeHexColor(chipColor || '#ffffff');
+  const stackColor = normalizeHexColor(stackState.color || '#ffffff');
+  if (normalizedChipColor !== stackColor) {
+    return false;
+  }
+  const normalizedChipValue = normalizeChipNumericValue(chipValue, 1);
+  const stackValue = normalizeChipNumericValue(stackState.value, 1);
+  if (normalizedChipValue !== stackValue) {
+    return false;
+  }
+  const stackCount = Math.max(0, Math.round(Number(stackState.count) || 0));
+  return stackCount < CHIP_STACK_MAX_QUANTITY;
+}
+
+function canLooseChipBeDroppedIntoStack(chipDieState, stackState) {
+  if (!chipDieState || normalizeDieType(chipDieState.type) !== 'chip') {
+    return false;
+  }
+  return doesChipMatchStackSpec(chipDieState.chipColor, chipDieState.chipValue, stackState);
+}
+
+function getChipStackDropTargetAtPosition(x, y, chipDieState = null) {
+  let bestTarget = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  const targetX = Number(x);
+  const targetY = Number(y);
+  if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+    return null;
+  }
+  const hitRadius = DIE_SIZE_CHIP * 0.52;
+  for (const [chipSetId, chipSetState] of chipSetsById.entries()) {
+    const normalizedSet = normalizeChipSetPayload(chipSetState);
+    for (let stackIndex = 0; stackIndex < normalizedSet.stackCount; stackIndex += 1) {
+      const stackState = normalizedSet.stacks[stackIndex];
+      if (!stackState) {
+        continue;
+      }
+      if (chipDieState && !canLooseChipBeDroppedIntoStack(chipDieState, stackState)) {
+        continue;
+      }
+      const center = getChipStackCenterFromNormalized(normalizedSet, stackIndex);
+      const deltaX = targetX - center.x;
+      const deltaY = targetY - center.y;
+      const distance = Math.hypot(deltaX, deltaY);
+      if (Math.abs(deltaX) > hitRadius || Math.abs(deltaY) > hitRadius) {
+        continue;
+      }
+      if (distance > hitRadius) {
+        continue;
+      }
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestTarget = {
+          chipSetId,
+          stackIndex
+        };
+      }
+    }
+  }
+  return bestTarget;
 }
 
 function normalizeSpinnerLabels(labels, segmentCount) {
@@ -2214,24 +2601,24 @@ function normalizeSpinnerRollTurns(value) {
 }
 
 function getSpinnerNeedleAngle(dieState, now = Date.now()) {
-  const normalizedDie = normalizeDicePayload(dieState);
-  if (normalizeDieType(normalizedDie?.type) !== 'spinner') {
+  if (normalizeDieType(dieState?.type) !== 'spinner') {
     return 0;
   }
-  const segmentCount = getSpinnerSegmentCount(normalizedDie);
-  const finalAngle = getSpinnerSegmentCenterAngle(normalizedDie.value, segmentCount);
-  if (!isDieRolling(normalizedDie, now)) {
+  const segmentCount = getSpinnerSegmentCount(dieState);
+  const finalValue = clamp(Math.round(Number(dieState?.value) || 1), 1, segmentCount);
+  const finalAngle = getSpinnerSegmentCenterAngle(finalValue, segmentCount);
+  if (!isDieRolling(dieState, now)) {
     return finalAngle;
   }
-  const startedAt = Number(normalizedDie.rollStartedAt);
-  const duration = Math.max(1, Number(normalizedDie.rollDurationMs) || SPINNER_ROLL_DURATION_MS);
+  const startedAt = Number(dieState?.rollStartedAt);
+  const duration = Math.max(1, Number(dieState?.rollDurationMs) || SPINNER_ROLL_DURATION_MS);
   const progress = clamp((now - startedAt) / duration, 0, 1);
   const eased = 1 - Math.pow(1 - progress, 3);
-  const startAngleRaw = Number(normalizedDie.spinnerStartAngle);
+  const startAngleRaw = Number(dieState?.spinnerStartAngle);
   const startAngle = Number.isFinite(startAngleRaw)
     ? startAngleRaw
-    : getSpinnerSegmentCenterAngle(normalizedDie.value, segmentCount);
-  const spinTurns = normalizeSpinnerRollTurns(normalizedDie.spinnerSpinTurns);
+    : finalAngle;
+  const spinTurns = normalizeSpinnerRollTurns(dieState?.spinnerSpinTurns);
   const normalizedDelta = ((finalAngle - startAngle) % 360 + 360) % 360;
   const totalRotation = spinTurns * 360 + normalizedDelta;
   return startAngle + totalRotation * eased;
@@ -2239,11 +2626,14 @@ function getSpinnerNeedleAngle(dieState, now = Date.now()) {
 
 function getDieSides(type, payload = null) {
   const normalizedType = normalizeDieType(type);
-  if (normalizedType === 'label' || normalizedType === 'media' || normalizedType === 'counter') {
+  if (normalizedType === 'label' || normalizedType === 'media' || normalizedType === 'counter' || normalizedType === 'timer') {
     return 1;
   }
   if (normalizedType === 'marble') {
     return 1;
+  }
+  if (normalizedType === 'chip') {
+    return 2;
   }
   if (normalizedType === 'spinner') {
     return getSpinnerSegmentCount(payload);
@@ -2265,6 +2655,9 @@ function getDieSize(type) {
   if (normalizedType === 'counter') {
     return Math.max(DIE_SIZE_COUNTER_WIDTH, DIE_SIZE_COUNTER_HEIGHT);
   }
+  if (normalizedType === 'timer') {
+    return Math.max(DIE_SIZE_TIMER_WIDTH, DIE_SIZE_TIMER_HEIGHT);
+  }
   if (normalizedType === 'marble') {
     return DIE_SIZE_MARBLE;
   }
@@ -2273,6 +2666,9 @@ function getDieSize(type) {
   }
   if (normalizedType === 'coin') {
     return DIE_SIZE_COIN;
+  }
+  if (normalizedType === 'chip') {
+    return DIE_SIZE_CHIP;
   }
   return normalizedType === 'd20' ? DIE_SIZE_D20 : DIE_SIZE_D6;
 }
@@ -2291,6 +2687,176 @@ function clampCounterValue(value) {
     return 0;
   }
   return clamp(Math.round(numeric), COUNTER_MIN_VALUE, COUNTER_MAX_VALUE);
+}
+
+function clampTimerElapsedMs(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return clamp(Math.round(numeric), 0, TIMER_MAX_ELAPSED_MS);
+}
+
+function normalizeTimerSplits(value) {
+  const source = Array.isArray(value) ? value : [];
+  const nextSplits = [];
+  for (let index = 0; index < source.length && nextSplits.length < TIMER_SPLIT_LIMIT; index += 1) {
+    nextSplits.push(clampTimerElapsedMs(source[index]));
+  }
+  return nextSplits;
+}
+
+function getTimerElapsedMs(dieState, now = Date.now()) {
+  if (normalizeDieType(dieState?.type) !== 'timer') {
+    return 0;
+  }
+  let elapsed = clampTimerElapsedMs(dieState?.timerElapsedMs);
+  if (dieState?.timerRunning === true) {
+    const startedAt = Number(dieState?.timerStartedAt);
+    if (Number.isFinite(startedAt) && startedAt > 0) {
+      elapsed = clampTimerElapsedMs(elapsed + Math.max(0, Math.round(now - startedAt)));
+    }
+  }
+  return elapsed;
+}
+
+function getTimerDisplayDigits(elapsedMs) {
+  const clamped = clampTimerElapsedMs(elapsedMs);
+  const totalSeconds = Math.floor(clamped / 1000);
+  const minutesTotal = clamp(Math.floor(totalSeconds / 60), 0, TIMER_MAX_MINUTES);
+  const seconds = totalSeconds % 60;
+  const milliseconds = clamped % 1000;
+  return [
+    Math.floor(minutesTotal / 10),
+    minutesTotal % 10,
+    Math.floor(seconds / 10),
+    seconds % 10,
+    Math.floor(milliseconds / 100),
+    Math.floor(milliseconds / 10) % 10,
+    milliseconds % 10
+  ];
+}
+
+function getTimerControlIconSvg(action) {
+  if (action === 'reset') {
+    return '<path d="M8.4 8.2A4.8 4.8 0 1 1 7.2 12" /><path d="M7.3 6.35V9.6H10.55" />';
+  }
+  if (action === 'pause') {
+    return '<path d="M8.65 6.3V17.7" /><path d="M15.35 6.3V17.7" />';
+  }
+  if (action === 'split') {
+    return '<path d="M12 5.7V18.3" /><path d="M7.05 10.65L12 5.7L16.95 10.65" />';
+  }
+  return '';
+}
+
+function getTimerControlLabel(action, isRunning = false) {
+  if (action === 'pause') {
+    return isRunning ? 'pause' : 'resume';
+  }
+  if (action === 'split') {
+    return 'split';
+  }
+  if (action === 'reset') {
+    return 'reset';
+  }
+  return action;
+}
+
+function formatTimerElapsedLabel(elapsedMs) {
+  const digits = getTimerDisplayDigits(elapsedMs);
+  return `${digits[0]}${digits[1]}:${digits[2]}${digits[3]}.${digits[4]}${digits[5]}${digits[6]}`;
+}
+
+function getTimerSplitLabel(splitIndex) {
+  return `s${splitIndex}`;
+}
+
+function getTimerSplitOrderIndex(totalSplits, reverseIndex) {
+  return totalSplits - reverseIndex;
+}
+
+function getTimerSplitRows(splits) {
+  const rows = [];
+  for (let reverseIndex = splits.length - 1; reverseIndex >= 0; reverseIndex -= 1) {
+    const splitIndex = getTimerSplitOrderIndex(splits.length, reverseIndex);
+    rows.push({
+      splitLabel: getTimerSplitLabel(splitIndex),
+      timeLabel: formatTimerElapsedLabel(splits[reverseIndex])
+    });
+  }
+  return rows;
+}
+
+function createTimerSplitRowElement(splitLabel, timeLabel) {
+  const row = document.createElement('div');
+  row.className = 'table-timer-split-row';
+  const splitIndexText = document.createElement('span');
+  splitIndexText.className = 'table-timer-split-index';
+  splitIndexText.textContent = splitLabel;
+  const splitValueText = document.createElement('span');
+  splitValueText.className = 'table-timer-split-value';
+  splitValueText.textContent = timeLabel;
+  row.appendChild(splitIndexText);
+  row.appendChild(splitValueText);
+  return row;
+}
+
+function renderTimerSplitRows(splitsContainer, splits) {
+  if (!(splitsContainer instanceof HTMLElement)) {
+    return;
+  }
+  splitsContainer.textContent = '';
+  if (splits.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'table-timer-split-empty';
+    empty.textContent = 'no splits';
+    splitsContainer.appendChild(empty);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  const rows = getTimerSplitRows(splits);
+  for (const row of rows) {
+    fragment.appendChild(createTimerSplitRowElement(row.splitLabel, row.timeLabel));
+  }
+  splitsContainer.appendChild(fragment);
+}
+
+function createTimerControlContent(action, isRunning = false) {
+  const label = getTimerControlLabel(action, isRunning);
+  const iconSvg = getTimerControlIconSvg(action);
+  const content = document.createElement('span');
+  content.className = 'table-timer-control-content';
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('class', 'table-timer-control-icon');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('aria-hidden', 'true');
+  icon.innerHTML = iconSvg;
+  const text = document.createElement('span');
+  text.className = 'table-timer-control-label';
+  text.setAttribute('data-timer-control-label', '1');
+  text.textContent = label;
+  content.appendChild(icon);
+  content.appendChild(text);
+  return content;
+}
+
+function setTimerControlLabel(controlElement, action, isRunning = false) {
+  if (!(controlElement instanceof HTMLElement)) {
+    return;
+  }
+  const nextLabel = getTimerControlLabel(action, isRunning);
+  let labelElement = controlElement.querySelector('[data-timer-control-label="1"]');
+  if (!(labelElement instanceof HTMLElement)) {
+    const content = createTimerControlContent(action, isRunning);
+    controlElement.textContent = '';
+    controlElement.appendChild(content);
+    return;
+  }
+  if (labelElement.textContent !== nextLabel) {
+    labelElement.textContent = nextLabel;
+  }
 }
 
 function clampMediaDimensions(widthValue, heightValue, provider = '') {
@@ -2454,6 +3020,12 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
       height: DIE_SIZE_COUNTER_HEIGHT
     };
   }
+  if (dieType === 'timer') {
+    return {
+      width: DIE_SIZE_TIMER_WIDTH,
+      height: DIE_SIZE_TIMER_HEIGHT
+    };
+  }
   if (dieType !== 'label') {
     const size = getDieSize(dieType);
     return { width: size, height: size };
@@ -2565,6 +3137,24 @@ function normalizeDicePayload(payload) {
   const marbleHue = type === 'marble' ? normalizeMarbleHue(payload?.marbleHue) : MARBLE_DEFAULT_HUE;
   const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
   const text = normalizeLabelText(payload?.text);
+  const chipColor = type === 'chip' ? normalizeHexColor(payload?.chipColor || '#ffffff') : '#ffffff';
+  const chipLabel = type === 'chip'
+    ? normalizeChipLabelText(payload?.chipLabel || payload?.chipValue || '1') || '1'
+    : '';
+  const chipValueRaw = Number(payload?.chipValue);
+  const chipValue = type === 'chip'
+    ? (Number.isFinite(chipValueRaw) ? Math.max(0, Math.round(chipValueRaw)) : 1)
+    : 0;
+  const chipSetId = type === 'chip' ? String(payload?.chipSetId || '').trim() : '';
+  const chipStackIndexRaw = Number(payload?.chipStackIndex);
+  const chipStackIndex = type === 'chip'
+    ? (Number.isFinite(chipStackIndexRaw) ? Math.max(0, Math.round(chipStackIndexRaw)) : 0)
+    : 0;
+  const timerElapsedMs = type === 'timer' ? clampTimerElapsedMs(payload?.timerElapsedMs) : 0;
+  const timerStartedAtRaw = type === 'timer' ? Number(payload?.timerStartedAt) : 0;
+  const timerStartedAt = Number.isFinite(timerStartedAtRaw) && timerStartedAtRaw > 0 ? Math.floor(timerStartedAtRaw) : 0;
+  const timerRunning = type === 'timer' && payload?.timerRunning === true && timerStartedAt > 0 && timerElapsedMs < TIMER_MAX_ELAPSED_MS;
+  const timerSplits = type === 'timer' ? normalizeTimerSplits(payload?.timerSplits) : [];
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
   const labelLocked = type === 'label' ? payload?.labelLocked === true : false;
   const labelRotation = type === 'label' ? normalizeStickerRotationDegrees(payload?.labelRotation) : 0;
@@ -2606,6 +3196,10 @@ function normalizeDicePayload(payload) {
   const normalizedHolderClientId = labelLocked ? null : holderClientId;
   const normalizedValue = type === 'counter'
     ? clampCounterValue(nextValue)
+    : type === 'timer'
+      ? 0
+    : type === 'chip'
+      ? 1
     : clamp(Number.isFinite(nextValue) ? Math.round(nextValue) : 1, 1, sides);
   return {
     type,
@@ -2619,6 +3213,15 @@ function normalizeDicePayload(payload) {
     value: normalizedValue,
     text,
     textColor,
+    chipColor,
+    chipLabel,
+    chipValue,
+    chipSetId,
+    chipStackIndex,
+    timerElapsedMs,
+    timerRunning,
+    timerStartedAt,
+    timerSplits,
     textScale,
     labelLocked,
     labelRotation,
@@ -2644,7 +3247,7 @@ function normalizeDicePayload(payload) {
     velocityY,
     marbleHue,
     rollStartedAt:
-      type === 'label' || type === 'media' || type === 'marble' || type === 'counter'
+      type === 'label' || type === 'media' || type === 'marble' || type === 'counter' || type === 'timer'
         ? 0
         : Number.isFinite(rollStartedAt)
           ? Math.max(0, rollStartedAt)
@@ -2659,7 +3262,7 @@ function isDieRolling(dieState, now = Date.now()) {
     return false;
   }
   const dieType = normalizeDieType(dieState.type);
-  if (dieType === 'label' || dieType === 'media' || dieType === 'marble' || dieType === 'counter') {
+  if (dieType === 'label' || dieType === 'media' || dieType === 'marble' || dieType === 'counter' || dieType === 'timer') {
     return false;
   }
   const startedAt = Number(dieState.rollStartedAt);
@@ -2681,17 +3284,31 @@ function getPseudoRandomFromSeed(seedValue) {
 }
 
 function getRenderedDieValue(dieState, now = Date.now()) {
-  const normalized = normalizeDicePayload(dieState);
-  if (normalized.type === 'spinner') {
-    return normalized.value;
+  const dieType = normalizeDieType(dieState?.type);
+  if (dieType === 'counter') {
+    return clampCounterValue(dieState?.value);
   }
-  if (!isDieRolling(normalized, now)) {
-    return normalized.value;
+  if (
+    dieType === 'timer' ||
+    dieType === 'label' ||
+    dieType === 'media' ||
+    dieType === 'marble'
+  ) {
+    return 1;
   }
-  const elapsed = Math.max(0, now - normalized.rollStartedAt);
+  if (dieType === 'spinner') {
+    const segmentCount = getSpinnerSegmentCount(dieState);
+    return clamp(Math.round(Number(dieState?.value) || 1), 1, segmentCount);
+  }
+  const sides = getDieSides(dieType, dieState);
+  const settledValue = clamp(Math.round(Number(dieState?.value) || 1), 1, sides);
+  if (!isDieRolling(dieState, now)) {
+    return settledValue;
+  }
+  const elapsed = Math.max(0, now - (Number(dieState?.rollStartedAt) || 0));
   const tick = Math.floor(elapsed / DIE_ROLL_STEP_MS);
-  const mixedSeed = getPseudoRandomFromSeed((normalized.rollSeed || 0) + tick * 2654435761);
-  return (mixedSeed % getDieSides(normalized.type, normalized)) + 1;
+  const mixedSeed = getPseudoRandomFromSeed((Number(dieState?.rollSeed) || 0) + tick * 2654435761);
+  return (mixedSeed % sides) + 1;
 }
 
 function getTopDieZ() {
@@ -4468,6 +5085,47 @@ function clearCardFlipTimer(cardId) {
   }
 }
 
+function clearNoteAttachmentFaceSwapTimer(cardId) {
+  const timerId = noteAttachmentFaceSwapTimersByCardId.get(cardId);
+  if (timerId) {
+    window.clearTimeout(timerId);
+    noteAttachmentFaceSwapTimersByCardId.delete(cardId);
+  }
+}
+
+function getDisplayedNoteAttachmentFace(cardId, fallbackFace = 'front') {
+  const normalizedCardId = String(cardId || '').trim();
+  const normalizedFallbackFace = fallbackFace === 'back' ? 'back' : 'front';
+  if (!normalizedCardId) {
+    return normalizedFallbackFace;
+  }
+  const mappedFace = noteAttachmentDisplayFaceByCardId.get(normalizedCardId);
+  return mappedFace === 'back' ? 'back' : mappedFace === 'front' ? 'front' : normalizedFallbackFace;
+}
+
+function setDisplayedNoteAttachmentFace(cardId, face = 'front') {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  const normalizedFace = face === 'back' ? 'back' : 'front';
+  const previousFace = noteAttachmentDisplayFaceByCardId.get(normalizedCardId);
+  if (previousFace === normalizedFace) {
+    return;
+  }
+  noteAttachmentDisplayFaceByCardId.set(normalizedCardId, normalizedFace);
+  rerenderAttachedDrawingStrokesForCard(normalizedCardId);
+}
+
+function clearNoteAttachmentFaceState(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  clearNoteAttachmentFaceSwapTimer(normalizedCardId);
+  noteAttachmentDisplayFaceByCardId.delete(normalizedCardId);
+}
+
 function ensureDeckShuffleFxElements() {
   if (!cardLayer || deckShuffleFxCards.length === 2) {
     return;
@@ -4909,6 +5567,233 @@ function removeAllDeckUiArtifacts() {
       node.remove();
     }
   }
+}
+
+function removeChipSetUi(chipSetId) {
+  const normalizedChipSetId = String(chipSetId || '').trim();
+  if (!normalizedChipSetId) {
+    return;
+  }
+  const chipUi = chipSetUiById.get(normalizedChipSetId);
+  if (!chipUi) {
+    return;
+  }
+  chipUi.moveButton?.remove();
+  for (const stackEntry of chipUi.stacks || []) {
+    stackEntry?.slot?.remove();
+  }
+  chipSetUiById.delete(normalizedChipSetId);
+}
+
+function ensureChipStackDropIndicator() {
+  if (!tableRoot) {
+    return null;
+  }
+  if (!chipStackDropIndicator) {
+    chipStackDropIndicator = document.createElement('div');
+    chipStackDropIndicator.className = 'chip-stack-drop-indicator hidden';
+    chipStackDropIndicator.setAttribute('aria-hidden', 'true');
+    chipStackDropIndicator.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V17M6.5 11.5L12 17L17.5 11.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    tableRoot.appendChild(chipStackDropIndicator);
+  }
+  return chipStackDropIndicator;
+}
+
+function hideChipSetUi(chipUi) {
+  if (!chipUi) {
+    return;
+  }
+  chipUi.moveButton?.classList.add('hidden');
+  chipUi.moveButton?.classList.remove('is-held-by-self');
+  for (const stackEntry of chipUi.stacks || []) {
+    stackEntry?.slot?.classList.add('hidden');
+    stackEntry?.slot?.classList.remove('is-empty');
+    stackEntry?.slot?.classList.remove('is-hovered');
+  }
+}
+
+function ensureChipSetControlElements(chipSetId) {
+  const normalizedChipSetId = String(chipSetId || '').trim();
+  if (!normalizedChipSetId || !tableRoot) {
+    return null;
+  }
+  const stackVisualHost = stackLayer || tableRoot;
+  const existing = chipSetUiById.get(normalizedChipSetId);
+  if (existing && existing.moveButton?.isConnected) {
+    const allSlotsConnected = Array.isArray(existing.stacks) && existing.stacks.every((entry) => entry?.slot?.isConnected);
+    if (allSlotsConnected) {
+      return existing;
+    }
+    removeChipSetUi(normalizedChipSetId);
+  }
+
+  const stacks = [];
+  for (let index = 0; index < CHIP_SET_MAX_STACKS; index += 1) {
+    const slot = document.createElement('button');
+    slot.type = 'button';
+    slot.className = 'chip-stack-slot hidden';
+    slot.dataset.chipSetId = normalizedChipSetId;
+    slot.dataset.chipStackIndex = String(index);
+    slot.setAttribute('aria-label', `chip stack ${index + 1}`);
+    slot.addEventListener('pointerdown', (event) => {
+      onChipStackPointerDown(event, normalizedChipSetId, index);
+    });
+
+    const face = document.createElement('div');
+    face.className = 'chip-stack-face';
+    const inner = document.createElement('div');
+    inner.className = 'chip-stack-inner';
+    const label = document.createElement('span');
+    label.className = 'chip-stack-label';
+    inner.appendChild(label);
+    face.appendChild(inner);
+    slot.appendChild(face);
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'chip-stack-count-badge';
+    countBadge.textContent = '0';
+    slot.appendChild(countBadge);
+
+    shieldPointerEvents(slot);
+    stackVisualHost.appendChild(slot);
+    stacks.push({
+      slot,
+      label,
+      countBadge
+    });
+  }
+
+  const moveButton = document.createElement('button');
+  moveButton.type = 'button';
+  moveButton.className = 'deck-control-button deck-move-button chip-stack-move-button hidden';
+  moveButton.dataset.chipSetId = normalizedChipSetId;
+  moveButton.setAttribute('aria-label', 'move chip stacks');
+  moveButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  moveButton.addEventListener('pointerdown', (event) => {
+    onChipSetMovePointerDown(event, normalizedChipSetId);
+  });
+  shieldPointerEvents(moveButton);
+  tableRoot.appendChild(moveButton);
+
+  const chipUi = {
+    chipSetId: normalizedChipSetId,
+    stacks,
+    moveButton
+  };
+  chipSetUiById.set(normalizedChipSetId, chipUi);
+  return chipUi;
+}
+
+function hideAllChipSetUiElements() {
+  for (const chipUi of chipSetUiById.values()) {
+    hideChipSetUi(chipUi);
+  }
+}
+
+function removeAllChipSetUiArtifacts() {
+  for (const chipSetId of Array.from(chipSetUiById.keys())) {
+    removeChipSetUi(chipSetId);
+  }
+  chipSetUiById.clear();
+  chipStackDropIndicatorVisible = false;
+  chipStackDropIndicatorChipSetId = '';
+  chipStackDropIndicatorStackIndex = -1;
+  chipStackDropIndicator?.remove();
+  chipStackDropIndicator = null;
+  if (tableRoot) {
+    for (const node of tableRoot.querySelectorAll('.chip-stack-slot, .chip-stack-move-button, .chip-stack-drop-indicator')) {
+      node.remove();
+    }
+  }
+}
+
+function renderChipSets() {
+  ensureChipStackDropIndicator();
+  const renderedChipSetIds = new Set();
+  const controlSize = DECK_CONTROL_SIZE;
+  const controlGap = DECK_CONTROL_GAP;
+  const chipScreenSize = snapToDevicePixel(DIE_SIZE_CHIP * camera.scale);
+  for (const [chipSetId, rawChipSetState] of chipSetsById.entries()) {
+    const chipSetState = normalizeChipSetPayload(rawChipSetState);
+    const chipUi = ensureChipSetControlElements(chipSetId);
+    if (!chipUi) {
+      continue;
+    }
+    renderedChipSetIds.add(chipSetId);
+    const chipCenterScreen = worldToScreen({ x: chipSetState.x, y: chipSetState.y });
+    for (let index = 0; index < chipUi.stacks.length; index += 1) {
+      const stackEntry = chipUi.stacks[index];
+      const stackState = chipSetState.stacks[index];
+      if (!stackEntry?.slot || !stackEntry.label || !stackEntry.countBadge || !stackState || index >= chipSetState.stackCount) {
+        stackEntry?.slot?.classList.add('hidden');
+        stackEntry?.slot?.classList.remove('is-hovered');
+        continue;
+      }
+      const stackCenterWorld = getChipStackCenterFromNormalized(chipSetState, index);
+      const stackCenterScreen = worldToScreen(stackCenterWorld);
+      stackEntry.slot.classList.remove('hidden');
+      setElementStylePx(stackEntry.slot, 'left', stackCenterScreen.x);
+      setElementStylePx(stackEntry.slot, 'top', stackCenterScreen.y);
+      setElementStylePx(stackEntry.slot, 'width', chipScreenSize);
+      setElementStylePx(stackEntry.slot, 'height', chipScreenSize);
+      stackEntry.slot.style.setProperty('--chip-stack-color', normalizeHexColor(stackState.color || '#ffffff'));
+      stackEntry.slot.classList.toggle('is-empty', Number(stackState.count) <= 0);
+      stackEntry.slot.classList.toggle(
+        'is-hovered',
+        chipStackDropIndicatorVisible &&
+          chipStackDropIndicatorChipSetId === chipSetId &&
+          chipStackDropIndicatorStackIndex === index
+      );
+      stackEntry.label.textContent =
+        normalizeChipLabelText(stackState.label || stackState.value || String(index + 1)) || String(index + 1);
+      const stackLabelColors = getReadableChipLabelColors(stackState.color || '#ffffff');
+      stackEntry.label.style.color = stackLabelColors.fill;
+      stackEntry.label.style.textShadow = `0 1px 2px ${stackLabelColors.stroke}`;
+      stackEntry.countBadge.textContent = String(Math.max(0, Math.round(Number(stackState.count) || 0)));
+    }
+
+    const setScreenWidth = getChipSetWorldWidth(chipSetState) * camera.scale;
+    chipUi.moveButton.classList.remove('hidden');
+    setElementStylePx(chipUi.moveButton, 'left', chipCenterScreen.x + setScreenWidth / 2 + controlGap + controlSize / 2);
+    setElementStylePx(chipUi.moveButton, 'top', chipCenterScreen.y + chipScreenSize / 2 - controlSize / 2);
+    setElementStylePx(chipUi.moveButton, 'width', controlSize);
+    setElementStylePx(chipUi.moveButton, 'height', controlSize);
+    chipUi.moveButton.classList.toggle('is-held-by-self', chipSetState.holderClientId === localClientId);
+  }
+
+  for (const [existingChipSetId, existingChipUi] of chipSetUiById.entries()) {
+    if (renderedChipSetIds.has(existingChipSetId)) {
+      continue;
+    }
+    hideChipSetUi(existingChipUi);
+    if (!chipSetsById.has(existingChipSetId)) {
+      removeChipSetUi(existingChipSetId);
+    }
+  }
+
+  const targetChipSet = chipStackDropIndicatorVisible
+    ? chipSetsById.get(chipStackDropIndicatorChipSetId)
+    : null;
+  const targetChipSetState = targetChipSet ? normalizeChipSetPayload(targetChipSet) : null;
+  const hasTargetStack =
+    targetChipSetState &&
+    chipStackDropIndicatorStackIndex >= 0 &&
+    chipStackDropIndicatorStackIndex < targetChipSetState.stackCount;
+  const targetCenter = hasTargetStack
+    ? worldToScreen(getChipStackCenterFromNormalized(targetChipSetState, chipStackDropIndicatorStackIndex))
+    : null;
+
+  if (!chipStackDropIndicator || !targetCenter) {
+    chipStackDropIndicator?.classList.add('hidden');
+    chipStackDropIndicator?.classList.remove('is-visible');
+    return;
+  }
+  setElementStylePx(chipStackDropIndicator, 'left', targetCenter.x);
+  setElementStylePx(chipStackDropIndicator, 'top', targetCenter.y - chipScreenSize / 2 - DECK_DROP_INDICATOR_OFFSET_Y);
+  chipStackDropIndicator.classList.remove('hidden');
+  chipStackDropIndicator.classList.add('is-visible');
 }
 
 function renderDeckControls() {
@@ -11068,12 +11953,21 @@ function getCardComponentType(cardState) {
   return '';
 }
 
+function getCardComponentSubtype(cardState) {
+  const rawSubtype = String(cardState?.componentSubtype || '').trim().toLowerCase();
+  return rawSubtype === NOTE_COMPONENT_SUBTYPE ? NOTE_COMPONENT_SUBTYPE : '';
+}
+
 function isImageComponentCard(cardState) {
   return getCardComponentType(cardState) === 'image';
 }
 
 function isStickerComponentCard(cardState) {
   return getCardComponentType(cardState) === 'sticker';
+}
+
+function isNoteComponentCard(cardState) {
+  return isImageComponentCard(cardState) && getCardComponentSubtype(cardState) === NOTE_COMPONENT_SUBTYPE;
 }
 
 function isNativeImageComponentCard(cardState) {
@@ -11101,6 +11995,9 @@ function isTwoSidedImageComponentCard(cardState) {
   if (!isImageComponentCard(cardState)) {
     return false;
   }
+  if (isNoteComponentCard(cardState)) {
+    return true;
+  }
   if (cardState?.componentTwoSided === true) {
     return true;
   }
@@ -11124,6 +12021,9 @@ function isCardFlippable(cardState) {
 }
 
 function canCardUseDeckZones(cardState) {
+  if (isNoteComponentCard(cardState)) {
+    return true;
+  }
   return !isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false;
 }
 
@@ -11137,6 +12037,9 @@ function isCoolJpegsStackCard(cardState) {
 function canCardEnterHand(cardState) {
   if (!cardState) {
     return false;
+  }
+  if (isNoteComponentCard(cardState)) {
+    return true;
   }
   return !isNativeImageComponentCard(cardState);
 }
@@ -11235,6 +12138,9 @@ function fitSizeToAspectWithinBounds(preferredWidth, preferredHeight, bounds, as
 }
 
 function getFaceWhenEnteringHand(cardState) {
+  if (isNoteComponentCard(cardState)) {
+    return cardState?.face === 'back' ? 'back' : 'front';
+  }
   if (!isVisualImageComponentCard(cardState)) {
     return 'front';
   }
@@ -11251,6 +12157,7 @@ function isResizableImageComponentCard(cardState) {
   return Boolean(
     cardState &&
     isResizableComponentType &&
+    !isNoteComponentCard(cardState) &&
     cardState.componentCardSized === false &&
     !isNativeImageComponentLocked(cardState) &&
     !heldByOther &&
@@ -11287,6 +12194,7 @@ function isRotatableNativeImageCard(cardState) {
   const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
   return Boolean(
     cardState &&
+    !isNoteComponentCard(cardState) &&
     isNativeImageComponentCard(cardState) &&
     !isNativeImageComponentLocked(cardState) &&
     !heldByOther &&
@@ -11408,9 +12316,25 @@ function clampImageComponentSize(widthValue, heightValue) {
   };
 }
 
+function clampNoteComponentSize(widthValue, heightValue) {
+  const width = Number(widthValue);
+  const height = Number(heightValue);
+  const fallbackWidth = Number.isFinite(width) && width > 0 ? width : NOTE_COMPONENT_DEFAULT_WORLD_SIZE;
+  const fallbackHeight = Number.isFinite(height) && height > 0 ? height : NOTE_COMPONENT_DEFAULT_WORLD_SIZE;
+  const side = clamp(
+    Math.max(fallbackWidth, fallbackHeight),
+    NOTE_COMPONENT_MIN_WORLD_SIZE,
+    NOTE_COMPONENT_MAX_WORLD_SIZE
+  );
+  return { width: side, height: side };
+}
+
 function getCardTableDimensions(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
+  }
+  if (isNoteComponentCard(cardState)) {
+    return clampNoteComponentSize(cardState.componentWidth, cardState.componentHeight);
   }
   if (!isVisualImageComponentCard(cardState) || cardState.componentCardSized !== false) {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
@@ -11472,35 +12396,59 @@ function normalizeCardPayload(payload) {
   const rawFrontSrc = String(payload?.frontSrc || '').trim();
   const deckId = normalizeDeckId(payload?.deckId || DECK_KEY);
   const rawComponentType = String(payload?.componentType || '').trim().toLowerCase();
+  const rawComponentSubtype = String(payload?.componentSubtype || '').trim().toLowerCase();
   const componentType = rawComponentType === 'image' || rawComponentType === 'sticker' ? rawComponentType : '';
+  const componentSubtype =
+    componentType === 'image' && rawComponentSubtype === NOTE_COMPONENT_SUBTYPE ? NOTE_COMPONENT_SUBTYPE : '';
   const isImageComponent = componentType === 'image';
   const isStickerComponent = componentType === 'sticker';
-  const componentCardSized = componentType ? (isStickerComponent ? false : payload?.componentCardSized !== false) : true;
+  const isNoteComponent = isImageComponent && componentSubtype === NOTE_COMPONENT_SUBTYPE;
+  const componentCardSized = componentType
+    ? (isStickerComponent
+      ? false
+      : isNoteComponent
+        ? true
+        : payload?.componentCardSized !== false)
+    : true;
   const componentLocked = componentType && componentCardSized === false ? payload?.componentLocked === true : false;
   const componentRotation = componentType && componentCardSized === false ? normalizeStickerRotationDegrees(payload?.componentRotation) : 0;
-  const componentFrontBlank = isImageComponent ? payload?.componentFrontBlank === true : false;
-  const componentBackBlank = isImageComponent ? payload?.componentBackBlank === true : false;
+  const noteFrontText = isNoteComponent ? normalizeNoteText(payload?.noteFrontText || '') : '';
+  const noteBackText = isNoteComponent ? normalizeNoteText(payload?.noteBackText || '') : '';
+  const componentFrontBlank = isImageComponent && !isNoteComponent ? payload?.componentFrontBlank === true : false;
+  const componentBackBlank = isImageComponent && !isNoteComponent ? payload?.componentBackBlank === true : false;
   const componentTwoSided = isImageComponent
-    ? (
+    ? (isNoteComponent
+      ? true
+      : (
       payload?.componentTwoSided === true ||
       componentBackBlank ||
       Boolean(normalizeImageComponentSrc(payload?.backSrc || ''))
-    )
+    ))
     : false;
   const componentFrontColor = isImageComponent ? normalizeHexColor(payload?.componentFrontColor || '#ffffff') : '#ffffff';
   const componentBackColor = isImageComponent ? normalizeHexColor(payload?.componentBackColor || '#ffffff') : '#ffffff';
   const normalizedFrontSrc = componentType
-    ? (isImageComponent && componentFrontBlank ? '' : normalizeImageComponentSrc(rawFrontSrc))
+    ? (isNoteComponent
+      ? createNoteFaceSvgDataUri(noteFrontText, 'front')
+      : (isImageComponent && componentFrontBlank ? '' : normalizeImageComponentSrc(rawFrontSrc)))
     : toHighResFrontSrc(rawFrontSrc);
   const deckBackSrc = componentType ? '' : normalizeImageComponentSrc(payload?.deckBackSrc || '');
-  const backSrc = isImageComponent ? normalizeImageComponentSrc(payload?.backSrc || '') : '';
-  const componentSize = componentType && !componentCardSized
-    ? (isStickerComponent
-      ? clampStickerSquareSize(payload?.componentWidth, payload?.componentHeight)
-      : clampImageComponentSize(payload?.componentWidth, payload?.componentHeight))
-    : { width: CARD_WIDTH, height: CARD_HEIGHT };
-  const componentAspectRatio = componentType && componentCardSized === false
-    ? (isStickerComponent
+  const backSrc = isImageComponent
+    ? (isNoteComponent
+      ? createNoteFaceSvgDataUri(noteBackText, 'back')
+      : normalizeImageComponentSrc(payload?.backSrc || ''))
+    : '';
+  const componentSize = isNoteComponent
+    ? clampNoteComponentSize(payload?.componentWidth, payload?.componentHeight)
+    : componentType && !componentCardSized
+      ? (isStickerComponent
+        ? clampStickerSquareSize(payload?.componentWidth, payload?.componentHeight)
+        : clampImageComponentSize(payload?.componentWidth, payload?.componentHeight))
+      : { width: CARD_WIDTH, height: CARD_HEIGHT };
+  const componentAspectRatio = isNoteComponent
+    ? 1
+    : componentType && componentCardSized === false
+      ? (isStickerComponent
       ? 1
       : (() => {
         const explicitRatio = Number(payload?.componentAspectRatio);
@@ -11510,7 +12458,7 @@ function normalizeCardPayload(payload) {
         const fallbackHeight = Math.max(1, componentSize.height);
         return componentSize.width / fallbackHeight;
       })())
-    : 0;
+      : 0;
   const drawLifted = payload?.drawLifted === true;
   const inDeck = Boolean(payload?.inDeck);
   const inDiscard = Boolean(payload?.inDiscard);
@@ -11535,12 +12483,15 @@ function normalizeCardPayload(payload) {
     frontSrc: normalizedFrontSrc,
     backSrc,
     componentType,
+    componentSubtype,
     componentCardSized,
     componentTwoSided,
     componentFrontBlank,
     componentBackBlank,
     componentFrontColor,
     componentBackColor,
+    noteFrontText,
+    noteBackText,
     componentLocked,
     componentRotation,
     componentAspectRatio,
@@ -11677,9 +12628,21 @@ function setCounterDigitSegments(digitElement, value) {
   if (!(digitElement instanceof HTMLElement)) {
     return;
   }
+  let segmentsByKey = digitElement._counterSegmentsByKey;
+  if (!segmentsByKey || typeof segmentsByKey !== 'object') {
+    segmentsByKey = {};
+    for (const segmentElement of digitElement.querySelectorAll('.table-counter-segment[data-segment]')) {
+      const segmentKey = segmentElement.getAttribute('data-segment');
+      if (!segmentKey) {
+        continue;
+      }
+      segmentsByKey[segmentKey] = segmentElement;
+    }
+    digitElement._counterSegmentsByKey = segmentsByKey;
+  }
   if (value === null || value === undefined || value === '') {
     for (const segmentKey of COUNTER_SEGMENT_KEYS) {
-      const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+      const segment = segmentsByKey[segmentKey];
       if (segment instanceof HTMLElement) {
         segment.classList.remove('is-active');
       }
@@ -11689,7 +12652,7 @@ function setCounterDigitSegments(digitElement, value) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue) || numericValue < 0 || numericValue > 9) {
     for (const segmentKey of COUNTER_SEGMENT_KEYS) {
-      const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+      const segment = segmentsByKey[segmentKey];
       if (segment instanceof HTMLElement) {
         segment.classList.remove('is-active');
       }
@@ -11699,7 +12662,7 @@ function setCounterDigitSegments(digitElement, value) {
   const digitValue = clamp(Math.round(numericValue), 0, 9);
   const activeSegments = new Set(COUNTER_DIGIT_SEGMENTS[digitValue] || COUNTER_DIGIT_SEGMENTS[0]);
   for (const segmentKey of COUNTER_SEGMENT_KEYS) {
-    const segment = digitElement.querySelector(`.table-counter-segment[data-segment="${segmentKey}"]`);
+    const segment = segmentsByKey[segmentKey];
     if (segment instanceof HTMLElement) {
       segment.classList.toggle('is-active', activeSegments.has(segmentKey));
     }
@@ -11802,16 +12765,174 @@ function renderCounterFaceValue(dieId, dieState) {
   const absoluteDigits = String(Math.abs(normalizedValue)).padStart(COUNTER_DIGIT_COUNT, '0').slice(-COUNTER_DIGIT_COUNT);
   const firstNonZeroIndex = absoluteDigits.search(/[1-9]/);
   const shouldHideLeadingZeros = normalizedValue !== 0 && firstNonZeroIndex >= 0;
-  const signSegment = shell.querySelector('[data-counter-sign-segment="g"]');
+  let signSegment = shell._counterSignSegment;
+  if (!(signSegment instanceof HTMLElement)) {
+    signSegment = shell.querySelector('[data-counter-sign-segment="g"]');
+    shell._counterSignSegment = signSegment;
+  }
   if (signSegment instanceof HTMLElement) {
     signSegment.classList.toggle('is-active', normalizedValue < 0);
   }
-  const digitElements = shell.querySelectorAll('.table-counter-digit[data-counter-digit-index]');
+  let digitElements = shell._counterDigitElements;
+  if (!(digitElements instanceof NodeList)) {
+    digitElements = shell.querySelectorAll('.table-counter-digit[data-counter-digit-index]');
+    shell._counterDigitElements = digitElements;
+  }
   for (let index = 0; index < digitElements.length; index += 1) {
     const digitElement = digitElements[index];
     const digitChar = absoluteDigits[index] || '0';
     const isLeadingZero = shouldHideLeadingZeros && index < firstNonZeroIndex;
     setCounterDigitSegments(digitElement, isLeadingZero ? null : Number(digitChar));
+  }
+}
+
+function ensureTimerFaceShell(face, dieId) {
+  if (!(face instanceof HTMLElement)) {
+    return null;
+  }
+  let shell = face.querySelector('.table-timer-shell');
+  if (shell instanceof HTMLElement) {
+    return shell;
+  }
+
+  face.textContent = '';
+  shell = document.createElement('div');
+  shell.className = 'table-timer-shell';
+
+  const display = document.createElement('div');
+  display.className = 'table-timer-display';
+
+  const createDigit = (index) => {
+    const digit = document.createElement('div');
+    digit.className = 'table-counter-digit table-timer-digit';
+    digit.setAttribute('data-timer-digit-index', String(index));
+    digit.setAttribute('aria-hidden', 'true');
+    for (const segmentKey of COUNTER_SEGMENT_KEYS) {
+      const segment = document.createElement('span');
+      segment.className = `table-counter-segment table-counter-segment-${segmentKey}`;
+      segment.setAttribute('data-segment', segmentKey);
+      digit.appendChild(segment);
+    }
+    return digit;
+  };
+
+  const createSeparator = (type = 'colon') => {
+    const separator = document.createElement('span');
+    separator.className = `table-timer-separator table-timer-separator-${type}`;
+    separator.textContent = type === 'dot' ? '.' : ':';
+    separator.setAttribute('aria-hidden', 'true');
+    return separator;
+  };
+
+  display.appendChild(createDigit(0));
+  display.appendChild(createDigit(1));
+  display.appendChild(createSeparator('colon'));
+  display.appendChild(createDigit(2));
+  display.appendChild(createDigit(3));
+  display.appendChild(createSeparator('dot'));
+  display.appendChild(createDigit(4));
+  display.appendChild(createDigit(5));
+  display.appendChild(createDigit(6));
+
+  const controls = document.createElement('div');
+  controls.className = 'table-timer-controls';
+  const controlSpecs = [
+    { action: 'reset', title: 'reset timer' },
+    { action: 'pause', title: 'pause or resume timer' },
+    { action: 'split', title: 'record split' }
+  ];
+  for (const spec of controlSpecs) {
+    const control = document.createElement('div');
+    control.className = 'table-timer-control';
+    control.setAttribute('role', 'button');
+    control.setAttribute('tabindex', '-1');
+    control.setAttribute('title', spec.title);
+    control.setAttribute('aria-label', spec.title);
+    control.setAttribute('data-timer-action', spec.action);
+    control.appendChild(createTimerControlContent(spec.action, spec.action === 'pause'));
+    control.addEventListener('pointerdown', (event) => {
+      onTimerControlPointerDown(event, dieId, spec.action);
+    });
+    control.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    control.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    controls.appendChild(control);
+  }
+
+  const splits = document.createElement('div');
+  splits.className = 'table-timer-splits';
+  splits.setAttribute('data-timer-splits', '1');
+
+  shell.appendChild(display);
+  shell.appendChild(controls);
+  shell.appendChild(splits);
+  face.appendChild(shell);
+  return shell;
+}
+
+function renderTimerFaceValue(dieId, dieState, now = Date.now()) {
+  const die = diceElements.get(dieId);
+  const face = die?.querySelector('.table-die-face');
+  if (!(face instanceof HTMLElement)) {
+    return;
+  }
+  const shell = ensureTimerFaceShell(face, dieId);
+  if (!(shell instanceof HTMLElement)) {
+    return;
+  }
+  const elapsed = getTimerElapsedMs(dieState, now);
+  const digits = getTimerDisplayDigits(elapsed);
+  let digitElements = shell._timerDigitElements;
+  if (!(digitElements instanceof NodeList)) {
+    digitElements = shell.querySelectorAll('.table-timer-digit[data-timer-digit-index]');
+    shell._timerDigitElements = digitElements;
+  }
+  for (let index = 0; index < digitElements.length; index += 1) {
+    setCounterDigitSegments(digitElements[index], digits[index] ?? 0);
+  }
+  let pauseButton = shell._timerPauseButton;
+  if (!(pauseButton instanceof HTMLElement)) {
+    pauseButton = shell.querySelector('[data-timer-action="pause"]');
+    shell._timerPauseButton = pauseButton;
+  }
+  if (pauseButton instanceof HTMLElement) {
+    setTimerControlLabel(pauseButton, 'pause', dieState?.timerRunning === true);
+  }
+  let splitButton = shell._timerSplitButton;
+  if (!(splitButton instanceof HTMLElement)) {
+    splitButton = shell.querySelector('[data-timer-action="split"]');
+    shell._timerSplitButton = splitButton;
+  }
+  if (splitButton instanceof HTMLElement) {
+    splitButton.classList.toggle('is-disabled', !(dieState?.timerRunning === true || elapsed > 0));
+  }
+  let splitsContainer = shell._timerSplitsContainer;
+  if (!(splitsContainer instanceof HTMLElement)) {
+    splitsContainer = shell.querySelector('[data-timer-splits="1"]');
+    shell._timerSplitsContainer = splitsContainer;
+  }
+  if (splitsContainer instanceof HTMLElement) {
+    const splits = normalizeTimerSplits(dieState?.timerSplits);
+    const nextSignature = splits.join('|');
+    const previousSignature = String(splitsContainer.dataset.timerSplitSignature || '');
+    if (previousSignature !== nextSignature) {
+      const previousScrollTop = splitsContainer.scrollTop;
+      const wasNearBottom =
+        splitsContainer.scrollHeight - (previousScrollTop + splitsContainer.clientHeight) <= 8;
+      renderTimerSplitRows(splitsContainer, splits);
+      splitsContainer.dataset.timerSplitSignature = nextSignature;
+      if (wasNearBottom) {
+        splitsContainer.scrollTop = splitsContainer.scrollHeight;
+      } else {
+        const maxScrollTop = Math.max(0, splitsContainer.scrollHeight - splitsContainer.clientHeight);
+        splitsContainer.scrollTop = clamp(previousScrollTop, 0, maxScrollTop);
+      }
+    }
   }
 }
 
@@ -11825,6 +12946,16 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   if (dieType === 'counter') {
     return `counter|${clampCounterValue(dieState?.value)}`;
   }
+  if (dieType === 'timer') {
+    const splitSignature = normalizeTimerSplits(dieState?.timerSplits).join(',');
+    const running = dieState?.timerRunning === true ? 1 : 0;
+    const baseElapsed = clampTimerElapsedMs(dieState?.timerElapsedMs);
+    return `timer|${running}|${baseElapsed}|${splitSignature}`;
+  }
+  if (dieType === 'chip') {
+    return `chip|${normalizeHexColor(dieState?.chipColor || '#ffffff')}|${normalizeChipLabelText(dieState?.chipLabel || dieState?.chipValue || '1') || '1'}`;
+  }
+
   if (dieType === 'coin') {
     return `coin|${clamp(Math.round(Number(faceValue) || 1), 1, 2)}|${getMonsPieceImageRendering()}`;
   }
@@ -11917,6 +13048,12 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     renderCounterFaceValue(dieId, dieState);
     return;
   }
+  if (dieType === 'timer') {
+    teardownMediaController(dieId);
+    face.classList.remove('table-label-text');
+    renderTimerFaceValue(dieId, dieState, Date.now());
+    return;
+  }
   teardownMediaController(dieId);
   face.classList.remove('table-label-text');
   face.textContent = '';
@@ -11951,6 +13088,55 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     sideImage.setAttribute('class', 'table-coin-sprite');
     sideImage.setAttribute('style', `image-rendering: ${getMonsPieceImageRendering()}; pointer-events: none;`);
     svg.appendChild(sideImage);
+    return;
+  }
+
+  if (dieType === 'chip') {
+    const chipColor = normalizeHexColor(dieState?.chipColor || '#ffffff');
+    const chipLabel =
+      normalizeChipLabelText(dieState?.chipLabel || dieState?.chipValue || '1') ||
+      '1';
+    const labelColors = getReadableChipLabelColors(chipColor);
+
+    const shell = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    shell.setAttribute('cx', '50');
+    shell.setAttribute('cy', '50');
+    shell.setAttribute('r', '41');
+    shell.setAttribute('class', 'table-chip-shell');
+    shell.setAttribute('fill', chipColor);
+    svg.appendChild(shell);
+
+    const outerRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    outerRing.setAttribute('cx', '50');
+    outerRing.setAttribute('cy', '50');
+    outerRing.setAttribute('r', '38');
+    outerRing.setAttribute('class', 'table-chip-outer-ring');
+    svg.appendChild(outerRing);
+
+    const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    inner.setAttribute('cx', '50');
+    inner.setAttribute('cy', '50');
+    inner.setAttribute('r', '28');
+    inner.setAttribute('class', 'table-chip-inner');
+    svg.appendChild(inner);
+
+    const innerRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    innerRing.setAttribute('cx', '50');
+    innerRing.setAttribute('cy', '50');
+    innerRing.setAttribute('r', '24');
+    innerRing.setAttribute('class', 'table-chip-inner-ring');
+    svg.appendChild(innerRing);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', '50');
+    text.setAttribute('y', '51');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'middle');
+    text.setAttribute('class', 'table-chip-label');
+    text.setAttribute('fill', labelColors.fill);
+    text.setAttribute('stroke', labelColors.stroke);
+    text.textContent = chipLabel;
+    svg.appendChild(text);
     return;
   }
 
@@ -12231,7 +13417,9 @@ function renderDieElement(dieId) {
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
   const isCounter = dieType === 'counter';
+  const isTimer = dieType === 'timer';
   const isSpinner = dieType === 'spinner';
+  const isChip = dieType === 'chip';
   const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
   const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
   if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
@@ -12291,10 +13479,12 @@ function renderDieElement(dieId) {
   die.classList.toggle('table-die-d6', dieType === 'd6');
   die.classList.toggle('table-die-spinner', isSpinner);
   die.classList.toggle('table-die-coin', dieType === 'coin');
+  die.classList.toggle('table-die-chip', isChip);
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
   die.classList.toggle('table-die-counter', isCounter);
+  die.classList.toggle('table-die-timer', isTimer);
   if ((dieType === 'd6' || dieType === 'd20') && rolling) {
     const rollStartedAt = Number(dieState?.rollStartedAt);
     const rollDurationMs = Math.max(1, Number(dieState?.rollDurationMs) || DIE_ROLL_DURATION_MS);
@@ -12318,6 +13508,18 @@ function renderDieElement(dieId) {
   } else {
     die.style.removeProperty('--counter-control-font-size');
     die.classList.remove('is-counter-controls-hidden');
+  }
+  if (isTimer) {
+    const timerControlFontSize = clamp(
+      screenWidth / TIMER_CONTROL_FONT_WIDTH_DIVISOR,
+      TIMER_CONTROL_FONT_MIN_PX,
+      TIMER_CONTROL_FONT_MAX_PX
+    );
+    die.style.setProperty('--timer-control-font-size', `${timerControlFontSize.toFixed(2)}px`);
+    die.classList.toggle('is-timer-controls-hidden', screenWidth <= TIMER_CONTROL_LABEL_HIDE_SCREEN_WIDTH);
+  } else {
+    die.style.removeProperty('--timer-control-font-size');
+    die.classList.remove('is-timer-controls-hidden');
   }
   die.classList.toggle('is-marble-moving', dieType === 'marble' && dieState.moving === true);
   die.classList.toggle('is-marble-fast', dieType === 'marble' && dieState.moving === true && marbleWarbleStrength > 0.001);
@@ -12364,6 +13566,10 @@ function renderDieElement(dieId) {
     die.setAttribute('aria-label', 'media');
   } else if (dieType === 'counter') {
     die.setAttribute('aria-label', 'counter');
+  } else if (dieType === 'timer') {
+    die.setAttribute('aria-label', 'timer');
+  } else if (dieType === 'chip') {
+    die.setAttribute('aria-label', 'chip');
   } else if (dieType === 'spinner') {
     die.setAttribute('aria-label', 'spinner');
   } else if (dieType === 'marble') {
@@ -12377,6 +13583,19 @@ function renderDieElement(dieId) {
   } else {
     die.style.removeProperty('--marble-hue');
     die.style.removeProperty('--marble-warble-strength');
+  }
+  if (isChip) {
+    const chipColor = normalizeHexColor(dieState?.chipColor || '#ffffff');
+    const chipLuminance = getHexColorLuminance(chipColor);
+    const chipNumericValue = normalizeChipNumericValue(dieState?.chipValue, renderedDieValue);
+    const chipLabelText = normalizeChipLabelText(dieState?.chipLabel || chipNumericValue);
+    const isTwentyFiveChip = chipNumericValue === 25 || chipLabelText === '25';
+    const needsChipContrastBoost = chipLuminance >= 0.74 || (isTwentyFiveChip && chipLuminance >= 0.46);
+    die.style.setProperty('--chip-color', chipColor);
+    die.classList.toggle('is-chip-contrast-boost', needsChipContrastBoost);
+  } else {
+    die.style.removeProperty('--chip-color');
+    die.classList.remove('is-chip-contrast-boost');
   }
   const spinnerNeedleAngle = isSpinner ? getSpinnerNeedleAngle(dieState, now) : 0;
   if (dieType === 'label') {
@@ -12395,6 +13614,9 @@ function renderDieElement(dieId) {
   if (die.dataset.faceRenderKey !== dieFaceRenderKey || (isLabel && hasActiveLabelEditor)) {
     renderDieFace(dieId, die, dieFace, dieType, renderedDieValue, dieState);
     die.dataset.faceRenderKey = dieFaceRenderKey;
+  }
+  if (isTimer) {
+    renderTimerFaceValue(dieId, dieState, now);
   }
   if (isSpinner) {
     const spinnerNeedleGroup = die.querySelector('.table-spinner-needle-group');
@@ -12451,7 +13673,19 @@ function renderDieElement(dieId) {
       }
     }
   }
-  return rolling;
+  if (isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) >= TIMER_MAX_ELAPSED_MS) {
+    const stopPatch = {
+      type: 'timer',
+      timerElapsedMs: TIMER_MAX_ELAPSED_MS,
+      timerRunning: false,
+      timerStartedAt: 0,
+      holderClientId: null
+    };
+    patchLocalDie(dieId, stopPatch);
+    queueDiePatch(dieId, stopPatch);
+  }
+  const timerAnimating = isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) < TIMER_MAX_ELAPSED_MS;
+  return rolling || timerAnimating;
 }
 
 function renderAllDice() {
@@ -12717,6 +13951,17 @@ function getHandInsertIndex(clientX, handSize, trayWidth) {
   return clamp(rawIndex, 0, handSize - 1);
 }
 
+function getHandCardDisplayDimensions(cardState) {
+  const width = HAND_CARD_WIDTH;
+  const isNoteCard = isNoteComponentCard(cardState);
+  const height = isNoteCard ? HAND_CARD_WIDTH : HAND_CARD_HEIGHT;
+  return {
+    width,
+    height,
+    baseBottomOffset: isNoteCard ? -Math.round(height * 0.52) : HAND_CARD_BASE_BOTTOM_OFFSET
+  };
+}
+
 function setHoveredHandCard(cardId) {
   const nextCardId = typeof cardId === 'string' && cardId ? cardId : null;
   if (hoveredHandCardId === nextCardId) {
@@ -12840,8 +14085,10 @@ function removeTableCardElement(cardId) {
     cardElements.delete(cardId);
   }
   clearCardFlipTimer(cardId);
+  clearNoteAttachmentFaceState(cardId);
   cardFaces.delete(cardId);
   frontDisplayPendingByCard.delete(cardId);
+  noteAttachmentRenderKeyByCardId.delete(cardId);
 }
 
 function renderLocalHandCards() {
@@ -12935,21 +14182,23 @@ function renderLocalHandCards() {
 
     const isActiveReorderCard = Boolean(handReorderState) && handReorderState.cardId === cardId;
     const isPreviewCard = previewCardId === cardId;
+    const handDimensions = getHandCardDisplayDimensions(cardState);
+    const isNoteHandCard = isNoteComponentCard(cardState);
 
     let left = startX + fanStep * index;
-    let bottom = HAND_CARD_BASE_BOTTOM_OFFSET;
+    let bottom = handDimensions.baseBottomOffset;
     let zIndex = index + 1;
     if (isActiveReorderCard && tableRect) {
       left = clamp(
-        handReorderState.clientX - tableRect.left - HAND_CARD_WIDTH / 2,
+        handReorderState.clientX - tableRect.left - handDimensions.width / 2,
         8,
-        Math.max(8, trayWidth - HAND_CARD_WIDTH - 8)
+        Math.max(8, trayWidth - handDimensions.width - 8)
       );
-      const draggedBottom = tableRect.bottom - handReorderState.clientY - HAND_CARD_HEIGHT / 2;
+      const draggedBottom = tableRect.bottom - handReorderState.clientY - handDimensions.height / 2;
       const maxLiftBottom = handReorderState.releaseToTable
-        ? Math.max(138, tableRect.height - HAND_CARD_HEIGHT * 0.34)
+        ? Math.max(138, tableRect.height - handDimensions.height * 0.34)
         : 138;
-      bottom = clamp(draggedBottom, HAND_CARD_BASE_BOTTOM_OFFSET - 8, maxLiftBottom);
+      bottom = clamp(draggedBottom, handDimensions.baseBottomOffset - 8, maxLiftBottom);
       zIndex = 99999;
     } else if (isPreviewCard) {
       zIndex = handSize + 6;
@@ -12957,12 +14206,13 @@ function renderLocalHandCards() {
 
     handCard.style.left = `${left}px`;
     handCard.style.bottom = `${bottom}px`;
-    handCard.style.width = `${HAND_CARD_WIDTH}px`;
-    handCard.style.height = `${HAND_CARD_HEIGHT}px`;
+    handCard.style.width = `${handDimensions.width}px`;
+    handCard.style.height = `${handDimensions.height}px`;
     handCard.style.zIndex = String(zIndex);
     handCard.classList.toggle('is-reordering-active', isActiveReorderCard);
     handCard.classList.toggle('is-preview', isPreviewCard);
     handCard.classList.toggle('is-hovered', !isActiveReorderCard && !isPreviewCard && hoveredHandCardId === cardId);
+    handCard.classList.toggle('is-note-component', isNoteHandCard);
 
     const image = handCard.querySelector('img');
     if (!image) {
@@ -12994,6 +14244,20 @@ function renderLocalHandCards() {
       if (backDisplaySrc) {
         if (!imageHasSource(image, backDisplaySrc)) {
           image.src = backDisplaySrc;
+        }
+      } else if (image.getAttribute('src')) {
+        image.removeAttribute('src');
+      }
+      continue;
+    }
+
+    if (isNoteHandCard) {
+      handDisplayPendingByCard.delete(cardId);
+      handCard.classList.remove('is-front-pending');
+      const noteFrontSrc = normalizeImageComponentSrc(cardState.frontSrc || '');
+      if (noteFrontSrc) {
+        if (!imageHasSource(image, noteFrontSrc)) {
+          image.src = noteFrontSrc;
         }
       } else if (image.getAttribute('src')) {
         image.removeAttribute('src');
@@ -13096,6 +14360,9 @@ function animateCardFlip(cardId, card, image, nextSrc) {
   const endTimer = window.setTimeout(() => {
     card.classList.remove('is-flipping');
     cardFlipTimers.delete(cardId);
+    if (isNoteComponentCard(cards.get(cardId))) {
+      rerenderAttachedDrawingStrokesForCard(cardId);
+    }
   }, CARD_FLIP_DURATION_MS);
 
   cardFlipTimers.set(cardId, { swapTimer, endTimer });
@@ -13106,6 +14373,8 @@ function renderCardElement(cardId) {
   if (!cardState) {
     removeHandCardElement(cardId);
     removeTableCardElement(cardId);
+    noteAttachmentRenderKeyByCardId.delete(cardId);
+    rerenderAttachedDrawingStrokesForCard(cardId);
     return;
   }
 
@@ -13118,6 +14387,8 @@ function renderCardElement(cardId) {
     if (handOwnerClientId !== localPlayerToken) {
       removeHandCardElement(cardId);
     }
+    noteAttachmentRenderKeyByCardId.delete(cardId);
+    rerenderAttachedDrawingStrokesForCard(cardId);
     return;
   }
 
@@ -13131,7 +14402,8 @@ function renderCardElement(cardId) {
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
   const isCoolStackCard = isCoolJpegsStackCard(cardState);
-  const shouldAlwaysCoverDrawings = !isCoolStackCard && cardDeckState?.coverDrawings === true;
+  const isNoteComponent = isNoteComponentCard(cardState);
+  const shouldAlwaysCoverDrawings = !isCoolStackCard && !isNoteComponent && cardDeckState?.coverDrawings === true;
   const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
@@ -13158,7 +14430,7 @@ function renderCardElement(cardId) {
     selectedCardIds.delete(cardId);
     syncSelectionDeleteButtonUi();
   }
-  if (isHeld && !isCoolStackCard) {
+  if (isHeld && !isCoolStackCard && !isNoteComponent) {
     const overlayLayer = ensureHeldCardLayer();
     if (overlayLayer && card.parentElement !== overlayLayer) {
       overlayLayer.appendChild(card);
@@ -13212,6 +14484,7 @@ function renderCardElement(cardId) {
   const isRotatingThisCard = rotatingStickerCardId === cardId;
   card.classList.toggle('is-image-component', isImageComponent);
   card.classList.toggle('is-sticker-component', isStickerComponent);
+  card.classList.toggle('is-note-component', isNoteComponent);
   card.classList.toggle('is-sticker-locked', isStickerLocked);
   card.classList.toggle('is-component-locked', isComponentLocked);
   card.classList.toggle('is-image-component-card', isImageComponentCardMode);
@@ -13258,6 +14531,7 @@ function renderCardElement(cardId) {
     }
     const previousFace = cardFaces.get(cardId);
     const showingFront = cardState.face === 'front';
+    const normalizedCardFace = showingFront ? 'front' : 'back';
     const previousFaceKey = previousFace === 'back' ? 'back' : 'front';
     const blankFaceColor = getImageComponentFaceBlankColor(cardState, showingFront ? 'front' : 'back');
     const shouldAnimateImageCardFlip = isImageComponent && cardState.componentCardSized !== false;
@@ -13273,50 +14547,56 @@ function renderCardElement(cardId) {
     let fallbackFrontSrc = '';
     let displaySrc = getCardBackDisplaySrc(cardState);
     if (showingFront && !blankFaceColor) {
-      const variants = resolveFrontVariantSources(cardState.frontSrc, cardScreenWidth);
-      preferredFrontSrc = variants.preferredSrc;
-      fallbackFrontSrc = variants.fallbackSrc;
-      const currentSrc = image.getAttribute('src') || image.currentSrc || image.src || '';
-      displaySrc = chooseLoadedFrontDisplaySrc(preferredFrontSrc, fallbackFrontSrc, currentSrc);
-      if (!displaySrc) {
-        displaySrc = '';
-        const pendingKey = `${preferredFrontSrc}|${fallbackFrontSrc}|${cardState.frontSrc}`;
-        if (frontDisplayPendingByCard.get(cardId) !== pendingKey) {
-          frontDisplayPendingByCard.set(cardId, pendingKey);
-          const rerenderWhenReady = () => {
-            if (frontDisplayPendingByCard.get(cardId) !== pendingKey) {
-              return;
-            }
-            const latestCardState = cards.get(cardId);
-            if (!latestCardState || latestCardState.face !== 'front' || latestCardState.frontSrc !== cardState.frontSrc) {
+      if (isNoteComponent) {
+        preferredFrontSrc = normalizeImageComponentSrc(cardState.frontSrc || '');
+        fallbackFrontSrc = '';
+        displaySrc = preferredFrontSrc;
+      } else {
+        const variants = resolveFrontVariantSources(cardState.frontSrc, cardScreenWidth);
+        preferredFrontSrc = variants.preferredSrc;
+        fallbackFrontSrc = variants.fallbackSrc;
+        const currentSrc = image.getAttribute('src') || image.currentSrc || image.src || '';
+        displaySrc = chooseLoadedFrontDisplaySrc(preferredFrontSrc, fallbackFrontSrc, currentSrc);
+        if (!displaySrc) {
+          displaySrc = '';
+          const pendingKey = `${preferredFrontSrc}|${fallbackFrontSrc}|${cardState.frontSrc}`;
+          if (frontDisplayPendingByCard.get(cardId) !== pendingKey) {
+            frontDisplayPendingByCard.set(cardId, pendingKey);
+            const rerenderWhenReady = () => {
+              if (frontDisplayPendingByCard.get(cardId) !== pendingKey) {
+                return;
+              }
+              const latestCardState = cards.get(cardId);
+              if (!latestCardState || latestCardState.face !== 'front' || latestCardState.frontSrc !== cardState.frontSrc) {
+                frontDisplayPendingByCard.delete(cardId);
+                return;
+              }
+              const latestVariants = resolveFrontVariantSources(
+                latestCardState.frontSrc,
+                snapToDevicePixel(getCardTableDimensions(latestCardState).width * camera.scale)
+              );
+              const hasAnyVariantLoaded =
+                isFrontImageLoaded(latestVariants.preferredSrc) ||
+                (latestVariants.fallbackSrc && isFrontImageLoaded(latestVariants.fallbackSrc));
+              if (!hasAnyVariantLoaded) {
+                return;
+              }
               frontDisplayPendingByCard.delete(cardId);
-              return;
-            }
-            const latestVariants = resolveFrontVariantSources(
-              latestCardState.frontSrc,
-              snapToDevicePixel(getCardTableDimensions(latestCardState).width * camera.scale)
-            );
-            const hasAnyVariantLoaded =
-              isFrontImageLoaded(latestVariants.preferredSrc) ||
-              (latestVariants.fallbackSrc && isFrontImageLoaded(latestVariants.fallbackSrc));
-            if (!hasAnyVariantLoaded) {
-              return;
-            }
-            frontDisplayPendingByCard.delete(cardId);
-            renderCardElement(cardId);
-          };
+              renderCardElement(cardId);
+            };
 
-          ensureFrontImageLoaded(preferredFrontSrc).then((loaded) => {
-            if (loaded) {
-              rerenderWhenReady();
-            }
-          });
-          if (fallbackFrontSrc && fallbackFrontSrc !== preferredFrontSrc) {
-            ensureFrontImageLoaded(fallbackFrontSrc).then((loaded) => {
+            ensureFrontImageLoaded(preferredFrontSrc).then((loaded) => {
               if (loaded) {
                 rerenderWhenReady();
               }
             });
+            if (fallbackFrontSrc && fallbackFrontSrc !== preferredFrontSrc) {
+              ensureFrontImageLoaded(fallbackFrontSrc).then((loaded) => {
+                if (loaded) {
+                  rerenderWhenReady();
+                }
+              });
+            }
           }
         }
       }
@@ -13333,6 +14613,28 @@ function renderCardElement(cardId) {
 
     card.classList.toggle('is-front-pending', showingFront && !displaySrc);
 
+    if (isNoteComponent) {
+      const previousNoteFace = previousFace === 'back' ? 'back' : 'front';
+      const shouldAnimateNoteFaceSwap = Boolean(
+        previousFace &&
+        previousFace !== cardState.face &&
+        (hasLoadedImage || shouldAnimateImageCardFlip)
+      );
+      if (shouldAnimateNoteFaceSwap) {
+        setDisplayedNoteAttachmentFace(cardId, previousNoteFace);
+        rerenderAttachedDrawingStrokesForCard(cardId);
+        clearNoteAttachmentFaceSwapTimer(cardId);
+        const swapTimer = window.setTimeout(() => {
+          noteAttachmentFaceSwapTimersByCardId.delete(cardId);
+          setDisplayedNoteAttachmentFace(cardId, normalizedCardFace);
+        }, CARD_FLIP_DURATION_MS / 2);
+        noteAttachmentFaceSwapTimersByCardId.set(cardId, swapTimer);
+      } else {
+        clearNoteAttachmentFaceSwapTimer(cardId);
+        setDisplayedNoteAttachmentFace(cardId, normalizedCardFace);
+      }
+    }
+
     if (previousFace && previousFace !== cardState.face && (hasLoadedImage || shouldAnimateImageCardFlip)) {
       animateCardFlip(cardId, card, image, displaySrc);
     } else if (displaySrc) {
@@ -13343,6 +14645,32 @@ function renderCardElement(cardId) {
       image.removeAttribute('src');
     }
     cardFaces.set(cardId, cardState.face);
+  }
+
+  if (isNoteComponent) {
+    const noteVisualScale = getNoteAttachmentVisualScale(cardState, cardId);
+    const noteIsFlipping = card.classList.contains('is-flipping');
+    const noteRenderKey = [
+      getDisplayedNoteAttachmentFace(cardId, cardState.face === 'back' ? 'back' : 'front'),
+      Number(cardState.x).toFixed(3),
+      Number(cardState.y).toFixed(3),
+      Number(baseCardSize.width).toFixed(3),
+      Number(baseCardSize.height).toFixed(3),
+      Number(noteVisualScale).toFixed(3),
+      noteIsFlipping ? '1' : '0',
+      cardState.inDeck ? '1' : '0',
+      cardState.inDiscard ? '1' : '0',
+      cardState.inAuction ? '1' : '0',
+      getCardHandOwnerId(cardState) || '',
+      cardState.holderClientId || ''
+    ].join('|');
+    if (noteAttachmentRenderKeyByCardId.get(cardId) !== noteRenderKey) {
+      noteAttachmentRenderKeyByCardId.set(cardId, noteRenderKey);
+      rerenderAttachedDrawingStrokesForCard(cardId);
+    }
+  } else {
+    clearNoteAttachmentFaceState(cardId);
+    noteAttachmentRenderKeyByCardId.delete(cardId);
   }
 }
 
@@ -13513,11 +14841,30 @@ function normalizeDrawingPayload(payload) {
     }
     points.push(normalizedPoint);
   }
+  const attachedCardId = typeof payload?.attachedCardId === 'string' ? payload.attachedCardId.trim() : '';
+  const attachedFace = payload?.attachedFace === 'back' ? 'back' : 'front';
+  const attachedPointsRaw = Array.isArray(payload?.attachedPoints) ? payload.attachedPoints : [];
+  const attachedPoints = [];
+  for (const rawPoint of attachedPointsRaw) {
+    const x = Number(Array.isArray(rawPoint) ? rawPoint[0] : rawPoint?.x);
+    const y = Number(Array.isArray(rawPoint) ? rawPoint[1] : rawPoint?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      continue;
+    }
+    attachedPoints.push({
+      x: clamp(x, 0, 1),
+      y: clamp(y, 0, 1)
+    });
+  }
+  const hasAttachment = Boolean(attachedCardId) && attachedPoints.length > 0 && attachedPoints.length === points.length;
   return {
     color,
     points,
     authorClientId,
     authorPlayerToken,
+    attachedCardId: hasAttachment ? attachedCardId : '',
+    attachedFace: hasAttachment ? attachedFace : 'front',
+    attachedPoints: hasAttachment ? attachedPoints : [],
     createdAt: Number.isFinite(createdAtRaw) ? createdAtRaw : 0,
     updatedAt: Number.isFinite(updatedAtRaw) ? updatedAtRaw : 0
   };
@@ -13528,6 +14875,188 @@ function serializeDrawingPoints(points) {
     x: Number(point.x.toFixed(2)),
     y: Number(point.y.toFixed(2))
   }));
+}
+
+function serializeDrawingAttachmentPoints(points) {
+  return points.map((point) => ({
+    x: Number(point.x.toFixed(6)),
+    y: Number(point.y.toFixed(6))
+  }));
+}
+
+function getNoteAttachmentVisualScale(cardState, cardId = '') {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!cardState || typeof cardState !== 'object') {
+    return 1;
+  }
+  if (cardState.holderClientId && cardState.holderClientId === localClientId) {
+    return NOTE_HELD_VISUAL_SCALE;
+  }
+  if (normalizedCardId) {
+    const cardElement = cardElements.get(normalizedCardId);
+    if (cardElement instanceof HTMLElement && cardElement.classList.contains('is-held-by-self')) {
+      return NOTE_HELD_VISUAL_SCALE;
+    }
+  }
+  return 1;
+}
+
+function getNoteAttachmentBoundsForCard(cardState, cardId = '') {
+  if (!isNoteComponentCard(cardState)) {
+    return null;
+  }
+  if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+    return null;
+  }
+  const size = getCardTableDimensions(cardState);
+  const baseWidth = Math.max(1, Number(size.width) || NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
+  const baseHeight = Math.max(1, Number(size.height) || NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
+  const visualScale = getNoteAttachmentVisualScale(cardState, cardId);
+  const width = baseWidth * visualScale;
+  const height = baseHeight * visualScale;
+  const centerX = Number(cardState.x);
+  const centerY = Number(cardState.y);
+  if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) {
+    return null;
+  }
+  return {
+    left: centerX - width / 2,
+    top: centerY - height / 2,
+    width,
+    height
+  };
+}
+
+function resolveNoteAttachmentForStrokePoints(points) {
+  if (!Array.isArray(points) || points.length === 0) {
+    return null;
+  }
+  let bestCardId = '';
+  let bestCardState = null;
+  let bestBounds = null;
+  let bestZ = Number.NEGATIVE_INFINITY;
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isNoteComponentCard(cardState)) {
+      continue;
+    }
+    const bounds = getNoteAttachmentBoundsForCard(cardState, cardId);
+    if (!bounds) {
+      continue;
+    }
+    let containsAllPoints = true;
+    for (const point of points) {
+      const x = Number(point?.x);
+      const y = Number(point?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        containsAllPoints = false;
+        break;
+      }
+      if (x < bounds.left || x > bounds.left + bounds.width || y < bounds.top || y > bounds.top + bounds.height) {
+        containsAllPoints = false;
+        break;
+      }
+    }
+    if (!containsAllPoints) {
+      continue;
+    }
+    const z = Number(cardState?.z) || 0;
+    if (z >= bestZ) {
+      bestCardId = cardId;
+      bestCardState = cardState;
+      bestBounds = bounds;
+      bestZ = z;
+    }
+  }
+  if (!bestCardId || !bestCardState || !bestBounds) {
+    return null;
+  }
+  const attachedPoints = points.map((point) => ({
+    x: clamp((point.x - bestBounds.left) / bestBounds.width, 0, 1),
+    y: clamp((point.y - bestBounds.top) / bestBounds.height, 0, 1)
+  }));
+  return {
+    attachedCardId: bestCardId,
+    attachedFace: bestCardState.face === 'back' ? 'back' : 'front',
+    attachedPoints
+  };
+}
+
+function buildDrawingAttachmentPatch(points) {
+  const attachment = resolveNoteAttachmentForStrokePoints(points);
+  if (!attachment) {
+    return {
+      attachedCardId: null,
+      attachedFace: null,
+      attachedPoints: null
+    };
+  }
+  return {
+    attachedCardId: attachment.attachedCardId,
+    attachedFace: attachment.attachedFace,
+    attachedPoints: serializeDrawingAttachmentPoints(attachment.attachedPoints)
+  };
+}
+
+function getResolvedDrawingStrokePoints(strokeState) {
+  const basePoints = Array.isArray(strokeState?.points) ? strokeState.points : [];
+  if (basePoints.length === 0) {
+    return { points: [], hidden: true };
+  }
+  const attachedCardId = String(strokeState?.attachedCardId || '').trim();
+  const attachedPoints = Array.isArray(strokeState?.attachedPoints) ? strokeState.attachedPoints : [];
+  if (!attachedCardId || attachedPoints.length !== basePoints.length || attachedPoints.length === 0) {
+    return { points: basePoints, hidden: false };
+  }
+  const attachedCardState = cards.get(attachedCardId);
+  if (!attachedCardState) {
+    return { points: basePoints, hidden: false };
+  }
+  if (!isNoteComponentCard(attachedCardState)) {
+    return { points: basePoints, hidden: false };
+  }
+  if (
+    attachedCardState.inDeck ||
+    attachedCardState.inDiscard ||
+    attachedCardState.inAuction ||
+    getCardHandOwnerId(attachedCardState)
+  ) {
+    return { points: basePoints, hidden: true };
+  }
+  const expectedFace = strokeState?.attachedFace === 'back' ? 'back' : 'front';
+  const currentFace = getDisplayedNoteAttachmentFace(
+    attachedCardId,
+    attachedCardState.face === 'back' ? 'back' : 'front'
+  );
+  if (currentFace !== expectedFace) {
+    return {
+      points: basePoints,
+      hidden: true,
+      attachedCardId,
+      noteVisualScale: getNoteAttachmentVisualScale(attachedCardState, attachedCardId),
+      noteFlipping: Boolean(cardElements.get(attachedCardId)?.classList.contains('is-flipping'))
+    };
+  }
+  const bounds = getNoteAttachmentBoundsForCard(attachedCardState, attachedCardId);
+  if (!bounds) {
+    return {
+      points: basePoints,
+      hidden: true,
+      attachedCardId,
+      noteVisualScale: getNoteAttachmentVisualScale(attachedCardState, attachedCardId),
+      noteFlipping: Boolean(cardElements.get(attachedCardId)?.classList.contains('is-flipping'))
+    };
+  }
+  const resolvedPoints = attachedPoints.map((point) => ({
+    x: bounds.left + clamp(Number(point?.x) || 0, 0, 1) * bounds.width,
+    y: bounds.top + clamp(Number(point?.y) || 0, 0, 1) * bounds.height
+  }));
+  return {
+    points: resolvedPoints,
+    hidden: false,
+    attachedCardId,
+    noteVisualScale: getNoteAttachmentVisualScale(attachedCardState, attachedCardId),
+    noteFlipping: Boolean(cardElements.get(attachedCardId)?.classList.contains('is-flipping'))
+  };
 }
 
 function removeDrawingStrokeElement(strokeId) {
@@ -13555,6 +15084,13 @@ function getDrawingStrokeTimestamp(strokeState) {
 }
 
 function getDrawingStrokeTargetLayer(strokeState) {
+  const attachedCardId = String(strokeState?.attachedCardId || '').trim();
+  if (attachedCardId) {
+    const attachedCardState = cards.get(attachedCardId);
+    if (attachedCardState && isNoteComponentCard(attachedCardState)) {
+      return drawingLayer instanceof SVGElement ? drawingLayer : drawingBackLayer;
+    }
+  }
   const strokeTimestamp = getDrawingStrokeTimestamp(strokeState);
   const isNewStroke = drawingsLiftCutoffAt > 0 && strokeTimestamp > drawingsLiftCutoffAt;
   const targetLayer = isNewStroke ? drawingLayer : drawingBackLayer;
@@ -13593,13 +15129,42 @@ function renderDrawingStroke(strokeId) {
   if (!stroke) {
     return;
   }
-  const points = strokeState.points;
+  const resolved = getResolvedDrawingStrokePoints(strokeState);
+  if (resolved.hidden || !Array.isArray(resolved.points) || resolved.points.length === 0) {
+    stroke.style.display = 'none';
+    stroke.classList.remove('is-note-attached', 'is-note-flipping');
+    stroke.setAttribute('stroke-width', String(DRAW_STROKE_WORLD_WIDTH));
+    return;
+  }
+  stroke.style.display = '';
+  const isNoteAttached = Boolean(String(resolved.attachedCardId || '').trim());
+  const noteVisualScale = Math.max(1, Number(resolved.noteVisualScale) || 1);
+  stroke.classList.toggle('is-note-attached', isNoteAttached);
+  stroke.classList.toggle('is-note-flipping', isNoteAttached && resolved.noteFlipping === true);
+  stroke.setAttribute(
+    'stroke-width',
+    String(isNoteAttached ? DRAW_STROKE_WORLD_WIDTH * noteVisualScale : DRAW_STROKE_WORLD_WIDTH)
+  );
+  const points = resolved.points;
   const pointsText =
     points.length === 1
       ? `${points[0].x},${points[0].y} ${points[0].x + 0.01},${points[0].y + 0.01}`
       : points.map((point) => `${point.x},${point.y}`).join(' ');
   stroke.setAttribute('stroke', normalizeHexColor(strokeState.color || '#ff7a59'));
   stroke.setAttribute('points', pointsText);
+}
+
+function rerenderAttachedDrawingStrokesForCard(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  for (const [strokeId, strokeState] of drawingStrokes.entries()) {
+    if (String(strokeState?.attachedCardId || '').trim() !== normalizedCardId) {
+      continue;
+    }
+    renderDrawingStroke(strokeId);
+  }
 }
 
 function renderAllDrawingStrokes() {
@@ -13646,6 +15211,7 @@ function applyCamera() {
     setElementStyleValue(drawingBackLayer, 'transform', cameraTransform);
   }
   renderAllDice();
+  renderChipSets();
   renderTableCardsAndDeckControls();
   const viewportWidth = tableRoot?.clientWidth || window.innerWidth || 0;
   if (viewportWidth !== lastRenderedHandTrayWidth) {
@@ -14095,6 +15661,10 @@ function isDiceAddModalOpen() {
   return Boolean(diceAddModal && !diceAddModal.classList.contains('hidden'));
 }
 
+function isChipsAddModalOpen() {
+  return Boolean(chipsAddModal && !chipsAddModal.classList.contains('hidden'));
+}
+
 function isSpinnerAddModalOpen() {
   return Boolean(spinnerAddModal && !spinnerAddModal.classList.contains('hidden'));
 }
@@ -14124,6 +15694,7 @@ function openRoomSettingsMenu() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
@@ -14422,6 +15993,89 @@ function setDiceAddCount(count) {
   syncDiceAddModalUi();
 }
 
+function syncChipAddLabelsLength(stackCount = activeChipAddStackCount) {
+  const normalizedCount = normalizeChipStackCount(stackCount);
+  const nextLabels = Array.from({ length: normalizedCount }, (_, index) =>
+    normalizeChipLabelText(activeChipAddLabels?.[index] || '')
+  );
+  activeChipAddLabels = nextLabels;
+}
+
+function renderChipsAddTextInputs() {
+  if (!(chipsAddTextInputs instanceof HTMLElement)) {
+    return;
+  }
+  chipsAddTextInputs.textContent = '';
+  if (!chipAddTextEnabled) {
+    return;
+  }
+  const stackCount = normalizeChipStackCount(activeChipAddStackCount);
+  for (let index = 0; index < stackCount; index += 1) {
+    const row = document.createElement('div');
+    row.className = 'chips-add-text-row';
+
+    const label = document.createElement('span');
+    label.className = 'chips-add-text-label';
+    label.textContent = `stack ${index + 1}`;
+    row.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'image-add-input';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.placeholder = CHIP_STACK_DEFAULTS[index]?.label || String(CHIP_STACK_DEFAULTS[index]?.value || index + 1);
+    input.value = activeChipAddLabels[index] || '';
+    input.addEventListener('input', () => {
+      const normalizedValue = normalizeChipLabelText(input.value);
+      if (input.value !== normalizedValue) {
+        input.value = normalizedValue;
+      }
+      activeChipAddLabels[index] = normalizedValue;
+    });
+    row.appendChild(input);
+    chipsAddTextInputs.appendChild(row);
+  }
+}
+
+function syncChipsAddModalUi() {
+  const stackCount = normalizeChipStackCount(activeChipAddStackCount);
+  activeChipAddStackCount = stackCount;
+  activeChipAddQuantity = normalizeChipStackQuantity(activeChipAddQuantity, CHIP_STACK_MIN_QUANTITY);
+  chipAddTextEnabled = chipAddTextEnabled === true;
+  syncChipAddLabelsLength(stackCount);
+
+  if (chipsAddQuantityInput) {
+    chipsAddQuantityInput.value = String(activeChipAddQuantity);
+  }
+  if (chipsAddTextToggle) {
+    chipsAddTextToggle.checked = chipAddTextEnabled;
+  }
+  if (chipsAddTextInputs) {
+    chipsAddTextInputs.classList.toggle('hidden', !chipAddTextEnabled);
+  }
+  if (chipsAddStackCountRow instanceof HTMLElement) {
+    const stackButtons = chipsAddStackCountRow.querySelectorAll('[data-chip-stack-count]');
+    for (const button of stackButtons) {
+      const parsedCount = Number(button.getAttribute('data-chip-stack-count'));
+      const isActive = parsedCount === stackCount;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    }
+  }
+  renderChipsAddTextInputs();
+}
+
+function setChipAddStackCount(count) {
+  activeChipAddStackCount = normalizeChipStackCount(count);
+  syncChipsAddModalUi();
+}
+
+function setChipAddTextEnabled(enabled) {
+  chipAddTextEnabled = enabled === true;
+  syncChipsAddModalUi();
+}
+
 function syncSpinnerAddLabelsLength(segmentCount = activeSpinnerAddSegments) {
   const normalizedCount = normalizeSpinnerSegmentCount(segmentCount);
   const nextLabels = Array.from({ length: normalizedCount }, (_, index) =>
@@ -14500,6 +16154,7 @@ function openDiceAddModal() {
     return;
   }
   closeMonsItemChoiceModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeMediaAddModal();
   closeStickerAddModal();
@@ -14517,12 +16172,36 @@ function closeDiceAddModal() {
   diceAddModal.classList.add('hidden');
 }
 
+function openChipsAddModal() {
+  if (!chipsAddModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeSpinnerAddModal();
+  closeMediaAddModal();
+  closeStickerAddModal();
+  closeImageAddModal();
+  closeGameOptionsMenu();
+  closeAssetMenu();
+  syncChipsAddModalUi();
+  chipsAddModal.classList.remove('hidden');
+}
+
+function closeChipsAddModal() {
+  if (!chipsAddModal) {
+    return;
+  }
+  chipsAddModal.classList.add('hidden');
+}
+
 function openSpinnerAddModal() {
   if (!spinnerAddModal) {
     return;
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeChipsAddModal();
   closeMediaAddModal();
   closeStickerAddModal();
   closeImageAddModal();
@@ -14592,6 +16271,7 @@ function openImageAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeMediaAddModal();
   closeStickerAddModal();
@@ -14622,6 +16302,7 @@ function openStickerAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeImageAddModal();
   closeMediaAddModal();
@@ -14647,6 +16328,7 @@ function openMediaAddModal() {
   }
   closeMonsItemChoiceModal();
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
@@ -14669,6 +16351,7 @@ function closeMediaAddModal() {
 
 function returnToAssetComponentMenuFromSubmenu() {
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
@@ -14685,6 +16368,7 @@ function openAssetMenu() {
     setDeleteModeEnabled(false);
   }
   closeDiceAddModal();
+  closeChipsAddModal();
   closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
@@ -14702,6 +16386,7 @@ function closeAssetMenu() {
     return;
   }
   assetMenuModal.classList.add('hidden');
+  resetStickerTileIconToDefault(stickerComponentTile);
 }
 
 function setAssetMenuView(view) {
@@ -14722,22 +16407,24 @@ function isTabletopCompletelyEmpty() {
   const hasCards = cards.size > 0;
   const hasDice = diceById.size > 0;
   const hasDecks = deckStatesById.size > 0;
+  const hasChipSets = chipSetsById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasTaflBoards && !hasGoBoards && !hasDrawings;
+  return !hasCards && !hasDice && !hasDecks && !hasChipSets && !hasMonsBoards && !hasTaflBoards && !hasGoBoards && !hasDrawings;
 }
 
 function hasRemovableDeleteTargets() {
   const hasCards = cards.size > 0;
   const hasDice = diceById.size > 0;
   const hasDecks = deckStatesById.size > 0;
+  const hasChipSets = chipSetsById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return hasCards || hasDice || hasDecks || hasMonsBoards || hasTaflBoards || hasGoBoards || hasDrawings;
+  return hasCards || hasDice || hasDecks || hasChipSets || hasMonsBoards || hasTaflBoards || hasGoBoards || hasDrawings;
 }
 
 function syncRemoveComponentsButtonState() {
@@ -15371,6 +17058,9 @@ goTile?.addEventListener('click', () => {
 diceComponentTile?.addEventListener('click', () => {
   openDiceAddModal();
 });
+chipsComponentTile?.addEventListener('click', () => {
+  openChipsAddModal();
+});
 spinnerComponentTile?.addEventListener('click', () => {
   openSpinnerAddModal();
 });
@@ -15395,6 +17085,13 @@ counterComponentTile?.addEventListener('click', () => {
     setRealtimeStatus('firebase: write blocked');
   });
 });
+timerComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnTimer().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
 marbleComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnMarble().catch((error) => {
@@ -15405,6 +17102,13 @@ marbleComponentTile?.addEventListener('click', () => {
 labelComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnLabelComponent().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+noteComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnNoteComponent().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -15424,6 +17128,50 @@ diceAddCloseButton?.addEventListener('click', () => {
 });
 diceAddBackButton?.addEventListener('click', () => {
   returnToAssetComponentMenuFromSubmenu();
+});
+chipsAddCloseButton?.addEventListener('click', () => {
+  closeChipsAddModal();
+});
+chipsAddBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+chipsAddStackCountRow?.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-chip-stack-count]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  setChipAddStackCount(target.getAttribute('data-chip-stack-count'));
+});
+chipsAddQuantityInput?.addEventListener('input', () => {
+  const normalizedQuantity = normalizeChipStackQuantity(chipsAddQuantityInput.value, activeChipAddQuantity);
+  activeChipAddQuantity = normalizedQuantity;
+  if (chipsAddQuantityInput.value !== String(normalizedQuantity)) {
+    chipsAddQuantityInput.value = String(normalizedQuantity);
+  }
+});
+chipsAddTextToggle?.addEventListener('change', () => {
+  setChipAddTextEnabled(Boolean(chipsAddTextToggle.checked));
+});
+chipsAddConfirmButton?.addEventListener('click', () => {
+  const stackCount = normalizeChipStackCount(activeChipAddStackCount);
+  const quantity = normalizeChipStackQuantity(activeChipAddQuantity, CHIP_STACK_MIN_QUANTITY);
+  const labels = chipAddTextEnabled
+    ? Array.from({ length: stackCount }, (_, index) =>
+      normalizeChipLabelText(activeChipAddLabels[index]) ||
+      normalizeChipLabelText(CHIP_STACK_DEFAULTS[index]?.label || CHIP_STACK_DEFAULTS[index]?.value || String(index + 1))
+    )
+    : Array.from({ length: stackCount }, (_, index) =>
+      normalizeChipLabelText(CHIP_STACK_DEFAULTS[index]?.label || CHIP_STACK_DEFAULTS[index]?.value || String(index + 1))
+    );
+  closeChipsAddModal();
+  spawnChipStacksComponent({
+    stackCount,
+    quantity,
+    labels
+  }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
 });
 spinnerAddCloseButton?.addEventListener('click', () => {
   closeSpinnerAddModal();
@@ -15682,6 +17430,11 @@ diceAddModal?.addEventListener('pointerdown', (event) => {
     closeDiceAddModal();
   }
 });
+chipsAddModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === chipsAddModal) {
+    closeChipsAddModal();
+  }
+});
 spinnerAddModal?.addEventListener('pointerdown', (event) => {
   if (event.target === spinnerAddModal) {
     closeSpinnerAddModal();
@@ -15747,6 +17500,10 @@ window.addEventListener('keydown', (event) => {
     closeDiceAddModal();
     return;
   }
+  if (isChipsAddModalOpen()) {
+    closeChipsAddModal();
+    return;
+  }
   if (isSpinnerAddModalOpen()) {
     closeSpinnerAddModal();
     return;
@@ -15805,6 +17562,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 syncDiceAddModalUi();
+syncChipsAddModalUi();
 syncSpinnerAddModalUi();
 syncImageAddModalUi();
 syncStickerPackTabsUi();
@@ -16168,6 +17926,18 @@ function setStickerTileIconSrc(tile, nextSrc, options = {}) {
   });
 }
 
+function resetStickerTileIconToDefault(tile = stickerComponentTile) {
+  if (!tile) {
+    return;
+  }
+  const fallbackSrc = './assets/play%20things/cherries.png';
+  const defaultSrc = String(tile.dataset.stickerDefaultSrc || fallbackSrc).trim();
+  if (!defaultSrc) {
+    return;
+  }
+  setStickerTileIconSrc(tile, defaultSrc, { animate: false });
+}
+
 function getStickerTileShuffleBuckets() {
   const packOrder = [STICKER_PACK_PLAY_THINGS, STICKER_PACK_SWAG, STICKER_PACK_EMOJI];
   return packOrder.map((packKey) => {
@@ -16235,6 +18005,7 @@ function initializeStickerTileIconShuffle(tile) {
   }
   const activeIcon = getStickerTileActiveIcon(iconPair);
   const defaultSrc = String(activeIcon?.getAttribute('src') || stickerSources[0]).trim();
+  tile.dataset.stickerDefaultSrc = defaultSrc || './assets/play%20things/cherries.png';
   let lastShuffleAt = 0;
   let lastPointerX = Number.NaN;
   let lastPointerY = Number.NaN;
@@ -16319,8 +18090,11 @@ initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(spinnerComponentTile);
 initializeTileTilt(pokerDeckComponentTile);
+initializeTileTilt(chipsComponentTile);
 initializeTileTilt(counterComponentTile);
+initializeTileTilt(timerComponentTile);
 initializeTileTilt(labelComponentTile);
+initializeTileTilt(noteComponentTile);
 initializeTileTilt(imageComponentTile);
 initializeTileTilt(stickerComponentTile);
 initializeTileTilt(marbleComponentTile);
@@ -16334,6 +18108,28 @@ loadStickerManifestIfNeeded().catch(() => {});
 function normalizeHexColor(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : '#ff7a59';
+}
+
+function getHexColorLuminance(hexColor) {
+  const normalized = normalizeHexColor(hexColor);
+  const red = parseInt(normalized.slice(1, 3), 16);
+  const green = parseInt(normalized.slice(3, 5), 16);
+  const blue = parseInt(normalized.slice(5, 7), 16);
+  return (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+}
+
+function getReadableChipLabelColors(chipColor) {
+  const luminance = getHexColorLuminance(chipColor);
+  if (luminance >= 0.62) {
+    return {
+      fill: 'rgba(20, 16, 12, 0.94)',
+      stroke: 'rgba(255, 255, 255, 0.44)'
+    };
+  }
+  return {
+    fill: 'rgba(248, 244, 234, 0.96)',
+    stroke: 'rgba(12, 14, 16, 0.46)'
+  };
 }
 
 function normalizeMarbleHue(value) {
@@ -16906,7 +18702,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -16919,7 +18715,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -17216,8 +19012,11 @@ shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
 shieldPointerEvents(spinnerComponentTile);
 shieldPointerEvents(pokerDeckComponentTile);
+shieldPointerEvents(chipsComponentTile);
 shieldPointerEvents(counterComponentTile);
+shieldPointerEvents(timerComponentTile);
 shieldPointerEvents(labelComponentTile);
+shieldPointerEvents(noteComponentTile);
 shieldPointerEvents(imageComponentTile);
 shieldPointerEvents(stickerComponentTile);
 shieldPointerEvents(marbleComponentTile);
@@ -17229,6 +19028,14 @@ shieldPointerEvents(diceTypeD6Button);
 shieldPointerEvents(diceTypeD20Button);
 shieldPointerEvents(diceCountRow);
 shieldPointerEvents(diceAddConfirmButton);
+shieldPointerEvents(chipsAddModal);
+shieldPointerEvents(chipsAddBackButton);
+shieldPointerEvents(chipsAddCloseButton);
+shieldPointerEvents(chipsAddStackCountRow);
+shieldPointerEvents(chipsAddQuantityInput);
+shieldPointerEvents(chipsAddTextToggle);
+shieldPointerEvents(chipsAddTextInputs);
+shieldPointerEvents(chipsAddConfirmButton);
 shieldPointerEvents(spinnerAddModal);
 shieldPointerEvents(spinnerAddBackButton);
 shieldPointerEvents(spinnerAddCloseButton);
@@ -17335,6 +19142,7 @@ async function startRealtimeSession() {
   const drawingsRef = ref(db, `${roomPath}/drawings`);
   const auctionBidsRef = ref(db, `${roomPath}/auctionBids`);
   const decksRef = ref(db, `${roomPath}/decks`);
+  const chipSetsRef = ref(db, `${roomPath}/chipSets`);
   const gamesRef = ref(db, `${roomPath}/games`);
   const roomMetaRef = ref(db, `${roomPath}/meta`);
   const roomPresenceRef = ref(db, `${roomPath}/presence`);
@@ -17539,6 +19347,10 @@ async function startRealtimeSession() {
   let pendingDeckPatch = {};
   let deckWriteGeneration = 0;
   let deckDragState = null;
+  let chipSetWriteScheduled = false;
+  let pendingChipSetPatch = {};
+  let chipSetWriteGeneration = 0;
+  let chipSetDragState = null;
   let monsWriteScheduled = false;
   let pendingMonsPatch = {};
   let monsWriteGeneration = 0;
@@ -17582,6 +19394,7 @@ async function startRealtimeSession() {
   const pendingDeleteKeys = new Set();
   const deleteModeUndoHistory = [];
   let deleteModeUndoPending = false;
+  let noteEditState = null;
   let labelEditState = null;
   let labelColorTrackingState = null;
   latestPresenceByToken = {};
@@ -17725,10 +19538,22 @@ async function startRealtimeSession() {
     if (kind === 'card') {
       const cardId = String(entry.cardId || '').trim();
       const cardPayload = cloneDeleteUndoPayload(entry.cardPayload);
+      const drawingsById = entry.drawingsById && typeof entry.drawingsById === 'object' ? entry.drawingsById : {};
       if (!cardId || !cardPayload) {
         return;
       }
-      await set(ref(db, `${roomPath}/cards/${cardId}`), cardPayload);
+      const updatesByPath = {
+        [`cards/${cardId}`]: cardPayload
+      };
+      for (const [strokeId, strokePayload] of Object.entries(drawingsById)) {
+        const normalizedStrokeId = String(strokeId || '').trim();
+        const clonedStrokePayload = cloneDeleteUndoPayload(strokePayload);
+        if (!normalizedStrokeId || !clonedStrokePayload) {
+          continue;
+        }
+        updatesByPath[`drawings/${normalizedStrokeId}`] = clonedStrokePayload;
+      }
+      await update(ref(db, roomPath), updatesByPath);
       return;
     }
 
@@ -17953,18 +19778,41 @@ async function startRealtimeSession() {
       return;
     }
     const cardSnapshot = cloneDeleteUndoPayload(cards.get(targetCardId));
+    const attachedDrawingsById = {};
+    const attachedDrawingElements = [];
+    if (isNoteComponentCard(cardSnapshot)) {
+      for (const [strokeId, strokeState] of drawingStrokes.entries()) {
+        if (String(strokeState?.attachedCardId || '').trim() !== targetCardId) {
+          continue;
+        }
+        const strokeSnapshot = cloneDeleteUndoPayload(strokeState);
+        if (!strokeSnapshot) {
+          continue;
+        }
+        attachedDrawingsById[strokeId] = strokeSnapshot;
+        attachedDrawingElements.push(drawingStrokeElements.get(strokeId));
+      }
+    }
+    const fadeElements = [cardElements.get(targetCardId), handCardElements.get(targetCardId), ...attachedDrawingElements];
     const didDelete = await runDeleteWithFade(
       `card:${targetCardId}`,
-      [cardElements.get(targetCardId), handCardElements.get(targetCardId)],
+      fadeElements,
       async () => {
-        await set(ref(db, `${roomPath}/cards/${targetCardId}`), null);
+        const updatesByPath = {
+          [`cards/${targetCardId}`]: null
+        };
+        for (const strokeId of Object.keys(attachedDrawingsById)) {
+          updatesByPath[`drawings/${strokeId}`] = null;
+        }
+        await update(ref(db, roomPath), updatesByPath);
       }
     );
     if (didDelete && cardSnapshot) {
       pushDeleteModeUndoEntry({
         kind: 'card',
         cardId: targetCardId,
-        cardPayload: cardSnapshot
+        cardPayload: cardSnapshot,
+        drawingsById: attachedDrawingsById
       });
     }
   }
@@ -18221,6 +20069,10 @@ async function startRealtimeSession() {
     return normalizeDieType(dieState?.type) === 'counter';
   }
 
+  function isTimerDieState(dieState) {
+    return normalizeDieType(dieState?.type) === 'timer';
+  }
+
   function isMarbleDieState(dieState) {
     return normalizeDieType(dieState?.type) === 'marble';
   }
@@ -18458,6 +20310,207 @@ async function startRealtimeSession() {
   onPlayerColorChanged = (nextColor) => {
     applyLabelHighlightColorFromPlayer(nextColor);
   };
+
+  function isNoteCardEditing(cardId) {
+    return Boolean(noteEditState && !noteEditState.closing && noteEditState.cardId === cardId);
+  }
+
+  function doesNoteEditorTextFit(editor) {
+    if (!(editor instanceof HTMLTextAreaElement)) {
+      return true;
+    }
+    return editor.scrollHeight <= editor.clientHeight + 1 && editor.scrollWidth <= editor.clientWidth + 1;
+  }
+
+  function clampNoteEditorTextToFit(editor, nextTextValue = '', fallbackTextValue = '') {
+    if (!(editor instanceof HTMLTextAreaElement)) {
+      return normalizeNoteText(nextTextValue);
+    }
+    const normalizedNextText = normalizeNoteText(nextTextValue);
+    editor.value = normalizedNextText;
+    if (doesNoteEditorTextFit(editor)) {
+      return normalizedNextText;
+    }
+
+    const normalizedFallback = normalizeNoteText(fallbackTextValue);
+    let bestText = '';
+    if (normalizedFallback) {
+      editor.value = normalizedFallback;
+      if (doesNoteEditorTextFit(editor)) {
+        bestText = normalizedFallback;
+      }
+    }
+
+    let low = 0;
+    let high = normalizedNextText.length;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = normalizedNextText.slice(0, mid);
+      editor.value = candidate;
+      if (doesNoteEditorTextFit(editor)) {
+        bestText = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    editor.value = bestText;
+    return bestText;
+  }
+
+  function applyNoteFaceTextPatch(cardId, face = 'front', nextTextValue = '', options = {}) {
+    const targetCardId = String(cardId || '').trim();
+    if (!targetCardId) {
+      return;
+    }
+    const cardState = cards.get(targetCardId);
+    if (!isNoteComponentCard(cardState)) {
+      return;
+    }
+    const normalizedFace = face === 'back' ? 'back' : 'front';
+    const normalizedText = normalizeNoteText(nextTextValue);
+    const patch =
+      normalizedFace === 'back'
+        ? {
+          noteBackText: normalizedText,
+          backSrc: createNoteFaceSvgDataUri(normalizedText, 'back')
+        }
+        : {
+          noteFrontText: normalizedText,
+          frontSrc: createNoteFaceSvgDataUri(normalizedText, 'front')
+        };
+    patchLocalCard(targetCardId, patch);
+    if (options.queue !== false) {
+      queueCardPatch(targetCardId, patch);
+    }
+  }
+
+  function closeNoteEditor(options = {}) {
+    if (!noteEditState || noteEditState.closing) {
+      return;
+    }
+    noteEditState.closing = true;
+    const { cardId, editor, face } = noteEditState;
+    const shouldCommit = options.commit !== false;
+    if (shouldCommit && editor instanceof HTMLTextAreaElement) {
+      applyNoteFaceTextPatch(cardId, face, editor.value, { queue: true });
+    }
+    if (editor instanceof HTMLTextAreaElement && editor.isConnected) {
+      editor.remove();
+    }
+    const cardElement = cardElements.get(cardId);
+    if (cardElement) {
+      cardElement.classList.remove('is-note-editing');
+      delete cardElement.dataset.noteEditing;
+      delete cardElement.dataset.faceRenderKey;
+    }
+    noteEditState = null;
+    renderCardElement(cardId);
+  }
+
+  function beginNoteEditing(cardId) {
+    const targetCardId = String(cardId || '').trim();
+    if (!targetCardId) {
+      return;
+    }
+    const cardState = cards.get(targetCardId);
+    if (!isNoteComponentCard(cardState)) {
+      return;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      return;
+    }
+    if (cardState.holderClientId && cardState.holderClientId !== clientId) {
+      return;
+    }
+    if (isNoteCardEditing(targetCardId)) {
+      noteEditState?.editor?.focus({ preventScroll: true });
+      return;
+    }
+
+    closeLabelEditor({ commit: true });
+    closeNoteEditor({ commit: true });
+
+    const cardElement = ensureCardElement(targetCardId);
+    if (!(cardElement instanceof HTMLElement)) {
+      return;
+    }
+    const cardImage = cardElement.querySelector('img');
+    if (!(cardImage instanceof HTMLImageElement)) {
+      return;
+    }
+    const editFace = cardState.face === 'back' ? 'back' : 'front';
+    const existingText = normalizeNoteText(editFace === 'back' ? cardState.noteBackText || '' : cardState.noteFrontText || '');
+
+    cardElement.classList.add('is-note-editing');
+    cardElement.dataset.noteEditing = '1';
+    const editor = document.createElement('textarea');
+    editor.className = 'table-note-editor';
+    editor.rows = 1;
+    editor.maxLength = NOTE_TEXT_MAX_LENGTH;
+    editor.spellcheck = false;
+    editor.autocapitalize = 'off';
+    editor.autocomplete = 'off';
+    editor.inputMode = 'text';
+    editor.value = existingText;
+    editor.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    editor.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+    });
+    editor.addEventListener('input', () => {
+      const previousValidText = noteEditState?.lastValidText ?? '';
+      const previousSelectionStart = Number(editor.selectionStart);
+      const previousSelectionEnd = Number(editor.selectionEnd);
+      const fittedText = clampNoteEditorTextToFit(editor, editor.value, previousValidText);
+      if (noteEditState && noteEditState.cardId === targetCardId) {
+        noteEditState.lastValidText = fittedText;
+      }
+      const nextSelectionStart = clamp(
+        Number.isFinite(previousSelectionStart) ? previousSelectionStart : fittedText.length,
+        0,
+        fittedText.length
+      );
+      const nextSelectionEnd = clamp(
+        Number.isFinite(previousSelectionEnd) ? previousSelectionEnd : nextSelectionStart,
+        0,
+        fittedText.length
+      );
+      editor.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+      applyNoteFaceTextPatch(targetCardId, editFace, fittedText, { queue: true });
+    });
+    editor.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeNoteEditor({ commit: false });
+        return;
+      }
+      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        closeNoteEditor({ commit: true });
+      }
+    });
+    editor.addEventListener('blur', () => {
+      closeNoteEditor({ commit: true });
+    });
+    cardElement.appendChild(editor);
+    const fittedInitialText = clampNoteEditorTextToFit(editor, existingText, '');
+    if (fittedInitialText !== existingText) {
+      applyNoteFaceTextPatch(targetCardId, editFace, fittedInitialText, { queue: true });
+    }
+
+    noteEditState = {
+      cardId: targetCardId,
+      face: editFace,
+      editor,
+      closing: false,
+      lastValidText: fittedInitialText
+    };
+    editor.focus({ preventScroll: true });
+    const end = editor.value.length;
+    editor.setSelectionRange(end, end);
+  }
 
   function closeLabelEditor(options = {}) {
     if (!labelEditState) {
@@ -18707,6 +20760,7 @@ async function startRealtimeSession() {
     if (dieDragState === state) {
       dieDragState = null;
     }
+    setChipStackDropIndicator(false);
     return state;
   }
 
@@ -19578,6 +21632,26 @@ async function startRealtimeSession() {
     renderDeckControls();
   }
 
+  function setChipStackDropIndicator(visible, chipSetId = '', stackIndex = -1) {
+    const draggingChip = Boolean(dieDragState && dieDragState.type === 'chip');
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    const normalizedStackIndex = Math.max(0, Math.round(Number(stackIndex) || 0));
+    const nextVisible = draggingChip && Boolean(visible) && Boolean(normalizedChipSetId);
+    const nextChipSetId = nextVisible ? normalizedChipSetId : '';
+    const nextStackIndex = nextVisible ? normalizedStackIndex : -1;
+    if (
+      chipStackDropIndicatorVisible === nextVisible &&
+      chipStackDropIndicatorChipSetId === nextChipSetId &&
+      chipStackDropIndicatorStackIndex === nextStackIndex
+    ) {
+      return;
+    }
+    chipStackDropIndicatorVisible = nextVisible;
+    chipStackDropIndicatorChipSetId = nextChipSetId;
+    chipStackDropIndicatorStackIndex = nextStackIndex;
+    renderChipSets();
+  }
+
   function getLocalHandIdsSortedByZ() {
     const localHandIds = [];
     for (const [cardId, cardState] of cards.entries()) {
@@ -20022,6 +22096,55 @@ async function startRealtimeSession() {
     });
   }
 
+  function queueChipSetPatch(patch, chipSetId) {
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    if (isTableResetting || !normalizedChipSetId || !patch || typeof patch !== 'object') {
+      return;
+    }
+    const nextPatch =
+      patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch, 'drawLifted')
+        ? { ...patch, drawLifted: true }
+        : patch;
+    if (patchTouchesPosition(nextPatch)) {
+      queueDrawingsLiftCutoffUpdate(Date.now());
+    }
+    const queuedForChipSet = pendingChipSetPatch[normalizedChipSetId] || {};
+    pendingChipSetPatch = {
+      ...pendingChipSetPatch,
+      [normalizedChipSetId]: { ...queuedForChipSet, ...nextPatch }
+    };
+    if (chipSetWriteScheduled) {
+      return;
+    }
+
+    chipSetWriteScheduled = true;
+    const scheduledGeneration = chipSetWriteGeneration;
+    window.requestAnimationFrame(() => {
+      chipSetWriteScheduled = false;
+      if (scheduledGeneration !== chipSetWriteGeneration) {
+        return;
+      }
+      const payload = pendingChipSetPatch;
+      pendingChipSetPatch = {};
+      const entries = Object.entries(payload || {});
+      if (entries.length === 0) {
+        return;
+      }
+      for (const [pendingChipSetId, chipSetPatch] of entries) {
+        if (!chipSetPatch || typeof chipSetPatch !== 'object' || Object.keys(chipSetPatch).length === 0) {
+          continue;
+        }
+        update(ref(db, `${roomPath}/chipSets/${pendingChipSetId}`), {
+          ...chipSetPatch,
+          updatedAt: serverTimestamp()
+        }).catch((error) => {
+          console.error(error);
+          setRealtimeStatus('firebase: write blocked');
+        });
+      }
+    });
+  }
+
   function queueMonsPatch(patch, gameId = activeMonsGameId) {
     if (isTableResetting) {
       return;
@@ -20214,18 +22337,21 @@ async function startRealtimeSession() {
       ]
       : finishedStroke.points;
     const now = Date.now();
+    const attachmentPatch = buildDrawingAttachmentPatch(points);
     patchLocalDrawingStroke(finishedStroke.strokeId, {
       color: finishedStroke.color,
       points,
       authorClientId: clientId,
       authorPlayerToken: localPlayerToken,
+      ...attachmentPatch,
       updatedAt: now
     });
     queueDrawingPatch(finishedStroke.strokeId, {
       color: finishedStroke.color,
       points: serializeDrawingPoints(points),
       authorClientId: clientId,
-      authorPlayerToken: localPlayerToken
+      authorPlayerToken: localPlayerToken,
+      ...attachmentPatch
     });
     return true;
   }
@@ -20378,11 +22504,13 @@ async function startRealtimeSession() {
     }
     const now = Date.now();
     const normalizedColor = normalizeHexColor(color || playerState.color || '#ff7a59');
+    const attachmentPatch = buildDrawingAttachmentPatch(points);
     patchLocalDrawingStroke(strokeId, {
       color: normalizedColor,
       points,
       authorClientId: clientId,
       authorPlayerToken: localPlayerToken,
+      ...attachmentPatch,
       createdAt: now,
       updatedAt: now
     });
@@ -20391,6 +22519,7 @@ async function startRealtimeSession() {
       points: serializeDrawingPoints(points),
       authorClientId: clientId,
       authorPlayerToken: localPlayerToken,
+      ...attachmentPatch,
       createdAt: serverTimestamp()
     });
     return true;
@@ -20520,6 +22649,7 @@ async function startRealtimeSession() {
     syncDrawModeUi();
     syncCursorState(localPosition);
     if (drawModeEnabled) {
+      closeNoteEditor({ commit: true });
       closeLabelEditor({ commit: true });
     }
     syncLocalModeCursors();
@@ -20601,6 +22731,7 @@ async function startRealtimeSession() {
       return;
     }
     if (nextEnabled) {
+      closeNoteEditor({ commit: true });
       closeLabelEditor({ commit: true });
       if (drawModeEnabled) {
         setDrawModeEnabled(false);
@@ -20612,7 +22743,11 @@ async function startRealtimeSession() {
       }
       closeGameOptionsMenu();
       closeDiceAddModal();
+      closeChipsAddModal();
+      closeSpinnerAddModal();
       closeImageAddModal();
+      closeStickerAddModal();
+      closeMediaAddModal();
       closeMonsItemChoiceModal();
     } else if (deleteModeEnabled) {
       clearDeleteModeUndoHistory();
@@ -20879,6 +23014,18 @@ async function startRealtimeSession() {
     renderAllCards();
   }
 
+  function patchLocalChipSet(patch, chipSetId) {
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    if (!normalizedChipSetId) {
+      return;
+    }
+    const baseChipSet = chipSetsById.get(normalizedChipSetId) || normalizeChipSetPayload({});
+    const nextChipSet = normalizeChipSetPayload({ ...baseChipSet, ...patch });
+    chipSetsById.set(normalizedChipSetId, nextChipSet);
+    renderChipSets();
+    syncClearTableButtonState();
+  }
+
   function patchLocalMonsGame(patch, gameId = activeMonsGameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
     const baseGame = getMonsGameStateById(normalizedGameId) || normalizeMonsGamePayload({});
@@ -20923,8 +23070,16 @@ async function startRealtimeSession() {
     return topZ;
   }
 
+  function getTopChipSetZ() {
+    let topZ = 0;
+    for (const chipSetState of chipSetsById.values()) {
+      topZ = Math.max(topZ, Number(chipSetState?.z) || 0);
+    }
+    return topZ;
+  }
+
   function getTopObjectZ() {
-    return Math.max(getTopCardZ(), getTopDieZ());
+    return Math.max(getTopCardZ(), getTopDieZ(), getTopChipSetZ());
   }
 
   function getDeckCardIdsInOrder() {
@@ -22338,6 +24493,47 @@ async function startRealtimeSession() {
   async function releaseDeckLock(deckId = activeDeckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
     const holderRef = ref(db, `${roomPath}/decks/${normalizedDeckId}/holderClientId`);
+    await runTransaction(
+      holderRef,
+      (currentHolder) => {
+        if (currentHolder !== clientId) {
+          return;
+        }
+        return null;
+      },
+      { applyLocally: false }
+    );
+  }
+
+  async function acquireChipSetLock(chipSetId) {
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    if (!normalizedChipSetId) {
+      return false;
+    }
+    const holderRef = ref(db, `${roomPath}/chipSets/${normalizedChipSetId}/holderClientId`);
+    const result = await runTransaction(
+      holderRef,
+      (currentHolder) => {
+        if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
+          return;
+        }
+        return clientId;
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed || result.snapshot.val() !== clientId) {
+      return false;
+    }
+    onDisconnect(holderRef).set(null);
+    return true;
+  }
+
+  async function releaseChipSetLock(chipSetId) {
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    if (!normalizedChipSetId) {
+      return;
+    }
+    const holderRef = ref(db, `${roomPath}/chipSets/${normalizedChipSetId}/holderClientId`);
     await runTransaction(
       holderRef,
       (currentHolder) => {
@@ -24372,7 +26568,8 @@ async function startRealtimeSession() {
         normalized.type === 'label' ||
         normalized.type === 'media' ||
         normalized.type === 'marble' ||
-        normalized.type === 'counter'
+        normalized.type === 'counter' ||
+        normalized.type === 'timer'
       ) {
         continue;
       }
@@ -24413,6 +26610,9 @@ async function startRealtimeSession() {
       return;
     }
     if (normalizeDieType(anchorDieState?.type) === 'counter') {
+      return;
+    }
+    if (normalizeDieType(anchorDieState?.type) === 'timer') {
       return;
     }
     if (isMarbleDieState(anchorDieState)) {
@@ -24499,8 +26699,10 @@ async function startRealtimeSession() {
       normalizedType === 'd6' ||
       normalizedType === 'd20' ||
       normalizedType === 'coin' ||
+      normalizedType === 'chip' ||
       normalizedType === 'spinner' ||
       normalizedType === 'counter' ||
+      normalizedType === 'timer' ||
       normalizedType === 'media'
     );
   }
@@ -24511,8 +26713,10 @@ async function startRealtimeSession() {
       normalizedType === 'd6' ||
       normalizedType === 'd20' ||
       normalizedType === 'coin' ||
+      normalizedType === 'chip' ||
       normalizedType === 'spinner' ||
       normalizedType === 'counter' ||
+      normalizedType === 'timer' ||
       normalizedType === 'media'
     );
   }
@@ -24575,6 +26779,8 @@ async function startRealtimeSession() {
     marbleCollisionCooldownByTarget.set(targetKey, now);
     if (targetType === 'counter') {
       applyCounterIncrementFromMarbleHit(targetDieId);
+    } else if (targetType === 'timer') {
+      toggleTimerRunningFromMarbleHit(targetDieId);
     } else if (targetType === 'media') {
       toggleMediaPlaybackFromMarbleHit(targetDieId);
     } else {
@@ -24610,6 +26816,50 @@ async function startRealtimeSession() {
         right: Number(gameState.x) + width / 2,
         top: Number(gameState.y) - height / 2,
         bottom: Number(gameState.y) + height / 2
+      });
+    }
+    for (const [gameId, gameState] of goGameStatesById.entries()) {
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      let left = NaN;
+      let right = NaN;
+      let top = NaN;
+      let bottom = NaN;
+      const goUi = goBoardElementsById.get(normalizeGoGameId(gameId));
+      const shell = goUi?.shell;
+      if (tableRoot && shell instanceof HTMLElement && shell.isConnected && !shell.classList.contains('hidden')) {
+        const shellRect = shell.getBoundingClientRect();
+        if (
+          Number.isFinite(shellRect.left) &&
+          Number.isFinite(shellRect.right) &&
+          Number.isFinite(shellRect.top) &&
+          Number.isFinite(shellRect.bottom)
+        ) {
+          const topLeftWorld = screenToWorldFromClient(shellRect.left, shellRect.top);
+          const bottomRightWorld = screenToWorldFromClient(shellRect.right, shellRect.bottom);
+          if (topLeftWorld && bottomRightWorld) {
+            left = Math.min(topLeftWorld.x, bottomRightWorld.x);
+            right = Math.max(topLeftWorld.x, bottomRightWorld.x);
+            top = Math.min(topLeftWorld.y, bottomRightWorld.y);
+            bottom = Math.max(topLeftWorld.y, bottomRightWorld.y);
+          }
+        }
+      }
+      if (!Number.isFinite(left) || !Number.isFinite(right) || !Number.isFinite(top) || !Number.isFinite(bottom)) {
+        const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
+        const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
+        left = Number(gameState.x) - width / 2;
+        right = Number(gameState.x) + width / 2;
+        top = Number(gameState.y) - height / 2;
+        bottom = Number(gameState.y) + height / 2;
+      }
+      obstacleRects.push({
+        kind: 'go-board',
+        left,
+        right,
+        top,
+        bottom
       });
     }
     for (const [dieId, dieState] of diceById.entries()) {
@@ -24923,20 +27173,20 @@ async function startRealtimeSession() {
           marbleActiveCollisionContactsByDieId.delete(dieId);
           continue;
         }
-        if (dieState.holderClientId !== clientId || dieState.moving !== true) {
-          if (dieState.moving === true && !dieState.holderClientId) {
-            const stopPatch = {
-              moving: false,
-              velocityX: 0,
-              velocityY: 0,
-              holderClientId: null
-            };
-            patchLocalDie(dieId, stopPatch);
-            queueDiePatch(dieId, stopPatch);
-          }
+        if (dieState.holderClientId && dieState.holderClientId !== clientId) {
           marbleMotionByDieId.delete(dieId);
           marbleActiveCollisionContactsByDieId.delete(dieId);
           continue;
+        }
+        if (dieState.moving !== true || dieState.holderClientId !== clientId) {
+          const continuePatch = {
+            moving: true,
+            velocityX: Number(motionState.velocityX) || 0,
+            velocityY: Number(motionState.velocityY) || 0,
+            holderClientId: clientId
+          };
+          patchLocalDie(dieId, continuePatch);
+          queueDiePatch(dieId, continuePatch);
         }
         const deltaSeconds = Math.max(0, now - motionState.lastFrameAt) / 1000;
         motionState.lastFrameAt = now;
@@ -25118,7 +27368,31 @@ async function startRealtimeSession() {
       return false;
     }
     if (refreshedTargetDie.holderClientId && refreshedTargetDie.holderClientId !== clientId) {
+      const recovered = await tryRecoverStaleDieLock(dieId, refreshedTargetDie.holderClientId);
+      if (!recovered) {
+        return false;
+      }
+    }
+    const lockState = diceById.get(dieId) || refreshedTargetDie;
+    if (!isMarbleDieState(lockState)) {
       return false;
+    }
+    if (lockState.holderClientId && lockState.holderClientId !== clientId) {
+      const holderSpeed = getMarbleSpeed(lockState);
+      const holderHasActiveMotion = lockState.moving === true && holderSpeed > MARBLE_RESTART_BLOCK_SPEED;
+      if (holderHasActiveMotion) {
+        return false;
+      }
+      const reclaimPatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(dieId, reclaimPatch);
+      queueDiePatch(dieId, reclaimPatch);
+      marbleMotionByDieId.delete(dieId);
+      marbleActiveCollisionContactsByDieId.delete(dieId);
     }
 
     marbleFlickState = {
@@ -25164,9 +27438,6 @@ async function startRealtimeSession() {
     if (!isMarbleDieState(dieState)) {
       return true;
     }
-    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
-      return true;
-    }
 
     const clientX = Number.isFinite(event.clientX) ? event.clientX : finishedGesture.cursorClientX;
     const clientY = Number.isFinite(event.clientY) ? event.clientY : finishedGesture.cursorClientY;
@@ -25180,6 +27451,9 @@ async function startRealtimeSession() {
       };
       patchLocalDie(finishedGesture.dieId, idlePatch);
       queueDiePatch(finishedGesture.dieId, idlePatch);
+      releaseDieLock(finishedGesture.dieId).catch((error) => {
+        console.error(error);
+      });
       return true;
     }
 
@@ -25195,6 +27469,9 @@ async function startRealtimeSession() {
       };
       patchLocalDie(finishedGesture.dieId, idlePatch);
       queueDiePatch(finishedGesture.dieId, idlePatch);
+      releaseDieLock(finishedGesture.dieId).catch((error) => {
+        console.error(error);
+      });
       schedulePublishFromClient(clientX, clientY);
       return true;
     }
@@ -25209,7 +27486,20 @@ async function startRealtimeSession() {
     const speed = MARBLE_FLICK_MIN_SPEED + easedLength * (MARBLE_FLICK_MAX_SPEED - MARBLE_FLICK_MIN_SPEED);
     const velocityX = (arrowX / arrowLength) * speed;
     const velocityY = (arrowY / arrowLength) * speed;
-    beginMarbleMotion(finishedGesture.dieId, velocityX, velocityY, { syncPatch: true, raiseZ: true });
+    const startedMotion = beginMarbleMotion(finishedGesture.dieId, velocityX, velocityY, { syncPatch: true, raiseZ: true });
+    if (!startedMotion) {
+      const idlePatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(finishedGesture.dieId, idlePatch);
+      queueDiePatch(finishedGesture.dieId, idlePatch);
+      releaseDieLock(finishedGesture.dieId).catch((error) => {
+        console.error(error);
+      });
+    }
     schedulePublishFromClient(clientX, clientY);
     return true;
   }
@@ -25259,6 +27549,31 @@ async function startRealtimeSession() {
     if (marbleFlickState?.dieId === dieId) {
       cancelMarbleFlickGesture();
     }
+  }
+
+  function mergeIncomingMarbleStateWithActiveLocalMotion(dieId, previousDieState, incomingDieState) {
+    if (!isMarbleDieState(previousDieState) || !isMarbleDieState(incomingDieState)) {
+      return incomingDieState;
+    }
+    if (!marbleMotionByDieId.has(dieId)) {
+      return incomingDieState;
+    }
+    if (previousDieState.holderClientId !== clientId || previousDieState.moving !== true) {
+      return incomingDieState;
+    }
+    if (incomingDieState.holderClientId && incomingDieState.holderClientId !== clientId) {
+      return incomingDieState;
+    }
+    return normalizeDicePayload({
+      ...incomingDieState,
+      x: Number(previousDieState.x),
+      y: Number(previousDieState.y),
+      z: Math.max(Number(incomingDieState.z) || 1, Number(previousDieState.z) || 1),
+      moving: true,
+      holderClientId: clientId,
+      velocityX: Number(previousDieState.velocityX) || 0,
+      velocityY: Number(previousDieState.velocityY) || 0
+    });
   }
 
   const activePointers = new Set();
@@ -25609,6 +27924,45 @@ async function startRealtimeSession() {
     queueDiePatch(targetDieId, patch);
   }
 
+  function toggleTimerRunningFromMarbleHit(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const existingDie = diceById.get(targetDieId);
+    if (!isTimerDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId) {
+      return;
+    }
+    const now = Date.now();
+    const currentlyRunning = existingDie.timerRunning === true;
+    if (currentlyRunning) {
+      const pausePatch = {
+        type: 'timer',
+        timerElapsedMs: getTimerElapsedMs(existingDie, now),
+        timerRunning: false,
+        timerStartedAt: 0,
+        holderClientId: null
+      };
+      patchLocalDie(targetDieId, pausePatch);
+      queueDiePatch(targetDieId, pausePatch);
+      return;
+    }
+    const nextElapsedMs = clampTimerElapsedMs(existingDie.timerElapsedMs);
+    const canRun = nextElapsedMs < TIMER_MAX_ELAPSED_MS;
+    const resumePatch = {
+      type: 'timer',
+      timerElapsedMs: nextElapsedMs,
+      timerRunning: canRun,
+      timerStartedAt: canRun ? now : 0,
+      holderClientId: null
+    };
+    patchLocalDie(targetDieId, resumePatch);
+    queueDiePatch(targetDieId, resumePatch);
+  }
+
   function toggleMediaPlaybackFromMarbleHit(dieId) {
     const targetDieId = String(dieId || '').trim();
     if (!targetDieId) {
@@ -25665,6 +28019,92 @@ async function startRealtimeSession() {
     queueDiePatch(targetDieId, patch);
   }
 
+  async function toggleTimerRunningState(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const existingDie = diceById.get(targetDieId);
+    if (!isTimerDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+    const now = Date.now();
+    const currentlyRunning = existingDie.timerRunning === true;
+    if (currentlyRunning) {
+      const nextElapsedMs = getTimerElapsedMs(existingDie, now);
+      const pausePatch = {
+        type: 'timer',
+        timerElapsedMs: nextElapsedMs,
+        timerRunning: false,
+        timerStartedAt: 0
+      };
+      patchLocalDie(targetDieId, pausePatch);
+      queueDiePatch(targetDieId, pausePatch);
+      return;
+    }
+    const nextElapsedMs = clampTimerElapsedMs(existingDie.timerElapsedMs);
+    const resumePatch = {
+      type: 'timer',
+      timerElapsedMs: nextElapsedMs,
+      timerRunning: nextElapsedMs < TIMER_MAX_ELAPSED_MS,
+      timerStartedAt: nextElapsedMs < TIMER_MAX_ELAPSED_MS ? now : 0
+    };
+    patchLocalDie(targetDieId, resumePatch);
+    queueDiePatch(targetDieId, resumePatch);
+  }
+
+  async function addTimerSplit(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const existingDie = diceById.get(targetDieId);
+    if (!isTimerDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+    const now = Date.now();
+    const splitValue = getTimerElapsedMs(existingDie, now);
+    const nextSplits = normalizeTimerSplits([...(existingDie.timerSplits || []), splitValue]);
+    const splitPatch = {
+      type: 'timer',
+      timerElapsedMs: clampTimerElapsedMs(existingDie.timerElapsedMs),
+      timerRunning: existingDie.timerRunning === true,
+      timerStartedAt: existingDie.timerRunning === true ? (Number(existingDie.timerStartedAt) || now) : 0,
+      timerSplits: nextSplits
+    };
+    patchLocalDie(targetDieId, splitPatch);
+    queueDiePatch(targetDieId, splitPatch);
+  }
+
+  async function resetTimerState(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const existingDie = diceById.get(targetDieId);
+    if (!isTimerDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+    const resetPatch = {
+      type: 'timer',
+      timerElapsedMs: 0,
+      timerRunning: false,
+      timerStartedAt: 0,
+      timerSplits: []
+    };
+    patchLocalDie(targetDieId, resetPatch);
+    queueDiePatch(targetDieId, resetPatch);
+  }
+
   async function handleCounterControlPointerDown(event, dieId, delta, reset = false) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       event.preventDefault();
@@ -25692,6 +28132,7 @@ async function startRealtimeSession() {
       cardResizeState ||
       cardRotateState ||
       groupDragState ||
+      chipSetDragState ||
       handReorderState
     ) {
       return;
@@ -25700,6 +28141,49 @@ async function startRealtimeSession() {
       await resetCounterValue(dieId);
     } else {
       await adjustCounterValue(dieId, delta);
+    }
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function handleTimerControlPointerDown(event, dieId, action = '') {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      await deleteDieInRemoveMode(dieId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      chipSetDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+    const normalizedAction = String(action || '').trim().toLowerCase();
+    if (normalizedAction === 'pause') {
+      await toggleTimerRunningState(dieId);
+    } else if (normalizedAction === 'split') {
+      await addTimerSplit(dieId);
+    } else if (normalizedAction === 'reset') {
+      await resetTimerState(dieId);
     }
     schedulePublishFromClient(event.clientX, event.clientY);
   }
@@ -25718,7 +28202,8 @@ async function startRealtimeSession() {
       normalized.type === 'label' ||
       normalized.type === 'media' ||
       normalized.type === 'marble' ||
-      normalized.type === 'counter'
+      normalized.type === 'counter' ||
+      normalized.type === 'timer'
     ) {
       return;
     }
@@ -26789,10 +29274,22 @@ async function startRealtimeSession() {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
+    const existingCard = cards.get(cardId);
+    if (!existingCard) {
+      return;
+    }
+    if (isNoteCardEditing(cardId)) {
+      return;
+    }
+
     if (consumeDoubleTapIfPresent(cardId, event) || consumeDoubleClickIfPresent(cardId, event)) {
-      handleCardFlipIntent(cardId).catch((error) => {
-        console.error(error);
-      });
+      if (isNoteComponentCard(existingCard)) {
+        beginNoteEditing(cardId);
+      } else {
+        handleCardFlipIntent(cardId).catch((error) => {
+          console.error(error);
+        });
+      }
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
@@ -26807,11 +29304,6 @@ async function startRealtimeSession() {
       groupDragState ||
       handReorderState
     ) {
-      return;
-    }
-
-    const existingCard = cards.get(cardId);
-    if (!existingCard) {
       return;
     }
     if (isNativeImageComponentLocked(existingCard)) {
@@ -27438,8 +29930,23 @@ async function startRealtimeSession() {
       console.error(error);
     });
   };
+  onChipStackPointerDown = (event, chipSetId, stackIndex) => {
+    handleChipStackPointerDown(event, chipSetId, stackIndex).catch((error) => {
+      console.error(error);
+    });
+  };
+  onChipSetMovePointerDown = (event, chipSetId) => {
+    handleChipSetMovePointerDown(event, chipSetId).catch((error) => {
+      console.error(error);
+    });
+  };
   onCounterControlPointerDown = (event, dieId, delta, reset = false) => {
     handleCounterControlPointerDown(event, dieId, delta, reset).catch((error) => {
+      console.error(error);
+    });
+  };
+  onTimerControlPointerDown = (event, dieId, action = '') => {
+    handleTimerControlPointerDown(event, dieId, action).catch((error) => {
       console.error(error);
     });
   };
@@ -27524,7 +30031,49 @@ async function startRealtimeSession() {
     if (isPrimaryMarbleFlick) {
       event.preventDefault();
       event.stopPropagation();
-      await beginMarbleFlickGesture(event, dieId);
+      let startedFlick = await beginMarbleFlickGesture(event, dieId);
+      if (!startedFlick) {
+        const retryState = diceById.get(dieId);
+        const retrySpeed = getMarbleSpeed(retryState);
+        const hasActiveLocalMotion = marbleMotionByDieId.has(dieId);
+        const blockingHolder =
+          typeof retryState?.holderClientId === 'string' && retryState.holderClientId
+            ? retryState.holderClientId
+            : '';
+        const hasRecoverableBlockingHolder =
+          Boolean(blockingHolder) &&
+          blockingHolder !== clientId &&
+          !isClientSessionLikelyActive(blockingHolder);
+        const canTryRecovery =
+          isMarbleDieState(retryState) &&
+          !hasActiveLocalMotion &&
+          (
+            hasRecoverableBlockingHolder ||
+            !blockingHolder ||
+            blockingHolder === clientId ||
+            retrySpeed <= MARBLE_RESTART_BLOCK_SPEED * 1.5
+          );
+        if (canTryRecovery) {
+          await forceRefreshMarbleStateForSecondaryDrag(dieId);
+          startedFlick = await beginMarbleFlickGesture(event, dieId);
+        }
+      }
+      if (!startedFlick) {
+        const fallbackState = diceById.get(dieId);
+        if (isMarbleDieState(fallbackState)) {
+          marbleFlickState = {
+            dieId,
+            pointerId: event.pointerId,
+            mouseButtonMask: event.pointerType === 'mouse' ? (event.button === 2 ? 2 : 1) : 0,
+            startedAt: Date.now(),
+            cursorClientX: event.clientX,
+            cursorClientY: event.clientY
+          };
+          scheduleMarbleFlickSafetyTimer(event.pointerId);
+          syncMarbleFlickArrow();
+          schedulePublishFromClient(event.clientX, event.clientY);
+        }
+      }
       return;
     }
     if (event.pointerType === 'mouse' && event.button === 2 && !isTargetMarble) {
@@ -27741,6 +30290,19 @@ async function startRealtimeSession() {
     }
     patchLocalDie(dieDragState.dieId, movePatch);
     queueDiePatch(dieDragState.dieId, movePatch);
+    if (dieDragState.type === 'chip') {
+      const movingChipState = diceById.get(dieDragState.dieId);
+      const chipDropTarget = movingChipState
+        ? getChipStackDropTargetAtPosition(nextX, nextY, movingChipState)
+        : null;
+      if (chipDropTarget) {
+        setChipStackDropIndicator(true, chipDropTarget.chipSetId, chipDropTarget.stackIndex);
+      } else {
+        setChipStackDropIndicator(false);
+      }
+    } else {
+      setChipStackDropIndicator(false);
+    }
     schedulePublishFromClient(event.clientX, event.clientY);
     event.preventDefault();
   }
@@ -27765,6 +30327,12 @@ async function startRealtimeSession() {
     if (!finishedDrag) {
       return;
     }
+    const finishedDieState = diceById.get(finishedDrag.dieId) || null;
+    const chipDropTarget =
+      finishedDrag.type === 'chip' && finishedDieState
+        ? getChipStackDropTargetAtPosition(finishedDieState.x, finishedDieState.y, finishedDieState)
+        : null;
+    setChipStackDropIndicator(false);
     const releasePatch = {
       holderClientId: null
     };
@@ -27774,10 +30342,21 @@ async function startRealtimeSession() {
       releasePatch.velocityY = 0;
     }
     patchLocalDie(finishedDrag.dieId, releasePatch);
-    queueDiePatch(finishedDrag.dieId, releasePatch);
+    const shouldAbsorbChip = Boolean(chipDropTarget && finishedDrag.type === 'chip');
+    if (shouldAbsorbChip) {
+      pendingDieWrites.delete(finishedDrag.dieId);
+    } else {
+      queueDiePatch(finishedDrag.dieId, releasePatch);
+    }
     releaseDieLock(finishedDrag.dieId).catch((error) => {
       console.error(error);
     });
+    if (shouldAbsorbChip && chipDropTarget) {
+      tryAbsorbLooseChipIntoStack(finishedDrag.dieId, chipDropTarget).catch((error) => {
+        console.error(error);
+        queueDiePatch(finishedDrag.dieId, releasePatch);
+      });
+    }
 
     if (event.type === 'pointerup' && !finishedDrag.moved) {
       if (finishedDrag.pointerType === 'touch' || finishedDrag.pointerType === 'pen') {
@@ -27787,6 +30366,344 @@ async function startRealtimeSession() {
       }
     }
 
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  async function tryAbsorbLooseChipIntoStack(dieId, targetOverride = null) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return false;
+    }
+    const dieState = diceById.get(targetDieId);
+    if (!dieState || normalizeDieType(dieState.type) !== 'chip') {
+      return false;
+    }
+    const looseChipColor = normalizeHexColor(dieState.chipColor || '#ffffff');
+    const looseChipValue = normalizeChipNumericValue(dieState.chipValue, 1);
+    const target = targetOverride || getChipStackDropTargetAtPosition(dieState.x, dieState.y, dieState);
+    if (!target || typeof target !== 'object') {
+      return false;
+    }
+    const targetChipSetId = String(target.chipSetId || '').trim();
+    const targetStackIndex = Math.max(0, Math.round(Number(target.stackIndex) || 0));
+    if (!targetChipSetId) {
+      return false;
+    }
+    const result = await runTransaction(
+      ref(db, `${roomPath}/chipSets/${targetChipSetId}`),
+      (currentChipSet) => {
+        if (!currentChipSet || typeof currentChipSet !== 'object') {
+          return;
+        }
+        const normalized = normalizeChipSetPayload(currentChipSet);
+        if (targetStackIndex < 0 || targetStackIndex >= normalized.stackCount) {
+          return currentChipSet;
+        }
+        const targetStack = normalized.stacks[targetStackIndex];
+        if (!doesChipMatchStackSpec(looseChipColor, looseChipValue, targetStack)) {
+          return;
+        }
+        const nextStacks = normalized.stacks.map((stack, index) => {
+          if (index !== targetStackIndex) {
+            return stack;
+          }
+          return {
+            ...stack,
+            count: clamp(Math.max(0, Math.round(Number(stack.count) || 0)) + 1, 0, CHIP_STACK_MAX_QUANTITY)
+          };
+        });
+        return {
+          ...normalized,
+          stacks: nextStacks,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed) {
+      return false;
+    }
+    chipSetWriteGeneration += 1;
+    pendingChipSetPatch = {};
+    pendingDieWrites.delete(targetDieId);
+    dieWriteGeneration += 1;
+    const syncedChipSet = result.snapshot?.val();
+    if (syncedChipSet && typeof syncedChipSet === 'object') {
+      chipSetsById.set(targetChipSetId, normalizeChipSetPayload(syncedChipSet));
+    }
+    if (selectedDiceIds.delete(targetDieId)) {
+      syncSelectionDeleteButtonUi();
+    }
+    diceById.delete(targetDieId);
+    removeDieElement(targetDieId);
+    await set(ref(db, `${roomPath}/dice/${targetDieId}`), null);
+    renderChipSets();
+    syncClearTableButtonState();
+    return true;
+  }
+
+  async function deleteChipSetById(chipSetId) {
+    const targetChipSetId = String(chipSetId || '').trim();
+    if (!targetChipSetId) {
+      return false;
+    }
+    await set(ref(db, `${roomPath}/chipSets/${targetChipSetId}`), null);
+    chipSetsById.delete(targetChipSetId);
+    removeChipSetUi(targetChipSetId);
+    renderChipSets();
+    syncClearTableButtonState();
+    return true;
+  }
+
+  async function handleChipStackPointerDown(event, chipSetId, stackIndex) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState ||
+      chipSetDragState
+    ) {
+      return;
+    }
+    const targetChipSetId = String(chipSetId || '').trim();
+    const targetStackIndex = Math.max(0, Math.round(Number(stackIndex) || 0));
+    const currentChipSet = chipSetsById.get(targetChipSetId);
+    if (!currentChipSet) {
+      return;
+    }
+    const normalizedChipSet = normalizeChipSetPayload(currentChipSet);
+    const targetStack = normalizedChipSet.stacks[targetStackIndex];
+    if (!targetStack || targetStackIndex >= normalizedChipSet.stackCount || Number(targetStack.count) <= 0) {
+      return;
+    }
+    const acquired = await acquireChipSetLock(targetChipSetId);
+    if (!acquired) {
+      return;
+    }
+    const decrementResult = await runTransaction(
+      ref(db, `${roomPath}/chipSets/${targetChipSetId}`),
+      (currentSet) => {
+        if (!currentSet || typeof currentSet !== 'object') {
+          return;
+        }
+        const normalized = normalizeChipSetPayload(currentSet);
+        if (targetStackIndex < 0 || targetStackIndex >= normalized.stackCount) {
+          return currentSet;
+        }
+        const stack = normalized.stacks[targetStackIndex];
+        const currentCount = Math.max(0, Math.round(Number(stack.count) || 0));
+        if (currentCount <= 0) {
+          return currentSet;
+        }
+        const nextStacks = normalized.stacks.map((entry, index) => {
+          if (index !== targetStackIndex) {
+            return entry;
+          }
+          return {
+            ...entry,
+            count: clamp(currentCount - 1, 0, CHIP_STACK_MAX_QUANTITY)
+          };
+        });
+        return {
+          ...normalized,
+          stacks: nextStacks,
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!decrementResult.committed) {
+      await releaseChipSetLock(targetChipSetId);
+      return;
+    }
+    const decrementedChipSetRaw = decrementResult.snapshot?.val();
+    const decrementedChipSet = normalizeChipSetPayload(decrementedChipSetRaw);
+    chipSetsById.set(targetChipSetId, decrementedChipSet);
+    renderChipSets();
+
+    const stackState = decrementedChipSet.stacks[targetStackIndex] || targetStack;
+    const chipSpawnCenter = getChipStackCenter(decrementedChipSet, targetStackIndex);
+    const chipPayload = {
+      type: 'chip',
+      x: chipSpawnCenter.x,
+      y: chipSpawnCenter.y,
+      z: getTopObjectZ() + 1,
+      value: 1,
+      chipSetId: targetChipSetId,
+      chipStackIndex: targetStackIndex,
+      chipValue: Number(stackState.value) || Number(targetStack.value) || 1,
+      chipLabel:
+        normalizeChipLabelText(stackState.label || targetStack.label || stackState.value || targetStack.value || '1') || '1',
+      chipColor: normalizeHexColor(stackState.color || targetStack.color || '#ffffff'),
+      holderClientId: null,
+      rollStartedAt: 0,
+      rollDurationMs: DIE_ROLL_DURATION_MS,
+      rollSeed: 0,
+      updatedAt: Date.now()
+    };
+    let createdDieId = `chip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    while (diceById.has(createdDieId)) {
+      createdDieId = `chip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+    try {
+      await set(ref(db, `${roomPath}/dice/${createdDieId}`), chipPayload);
+    } catch (error) {
+      console.error(error);
+      await releaseChipSetLock(targetChipSetId);
+      return;
+    }
+    diceById.set(createdDieId, normalizeDicePayload(chipPayload));
+    renderDieElement(createdDieId);
+    const chipDieElement = diceElements.get(createdDieId);
+    if (chipDieElement) {
+      chipDieElement.classList.remove('is-chip-spawn-fade');
+      // Restart animation if another chip is pulled quickly.
+      void chipDieElement.offsetWidth;
+      chipDieElement.classList.add('is-chip-spawn-fade');
+      window.setTimeout(() => {
+        if (diceElements.get(createdDieId) === chipDieElement) {
+          chipDieElement.classList.remove('is-chip-spawn-fade');
+        }
+      }, CHIP_SPAWN_FADE_DURATION_MS + 40);
+    }
+    releaseChipSetLock(targetChipSetId).catch((error) => {
+      console.error(error);
+    });
+    await handleDiePointerDown(event, createdDieId);
+    syncClearTableButtonState();
+  }
+
+  async function handleChipSetMovePointerDown(event, chipSetId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteChipSetById(chipSetId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+      chipSetDragState ||
+      dieDragState ||
+      labelResizeState ||
+      labelRotateState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+    const targetChipSetId = String(chipSetId || '').trim();
+    const targetChipSet = chipSetsById.get(targetChipSetId);
+    if (!targetChipSet) {
+      return;
+    }
+    if (targetChipSet.holderClientId && targetChipSet.holderClientId !== clientId) {
+      return;
+    }
+    const acquired = await acquireChipSetLock(targetChipSetId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseChipSetLock(targetChipSetId);
+      return;
+    }
+    const normalized = normalizeChipSetPayload(targetChipSet);
+    chipSetDragState = {
+      chipSetId: targetChipSetId,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: normalized.x,
+      startY: normalized.y
+    };
+    patchLocalChipSet({ holderClientId: clientId }, targetChipSetId);
+    queueChipSetPatch({ holderClientId: clientId }, targetChipSetId);
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleChipSetDragMove(event) {
+    if (!chipSetDragState || event.pointerId !== chipSetDragState.pointerId) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      handleChipSetDragEnd({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+    const deltaX = (event.clientX - chipSetDragState.startClientX) / camera.scale;
+    const deltaY = (event.clientY - chipSetDragState.startClientY) / camera.scale;
+    const targetChipSet = chipSetsById.get(chipSetDragState.chipSetId);
+    const bounds = getChipSetCenterBounds(targetChipSet || { stackCount: CHIP_SET_MIN_STACKS });
+    const nextX = clamp(chipSetDragState.startX + deltaX, bounds.minX, bounds.maxX);
+    const nextY = clamp(chipSetDragState.startY + deltaY, bounds.minY, bounds.maxY);
+    const patch = {
+      x: nextX,
+      y: nextY,
+      holderClientId: clientId,
+      z: getTopObjectZ() + 1
+    };
+    patchLocalChipSet(patch, chipSetDragState.chipSetId);
+    queueChipSetPatch(patch, chipSetDragState.chipSetId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  }
+
+  function handleChipSetDragEnd(event) {
+    if (!chipSetDragState || event.pointerId !== chipSetDragState.pointerId) {
+      return;
+    }
+    if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
+      return;
+    }
+    const targetChipSetId = String(chipSetDragState.chipSetId || '').trim();
+    chipSetDragState = null;
+    if (!targetChipSetId) {
+      return;
+    }
+    patchLocalChipSet({ holderClientId: null }, targetChipSetId);
+    queueChipSetPatch({ holderClientId: null }, targetChipSetId);
+    releaseChipSetLock(targetChipSetId).catch((error) => {
+      console.error(error);
+    });
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
@@ -27826,6 +30743,7 @@ async function startRealtimeSession() {
     if (
       !targetDeckState ||
       deckDragState ||
+      chipSetDragState ||
       cardResizeState ||
       cardRotateState ||
       labelResizeState ||
@@ -29322,6 +32240,48 @@ async function startRealtimeSession() {
     });
   }
 
+  spawnChipStacksComponent = async (options = {}) => {
+    const stackCount = normalizeChipStackCount(options.stackCount, CHIP_SET_MIN_STACKS);
+    const quantity = normalizeChipStackQuantity(options.quantity, CHIP_STACK_MIN_QUANTITY);
+    const labels = Array.isArray(options.labels) ? options.labels : [];
+    const seedStacks = normalizeChipStacksPayload([], stackCount, { quantity }).map((stack, index) => ({
+      ...stack,
+      label:
+        normalizeChipLabelText(labels[index]) ||
+        normalizeChipLabelText(stack.label || stack.value || String(index + 1)) ||
+        String(index + 1)
+    }));
+    const viewportCenter = getViewportWorldCenter();
+    const seededChipSet = normalizeChipSetPayload({
+      x: viewportCenter.x,
+      y: viewportCenter.y,
+      stackCount,
+      stacks: seedStacks
+    });
+    await runTransaction(
+      chipSetsRef,
+      (currentChipSets) => {
+        const baseChipSets = currentChipSets && typeof currentChipSets === 'object' ? { ...currentChipSets } : {};
+        let nextTopZ = getTopObjectZ();
+        for (const payload of Object.values(baseChipSets)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+        }
+        let nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseChipSets, nextChipSetId)) {
+          nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        baseChipSets[nextChipSetId] = {
+          ...seededChipSet,
+          z: nextTopZ + 1,
+          holderClientId: null,
+          updatedAt: Date.now()
+        };
+        return baseChipSets;
+      },
+      { applyLocally: false }
+    );
+  };
+
   spawnDice = async (type = 'd6', count = 1) => {
     const normalizedType = normalizeDieType(type);
     const normalizedCount = clamp(Math.round(Number(count) || 1), 1, 5);
@@ -29352,9 +32312,12 @@ async function startRealtimeSession() {
           );
           const y = spawnCenterY;
           nextTopZ += 1;
+          const createdAt = Date.now();
           const initialValue =
             normalizedType === 'counter'
               ? 0
+              : normalizedType === 'timer'
+                ? 0
               : 1 + Math.floor(Math.random() * sides);
           baseDice[nextDieId] = {
             type: normalizedType,
@@ -29363,6 +32326,14 @@ async function startRealtimeSession() {
             z: nextTopZ,
             value: initialValue,
             holderClientId: null,
+            ...(normalizedType === 'timer'
+              ? {
+                timerElapsedMs: 0,
+                timerRunning: false,
+                timerStartedAt: 0,
+                timerSplits: []
+              }
+              : {}),
             ...(normalizedType === 'marble'
               ? {
                 moving: false,
@@ -29374,7 +32345,7 @@ async function startRealtimeSession() {
             rollStartedAt: 0,
             rollDurationMs: DIE_ROLL_DURATION_MS,
             rollSeed: Math.floor(Math.random() * 0x7fffffff),
-            updatedAt: Date.now()
+            updatedAt: createdAt
           };
         }
         return baseDice;
@@ -29387,6 +32358,9 @@ async function startRealtimeSession() {
   };
   spawnCounter = async () => {
     await spawnDice('counter', 1);
+  };
+  spawnTimer = async () => {
+    await spawnDice('timer', 1);
   };
   spawnMarble = async () => {
     await spawnDice('marble', 1);
@@ -29492,6 +32466,60 @@ async function startRealtimeSession() {
           updatedAt: Date.now()
         };
         return baseDice;
+      },
+      { applyLocally: false }
+    );
+  };
+  spawnNoteComponent = async () => {
+    const noteSize = clampNoteComponentSize(NOTE_COMPONENT_DEFAULT_WORLD_SIZE, NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
+    const viewportCenter = getViewportWorldCenter();
+    const spawnCenterX = clamp(viewportCenter.x, noteSize.width / 2, WORLD_WIDTH - noteSize.width / 2);
+    const spawnCenterY = clamp(viewportCenter.y, noteSize.height / 2, WORLD_HEIGHT - noteSize.height / 2);
+    await runTransaction(
+      cardsRef,
+      (currentCards) => {
+        const baseCards = currentCards && typeof currentCards === 'object' ? { ...currentCards } : {};
+        let nextTopZ = 1;
+        for (const payload of Object.values(baseCards)) {
+          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 1);
+        }
+        nextTopZ += 1;
+        let nextCardId = `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (Object.prototype.hasOwnProperty.call(baseCards, nextCardId)) {
+          nextCardId = `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        baseCards[nextCardId] = {
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: nextTopZ,
+          face: 'front',
+          frontSrc: createNoteFaceSvgDataUri('', 'front'),
+          backSrc: createNoteFaceSvgDataUri('', 'back'),
+          componentType: 'image',
+          componentSubtype: NOTE_COMPONENT_SUBTYPE,
+          componentCardSized: true,
+          componentTwoSided: true,
+          componentFrontBlank: false,
+          componentBackBlank: false,
+          componentFrontColor: '#f2d97f',
+          componentBackColor: '#e9cf78',
+          noteFrontText: '',
+          noteBackText: '',
+          componentLocked: false,
+          componentRotation: 0,
+          componentAspectRatio: 1,
+          componentWidth: noteSize.width,
+          componentHeight: noteSize.height,
+          deckId: DECK_KEY,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null,
+          updatedAt: Date.now()
+        };
+        return baseCards;
       },
       { applyLocally: false }
     );
@@ -30241,12 +33269,15 @@ async function startRealtimeSession() {
     cardWriteGeneration += 1;
     dieWriteGeneration += 1;
     deckWriteGeneration += 1;
+    chipSetWriteGeneration += 1;
     monsWriteGeneration += 1;
     strokeWriteGeneration += 1;
+    closeNoteEditor({ commit: true });
     closeLabelEditor({ commit: true });
     cardWriteScheduled = false;
     dieWriteScheduled = false;
     deckWriteScheduled = false;
+    chipSetWriteScheduled = false;
     monsWriteScheduled = false;
     strokeWriteScheduled = false;
     setDeckDropIndicator(false);
@@ -30264,6 +33295,7 @@ async function startRealtimeSession() {
     pendingCardWrites.clear();
     pendingDieWrites.clear();
     pendingDeckPatch = {};
+    pendingChipSetPatch = {};
     pendingMonsPatch = {};
     pendingStrokeWrites.clear();
     drawPointerState = null;
@@ -30308,6 +33340,7 @@ async function startRealtimeSession() {
     endedPointerAtById.clear();
     endedTouchPointerIds.clear();
     deckDragState = null;
+    chipSetDragState = null;
     monsDragState = null;
     taflDragState = null;
     goDragState = null;
@@ -30317,6 +33350,7 @@ async function startRealtimeSession() {
     hideSelectionBox();
     setDeckShuffleFxActive(false);
     hideAllDeckUiElements();
+    hideAllChipSetUiElements();
     hideMonsBoardElements();
     if (deckDropIndicator) {
       deckDropIndicator.remove();
@@ -30334,11 +33368,16 @@ async function startRealtimeSession() {
       fxCard.remove();
     }
     removeAllDeckUiArtifacts();
+    removeAllChipSetUiArtifacts();
     removeMonsBoardElements();
     removeTaflBoardElements();
     removeGoBoardElements();
     closeDiceAddModal();
+    closeChipsAddModal();
+    closeSpinnerAddModal();
+    closeImageAddModal();
     closeStickerAddModal();
+    closeMediaAddModal();
     closeMonsItemChoiceModal();
     closeGameOptionsMenu();
     deckShuffleFxCards = [];
@@ -30366,6 +33405,7 @@ async function startRealtimeSession() {
 
     for (const cardId of cardElements.keys()) {
       clearCardFlipTimer(cardId);
+      clearNoteAttachmentFaceSwapTimer(cardId);
       cardFaces.delete(cardId);
       frontDisplayPendingByCard.delete(cardId);
     }
@@ -30415,8 +33455,12 @@ async function startRealtimeSession() {
     cardElements.clear();
     diceElements.clear();
     frontDisplayPendingByCard.clear();
+    noteAttachmentRenderKeyByCardId.clear();
+    noteAttachmentDisplayFaceByCardId.clear();
+    noteAttachmentFaceSwapTimersByCardId.clear();
     deckState = null;
     deckStatesById.clear();
+    chipSetsById.clear();
     activeDeckId = DECK_KEY;
     deckShuffleFxDeckId = DECK_KEY;
     deckShuffleDarkenedCardId = '';
@@ -30452,6 +33496,7 @@ async function startRealtimeSession() {
         cards: null,
         dice: null,
         decks: null,
+        chipSets: null,
         games: null,
         drawings: null,
         auctionBids: null
@@ -30646,6 +33691,22 @@ async function startRealtimeSession() {
         }
       }
 
+      if (noteEditState) {
+        const editingCard = cards.get(noteEditState.cardId);
+        const editingFace = noteEditState.face === 'back' ? 'back' : 'front';
+        if (
+          !editingCard ||
+          !isNoteComponentCard(editingCard) ||
+          editingCard.face !== editingFace ||
+          editingCard.inDeck ||
+          editingCard.inDiscard ||
+          editingCard.inAuction ||
+          getCardHandOwnerId(editingCard)
+        ) {
+          closeNoteEditor({ commit: false });
+        }
+      }
+
       let cardSelectionChanged = false;
       for (const cardId of Array.from(cards.keys())) {
         if (activeCardIds.has(cardId)) {
@@ -30661,6 +33722,9 @@ async function startRealtimeSession() {
           rotatingStickerCardId = '';
           syncHandHoverDragLock();
         }
+        if (noteEditState?.cardId === cardId) {
+          closeNoteEditor({ commit: false });
+        }
         if (selectedCardIds.delete(cardId)) {
           cardSelectionChanged = true;
         }
@@ -30669,6 +33733,7 @@ async function startRealtimeSession() {
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        rerenderAttachedDrawingStrokesForCard(cardId);
         cardDeckMetricsChanged = true;
         staleCardLockRecoveryAttemptAtById.delete(cardId);
         staleCardLockRecoveryInFlight.delete(cardId);
@@ -30711,7 +33776,11 @@ async function startRealtimeSession() {
       for (const [dieId, payload] of Object.entries(allDice)) {
         activeDieIds.add(dieId);
         const previousDieState = diceById.get(dieId);
-        const nextDieState = normalizeDicePayload(payload);
+        const nextDieState = mergeIncomingMarbleStateWithActiveLocalMotion(
+          dieId,
+          previousDieState,
+          normalizeDicePayload(payload)
+        );
         diceById.set(dieId, nextDieState);
         syncMediaStartSignalFromState(dieId, previousDieState, nextDieState);
         syncMarbleMotionFromState(dieId, nextDieState);
@@ -30916,6 +33985,45 @@ async function startRealtimeSession() {
       console.error(error);
       setRealtimeStatus('firebase: read blocked');
       showStatusMessage('Deck sync failed. Check Realtime Database rules for room path access.');
+    }
+  );
+
+  onValue(
+    chipSetsRef,
+    (snapshot) => {
+      if (isTableResetting) {
+        return;
+      }
+      const nextChipSetsRaw = snapshot.val() || {};
+      const nextChipSetIds = new Set();
+      for (const [rawChipSetId, rawChipSetPayload] of Object.entries(nextChipSetsRaw)) {
+        if (!rawChipSetPayload || typeof rawChipSetPayload !== 'object') {
+          continue;
+        }
+        const chipSetId = String(rawChipSetId || '').trim();
+        if (!chipSetId) {
+          continue;
+        }
+        chipSetsById.set(chipSetId, normalizeChipSetPayload(rawChipSetPayload));
+        nextChipSetIds.add(chipSetId);
+      }
+      for (const existingChipSetId of Array.from(chipSetsById.keys())) {
+        if (nextChipSetIds.has(existingChipSetId)) {
+          continue;
+        }
+        chipSetsById.delete(existingChipSetId);
+        removeChipSetUi(existingChipSetId);
+      }
+      if (chipSetDragState && !nextChipSetIds.has(chipSetDragState.chipSetId)) {
+        chipSetDragState = null;
+      }
+      renderChipSets();
+      syncClearTableButtonState();
+    },
+    (error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: read blocked');
+      showStatusMessage('Chip stack sync failed. Check Realtime Database rules for room path access.');
     }
   );
 
@@ -31129,6 +34237,9 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleDeckDragMove);
   window.addEventListener('pointerup', handleDeckDragEnd);
   window.addEventListener('pointercancel', handleDeckDragEnd);
+  window.addEventListener('pointermove', handleChipSetDragMove);
+  window.addEventListener('pointerup', handleChipSetDragEnd);
+  window.addEventListener('pointercancel', handleChipSetDragEnd);
   window.addEventListener('pointermove', handleMonsDragMove);
   window.addEventListener('pointerup', handleMonsDragEnd);
   window.addEventListener('pointercancel', handleMonsDragEnd);
@@ -31280,6 +34391,11 @@ function isEventOnMonsBoardUi(event) {
   return Boolean(target?.closest('#monsGameShell, .mons-game-shell, #monsMoveButton, #monsOptionsButton, .mons-move-button, .mons-options-button'));
 }
 
+function isEventOnTimerSplits(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  return Boolean(target?.closest('.table-timer-splits'));
+}
+
 function getDistancePointToSegment(pointX, pointY, startX, startY, endX, endY) {
   const segmentX = endX - startX;
   const segmentY = endY - startY;
@@ -31307,8 +34423,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     (14 + DELETE_STROKE_HIT_PADDING_PX) / Math.max(camera.scale, 0.001)
   );
   for (const [strokeId, strokeState] of drawingStrokes.entries()) {
-    const points = Array.isArray(strokeState?.points) ? strokeState.points : [];
-    if (points.length === 0) {
+    const resolved = getResolvedDrawingStrokePoints(strokeState);
+    const points = Array.isArray(resolved.points) ? resolved.points : [];
+    if (resolved.hidden || points.length === 0) {
       continue;
     }
     let strokeDistance = Infinity;
@@ -31355,6 +34472,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   tableRoot.addEventListener(
     'wheel',
     (event) => {
+      if (isEventOnTimerSplits(event)) {
+        return;
+      }
       if (shouldIgnorePointerEvent(event) && !isEventOnMonsBoardUi(event)) {
         return;
       }
@@ -31369,6 +34489,12 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     recoverStuckPointerInteractions(Date.now());
     endedPointerAtById.delete(event.pointerId);
     endedTouchPointerIds.delete(event.pointerId);
+    if (noteEditState) {
+      const targetElement = event.target instanceof Element ? event.target : null;
+      if (!targetElement?.closest('.table-note-editor')) {
+        closeNoteEditor({ commit: true });
+      }
+    }
     if (labelEditState) {
       const targetElement = event.target instanceof Element ? event.target : null;
       if (!targetElement?.closest('.table-label-editor')) {

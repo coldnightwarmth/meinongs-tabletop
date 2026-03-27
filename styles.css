@@ -2166,6 +2166,27 @@ input[type="color"]::-webkit-color-swatch {
   transition: opacity 140ms ease, filter 140ms ease, scale 140ms ease;
 }
 
+.drawing-stroke.is-note-attached {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.drawing-stroke.is-note-flipping {
+  animation: noteAttachmentFlip 220ms cubic-bezier(0.28, 0.72, 0.25, 1);
+}
+
+@keyframes noteAttachmentFlip {
+  0% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.05);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
 .drawing-shape-preview {
   opacity: 0.78;
 }
@@ -2239,6 +2260,21 @@ input[type="color"]::-webkit-color-swatch {
   object-position: center;
   image-rendering: auto;
   pointer-events: none;
+}
+
+.hand-card.is-note-component {
+  border-radius: 0;
+  background: rgba(244, 217, 127, 0.95);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 8px 18px rgba(68, 53, 20, 0.34);
+}
+
+.hand-card.is-note-component img {
+  border-radius: 0;
+  height: 100%;
+  margin: 0;
+  object-fit: cover;
 }
 
 .hand-card.is-front-pending img {
@@ -2558,7 +2594,8 @@ input[type="color"]::-webkit-color-swatch {
   display: none;
 }
 
-.table-die.table-die-coin::after {
+.table-die.table-die-coin::after,
+.table-die.table-die-chip::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -2831,7 +2868,8 @@ input[type="color"]::-webkit-color-swatch {
   overflow: visible;
 }
 
-.table-die.table-die-counter {
+.table-die.table-die-counter,
+.table-die.table-die-timer {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(5px);
@@ -2847,6 +2885,11 @@ input[type="color"]::-webkit-color-swatch {
 .table-die.table-die-counter .table-die-face {
   box-sizing: border-box;
   padding: 6% 4.5% 5.5%;
+}
+
+.table-die.table-die-timer .table-die-face {
+  box-sizing: border-box;
+  padding: 5.2% 4.4% 4.8%;
 }
 
 .table-counter-shell {
@@ -3031,6 +3074,221 @@ input[type="color"]::-webkit-color-swatch {
   border-color: rgba(255, 255, 255, 0.4);
 }
 
+.table-timer-shell {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  min-height: 0;
+  grid-template-rows: minmax(0, 45%) minmax(0, 22%) minmax(0, 33%);
+  gap: 4.2%;
+}
+
+.table-timer-display {
+  border-radius: 8px;
+  border: 1px solid rgba(247, 243, 232, 0.2);
+  background: rgba(12, 17, 16, 0.56);
+  box-shadow: 0 0 0 1px rgba(5, 9, 8, 0.16) inset;
+  display: grid;
+  min-height: 0;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 0.34fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 0.28fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+  gap: 2.2%;
+  align-items: center;
+  justify-items: center;
+  padding: 5.2% 5.4% 5.9%;
+}
+
+.table-timer-digit {
+  width: 86%;
+  height: 100%;
+  min-height: 0;
+}
+
+.table-timer-separator {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  color: rgba(255, 110, 110, 0.9);
+  font-size: 0;
+  line-height: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.table-timer-separator::before,
+.table-timer-separator::after {
+  content: '';
+  display: block;
+  width: 38%;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.94;
+}
+
+.table-timer-separator-colon {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16%;
+}
+
+.table-timer-separator-dot {
+  align-items: flex-end;
+  padding-bottom: 18%;
+}
+
+.table-timer-separator-dot::after {
+  display: none;
+}
+
+.table-timer-controls {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3.5%;
+}
+
+.table-timer-control {
+  min-height: 0;
+  height: 100%;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 16, 14, 0.52);
+  color: rgba(247, 243, 232, 0.92);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--timer-control-font-size, 11px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 110ms ease, border-color 110ms ease, transform 110ms ease, opacity 110ms ease;
+}
+
+.table-timer-control-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.34em;
+  min-width: 0;
+}
+
+.table-timer-control-icon {
+  width: 1.34em;
+  height: 1.34em;
+  flex: 0 0 auto;
+  stroke: currentColor;
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.table-timer-control-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.table-timer-control.is-disabled {
+  opacity: 0.5;
+}
+
+.table-timer-control:hover,
+.table-timer-control:focus-visible,
+.table-timer-control:active {
+  background: rgba(19, 28, 24, 0.72);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.table-timer-splits {
+  border-radius: 7px;
+  border: 1px solid rgba(247, 243, 232, 0.16);
+  background: rgba(8, 12, 11, 0.44);
+  box-shadow: 0 0 0 1px rgba(5, 9, 8, 0.1) inset;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: 100%;
+  -webkit-overflow-scrolling: touch;
+  padding: 5% 7% 6%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.table-timer-split-row,
+.table-timer-split-empty {
+  font-family: "Courier New", Courier, monospace;
+  font-size: clamp(9px, calc(var(--timer-control-font-size, 11px) * 0.84), 11px);
+  line-height: 1.46;
+  color: rgba(247, 243, 232, 0.86);
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.table-timer-split-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.8em;
+  min-height: 1.5em;
+  padding: 3px 0 4px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.table-timer-split-row + .table-timer-split-row {
+  border-top: 1px solid rgba(247, 243, 232, 0.08);
+  margin-top: 2px;
+  padding-top: 4px;
+}
+
+.table-timer-split-index {
+  flex: 0 0 auto;
+  opacity: 0.72;
+  line-height: 1.46;
+  padding-bottom: 0;
+}
+
+.table-timer-split-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.46;
+  padding-bottom: 0;
+}
+
+.table-timer-split-empty {
+  opacity: 0.58;
+}
+
+.table-die.table-die-timer.is-timer-controls-hidden .table-timer-control,
+.table-die.table-die-timer.is-timer-controls-hidden .table-timer-split-row,
+.table-die.table-die-timer.is-timer-controls-hidden .table-timer-split-empty {
+  color: transparent;
+  text-shadow: none;
+}
+
 .table-media-frame {
   width: 100%;
   height: 100%;
@@ -3072,6 +3330,95 @@ input[type="color"]::-webkit-color-swatch {
   cursor: nwse-resize;
 }
 
+.table-die.table-die-chip {
+  border-radius: 999px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.table-die.table-die-chip.is-chip-spawn-fade {
+  animation: chipSpawnFadeIn 170ms ease-out;
+}
+
+@keyframes chipSpawnFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.table-die.table-die-chip .table-die-face {
+  position: relative;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.table-chip-shell {
+  stroke: rgba(247, 243, 232, 0.3);
+  stroke-width: 1.4;
+}
+
+.table-chip-outer-ring {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1.9;
+}
+
+.table-chip-inner {
+  fill: rgba(255, 255, 255, 0.12);
+}
+
+.table-chip-inner-ring {
+  fill: none;
+  stroke: rgba(247, 243, 232, 0.8);
+  stroke-width: 1.2;
+  stroke-dasharray: 1.4 2.4;
+  stroke-linecap: round;
+}
+
+.table-chip-label {
+  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  paint-order: stroke fill;
+  stroke-width: 0.95;
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-die-svg {
+  filter: drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.3));
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-chip-shell {
+  stroke: rgba(34, 26, 18, 0.58);
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-chip-outer-ring {
+  stroke: rgba(42, 32, 24, 0.54);
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-chip-inner {
+  fill: rgba(255, 255, 255, 0.24);
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-chip-inner-ring {
+  stroke: rgba(44, 34, 24, 0.7);
+  stroke-width: 1.34;
+}
+
+.table-die.table-die-chip.is-chip-contrast-boost .table-chip-label {
+  filter: drop-shadow(0 0.8px 0.9px rgba(12, 10, 8, 0.3));
+}
+
 .table-die.table-die-coin .table-die-face {
   position: relative;
   border-radius: 999px;
@@ -3095,7 +3442,8 @@ input[type="color"]::-webkit-color-swatch {
   z-index: 2;
 }
 
-.table-die.table-die-coin .table-die-face::after {
+.table-die.table-die-coin .table-die-face::after,
+.table-die.table-die-chip .table-die-face::after {
   content: "";
   position: absolute;
   inset: 10%;
@@ -3438,7 +3786,8 @@ input[type="color"]::-webkit-color-swatch {
   animation: dieRollingScale 220ms ease-in-out infinite;
 }
 
-.table-die.table-die-coin.is-rolling .table-die-face {
+.table-die.table-die-coin.is-rolling .table-die-face,
+.table-die.table-die-chip.is-rolling .table-die-face {
   animation: coinFlip3d 620ms cubic-bezier(0.2, 0.67, 0.31, 1) infinite;
 }
 
@@ -3450,15 +3799,22 @@ input[type="color"]::-webkit-color-swatch {
 .table-die.table-die-coin.is-rolling.is-group-selected,
 .table-die.table-die-coin.is-rolling.is-group-selected.is-held-by-self,
 .table-die.table-die-coin.is-rolling.is-held-by-self,
-.table-die.table-die-coin.is-rolling.is-held-by-other {
+.table-die.table-die-coin.is-rolling.is-held-by-other,
+.table-die.table-die-chip.is-rolling,
+.table-die.table-die-chip.is-rolling.is-group-selected,
+.table-die.table-die-chip.is-rolling.is-group-selected.is-held-by-self,
+.table-die.table-die-chip.is-rolling.is-held-by-self,
+.table-die.table-die-chip.is-rolling.is-held-by-other {
   box-shadow: none !important;
 }
 
-.table-die.table-die-coin.is-rolling .table-die-face::after {
+.table-die.table-die-coin.is-rolling .table-die-face::after,
+.table-die.table-die-chip.is-rolling .table-die-face::after {
   animation: coinFlipGlint 620ms linear infinite;
 }
 
-.table-die.table-die-coin.is-rolling::after {
+.table-die.table-die-coin.is-rolling::after,
+.table-die.table-die-chip.is-rolling::after {
   opacity: 1;
   animation: coinFlipGroundShadow 620ms cubic-bezier(0.2, 0.67, 0.31, 1) infinite;
 }
@@ -3555,6 +3911,61 @@ input[type="color"]::-webkit-color-swatch {
   height: 100%;
   margin: 0;
   object-fit: cover;
+}
+
+.table-card.is-note-component {
+  border-radius: 0;
+  background: rgba(244, 217, 127, 0.95);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 8px 18px rgba(68, 53, 20, 0.34);
+}
+
+.table-card.is-note-component img {
+  border-radius: 0;
+  height: 100%;
+  margin: 0;
+  object-fit: cover;
+}
+
+.table-card.is-note-component.is-group-selected {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.56),
+    0 14px 24px rgba(66, 52, 20, 0.36);
+}
+
+.table-card.is-note-editing {
+  cursor: text;
+  box-shadow:
+    0 0 0 2px rgba(191, 149, 52, 0.78),
+    0 14px 26px rgba(64, 47, 16, 0.42);
+}
+
+.table-card.is-note-editing img {
+  opacity: 0.25;
+}
+
+.table-note-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgba(60, 52, 31, 0.96);
+  padding: 8px 4px 2px 9px;
+  box-sizing: border-box;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-size: clamp(15px, 1.92vw, 31px);
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  pointer-events: auto;
+  overflow: hidden;
 }
 
 .table-card.is-sticker-component-native {
@@ -3898,9 +4309,98 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(11, 18, 15, 0.72);
 }
 
+.chip-stack-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 49920;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: auto;
+  color: rgba(247, 243, 232, 0.92);
+}
+
+.chip-stack-slot.is-empty {
+  opacity: 0.44;
+}
+
+.chip-stack-slot.is-hovered .chip-stack-face {
+  box-shadow:
+    0 0 0 2px rgba(247, 243, 232, 0.68) inset,
+    0 0 0 6px rgba(12, 16, 14, 0.14) inset,
+    0 0 0 2px rgba(247, 243, 232, 0.24),
+    0 10px 16px rgba(0, 0, 0, 0.34);
+}
+
+.chip-stack-slot .chip-stack-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--chip-stack-color, #ffffff);
+  box-shadow:
+    0 0 0 1.8px rgba(247, 243, 232, 0.44) inset,
+    0 0 0 5.2px rgba(12, 16, 14, 0.12) inset,
+    0 5px 11px rgba(0, 0, 0, 0.26);
+}
+
+.chip-stack-slot .chip-stack-inner {
+  width: 59%;
+  height: 59%;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.4px dotted rgba(247, 243, 232, 0.74);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chip-stack-slot .chip-stack-label {
+  color: rgba(247, 243, 232, 0.95);
+  font-size: clamp(10px, 1.1vw, 13px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.46);
+  user-select: none;
+  pointer-events: none;
+}
+
+.chip-stack-slot .chip-stack-count-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 1.18rem;
+  height: 1.02rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(11, 18, 15, 0.8);
+  color: rgba(247, 243, 232, 0.92);
+  font-size: 0.64rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.chip-stack-move-button {
+  z-index: 50005;
+}
+
 .deck-drop-indicator,
 .discard-drop-indicator,
-.auction-drop-indicator {
+.auction-drop-indicator,
+.chip-stack-drop-indicator {
   position: absolute;
   transform: translate(-50%, -50%) scale(1);
   z-index: 65010;
@@ -3919,7 +4419,8 @@ input[type="color"]::-webkit-color-swatch {
 
 .deck-drop-indicator.is-visible,
 .discard-drop-indicator.is-visible,
-.auction-drop-indicator.is-visible {
+.auction-drop-indicator.is-visible,
+.chip-stack-drop-indicator.is-visible {
   transform: translate(-50%, -50%) scale(3);
   opacity: 1;
   visibility: visible;
@@ -3927,7 +4428,8 @@ input[type="color"]::-webkit-color-swatch {
 
 .deck-drop-indicator svg,
 .discard-drop-indicator svg,
-.auction-drop-indicator svg {
+.auction-drop-indicator svg,
+.chip-stack-drop-indicator svg {
   width: 100%;
   height: 100%;
   display: block;
@@ -4725,6 +5227,21 @@ body.tabletop-delete-cursor-hidden *::after {
   -webkit-backdrop-filter: none;
 }
 
+.table-shell.light-mode .table-card.is-note-component {
+  background: rgba(248, 225, 140, 0.98);
+  box-shadow: 0 8px 16px rgba(79, 60, 24, 0.24);
+}
+
+.table-shell.light-mode .table-card.is-note-editing {
+  box-shadow:
+    0 0 0 2px rgba(176, 136, 48, 0.72),
+    0 11px 22px rgba(78, 60, 27, 0.28);
+}
+
+.table-shell.light-mode .table-note-editor {
+  color: rgba(57, 47, 26, 0.96);
+}
+
 .table-shell.light-mode .table-card.is-sticker-component-native {
   background: transparent;
   box-shadow: none;
@@ -4807,6 +5324,12 @@ body.tabletop-delete-cursor-hidden *::after {
   background: transparent;
 }
 
+.table-shell.light-mode .table-die.table-die-chip {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .table-shell.light-mode .table-die.table-die-label {
   background: transparent;
   box-shadow: none;
@@ -4867,6 +5390,11 @@ body.tabletop-delete-cursor-hidden *::after {
   box-shadow: 0 6px 12px rgba(46, 38, 25, 0.2);
 }
 
+.table-shell.light-mode .table-die.table-die-timer {
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 6px 12px rgba(46, 38, 25, 0.2);
+}
+
 .table-shell.light-mode .table-media-frame {
   border-color: rgba(34, 29, 23, 0.24);
   background: rgba(255, 255, 255, 0.92);
@@ -4918,6 +5446,44 @@ body.tabletop-delete-cursor-hidden *::after {
   background: rgba(228, 228, 228, 1);
 }
 
+.table-shell.light-mode .table-timer-display {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(34, 29, 23, 0.05) inset;
+}
+
+.table-shell.light-mode .table-timer-separator {
+  color: rgba(198, 55, 55, 0.92);
+}
+
+.table-shell.light-mode .table-timer-control {
+  border-color: rgba(34, 29, 23, 0.2);
+  background: rgba(255, 255, 255, 0.94);
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .table-timer-control:hover,
+.table-shell.light-mode .table-timer-control:focus-visible,
+.table-shell.light-mode .table-timer-control:active {
+  border-color: rgba(34, 29, 23, 0.36);
+  background: rgba(255, 255, 255, 1);
+}
+
+.table-shell.light-mode .table-timer-splits {
+  border-color: rgba(34, 29, 23, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 0 0 1px rgba(34, 29, 23, 0.045) inset;
+}
+
+.table-shell.light-mode .table-timer-split-row,
+.table-shell.light-mode .table-timer-split-empty {
+  color: rgba(34, 29, 23, 0.86);
+}
+
+.table-shell.light-mode .table-timer-split-row + .table-timer-split-row {
+  border-top-color: rgba(34, 29, 23, 0.12);
+}
+
 .table-shell.light-mode .table-media-placeholder {
   color: rgba(34, 29, 23, 0.76);
 }
@@ -4930,6 +5496,37 @@ body.tabletop-delete-cursor-hidden *::after {
 
 .table-shell.light-mode .table-die.table-die-coin .table-die-face {
   background: rgba(255, 255, 255, 0.66);
+}
+
+.table-shell.light-mode .table-die.table-die-chip .table-die-face {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-rolling .table-die-face {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-rolling::after {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-chip-contrast-boost .table-die-svg {
+  filter: drop-shadow(0 1px 1.8px rgba(16, 13, 10, 0.38));
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-chip-contrast-boost .table-chip-shell {
+  stroke: rgba(36, 28, 20, 0.62);
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-chip-contrast-boost .table-chip-outer-ring {
+  stroke: rgba(40, 31, 23, 0.6);
+}
+
+.table-shell.light-mode .table-die.table-die-chip.is-chip-contrast-boost .table-chip-inner-ring {
+  stroke: rgba(36, 28, 20, 0.74);
 }
 
 .table-shell.light-mode .table-die.table-die-marble .table-die-face {
@@ -5071,13 +5668,15 @@ body.tabletop-delete-cursor-hidden *::after {
 
 .table-shell.light-mode .deck-drop-indicator,
 .table-shell.light-mode .discard-drop-indicator,
-.table-shell.light-mode .auction-drop-indicator {
+.table-shell.light-mode .auction-drop-indicator,
+.table-shell.light-mode .chip-stack-drop-indicator {
   color: #fff;
 }
 
 .table-shell.light-mode .deck-drop-indicator svg,
 .table-shell.light-mode .discard-drop-indicator svg,
-.table-shell.light-mode .auction-drop-indicator svg {
+.table-shell.light-mode .auction-drop-indicator svg,
+.table-shell.light-mode .chip-stack-drop-indicator svg {
   filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.96)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.9));
 }
 
@@ -5168,6 +5767,29 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell.light-mode .deck-control-button:disabled:hover,
 .table-shell.light-mode .deck-control-button:disabled:focus-visible {
   background: rgba(255, 255, 255, 0.86);
+}
+
+.table-shell.light-mode .chip-stack-slot .chip-stack-face {
+  box-shadow:
+    0 0 0 1.6px rgba(34, 29, 23, 0.3) inset,
+    0 0 0 5px rgba(255, 255, 255, 0.16) inset,
+    0 4px 9px rgba(46, 38, 25, 0.18);
+}
+
+.table-shell.light-mode .chip-stack-slot .chip-stack-inner {
+  border-color: rgba(34, 29, 23, 0.42);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.table-shell.light-mode .chip-stack-slot .chip-stack-label {
+  color: rgba(34, 29, 23, 0.9);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.34);
+}
+
+.table-shell.light-mode .chip-stack-slot .chip-stack-count-badge {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(34, 29, 23, 0.9);
 }
 
 .table-shell.light-mode .room-badge {
@@ -5413,6 +6035,11 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell.light-mode .hand-card {
   background: rgba(255, 255, 255, 0.62);
   box-shadow: 0 9px 17px rgba(46, 38, 25, 0.24);
+}
+
+.table-shell.light-mode .hand-card.is-note-component {
+  background: rgba(248, 225, 140, 0.98);
+  box-shadow: 0 8px 16px rgba(79, 60, 24, 0.24);
 }
 
 .table-shell.light-mode .hand-card.is-image-component-blank-face {
@@ -6232,6 +6859,96 @@ body.tabletop-delete-cursor-hidden *::after {
   transform-origin: center;
 }
 
+#chipsComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#chipsComponentTile .asset-component-icon-chips {
+  transform: translateY(21px);
+  transform-origin: center;
+}
+
+#chipsComponentTile .chips-icon-back {
+  display: none;
+}
+
+#chipsComponentTile .chips-icon-back .chips-icon-shell {
+  fill: rgba(247, 243, 232, 0.88);
+}
+
+#chipsComponentTile .chips-icon-front .chips-icon-shell {
+  fill: rgba(232, 226, 213, 0.96);
+}
+
+#chipsComponentTile .chips-icon-shell {
+  fill: rgba(232, 226, 213, 0.96);
+  stroke: rgba(0, 0, 0, 0.92);
+  stroke-width: 0.8;
+}
+
+#chipsComponentTile .chips-icon-inner {
+  fill: rgba(243, 239, 230, 0.94);
+  stroke: rgba(0, 0, 0, 0.88);
+  stroke-width: 0.72;
+}
+
+#chipsComponentTile .chips-icon-core {
+  fill: rgba(255, 252, 246, 0.96);
+  stroke: rgba(0, 0, 0, 0.84);
+  stroke-width: 0.64;
+}
+
+#chipsComponentTile .chips-icon-value {
+  fill: #ffffff;
+  font-family: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+  font-size: 3.42px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+#timerComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#timerComponentTile .asset-component-icon-timer {
+  transform: translateY(20px) scale(1.12);
+  transform-origin: center;
+}
+
+#timerComponentTile .timer-icon-body {
+  fill: rgba(14, 20, 18, 0.58);
+  stroke: #000;
+  stroke-width: 1.2;
+}
+
+#timerComponentTile .timer-icon-display {
+  fill: rgba(8, 12, 11, 0.72);
+  stroke: #000;
+  stroke-width: 0.66;
+}
+
+#timerComponentTile .timer-icon-text {
+  fill: rgba(255, 112, 112, 0.96);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 3.2px;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+}
+
+#timerComponentTile .timer-icon-top {
+  fill: rgba(247, 243, 232, 0.8);
+}
+
+#timerComponentTile .timer-icon-side,
+#timerComponentTile .timer-icon-base {
+  stroke: #000;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 #mediaComponentTile .asset-placeholder-box {
   border-style: solid;
   background: rgba(255, 255, 255, 0.05);
@@ -6256,6 +6973,39 @@ body.tabletop-delete-cursor-hidden *::after {
   font-size: 8.2px;
   font-weight: 700;
   letter-spacing: 0.2px;
+}
+
+#noteComponentTile .asset-placeholder-box {
+  border-style: solid;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#noteComponentTile .asset-component-icon-note {
+  transform: translateY(20px) scale(1.06);
+  transform-origin: center;
+}
+
+#noteComponentTile .note-icon-sheet {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 1.06;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#noteComponentTile .note-icon-fold {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 1.08;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+#noteComponentTile .note-icon-line {
+  stroke: #000000;
+  stroke-width: 1.06;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 #stickerComponentTile .asset-placeholder-box {
@@ -7151,12 +7901,113 @@ body.tabletop-delete-cursor-hidden *::after {
   margin-left: 0.2rem;
 }
 
+.table-shell:not(.light-mode) #chipsComponentTile .chips-icon-shell {
+  stroke: rgba(247, 243, 232, 0.92);
+}
+
+.table-shell:not(.light-mode) #chipsComponentTile .chips-icon-inner {
+  stroke: rgba(247, 243, 232, 0.88);
+}
+
+.table-shell:not(.light-mode) #chipsComponentTile .chips-icon-core {
+  stroke: rgba(247, 243, 232, 0.84);
+}
+
+.table-shell:not(.light-mode) #timerComponentTile .timer-icon-body {
+  stroke: rgba(247, 243, 232, 0.92);
+}
+
+.table-shell:not(.light-mode) #timerComponentTile .timer-icon-display {
+  stroke: rgba(247, 243, 232, 0.88);
+}
+
+.table-shell:not(.light-mode) #timerComponentTile .timer-icon-side,
+.table-shell:not(.light-mode) #timerComponentTile .timer-icon-base {
+  stroke: rgba(247, 243, 232, 0.92);
+}
+
 .table-shell.light-mode .asset-menu-modal {
   background: rgba(28, 24, 18, 0.22);
 }
 
 .table-shell.light-mode .asset-component-icon {
   color: rgba(34, 29, 23, 0.84);
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-back .chips-icon-shell {
+  fill: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-front .chips-icon-shell {
+  fill: rgba(236, 231, 220, 0.98);
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-shell {
+  fill: rgba(236, 231, 220, 0.98);
+  stroke: rgba(0, 0, 0, 0.94);
+  stroke-width: 0.8;
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-inner {
+  fill: rgba(248, 244, 236, 0.96);
+  stroke: rgba(0, 0, 0, 0.9);
+  stroke-width: 0.72;
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-core {
+  fill: rgba(255, 252, 248, 0.98);
+  stroke: rgba(0, 0, 0, 0.86);
+  stroke-width: 0.64;
+}
+
+.table-shell.light-mode #chipsComponentTile .chips-icon-value {
+  fill: #ffffff;
+}
+
+.table-shell.light-mode #timerComponentTile .timer-icon-body {
+  fill: rgba(255, 255, 255, 0.9);
+  stroke: #000;
+}
+
+.table-shell.light-mode #timerComponentTile .timer-icon-display {
+  fill: rgba(34, 29, 23, 0.76);
+  stroke: #000;
+}
+
+.table-shell.light-mode #timerComponentTile .timer-icon-text {
+  fill: rgba(228, 70, 70, 0.96);
+}
+
+.table-shell.light-mode #timerComponentTile .timer-icon-top {
+  fill: rgba(34, 29, 23, 0.76);
+}
+
+.table-shell.light-mode #timerComponentTile .timer-icon-side,
+.table-shell.light-mode #timerComponentTile .timer-icon-base {
+  stroke: #000;
+}
+
+.table-shell.light-mode #noteComponentTile .note-icon-sheet {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 1.06;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.table-shell.light-mode #noteComponentTile .note-icon-fold {
+  fill: none;
+  stroke: #000000;
+  stroke-width: 1.08;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+.table-shell.light-mode #noteComponentTile .note-icon-line {
+  stroke: #000000;
+  stroke-width: 1.06;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .table-shell.light-mode .dice-add-title {
@@ -7641,6 +8492,8 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell[data-playspace-pattern="greenscreen"] .table-die-d20-shell,
 .table-shell[data-playspace-pattern="greenscreen"] .table-die-pip,
 .table-shell[data-playspace-pattern="greenscreen"] .table-die-number,
+.table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-chip.is-chip-contrast-boost .table-die-svg,
+.table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-chip.is-chip-contrast-boost .table-chip-label,
 .table-shell[data-playspace-pattern="greenscreen"] .table-counter-segment,
 .table-shell[data-playspace-pattern="greenscreen"] .table-coin-sprite,
 .table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-marble .table-die-face,
@@ -7648,6 +8501,7 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell[data-playspace-pattern="greenscreen"] .deck-drop-indicator svg,
 .table-shell[data-playspace-pattern="greenscreen"] .discard-drop-indicator svg,
 .table-shell[data-playspace-pattern="greenscreen"] .auction-drop-indicator svg,
+.table-shell[data-playspace-pattern="greenscreen"] .chip-stack-drop-indicator svg,
 .table-shell[data-playspace-pattern="greenscreen"] .mons-hud-avatar-button.is-claimed {
   filter: none !important;
 }
@@ -7711,6 +8565,7 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-marble .table-die-face,
 .table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-coin .table-die-face::before,
 .table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-coin::after,
+.table-shell[data-playspace-pattern="greenscreen"] .table-die.table-die-chip::after,
 .table-shell[data-playspace-pattern="greenscreen"] .table-counter-segment.is-active {
   box-shadow: none !important;
 }
@@ -7730,6 +8585,7 @@ body.tabletop-delete-cursor-hidden *::after {
   }
 
   .table-card.is-flipping,
+  .drawing-stroke.is-note-flipping,
   .table-card.is-shuffle-darkening img,
   .asset-loading-spinner,
   .deck-control-button.is-pressing,
@@ -7740,6 +8596,9 @@ body.tabletop-delete-cursor-hidden *::after {
   .table-die.table-die-coin.is-rolling,
   .table-die.table-die-coin.is-rolling::after,
   .table-die.table-die-coin.is-rolling .table-die-face::after,
+  .table-die.table-die-chip.is-rolling,
+  .table-die.table-die-chip.is-rolling::after,
+  .table-die.table-die-chip.is-rolling .table-die-face::after,
   .auction-slot.is-occupied .auction-slot-icon {
     animation: none;
   }

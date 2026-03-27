@@ -506,8 +506,26 @@
               </span>
               <span class="asset-label">poker deck</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="chipsComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-chips"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <g class="chips-icon-front">
+                    <circle cx="12" cy="12" r="9.4" class="chips-icon-shell" />
+                    <circle cx="12" cy="12" r="7.1" class="chips-icon-inner" />
+                    <circle cx="12" cy="12" r="3.85" class="chips-icon-core" />
+                    <text x="12" y="13.3" text-anchor="middle" class="chips-icon-value">25</text>
+                  </g>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">chips</span>
             </button>
             <button id="counterComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
@@ -561,8 +579,24 @@
               </span>
               <span class="asset-label">counter</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="timerComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-timer"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect class="timer-icon-body" x="4.2" y="5.2" width="15.6" height="14.1" rx="3.1" />
+                  <rect class="timer-icon-display" x="6.3" y="8.05" width="11.4" height="5.65" rx="1.35" />
+                  <rect class="timer-icon-top" x="10.1" y="2.6" width="3.8" height="1.95" rx="0.9" />
+                  <path class="timer-icon-base" d="M8.45 17.35H15.55" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">timer</span>
             </button>
             <button id="labelComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
@@ -582,8 +616,23 @@
               </span>
               <span class="asset-label">label</span>
             </button>
-            <button class="asset-gallery-item asset-component-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="noteComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-note"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect class="note-icon-sheet" x="6" y="6" width="12" height="12" />
+                  <path class="note-icon-fold" d="M15.1 18H18V15.1M15.1 18L18 15.1" />
+                  <path class="note-icon-line" d="M8.8 10.6C9.7 10.1 10.3 11.4 11.2 11.1C12.1 10.8 12.5 12.2 13.4 12C14.1 11.8 14.5 12.5 14.9 13.2" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">note</span>
             </button>
             <button id="imageComponentTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
@@ -921,6 +970,91 @@
             </label>
             <div id="imageAddError" class="image-add-error hidden" aria-live="polite"></div>
             <button id="imageAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add image">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="chipsAddModal"
+        class="asset-menu-modal chips-add-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="chipsAddTitle"
+      >
+        <div class="asset-menu-dialog chips-add-dialog">
+          <div class="asset-menu-header chips-add-header">
+            <h2 id="chipsAddTitle" class="dice-add-title">adding chips</h2>
+            <div class="asset-submenu-header-actions">
+              <button id="chipsAddBackButton" class="asset-menu-close asset-menu-back" type="button" aria-label="back to components">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M15.5 5L8.5 12L15.5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button id="chipsAddCloseButton" class="asset-menu-close" type="button" aria-label="close add chips menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="chips-add-body">
+            <div class="chips-add-field">
+              <span class="image-add-label">stacks</span>
+              <div id="chipsAddStackCountRow" class="dice-add-row dice-count-row chips-add-stack-row" role="group" aria-label="stack count">
+                <button class="dice-add-option chips-add-stack-option is-active" data-chip-stack-count="1" type="button" aria-pressed="true">1</button>
+                <button class="dice-add-option chips-add-stack-option" data-chip-stack-count="2" type="button" aria-pressed="false">2</button>
+                <button class="dice-add-option chips-add-stack-option" data-chip-stack-count="3" type="button" aria-pressed="false">3</button>
+                <button class="dice-add-option chips-add-stack-option" data-chip-stack-count="4" type="button" aria-pressed="false">4</button>
+                <button class="dice-add-option chips-add-stack-option" data-chip-stack-count="5" type="button" aria-pressed="false">5</button>
+              </div>
+            </div>
+            <div class="chips-add-field">
+              <label class="image-add-label" for="chipsAddQuantityInput">quantity</label>
+              <input
+                id="chipsAddQuantityInput"
+                class="image-add-input chips-add-quantity-input"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="99"
+                step="1"
+                value="20"
+              />
+            </div>
+            <label class="image-add-toggle chips-add-text-toggle" for="chipsAddTextToggle">
+              <span class="image-add-toggle-label">text</span>
+              <span class="image-add-toggle-control">
+                <input id="chipsAddTextToggle" class="image-add-toggle-input" type="checkbox" />
+                <span class="image-add-toggle-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+            <div id="chipsAddTextInputs" class="chips-add-text-inputs hidden"></div>
+            <button id="chipsAddConfirmButton" class="dice-add-confirm-button" type="button" aria-label="add chips">
               <svg
                 viewBox="0 0 24 24"
                 width="24"
