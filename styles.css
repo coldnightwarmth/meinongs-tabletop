@@ -199,6 +199,14 @@ input[type="color"]::-webkit-color-swatch {
   --playspace-dot-opacity-base: 0.19;
   --playspace-noise-color: rgba(255, 255, 255, 0.07);
   --playspace-noise-color-soft: rgba(255, 255, 255, 0.045);
+  --game-board-shell-bg: rgba(9, 14, 12, 0.9);
+  --game-board-shell-border: rgba(255, 255, 255, 0.26);
+  --game-board-shell-shadow: 0 16px 28px rgba(0, 0, 0, 0.36);
+  --game-board-hud-bg: rgba(9, 14, 12, 0.72);
+  --game-board-hud-color: rgba(236, 236, 229, 0.85);
+  --tafl-shell-bg-dark: rgba(21, 29, 25, 0.9);
+  --tafl-hud-bg-dark: rgba(21, 29, 25, 0.78);
+  --tafl-coordinate-color-dark: rgba(198, 201, 194, 0.74);
   --playspace-noise-texture-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   --playspace-noise-texture-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.48' numOctaves='3' seed='19' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   --grid-dot-opacity-factor: 1;
@@ -240,6 +248,11 @@ input[type="color"]::-webkit-color-swatch {
   --playspace-dot-opacity-base: 0.2;
   --playspace-noise-color: rgba(33, 33, 28, 0.08);
   --playspace-noise-color-soft: rgba(33, 33, 28, 0.05);
+  --game-board-shell-bg: rgba(245, 241, 232, 0.95);
+  --game-board-shell-border: rgba(34, 29, 23, 0.22);
+  --game-board-shell-shadow: 0 16px 28px rgba(45, 36, 20, 0.24);
+  --game-board-hud-bg: rgba(248, 244, 235, 0.84);
+  --game-board-hud-color: rgba(34, 29, 23, 0.76);
   background-color: #ddd6c6;
 }
 
@@ -820,15 +833,19 @@ input[type="color"]::-webkit-color-swatch {
   z-index: 9;
 }
 
-.mons-game-shell {
+.mons-game-shell,
+.tafl-game-shell {
   position: absolute;
   transform: translate(-50%, -50%);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(9, 14, 12, 0.9);
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.36);
+  border: 1px solid var(--game-board-shell-border);
+  background: var(--game-board-shell-bg);
+  box-shadow: var(--game-board-shell-shadow);
   overflow: hidden;
   pointer-events: auto;
+}
+
+.mons-game-shell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -845,6 +862,622 @@ input[type="color"]::-webkit-color-swatch {
 
 .mons-game-shell.is-drag-floating {
   z-index: 61000 !important;
+}
+
+.tafl-game-shell {
+  --tafl-hud-height: 0px;
+  --tafl-board-visual-offset-y: -2px;
+  display: block;
+  padding: 0;
+}
+
+.tafl-board-image {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(100% - var(--tafl-hud-height));
+  display: block;
+  object-fit: fill;
+  transform: translateY(var(--tafl-board-visual-offset-y));
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tafl-hud {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.tafl-hud-side {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  height: 100%;
+}
+
+.tafl-side-claim-button {
+  cursor: pointer;
+}
+
+.tafl-hud .mons-hud-player-white.tafl-hud-side {
+  justify-self: start;
+  margin-left: 25px;
+  margin-right: 0;
+}
+
+.tafl-hud .mons-hud-player-black.tafl-hud-side {
+  justify-self: end;
+  margin-right: 25px;
+  margin-left: 0;
+}
+
+.tafl-side-claims {
+  min-height: 12px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1px;
+  max-width: 128px;
+  line-height: 1;
+}
+
+.tafl-side-claims-defender {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.tafl-side-claims-attacker {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.tafl-side-claims.is-empty {
+  opacity: 0.58;
+}
+
+.tafl-side-claim-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.tafl-side-claim-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex: 0 0 6px;
+  box-shadow: 0 0 0 1px rgba(8, 8, 8, 0.32);
+}
+
+.tafl-side-claim-name {
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tafl-hud-center {
+  gap: 8px;
+}
+
+.tafl-undo-button {
+  width: 24px;
+  height: 24px;
+}
+
+.tafl-reset-button {
+  width: 24px;
+  height: 24px;
+}
+
+.tafl-hud-status {
+  min-height: 14px;
+  font-size: 11px;
+  line-height: 1.1;
+  color: rgba(242, 236, 217, 0.82);
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+  user-select: none;
+  pointer-events: none;
+}
+
+.tafl-hud-status.is-win {
+  color: rgba(255, 244, 211, 0.98);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.32);
+}
+
+.tafl-win-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(16, 11, 8, 0.12) 0%, rgba(8, 6, 5, 0.48) 74%);
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+.tafl-win-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.tafl-win-dialog {
+  width: min(86%, 360px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 231, 189, 0.3);
+  background: linear-gradient(180deg, rgba(18, 13, 10, 0.9) 0%, rgba(14, 10, 8, 0.86) 100%);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(4px);
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.tafl-win-clash {
+  position: relative;
+  width: 206px;
+  height: 182px;
+  transform: translateY(calc(-30px + var(--tafl-win-elements-offset-y, 0px))) scale(var(--tafl-win-content-scale, 1));
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.tafl-win-clash::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 61%;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.15);
+  opacity: 0;
+  background: radial-gradient(circle, rgba(255, 252, 244, 0.98) 0%, rgba(255, 214, 133, 0.78) 58%, rgba(255, 168, 72, 0) 100%);
+  filter: drop-shadow(0 0 8px rgba(255, 209, 118, 0.66));
+}
+
+.tafl-win-sword {
+  position: absolute;
+  top: 70%;
+  width: 30px;
+  height: 138px;
+  transform-origin: 50% 90%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.tafl-win-sword::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  transform: translateX(-50%);
+  width: 11px;
+  height: 104px;
+  clip-path: polygon(50% 0%, 92% 7%, 79% 100%, 21% 100%, 8% 7%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 251, 0.98) 0%,
+    rgba(231, 236, 242, 0.94) 20%,
+    rgba(189, 197, 206, 0.9) 62%,
+    rgba(156, 166, 176, 0.9) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(92, 101, 111, 0.34), inset 0 0 0 999px rgba(255, 255, 255, 0.02), 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.tafl-win-sword::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  width: 38px;
+  height: 34px;
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(206, 168, 96, 0.96) 0%, rgba(143, 104, 50, 0.96) 100%) center 7px / 26px 7px no-repeat,
+    linear-gradient(180deg, rgba(133, 92, 44, 0.96) 0%, rgba(80, 52, 23, 0.96) 100%) center 16px / 8px 14px no-repeat,
+    radial-gradient(circle at 50% 27px, rgba(198, 160, 89, 0.96) 0%, rgba(133, 92, 44, 0.96) 66%, rgba(80, 52, 23, 0.96) 100%) center / 10px 10px no-repeat;
+  filter: drop-shadow(0 0 1px rgba(70, 41, 18, 0.52));
+}
+
+.tafl-win-sword-left {
+  left: calc(36% - 7.5px);
+  transform: translate(-50%, -50%) rotate(42deg);
+}
+
+.tafl-win-sword-right {
+  left: calc(64% + 7.5px);
+  transform: translate(-50%, -50%) rotate(-42deg);
+}
+
+.tafl-win-spark {
+  position: absolute;
+  left: 50%;
+  top: 61%;
+  width: 2.6px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 250, 224, 0.98) 0%, rgba(255, 192, 89, 0.94) 58%, rgba(255, 116, 46, 0) 100%);
+  transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg)) translateY(0) scaleY(0.18);
+  transform-origin: 50% 100%;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(255, 188, 64, 0.54));
+}
+
+.tafl-win-overlay.is-visible.is-animating .tafl-win-sword-left {
+  animation: taflWinSwordLeft 1500ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.tafl-win-overlay.is-visible.is-animating .tafl-win-sword-right {
+  animation: taflWinSwordRight 1500ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.tafl-win-overlay.is-visible.is-animating .tafl-win-spark {
+  animation: taflWinSpark 1500ms ease-out var(--spark-delay, 0s) both;
+}
+
+.tafl-win-overlay.is-visible.is-animating .tafl-win-clash::before {
+  animation: taflWinImpactFlash 1500ms ease-out both;
+}
+
+.tafl-win-title {
+  font-size: clamp(17px, 2.6vw, 28px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(252, 238, 198, 0.98);
+  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.46);
+  user-select: none;
+  pointer-events: none;
+  transform: translateY(var(--tafl-win-elements-offset-y, 0px));
+}
+
+.tafl-win-button {
+  min-width: 146px;
+  height: 34px;
+  border: 1px solid rgba(255, 228, 170, 0.38);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(47, 76, 120, 0.9) 0%, rgba(31, 54, 88, 0.92) 100%);
+  color: rgba(238, 245, 255, 0.94);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease, background-color 120ms ease;
+  transform: translateY(var(--tafl-win-elements-offset-y, 0px));
+}
+
+.tafl-win-button:hover,
+.tafl-win-button:focus-visible {
+  transform: translateY(calc(var(--tafl-win-elements-offset-y, 0px) - 1px));
+  filter: brightness(1.08);
+}
+
+.tafl-win-button:active {
+  transform: translateY(var(--tafl-win-elements-offset-y, 0px));
+}
+
+@keyframes taflWinSwordLeft {
+  0% {
+    transform: translate(-50%, -50%) rotate(84deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(42deg);
+    opacity: 1;
+  }
+}
+
+@keyframes taflWinSwordRight {
+  0% {
+    transform: translate(-50%, -50%) rotate(-84deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-42deg);
+    opacity: 1;
+  }
+}
+
+@keyframes taflWinSpark {
+  0%,
+  35% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg)) translateY(0) scaleY(0.18);
+  }
+  44% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg))
+      translateY(calc(-1 * var(--spark-distance, 30px))) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--spark-angle, 0deg))
+      translateY(calc(-1 * var(--spark-distance, 30px))) scaleY(1);
+  }
+}
+
+@keyframes taflWinImpactFlash {
+  0%,
+  36% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.15);
+  }
+  42% {
+    opacity: 0.98;
+    transform: translate(-50%, -50%) scale(2.15);
+  }
+  54% {
+    opacity: 0.24;
+    transform: translate(-50%, -50%) scale(2.85);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3.2);
+  }
+}
+
+.tafl-board-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(100% - var(--tafl-hud-height));
+  transform: translateY(var(--tafl-board-visual-offset-y));
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 2;
+}
+
+.tafl-coordinate-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  color: rgba(24, 24, 21, 0.66);
+  font-family: monospace;
+  font-size: var(--tafl-coordinate-font-size, 11px);
+  line-height: 1;
+}
+
+.table-shell:not(.light-mode) .tafl-coordinate-layer {
+  color: var(--tafl-coordinate-color-dark);
+}
+
+.tafl-board-coordinate {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-shadow: none;
+}
+
+.tafl-hint-layer,
+.tafl-fx-layer,
+.tafl-piece-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tafl-hint-layer {
+  z-index: 1;
+}
+
+.tafl-piece-layer {
+  z-index: 2;
+}
+
+.tafl-fx-layer {
+  z-index: 3;
+}
+
+.tafl-capture-burst {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.tafl-capture-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--piece-size, 28px);
+  height: var(--piece-size, 28px);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  filter: drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.34));
+}
+
+.tafl-capture-ghost img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.tafl-capture-burst.is-active .tafl-capture-ghost {
+  animation: taflCaptureVanish 520ms cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+}
+
+.tafl-capture-burst.is-active .tafl-capture-ghost.is-king-retained {
+  animation: taflCaptureKingPulse 520ms cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+}
+
+@keyframes taflCaptureVanish {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  36% {
+    transform: translate(-50%, -50%) scale(1.22);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.04);
+    opacity: 0;
+  }
+}
+
+@keyframes taflCaptureKingPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.88;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+.tafl-capture-smoke {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--smoke-size, 11px);
+  height: var(--smoke-size, 11px);
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.28);
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    rgba(218, 214, 209, 0.52) 0%,
+    rgba(132, 128, 123, 0.28) 56%,
+    rgba(58, 54, 50, 0) 100%
+  );
+  filter: blur(1px);
+}
+
+.tafl-capture-burst.is-active .tafl-capture-smoke {
+  animation: taflSmokePuff var(--smoke-dur, 0.58s) ease-out var(--smoke-delay, 0s) forwards;
+}
+
+@keyframes taflSmokePuff {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(0.24);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.62;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx, 12px), var(--dy, -12px)) scale(1.9);
+    opacity: 0;
+  }
+}
+
+.tafl-move-hint {
+  position: absolute;
+  width: clamp(8px, 1.6vw, 16px);
+  height: clamp(8px, 1.6vw, 16px);
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 1px solid rgba(252, 245, 227, 0.72);
+  background: rgba(235, 217, 180, 0.34);
+  box-shadow: 0 0 0 1px rgba(56, 37, 22, 0.26), 0 0 8px rgba(255, 230, 184, 0.5);
+  animation: taflHintPulse 1.05s ease-in-out infinite;
+}
+
+@keyframes taflHintPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.88);
+    opacity: 0.72;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.88);
+    opacity: 0.72;
+  }
+}
+
+.tafl-piece {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+}
+
+.tafl-piece:hover,
+.tafl-piece:focus-visible {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.tafl-piece img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 1.4px rgba(0, 0, 0, 0.34));
+}
+
+.tafl-piece.is-selected {
+  transform: translate(-50%, -50%) scale(1.1);
+  filter: drop-shadow(0 0 8px rgba(255, 239, 188, 0.54));
+}
+
+.tafl-piece.is-selected img {
+  filter: drop-shadow(0 0 6px rgba(255, 236, 184, 0.72)) drop-shadow(0 1px 1.2px rgba(0, 0, 0, 0.38));
 }
 
 .mons-board-ghost {
@@ -899,14 +1532,19 @@ input[type="color"]::-webkit-color-swatch {
   pointer-events: none;
 }
 
-.mons-hud {
+.mons-board-svg.is-coordinates-hidden .mons-board-coordinate {
+  display: none;
+}
+
+.mons-hud,
+.tafl-hud {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   padding: 0 14px;
   box-sizing: border-box;
-  color: rgba(236, 236, 229, 0.85);
-  background: rgba(9, 14, 12, 0.72);
+  color: var(--game-board-hud-color);
+  background: var(--game-board-hud-bg);
 }
 
 .mons-hud-player {
@@ -1488,6 +2126,13 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+}
+
+.table-die.table-die-d6,
+.table-die.table-die-d20 {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .table-die.table-die-label {
@@ -2272,6 +2917,13 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-die.table-die-spinner.is-rolling .table-spinner-needle-group {
   transition: none;
+}
+
+.table-die-d6-bg,
+.table-die-d20-bg {
+  fill: rgba(247, 243, 232, 0.3);
+  opacity: var(--die-roll-bg-opacity, 1);
+  transition: opacity 55ms linear;
 }
 
 .table-die-outline {
@@ -3734,6 +4386,13 @@ body.tabletop-delete-cursor-hidden *::after {
   box-shadow: 0 6px 12px rgba(46, 38, 25, 0.2);
 }
 
+.table-shell.light-mode .table-die.table-die-d6,
+.table-shell.light-mode .table-die.table-die-d20 {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .table-shell.light-mode .table-die.table-die-coin {
   background: transparent;
 }
@@ -3947,6 +4606,11 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell.light-mode .table-die-d20-shell {
   fill: none;
   stroke: rgba(34, 29, 23, 0.94);
+}
+
+.table-shell.light-mode .table-die-d6-bg,
+.table-shell.light-mode .table-die-d20-bg {
+  fill: rgba(255, 255, 255, 0.66);
 }
 
 .table-shell.light-mode .table-die-d20-facet {
@@ -4897,6 +5561,19 @@ body.tabletop-delete-cursor-hidden *::after {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.04);
+}
+
+#assetMenuModal:not(.is-component-view) #assetGameGallery {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(54vh, 430px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-content: start;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .asset-component-item {
@@ -5880,6 +6557,35 @@ body.tabletop-delete-cursor-hidden *::after {
   transition: opacity 170ms ease;
 }
 
+.asset-preview-box-tafl .asset-preview-image {
+  filter: saturate(0.94) brightness(0.94);
+}
+
+.asset-tafl-preview-pieces {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.asset-tafl-preview-piece {
+  position: absolute;
+  width: 7.35%;
+  height: auto;
+  opacity: 0.94;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.46));
+}
+
+.asset-tafl-preview-piece-attacker,
+.asset-tafl-preview-piece-defender {
+  z-index: 1;
+}
+
+.asset-tafl-preview-piece-king {
+  width: 8.1%;
+  z-index: 2;
+}
+
 .asset-gallery-item-cool {
   position: relative;
   transform-style: preserve-3d;
@@ -6120,6 +6826,11 @@ body.tabletop-delete-cursor-hidden *::after {
   background: rgba(255, 255, 255, 0.62);
 }
 
+.table-shell.light-mode #assetMenuModal:not(.is-component-view) #assetGameGallery {
+  border-color: rgba(34, 29, 23, 0.22);
+  background: rgba(255, 255, 255, 0.62);
+}
+
 .table-shell.light-mode .asset-menu-header h2,
 .table-shell.light-mode .asset-gallery-item,
 .table-shell.light-mode .asset-menu-close,
@@ -6242,12 +6953,6 @@ body.tabletop-delete-cursor-hidden *::after {
   color: rgba(24, 53, 84, 0.95);
 }
 
-.table-shell.light-mode .mons-game-shell {
-  background: rgba(245, 241, 232, 0.95);
-  border-color: rgba(34, 29, 23, 0.22);
-  box-shadow: 0 16px 28px rgba(45, 36, 20, 0.24);
-}
-
 .table-shell.light-mode .mons-board-ghost {
   border-color: rgba(94, 117, 109, 0.3);
   background: rgba(246, 247, 241, 0.56);
@@ -6268,9 +6973,35 @@ body.tabletop-delete-cursor-hidden *::after {
   fill: rgba(34, 29, 23, 0.7);
 }
 
-.table-shell.light-mode .mons-hud {
-  background: rgba(248, 244, 235, 0.84);
-  color: rgba(34, 29, 23, 0.76);
+.table-shell.light-mode .tafl-coordinate-layer {
+  color: rgba(34, 29, 23, 0.7);
+  text-shadow: none;
+}
+
+.table-shell.light-mode .tafl-hud-status {
+  color: rgba(34, 29, 23, 0.78);
+  text-shadow: none;
+}
+
+.table-shell.light-mode .tafl-win-overlay {
+  background: radial-gradient(circle at center, rgba(255, 250, 240, 0.12) 0%, rgba(52, 38, 24, 0.18) 76%);
+}
+
+.table-shell.light-mode .tafl-win-dialog {
+  border-color: rgba(62, 50, 36, 0.24);
+  background: linear-gradient(180deg, rgba(247, 242, 231, 0.94) 0%, rgba(236, 229, 214, 0.92) 100%);
+  box-shadow: 0 14px 26px rgba(54, 41, 27, 0.26);
+}
+
+.table-shell.light-mode .tafl-win-title {
+  color: rgba(60, 42, 24, 0.96);
+  text-shadow: none;
+}
+
+.table-shell.light-mode .tafl-win-button {
+  border-color: rgba(64, 84, 118, 0.38);
+  background: linear-gradient(180deg, rgba(228, 239, 255, 0.92) 0%, rgba(199, 219, 247, 0.94) 100%);
+  color: rgba(34, 50, 76, 0.92);
 }
 
 .table-shell.light-mode .mons-hud-score {

@@ -52,6 +52,7 @@ const assetGameGallery = document.getElementById('assetGameGallery');
 const assetComponentGallery = document.getElementById('assetComponentGallery');
 const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
+const hnefataflTile = document.getElementById('hnefataflTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const spinnerComponentTile = document.getElementById('spinnerComponentTile');
@@ -121,6 +122,8 @@ const gameOptionsModal = document.getElementById('gameOptionsModal');
 const gameOptionsTitle = document.getElementById('gameOptionsTitle');
 const gameOptionsTitleText = document.getElementById('gameOptionsTitleText');
 const gameOptionsCloseButton = document.getElementById('gameOptionsCloseButton');
+const gameOptionsShowCoordinatesRow = document.getElementById('gameOptionsShowCoordinatesRow');
+const gameOptionsShowCoordinatesToggle = document.getElementById('gameOptionsShowCoordinatesToggle');
 const gameOptionsCoverDrawingsToggle = document.getElementById('gameOptionsCoverDrawingsToggle');
 const gameOptionsResetButton = document.getElementById('gameOptionsResetButton');
 const gameOptionsPutAwayButton = document.getElementById('gameOptionsPutAwayButton');
@@ -228,12 +231,48 @@ const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
 const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
 const DECK_KEY = 'cool-jpegs';
 const MONS_GAME_KEY = 'super-metal-mons';
+const TAFL_GAME_KEY = 'hnefatafl';
 const CARD_BACK_IMAGE_SRC = './assets/back.png';
+const TAFL_BOARD_IMAGE_SRC = './assets/hnefatafl-board.svg?v=20260327b';
 const MONS_BOARD_SIZE = 11;
 const MONS_BOARD_LABELS = 'ABCDEFGHIJK';
 const MONS_BOARD_CENTER = MONS_BOARD_SIZE / 2;
 const MONS_BOARD_WORLD_WIDTH = 680;
 const MONS_BOARD_WORLD_HEIGHT = 760;
+const TAFL_BOARD_SIZE = 11;
+const TAFL_BOARD_CANVAS_WIDTH = 680;
+const TAFL_BOARD_CANVAS_HEIGHT = 680;
+const TAFL_GRID_LEFT_RATIO = 20 / TAFL_BOARD_CANVAS_WIDTH;
+const TAFL_GRID_TOP_RATIO = 20 / TAFL_BOARD_CANVAS_HEIGHT;
+const TAFL_GRID_WIDTH_RATIO = 640 / TAFL_BOARD_CANVAS_WIDTH;
+const TAFL_GRID_HEIGHT_RATIO = 640 / TAFL_BOARD_CANVAS_HEIGHT;
+const TAFL_THRONE_ROW = 5;
+const TAFL_THRONE_COL = 5;
+const TAFL_UNDO_HISTORY_LIMIT = 30;
+const TAFL_HUD_MIN_HEIGHT = 24;
+const TAFL_HUD_DEFAULT_HEIGHT = 80;
+const TAFL_HUD_HEIGHT_RATIO = TAFL_HUD_DEFAULT_HEIGHT / MONS_BOARD_WORLD_HEIGHT;
+const TAFL_CAPTURE_FX_DURATION_MS = 520;
+const TAFL_PIECE_ICON_BY_SIDE = Object.freeze({
+  attacker: './assets/tafl/attacker.svg',
+  defender: './assets/tafl/defender.svg',
+  king: './assets/tafl/king.svg'
+});
+const TAFL_ATTACKER_START_POSITIONS = Object.freeze([
+  { row: 0, col: 3 }, { row: 0, col: 4 }, { row: 0, col: 5 }, { row: 0, col: 6 }, { row: 0, col: 7 },
+  { row: 1, col: 5 },
+  { row: 3, col: 0 }, { row: 4, col: 0 }, { row: 5, col: 0 }, { row: 6, col: 0 }, { row: 7, col: 0 },
+  { row: 5, col: 1 },
+  { row: 3, col: 10 }, { row: 4, col: 10 }, { row: 5, col: 10 }, { row: 6, col: 10 }, { row: 7, col: 10 },
+  { row: 5, col: 9 },
+  { row: 10, col: 3 }, { row: 10, col: 4 }, { row: 10, col: 5 }, { row: 10, col: 6 }, { row: 10, col: 7 },
+  { row: 9, col: 5 }
+]);
+const TAFL_DEFENDER_START_POSITIONS = Object.freeze([
+  { row: 5, col: 4 }, { row: 5, col: 3 }, { row: 5, col: 6 }, { row: 5, col: 7 },
+  { row: 4, col: 5 }, { row: 3, col: 5 }, { row: 6, col: 5 }, { row: 7, col: 5 },
+  { row: 4, col: 4 }, { row: 4, col: 6 }, { row: 6, col: 4 }, { row: 6, col: 6 }
+]);
 const MONS_PIECE_PIXELATE_SCALE = 1.2;
 const MONS_HUD_POTION_HIDE_SCREEN_WIDTH = 330;
 const MONS_BOMB_ATTACK_RANGE = 3;
@@ -296,9 +335,13 @@ const MARBLE_STALL_DISTANCE_PER_FRAME = 0.06;
 const MARBLE_STALL_FRAME_LIMIT = 24;
 const MARBLE_RESTART_BLOCK_SPEED = 42;
 const MARBLE_FORCE_STOP_SPEED = 8;
+const MARBLE_TRIGGER_MIN_IMPACT_SPEED = 8;
+const MARBLE_TRIGGER_COOLDOWN_MS = 200;
+const MARBLE_TARGET_TRIGGER_COOLDOWN_MS = 110;
 const MARBLE_MAX_FRAME_SECONDS = 1 / 20;
 const MARBLE_SUBSTEP_SECONDS = 1 / 120;
 const MARBLE_SYNC_INTERVAL_MS = 38;
+const STUCK_INTERACTION_RECOVERY_MS = 3200;
 const MEDIA_DEFAULT_WIDTH = 560;
 const MEDIA_DEFAULT_HEIGHT_YOUTUBE = 315;
 const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = 166;
@@ -926,6 +969,14 @@ let monsGameState = null;
 const monsGameStatesById = new Map();
 const monsGhostBoardElementsById = new Map();
 let activeMonsGameId = MONS_GAME_KEY;
+let taflGameState = null;
+const taflGameStatesById = new Map();
+const taflBoardElementsById = new Map();
+const lastRenderedTaflMoveTickById = new Map();
+const lastRenderedTaflWinnerById = new Map();
+let activeTaflGameId = TAFL_GAME_KEY;
+let taflSelectionPieceId = '';
+let taflSelectionGameId = '';
 let monsMoveButton = null;
 let monsOptionsButton = null;
 let monsUndoButton = null;
@@ -983,6 +1034,7 @@ let rotatingStickerCardId = '';
 let rotatingLabelDieId = '';
 let resizingLabelDieId = '';
 let resizingMediaDieId = '';
+let taflDragState = null;
 let latestRoomCursors = {};
 let heldCardLayer = null;
 let selectionBoxElement = null;
@@ -997,6 +1049,7 @@ let cameraPersistTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
+let gameOptionsShowCoordinatesToggleSyncing = false;
 let gameOptionsCoverDrawingsToggleSyncing = false;
 let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
 let clearTableWarningResolver = null;
@@ -1030,6 +1083,18 @@ let spawnCoolJpegsDeck = async () => {
 let spawnSuperMetalMonsBoard = async () => {
   showStatusMessage('Firebase connection is required before adding super metal mons.');
 };
+let spawnHnefataflBoard = async () => {
+  showStatusMessage('Firebase connection is required before adding hnefatafl.');
+};
+let resetHnefataflGame = async () => {
+  showStatusMessage('Firebase connection is required before resetting hnefatafl.');
+};
+let putAwayHnefataflGame = async () => {
+  showStatusMessage('Firebase connection is required before putting hnefatafl away.');
+};
+let onDeleteTaflGameInRemoveMode = async () => {
+  showStatusMessage('Firebase connection is required before removing hnefatafl.');
+};
 let resetCoolJpegsGame = async () => {
   showStatusMessage('Firebase connection is required before resetting cool jpegs.');
 };
@@ -1041,6 +1106,9 @@ let resetSuperMetalMonsGame = async () => {
 };
 let putAwaySuperMetalMonsGame = async () => {
   showStatusMessage('Firebase connection is required before putting super metal mons away.');
+};
+let setGameShowCoordinatesPreference = async () => {
+  showStatusMessage('Firebase connection is required before updating game options.');
 };
 let setGameCoverDrawingsPreference = async () => {
   showStatusMessage('Firebase connection is required before updating game options.');
@@ -1120,6 +1188,14 @@ let onLabelLockControlPointerDown = () => {};
 let onLabelRotatePointerDown = () => {};
 let onDeckMovePointerDown = () => {};
 let onMonsMovePointerDown = () => {};
+let onTaflMovePointerDown = () => {};
+let onTaflDragMove = () => {};
+let onTaflDragEnd = () => {};
+let onTaflPiecePointerDown = () => {};
+let onTaflBoardTilePointerDown = () => {};
+let onTaflSideClaimClick = () => {};
+let onTaflUndoButtonClick = () => {};
+let onTaflWinResetButtonClick = () => {};
 let onMonsUndoButtonClick = () => {};
 let onMonsFlipButtonClick = () => {};
 let onMonsBoardTilePointerDown = () => {};
@@ -1202,6 +1278,23 @@ function getMonsColumnLabelText(index, flipped = false) {
 function getMonsRowLabelText(index, flipped = false) {
   const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, MONS_BOARD_SIZE - 1);
   return flipped ? String(normalizedIndex + 1) : String(MONS_BOARD_SIZE - normalizedIndex);
+}
+
+function getTaflColumnLabelText(index) {
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, TAFL_BOARD_SIZE - 1);
+  return MONS_BOARD_LABELS[normalizedIndex] || '';
+}
+
+function getTaflRowLabelText(index) {
+  const normalizedIndex = clamp(Math.round(Number(index) || 0), 0, TAFL_BOARD_SIZE - 1);
+  return String(TAFL_BOARD_SIZE - normalizedIndex);
+}
+
+function setMonsBoardCoordinatesVisibility(boardSvgElement, shouldShow = true) {
+  if (!(boardSvgElement instanceof SVGElement)) {
+    return;
+  }
+  boardSvgElement.classList.toggle('is-coordinates-hidden', shouldShow !== true);
 }
 
 function syncMonsBoardCoordinateLabels(boardSvgElement, flipped) {
@@ -1474,9 +1567,22 @@ function normalizeMonsGameId(rawMonsGameId) {
   return normalized;
 }
 
+function normalizeTaflGameId(rawTaflGameId) {
+  const normalized = String(rawTaflGameId || '').trim().toLowerCase();
+  if (!normalized) {
+    return TAFL_GAME_KEY;
+  }
+  return normalized;
+}
+
 function isMonsGameId(rawGameId) {
   const normalized = normalizeMonsGameId(rawGameId);
   return normalized === MONS_GAME_KEY || normalized.startsWith(`${MONS_GAME_KEY}-copy-`);
+}
+
+function isTaflGameId(rawGameId) {
+  const normalized = normalizeTaflGameId(rawGameId);
+  return normalized === TAFL_GAME_KEY || normalized.startsWith(`${TAFL_GAME_KEY}-copy-`);
 }
 
 function setActiveDeckId(nextDeckId) {
@@ -1501,6 +1607,17 @@ function setActiveMonsGameId(nextMonsGameId) {
   }
 }
 
+function setActiveTaflGameId(nextTaflGameId) {
+  const previousTaflGameId = normalizeTaflGameId(activeTaflGameId);
+  const normalizedTaflGameId = normalizeTaflGameId(nextTaflGameId);
+  activeTaflGameId = normalizedTaflGameId;
+  taflGameState = taflGameStatesById.get(normalizedTaflGameId) || null;
+  if (normalizedTaflGameId !== previousTaflGameId) {
+    taflSelectionPieceId = '';
+    taflSelectionGameId = '';
+  }
+}
+
 function getDeckStateById(deckId = activeDeckId) {
   const normalizedDeckId = normalizeDeckId(deckId);
   return deckStatesById.get(normalizedDeckId) || null;
@@ -1509,6 +1626,11 @@ function getDeckStateById(deckId = activeDeckId) {
 function getMonsGameStateById(gameId = activeMonsGameId) {
   const normalizedMonsGameId = normalizeMonsGameId(gameId);
   return monsGameStatesById.get(normalizedMonsGameId) || null;
+}
+
+function getTaflGameStateById(gameId = activeTaflGameId) {
+  const normalizedTaflGameId = normalizeTaflGameId(gameId);
+  return taflGameStatesById.get(normalizedTaflGameId) || null;
 }
 
 function patchTouchesPosition(patch) {
@@ -1525,8 +1647,20 @@ function isDeckCoverDrawingsEnabled(deckId = activeDeckId) {
   return Boolean(getDeckStateById(deckId)?.coverDrawings === true);
 }
 
+function isMonsShowCoordinatesEnabled(gameId = activeMonsGameId) {
+  return Boolean(getMonsGameStateById(gameId)?.showCoordinates !== false);
+}
+
+function isTaflShowCoordinatesEnabled(gameId = activeTaflGameId) {
+  return Boolean(getTaflGameStateById(gameId)?.showCoordinates !== false);
+}
+
 function isMonsCoverDrawingsEnabled(gameId = activeMonsGameId) {
   return Boolean(getMonsGameStateById(gameId)?.coverDrawings === true);
+}
+
+function isTaflCoverDrawingsEnabled(gameId = activeTaflGameId) {
+  return Boolean(getTaflGameStateById(gameId)?.coverDrawings === true);
 }
 
 function hasAnyCoverDrawingsGames() {
@@ -1536,6 +1670,11 @@ function hasAnyCoverDrawingsGames() {
     }
   }
   for (const gameState of monsGameStatesById.values()) {
+    if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
+      return true;
+    }
+  }
+  for (const gameState of taflGameStatesById.values()) {
     if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
       return true;
     }
@@ -2709,6 +2848,7 @@ function normalizeMonsGamePayload(payload) {
   const nextMoveTick = Number(payload?.moveTick);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const flipped = payload?.flipped === true;
+  const showCoordinates = payload?.showCoordinates !== false;
   const coverDrawings = payload?.coverDrawings === true;
   const pieces =
     hasPiecesField
@@ -2729,6 +2869,7 @@ function normalizeMonsGamePayload(payload) {
     undoHistory: normalizeMonsUndoHistoryPayload(payload?.undoHistory),
     holderClientId,
     flipped,
+    showCoordinates,
     coverDrawings
   };
 }
@@ -2741,6 +2882,7 @@ function buildFreshMonsGamePayload(options = {}) {
   const nextX = Number(options?.x);
   const nextY = Number(options?.y);
   const flipped = options?.flipped === true;
+  const showCoordinates = options?.showCoordinates !== false;
   const coverDrawings = options?.coverDrawings === true;
   return {
     enabled: true,
@@ -2763,6 +2905,420 @@ function buildFreshMonsGamePayload(options = {}) {
     undoHistory: [],
     holderClientId: null,
     flipped,
+    showCoordinates,
+    coverDrawings,
+    updatedAt: Date.now()
+  };
+}
+
+function normalizeTaflPieceSide(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'attacker' || normalized === 'defender' || normalized === 'king') {
+    return normalized;
+  }
+  return '';
+}
+
+function normalizeTaflWinnerSide(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'attacker' || normalized === 'defender') {
+    return normalized;
+  }
+  return '';
+}
+
+function isTaflInBounds(row, col) {
+  return row >= 0 && row < TAFL_BOARD_SIZE && col >= 0 && col < TAFL_BOARD_SIZE;
+}
+
+function isTaflCornerTile(row, col) {
+  return (
+    (row === 0 && col === 0) ||
+    (row === 0 && col === TAFL_BOARD_SIZE - 1) ||
+    (row === TAFL_BOARD_SIZE - 1 && col === 0) ||
+    (row === TAFL_BOARD_SIZE - 1 && col === TAFL_BOARD_SIZE - 1)
+  );
+}
+
+function isTaflThroneTile(row, col) {
+  return row === TAFL_THRONE_ROW && col === TAFL_THRONE_COL;
+}
+
+function getTaflPieceFactionSide(piece) {
+  if (!piece || typeof piece !== 'object') {
+    return '';
+  }
+  if (piece.side === 'attacker') {
+    return 'attacker';
+  }
+  if (piece.side === 'defender' || piece.side === 'king') {
+    return 'defender';
+  }
+  return '';
+}
+
+function getTaflPieceClaimSide(piece) {
+  return getTaflPieceFactionSide(piece);
+}
+
+function normalizeTaflSideClaimsPayload(payload) {
+  const normalizedEntries = [];
+  const seenTokens = new Set();
+  const sourceEntries = [];
+  if (Array.isArray(payload)) {
+    sourceEntries.push(...payload);
+  } else if (payload && typeof payload === 'object') {
+    for (const [claimId, claimPayload] of Object.entries(payload)) {
+      if (claimPayload && typeof claimPayload === 'object') {
+        sourceEntries.push({
+          ...claimPayload,
+          token:
+            typeof claimPayload.token === 'string' && claimPayload.token
+              ? claimPayload.token
+              : claimId
+        });
+      } else {
+        sourceEntries.push(claimId);
+      }
+    }
+  }
+  for (const entryPayload of sourceEntries) {
+    const entry = normalizeMonsClaimEntryPayload(entryPayload);
+    if (!entry || seenTokens.has(entry.token)) {
+      continue;
+    }
+    seenTokens.add(entry.token);
+    normalizedEntries.push(entry);
+    if (normalizedEntries.length >= 2) {
+      break;
+    }
+  }
+  return normalizedEntries;
+}
+
+function normalizeTaflClaimsPayload(payload) {
+  return {
+    attacker: normalizeTaflSideClaimsPayload(payload?.attacker),
+    defender: normalizeTaflSideClaimsPayload(payload?.defender)
+  };
+}
+
+function getTaflSideClaimEntries(gamePayload, side) {
+  const normalizedSide = side === 'attacker' ? 'attacker' : side === 'defender' ? 'defender' : '';
+  if (!normalizedSide) {
+    return [];
+  }
+  const claims = normalizeTaflClaimsPayload(gamePayload?.claims);
+  return claims[normalizedSide];
+}
+
+function doesTaflGameHaveAnyClaims(gamePayload) {
+  const claims = normalizeTaflClaimsPayload(gamePayload?.claims);
+  return claims.attacker.length > 0 || claims.defender.length > 0;
+}
+
+function isLocalPlayerClaimedForTaflSide(gamePayload, side) {
+  if (!localPlayerToken) {
+    return false;
+  }
+  const sideClaims = getTaflSideClaimEntries(gamePayload, side);
+  return sideClaims.some((entry) => entry.token === localPlayerToken);
+}
+
+function getLocalPlayerClaimedTaflSide(gamePayload) {
+  if (!localPlayerToken) {
+    return '';
+  }
+  if (isLocalPlayerClaimedForTaflSide(gamePayload, 'attacker')) {
+    return 'attacker';
+  }
+  if (isLocalPlayerClaimedForTaflSide(gamePayload, 'defender')) {
+    return 'defender';
+  }
+  return '';
+}
+
+function canCurrentPlayerControlTaflPieceFromPayload(gamePayload, piece) {
+  if (!piece || typeof piece !== 'object') {
+    return false;
+  }
+  const pieceClaimSide = getTaflPieceClaimSide(piece);
+  if (!pieceClaimSide) {
+    return false;
+  }
+  const localClaimedSide = getLocalPlayerClaimedTaflSide(gamePayload);
+  if (localClaimedSide && pieceClaimSide !== localClaimedSide) {
+    return false;
+  }
+  const sideClaims = getTaflSideClaimEntries(gamePayload, pieceClaimSide);
+  if (sideClaims.length === 0) {
+    return true;
+  }
+  if (!localPlayerToken) {
+    return false;
+  }
+  return sideClaims.some((entry) => entry.token === localPlayerToken);
+}
+
+function normalizeTaflCapturedEntryPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const id = typeof payload.id === 'string' ? payload.id.trim() : '';
+  const side = normalizeTaflPieceSide(payload.side);
+  if (!id || !side) {
+    return null;
+  }
+  const row = clamp(Math.round(Number(payload.row)), 0, TAFL_BOARD_SIZE - 1);
+  const col = clamp(Math.round(Number(payload.col)), 0, TAFL_BOARD_SIZE - 1);
+  return {
+    id,
+    side,
+    row,
+    col,
+    removed: payload.removed !== false
+  };
+}
+
+function normalizeTaflLastMovePayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const pieceId = typeof payload.pieceId === 'string' ? payload.pieceId.trim() : '';
+  const side = normalizeTaflPieceSide(payload.side);
+  const fromRow = Number(payload.fromRow);
+  const fromCol = Number(payload.fromCol);
+  const toRow = Number(payload.toRow);
+  const toCol = Number(payload.toCol);
+  if (!pieceId || !side || !Number.isFinite(fromRow) || !Number.isFinite(fromCol) || !Number.isFinite(toRow) || !Number.isFinite(toCol)) {
+    return null;
+  }
+  const normalizedCaptured = [];
+  const sourceCaptured = Array.isArray(payload.captured) ? payload.captured : [];
+  for (const entryPayload of sourceCaptured) {
+    const normalizedEntry = normalizeTaflCapturedEntryPayload(entryPayload);
+    if (!normalizedEntry) {
+      continue;
+    }
+    normalizedCaptured.push(normalizedEntry);
+  }
+  return {
+    pieceId,
+    side,
+    fromRow: clamp(Math.round(fromRow), 0, TAFL_BOARD_SIZE - 1),
+    fromCol: clamp(Math.round(fromCol), 0, TAFL_BOARD_SIZE - 1),
+    toRow: clamp(Math.round(toRow), 0, TAFL_BOARD_SIZE - 1),
+    toCol: clamp(Math.round(toCol), 0, TAFL_BOARD_SIZE - 1),
+    captured: normalizedCaptured
+  };
+}
+
+function normalizeTaflUndoSnapshotPayload(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const actorPlayerToken =
+    typeof payload.actorPlayerToken === 'string' && payload.actorPlayerToken ? payload.actorPlayerToken : '';
+  const actorClientId = typeof payload.actorClientId === 'string' && payload.actorClientId ? payload.actorClientId : '';
+  const createdAtRaw = Number(payload.createdAt);
+  const moveTickRaw = Number(payload.moveTick);
+  return {
+    pieces: normalizeTaflPiecesPayload(payload.pieces),
+    winner: normalizeTaflWinnerSide(payload.winner),
+    moveTick: Number.isFinite(moveTickRaw) ? moveTickRaw : 0,
+    lastMove: normalizeTaflLastMovePayload(payload.lastMove),
+    actorPlayerToken,
+    actorClientId,
+    createdAt: Number.isFinite(createdAtRaw) ? createdAtRaw : 0
+  };
+}
+
+function normalizeTaflUndoHistoryPayload(payload) {
+  const entries = [];
+  if (!payload || typeof payload !== 'object') {
+    return entries;
+  }
+  const sourceEntries = Array.isArray(payload) ? payload : Object.values(payload);
+  for (const entryPayload of sourceEntries) {
+    const entry = normalizeTaflUndoSnapshotPayload(entryPayload);
+    if (!entry || !entry.pieces || typeof entry.pieces !== 'object') {
+      continue;
+    }
+    entries.push(entry);
+  }
+  if (entries.length <= TAFL_UNDO_HISTORY_LIMIT) {
+    return entries;
+  }
+  return entries.slice(entries.length - TAFL_UNDO_HISTORY_LIMIT);
+}
+
+function buildTaflUndoSnapshotPayloadFromGame(gamePayload, actorPlayerToken = '', actorClientId = '') {
+  if (!gamePayload || typeof gamePayload !== 'object') {
+    return null;
+  }
+  const normalized = normalizeTaflGamePayload(gamePayload);
+  return {
+    pieces: normalizeTaflPiecesPayload(normalized.pieces),
+    winner: normalizeTaflWinnerSide(normalized.winner),
+    moveTick: Number(normalized.moveTick) || 0,
+    lastMove: normalizeTaflLastMovePayload(normalized.lastMove),
+    actorPlayerToken: typeof actorPlayerToken === 'string' && actorPlayerToken ? actorPlayerToken : '',
+    actorClientId: typeof actorClientId === 'string' && actorClientId ? actorClientId : '',
+    createdAt: Date.now()
+  };
+}
+
+function appendTaflUndoHistoryEntry(historyPayload, entryPayload) {
+  const entry = normalizeTaflUndoSnapshotPayload(entryPayload);
+  if (!entry) {
+    return normalizeTaflUndoHistoryPayload(historyPayload);
+  }
+  const history = normalizeTaflUndoHistoryPayload(historyPayload);
+  history.push(entry);
+  if (history.length <= TAFL_UNDO_HISTORY_LIMIT) {
+    return history;
+  }
+  return history.slice(history.length - TAFL_UNDO_HISTORY_LIMIT);
+}
+
+function canCurrentPlayerUndoTaflEntry(entryPayload) {
+  if (!entryPayload || typeof entryPayload !== 'object') {
+    return false;
+  }
+  const actorPlayerToken =
+    typeof entryPayload.actorPlayerToken === 'string' && entryPayload.actorPlayerToken
+      ? entryPayload.actorPlayerToken
+      : '';
+  const actorClientId =
+    typeof entryPayload.actorClientId === 'string' && entryPayload.actorClientId ? entryPayload.actorClientId : '';
+  if (actorPlayerToken) {
+    return Boolean(localPlayerToken) && actorPlayerToken === localPlayerToken;
+  }
+  if (actorClientId) {
+    return Boolean(localClientId) && actorClientId === localClientId;
+  }
+  return false;
+}
+
+function buildDefaultTaflPieces() {
+  const pieces = {};
+  let attackerIndex = 1;
+  for (const position of TAFL_ATTACKER_START_POSITIONS) {
+    pieces[`attacker-${attackerIndex}`] = {
+      id: `attacker-${attackerIndex}`,
+      side: 'attacker',
+      row: position.row,
+      col: position.col
+    };
+    attackerIndex += 1;
+  }
+  let defenderIndex = 1;
+  for (const position of TAFL_DEFENDER_START_POSITIONS) {
+    pieces[`defender-${defenderIndex}`] = {
+      id: `defender-${defenderIndex}`,
+      side: 'defender',
+      row: position.row,
+      col: position.col
+    };
+    defenderIndex += 1;
+  }
+  pieces.king = {
+    id: 'king',
+    side: 'king',
+    row: 5,
+    col: 5
+  };
+  return pieces;
+}
+
+function normalizeTaflPiecesPayload(payload) {
+  const nextPieces = {};
+  if (!payload || typeof payload !== 'object') {
+    return nextPieces;
+  }
+  const occupiedTiles = new Set();
+  for (const [rawId, rawPiece] of Object.entries(payload)) {
+    if (!rawPiece || typeof rawPiece !== 'object') {
+      continue;
+    }
+    const side = normalizeTaflPieceSide(rawPiece.side);
+    if (!side) {
+      continue;
+    }
+    const row = clamp(Math.round(Number(rawPiece.row)), 0, TAFL_BOARD_SIZE - 1);
+    const col = clamp(Math.round(Number(rawPiece.col)), 0, TAFL_BOARD_SIZE - 1);
+    const tileKey = `${row}:${col}`;
+    if (occupiedTiles.has(tileKey)) {
+      continue;
+    }
+    occupiedTiles.add(tileKey);
+    const idBase = String(rawPiece.id || rawId || '').trim();
+    const id = idBase || `${side}-${Object.keys(nextPieces).length + 1}`;
+    nextPieces[id] = {
+      id,
+      side,
+      row,
+      col
+    };
+  }
+  return nextPieces;
+}
+
+function normalizeTaflGamePayload(payload) {
+  const hasPayloadObject = Boolean(payload && typeof payload === 'object');
+  const hasPiecesField = hasPayloadObject && Object.prototype.hasOwnProperty.call(payload, 'pieces');
+  const nextWidth = Number(payload?.width);
+  const nextHeight = Number(payload?.height);
+  const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : MONS_BOARD_WORLD_WIDTH;
+  const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : MONS_BOARD_WORLD_HEIGHT;
+  const nextX = Number(payload?.x);
+  const nextY = Number(payload?.y);
+  const nextMoveTick = Number(payload?.moveTick);
+  const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const showCoordinates = payload?.showCoordinates !== false;
+  const coverDrawings = payload?.coverDrawings === true;
+  const pieces = hasPiecesField ? normalizeTaflPiecesPayload(payload?.pieces) : buildDefaultTaflPieces();
+  return {
+    enabled: payload?.enabled !== false,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    pieces,
+    claims: normalizeTaflClaimsPayload(payload?.claims),
+    moveTick: Number.isFinite(nextMoveTick) ? nextMoveTick : 0,
+    lastMove: normalizeTaflLastMovePayload(payload?.lastMove),
+    winner: normalizeTaflWinnerSide(payload?.winner),
+    undoHistory: normalizeTaflUndoHistoryPayload(payload?.undoHistory),
+    holderClientId,
+    showCoordinates,
+    coverDrawings
+  };
+}
+
+function buildFreshTaflGamePayload(options = {}) {
+  const nextWidth = Number(options?.width);
+  const nextHeight = Number(options?.height);
+  const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : MONS_BOARD_WORLD_WIDTH;
+  const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : MONS_BOARD_WORLD_HEIGHT;
+  const nextX = Number(options?.x);
+  const nextY = Number(options?.y);
+  const showCoordinates = options?.showCoordinates !== false;
+  const coverDrawings = options?.coverDrawings === true;
+  return {
+    enabled: true,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    pieces: buildDefaultTaflPieces(),
+    claims: normalizeTaflClaimsPayload(options?.claims),
+    moveTick: 0,
+    lastMove: null,
+    winner: '',
+    undoHistory: [],
+    holderClientId: null,
+    showCoordinates,
     coverDrawings,
     updatedAt: Date.now()
   };
@@ -4131,6 +4687,64 @@ function resolveMonsClaimDisplay(entry) {
   };
 }
 
+function resolveTaflClaimDisplay(entry) {
+  const token = typeof entry?.token === 'string' ? entry.token : '';
+  const isLocal = Boolean(localPlayerToken) && token === localPlayerToken;
+  const livePayload = isLocal ? null : getCursorPayloadByPlayerToken(token);
+  const name = String(isLocal ? playerState.name : livePayload?.name || entry?.name || '').trim();
+  const color = normalizeHexColor(isLocal ? playerState.color : livePayload?.color || entry?.color || '#ff7a59');
+  return {
+    token,
+    name: name || 'anon',
+    color
+  };
+}
+
+function renderTaflSideClaimsList(listElement, claims, side, claimButton = null) {
+  if (!(listElement instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedSide = side === 'attacker' ? 'attacker' : 'defender';
+  const sideClaims = Array.isArray(claims) ? claims : [];
+  listElement.textContent = '';
+  listElement.classList.toggle('is-empty', sideClaims.length === 0);
+
+  if (claimButton instanceof HTMLButtonElement) {
+    const isClaimedBySelf = Boolean(localPlayerToken) && sideClaims.some((entry) => entry?.token === localPlayerToken);
+    const isSideFull = sideClaims.length >= 2 && !isClaimedBySelf;
+    claimButton.classList.toggle('is-claimed', isClaimedBySelf);
+    claimButton.classList.toggle('is-side-full', isSideFull);
+    claimButton.disabled = isSideFull;
+    claimButton.setAttribute('aria-label', `${normalizedSide} side`);
+    claimButton.title = isClaimedBySelf
+      ? `leave ${normalizedSide} side`
+      : isSideFull
+        ? `${normalizedSide} side full`
+        : `claim ${normalizedSide} side`;
+  }
+
+  if (sideClaims.length === 0) {
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const entry of sideClaims) {
+    const display = resolveTaflClaimDisplay(entry);
+    const row = document.createElement('div');
+    row.className = 'tafl-side-claim-row';
+    const dot = document.createElement('span');
+    dot.className = 'tafl-side-claim-dot';
+    dot.style.background = display.color;
+    row.appendChild(dot);
+    const name = document.createElement('span');
+    name.className = 'tafl-side-claim-name';
+    name.textContent = display.name;
+    name.style.color = display.color;
+    row.appendChild(name);
+    fragment.appendChild(row);
+  }
+  listElement.appendChild(fragment);
+}
+
 function renderMonsSideClaimsList(listElement, claims, side, claimButton = null) {
   if (!listElement) {
     return;
@@ -4846,6 +5460,7 @@ function renderInactiveMonsBoardGhosts() {
       applyMonsBoardOrientation(ghostBoardUi.boardSvg, boardFlipped);
       ghostBoardUi.lastBoardFlipped = boardFlipped;
     }
+    setMonsBoardCoordinatesVisibility(ghostBoardUi.boardSvg, gameState.showCoordinates !== false);
     setElementStylePx(ghostBoardUi.hud, 'width', boardScreenWidth);
     setElementStylePx(ghostBoardUi.hud, 'height', hudScreenHeight);
     if (ghostBoardUi.lastWaveFrameIndex !== monsWaveFrameIndex) {
@@ -4957,6 +5572,27 @@ function refreshMonsClaimLabelsOnly() {
       boardScreen,
       boardScreenWidth,
       boardScreenHeight
+    );
+  }
+}
+
+function refreshTaflClaimLabelsOnly() {
+  for (const [gameId, taflUi] of taflBoardElementsById.entries()) {
+    const gameState = getTaflGameStateById(gameId);
+    if (!gameState || gameState.enabled === false) {
+      continue;
+    }
+    renderTaflSideClaimsList(
+      taflUi?.attackerClaimsList,
+      gameState.claims?.attacker,
+      'attacker',
+      taflUi?.attackerClaimButton
+    );
+    renderTaflSideClaimsList(
+      taflUi?.defenderClaimsList,
+      gameState.claims?.defender,
+      'defender',
+      taflUi?.defenderClaimButton
     );
   }
 }
@@ -6419,6 +7055,7 @@ function renderMonsBoard() {
     applyMonsBoardOrientation(monsBoardSvg, boardFlipped);
     lastActiveMonsBoardFlipped = boardFlipped;
   }
+  setMonsBoardCoordinatesVisibility(monsBoardSvg, monsGameState.showCoordinates !== false);
   setElementStylePx(monsHud, 'width', boardScreenWidth);
   setElementStylePx(monsHud, 'height', hudScreenHeight);
 
@@ -6491,6 +7128,1215 @@ function renderMonsBoard() {
   setElementStylePx(monsOptionsButton, 'width', controlSize);
   setElementStylePx(monsOptionsButton, 'height', controlSize);
   renderInactiveMonsBoardGhosts();
+}
+
+function removeTaflBoardUi(taflUi) {
+  if (!taflUi || typeof taflUi !== 'object') {
+    return;
+  }
+  if (Number.isFinite(taflUi.winAnimationTimeoutId) && taflUi.winAnimationTimeoutId > 0) {
+    window.clearTimeout(taflUi.winAnimationTimeoutId);
+  }
+  taflUi.shell?.remove();
+  taflUi.moveButton?.remove();
+  taflUi.optionsButton?.remove();
+}
+
+function removeTaflBoardElements() {
+  for (const taflUi of taflBoardElementsById.values()) {
+    removeTaflBoardUi(taflUi);
+  }
+  taflBoardElementsById.clear();
+  lastRenderedTaflMoveTickById.clear();
+  lastRenderedTaflWinnerById.clear();
+  taflSelectionPieceId = '';
+  taflSelectionGameId = '';
+  if (activeGameOptionsTarget.startsWith('tafl:')) {
+    closeGameOptionsMenu();
+  }
+}
+
+function ensureTaflBoardUi(gameId) {
+  if (!tableRoot || !gameLayer) {
+    return null;
+  }
+  const normalizedGameId = normalizeTaflGameId(gameId);
+  let taflUi = taflBoardElementsById.get(normalizedGameId) || null;
+  if (
+    taflUi?.shell?.isConnected &&
+    taflUi?.moveButton?.isConnected &&
+    taflUi?.optionsButton?.isConnected &&
+    taflUi?.boardOverlay?.isConnected &&
+    taflUi?.coordinateLayer?.isConnected &&
+    taflUi?.fxLayer?.isConnected &&
+    taflUi?.pieceLayer?.isConnected &&
+    taflUi?.hintLayer?.isConnected &&
+    taflUi?.hud?.isConnected &&
+    taflUi?.attackerButtonWrap?.isConnected &&
+    taflUi?.defenderButtonWrap?.isConnected &&
+    taflUi?.attackerAvatar?.isConnected &&
+    taflUi?.defenderAvatar?.isConnected &&
+    taflUi?.attackerClaimButton?.isConnected &&
+    taflUi?.defenderClaimButton?.isConnected &&
+    taflUi?.attackerClaimsList?.isConnected &&
+    taflUi?.defenderClaimsList?.isConnected &&
+    taflUi?.undoButton?.isConnected &&
+    taflUi?.resetButton?.isConnected &&
+    taflUi?.statusLabel?.isConnected &&
+    taflUi?.winOverlay?.isConnected &&
+    taflUi?.winDialog?.isConnected &&
+    taflUi?.winTitle?.isConnected &&
+    taflUi?.winButton?.isConnected &&
+    taflUi?.winClash?.isConnected
+  ) {
+    return taflUi;
+  }
+
+  removeTaflBoardUi(taflUi);
+
+  const shell = document.createElement('div');
+  shell.className = 'mons-game-shell tafl-game-shell hidden';
+  shell.dataset.taflGameId = normalizedGameId;
+  shell.dataset.drawPassthrough = 'true';
+  shell.setAttribute('aria-label', 'Hnefatafl board');
+  shieldPointerEvents(shell, { allowDrawPassthrough: true, allowMiddleMousePan: true });
+  shell.addEventListener('pointerdown', (event) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteTaflGameInRemoveMode(normalizedGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (normalizeTaflGameId(activeTaflGameId) === normalizedGameId) {
+      return;
+    }
+    setActiveTaflGameId(normalizedGameId);
+    renderTaflBoards();
+  });
+
+  const boardImage = document.createElement('img');
+  boardImage.className = 'tafl-board-image';
+  boardImage.src = TAFL_BOARD_IMAGE_SRC;
+  boardImage.alt = '';
+  boardImage.draggable = false;
+  boardImage.setAttribute('aria-hidden', 'true');
+  shell.appendChild(boardImage);
+
+  const boardOverlay = document.createElement('div');
+  boardOverlay.className = 'tafl-board-overlay';
+  shieldPointerEvents(boardOverlay, { allowDrawPassthrough: true, allowMiddleMousePan: true });
+  boardOverlay.addEventListener('pointerdown', (event) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    const rect = boardOverlay.getBoundingClientRect();
+    if (!rect.width || !rect.height) {
+      return;
+    }
+    const gridLeft = rect.width * TAFL_GRID_LEFT_RATIO;
+    const gridTop = rect.height * TAFL_GRID_TOP_RATIO;
+    const gridWidth = rect.width * TAFL_GRID_WIDTH_RATIO;
+    const gridHeight = rect.height * TAFL_GRID_HEIGHT_RATIO;
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+    if (
+      localX < gridLeft ||
+      localX >= gridLeft + gridWidth ||
+      localY < gridTop ||
+      localY >= gridTop + gridHeight
+    ) {
+      return;
+    }
+    const relX = clamp((localX - gridLeft) / Math.max(1, gridWidth), 0, 0.999999);
+    const relY = clamp((localY - gridTop) / Math.max(1, gridHeight), 0, 0.999999);
+    const col = clamp(Math.floor(relX * TAFL_BOARD_SIZE), 0, TAFL_BOARD_SIZE - 1);
+    const row = clamp(Math.floor(relY * TAFL_BOARD_SIZE), 0, TAFL_BOARD_SIZE - 1);
+    onTaflBoardTilePointerDown(event, row, col, normalizedGameId);
+  });
+  shell.appendChild(boardOverlay);
+
+  const coordinateLayer = document.createElement('div');
+  coordinateLayer.className = 'tafl-coordinate-layer';
+  for (let col = 0; col < TAFL_BOARD_SIZE; col += 1) {
+    const label = document.createElement('span');
+    label.className = 'tafl-board-coordinate tafl-board-coordinate-col';
+    label.setAttribute('data-tafl-axis', 'col');
+    label.setAttribute('data-tafl-index', String(col));
+    label.textContent = getTaflColumnLabelText(col);
+    coordinateLayer.appendChild(label);
+  }
+  for (let row = 0; row < TAFL_BOARD_SIZE; row += 1) {
+    const label = document.createElement('span');
+    label.className = 'tafl-board-coordinate tafl-board-coordinate-row';
+    label.setAttribute('data-tafl-axis', 'row');
+    label.setAttribute('data-tafl-index', String(row));
+    label.textContent = getTaflRowLabelText(row);
+    coordinateLayer.appendChild(label);
+  }
+  boardOverlay.appendChild(coordinateLayer);
+
+  const hintLayer = document.createElement('div');
+  hintLayer.className = 'tafl-hint-layer';
+  boardOverlay.appendChild(hintLayer);
+
+  const fxLayer = document.createElement('div');
+  fxLayer.className = 'tafl-fx-layer';
+  boardOverlay.appendChild(fxLayer);
+
+  const pieceLayer = document.createElement('div');
+  pieceLayer.className = 'tafl-piece-layer';
+  boardOverlay.appendChild(pieceLayer);
+
+  const hud = document.createElement('div');
+  hud.className = 'mons-hud tafl-hud';
+  shell.appendChild(hud);
+
+  const defenderCluster = document.createElement('div');
+  defenderCluster.className = 'mons-hud-player mons-hud-player-white tafl-hud-side';
+  const defenderButtonWrap = document.createElement('span');
+  defenderButtonWrap.className = 'mons-hud-avatar-wrap';
+  const defenderClaimButton = document.createElement('button');
+  defenderClaimButton.type = 'button';
+  defenderClaimButton.className = 'mons-hud-avatar-button tafl-side-claim-button';
+  defenderClaimButton.dataset.taflSide = 'defender';
+  defenderClaimButton.addEventListener('click', (event) => {
+    onTaflSideClaimClick(event, 'defender', normalizedGameId);
+  });
+  shieldPointerEvents(defenderClaimButton);
+  const defenderAvatar = document.createElement('img');
+  defenderAvatar.src = TAFL_PIECE_ICON_BY_SIDE.defender;
+  defenderAvatar.alt = 'defender side';
+  defenderAvatar.draggable = false;
+  defenderAvatar.className = 'mons-hud-avatar';
+  defenderClaimButton.appendChild(defenderAvatar);
+  defenderButtonWrap.appendChild(defenderClaimButton);
+  const defenderClaimsList = document.createElement('div');
+  defenderClaimsList.className = 'tafl-side-claims tafl-side-claims-defender is-empty';
+  defenderCluster.appendChild(defenderButtonWrap);
+  defenderCluster.appendChild(defenderClaimsList);
+
+  const centerCluster = document.createElement('div');
+  centerCluster.className = 'mons-hud-center tafl-hud-center';
+  const undoButton = document.createElement('button');
+  undoButton.type = 'button';
+  undoButton.className = 'mons-undo-button tafl-undo-button';
+  undoButton.dataset.taflGameId = normalizedGameId;
+  undoButton.setAttribute('aria-label', 'undo last hnefatafl move');
+  undoButton.innerHTML =
+    '<svg viewBox="0 0 512 512" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M125.7 160H176c17.7 0 32 14.3 32 32s-14.3 32-32 32H48c-17.7 0-32-14.3-32-32V64c0-17.7 14.3-32 32-32s32 14.3 32 32v51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z" fill="currentColor"/></svg>';
+  undoButton.addEventListener('click', (event) => {
+    onTaflUndoButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(undoButton);
+  const resetButton = document.createElement('button');
+  resetButton.type = 'button';
+  resetButton.className = 'mons-undo-button tafl-reset-button hidden';
+  resetButton.dataset.taflGameId = normalizedGameId;
+  resetButton.setAttribute('aria-label', 'start new tafl game');
+  resetButton.title = 'play again';
+  resetButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M4.5 7.5V3.5M4.5 3.5H8.5M4.5 3.5L8.2 7.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.2 11.4C6.8 8.35 9.47 6 12.7 6C16.36 6 19.32 8.96 19.32 12.62C19.32 16.28 16.36 19.24 12.7 19.24C9.68 19.24 7.13 17.23 6.32 14.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+  resetButton.addEventListener('click', (event) => {
+    onTaflWinResetButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(resetButton);
+  const statusLabel = document.createElement('span');
+  statusLabel.className = 'tafl-hud-status';
+  statusLabel.textContent = '';
+  centerCluster.appendChild(undoButton);
+  centerCluster.appendChild(resetButton);
+  centerCluster.appendChild(statusLabel);
+
+  const attackerCluster = document.createElement('div');
+  attackerCluster.className = 'mons-hud-player mons-hud-player-black tafl-hud-side';
+  const attackerButtonWrap = document.createElement('span');
+  attackerButtonWrap.className = 'mons-hud-avatar-wrap';
+  const attackerClaimButton = document.createElement('button');
+  attackerClaimButton.type = 'button';
+  attackerClaimButton.className = 'mons-hud-avatar-button tafl-side-claim-button';
+  attackerClaimButton.dataset.taflSide = 'attacker';
+  attackerClaimButton.addEventListener('click', (event) => {
+    onTaflSideClaimClick(event, 'attacker', normalizedGameId);
+  });
+  shieldPointerEvents(attackerClaimButton);
+  const attackerAvatar = document.createElement('img');
+  attackerAvatar.src = TAFL_PIECE_ICON_BY_SIDE.attacker;
+  attackerAvatar.alt = 'attacker side';
+  attackerAvatar.draggable = false;
+  attackerAvatar.className = 'mons-hud-avatar';
+  attackerClaimButton.appendChild(attackerAvatar);
+  attackerButtonWrap.appendChild(attackerClaimButton);
+  const attackerClaimsList = document.createElement('div');
+  attackerClaimsList.className = 'tafl-side-claims tafl-side-claims-attacker is-empty';
+  attackerCluster.appendChild(attackerButtonWrap);
+  attackerCluster.appendChild(attackerClaimsList);
+
+  hud.appendChild(defenderCluster);
+  hud.appendChild(centerCluster);
+  hud.appendChild(attackerCluster);
+
+  const winOverlay = document.createElement('div');
+  winOverlay.className = 'tafl-win-overlay';
+  winOverlay.dataset.taflGameId = normalizedGameId;
+  winOverlay.setAttribute('aria-hidden', 'true');
+  winOverlay.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  const winDialog = document.createElement('div');
+  winDialog.className = 'tafl-win-dialog';
+  winDialog.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  const winClash = document.createElement('div');
+  winClash.className = 'tafl-win-clash';
+  winClash.setAttribute('aria-hidden', 'true');
+  const leftSword = document.createElement('span');
+  leftSword.className = 'tafl-win-sword tafl-win-sword-left';
+  const rightSword = document.createElement('span');
+  rightSword.className = 'tafl-win-sword tafl-win-sword-right';
+  winClash.appendChild(leftSword);
+  winClash.appendChild(rightSword);
+  const sparkSpecs = [
+    { angle: -124, distance: 34, delay: 0.02 },
+    { angle: -93, distance: 32, delay: 0.04 },
+    { angle: -56, distance: 28, delay: 0.06 },
+    { angle: -22, distance: 30, delay: 0.08 },
+    { angle: 16, distance: 28, delay: 0.03 },
+    { angle: 44, distance: 33, delay: 0.05 },
+    { angle: 74, distance: 30, delay: 0.07 },
+    { angle: 108, distance: 34, delay: 0.09 }
+  ];
+  for (const spec of sparkSpecs) {
+    const spark = document.createElement('span');
+    spark.className = 'tafl-win-spark';
+    spark.style.setProperty('--spark-angle', `${spec.angle}deg`);
+    spark.style.setProperty('--spark-distance', `${spec.distance}px`);
+    spark.style.setProperty('--spark-delay', `${spec.delay}s`);
+    winClash.appendChild(spark);
+  }
+  const winTitle = document.createElement('div');
+  winTitle.className = 'tafl-win-title';
+  winTitle.textContent = '';
+  const winButton = document.createElement('button');
+  winButton.type = 'button';
+  winButton.className = 'tafl-win-button';
+  winButton.textContent = 'PLAY AGAIN';
+  winButton.addEventListener('click', (event) => {
+    onTaflWinResetButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(winButton);
+  winDialog.appendChild(winClash);
+  winDialog.appendChild(winTitle);
+  winDialog.appendChild(winButton);
+  winOverlay.appendChild(winDialog);
+  shell.appendChild(winOverlay);
+
+  gameLayer.appendChild(shell);
+
+  const moveButton = document.createElement('button');
+  moveButton.type = 'button';
+  moveButton.className = 'deck-control-button deck-move-button mons-move-button tafl-move-button hidden';
+  moveButton.dataset.stackScope = 'tafl';
+  moveButton.dataset.taflGameId = normalizedGameId;
+  moveButton.setAttribute('aria-label', 'move hnefatafl board');
+  moveButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  moveButton.addEventListener('pointerdown', (event) => {
+    onTaflMovePointerDown(event, normalizedGameId);
+  });
+  shieldPointerEvents(moveButton);
+  tableRoot.appendChild(moveButton);
+
+  const optionsButton = document.createElement('button');
+  optionsButton.type = 'button';
+  optionsButton.className = 'deck-control-button deck-options-button mons-options-button tafl-options-button hidden';
+  optionsButton.dataset.stackScope = 'tafl';
+  optionsButton.dataset.taflGameId = normalizedGameId;
+  optionsButton.setAttribute('aria-label', 'hnefatafl options');
+  optionsButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="6.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17.5" cy="12" r="1.7"/></svg>';
+  optionsButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
+    openGameOptionsMenu(TAFL_GAME_KEY, normalizedGameId);
+  });
+  shieldPointerEvents(optionsButton);
+  tableRoot.appendChild(optionsButton);
+
+  taflUi = {
+    gameId: normalizedGameId,
+    shell,
+    boardImage,
+    boardOverlay,
+    coordinateLayer,
+    hintLayer,
+    fxLayer,
+    pieceLayer,
+    hud,
+    attackerButtonWrap,
+    defenderButtonWrap,
+    attackerAvatar,
+    defenderAvatar,
+    attackerClaimButton,
+    defenderClaimButton,
+    attackerClaimsList,
+    defenderClaimsList,
+    undoButton,
+    resetButton,
+    statusLabel,
+    winOverlay,
+    winDialog,
+    winTitle,
+    winButton,
+    winClash,
+    winAnimationTimeoutId: 0,
+    moveButton,
+    optionsButton
+  };
+  taflBoardElementsById.set(normalizedGameId, taflUi);
+  return taflUi;
+}
+
+function setTaflBoardDragFloating(gameId, shouldFloat) {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  const normalizedGameId = normalizeTaflGameId(gameId);
+  const taflUi = ensureTaflBoardUi(normalizedGameId);
+  if (!taflUi?.shell) {
+    return;
+  }
+  const shouldCoverDrawings = isTaflCoverDrawingsEnabled(normalizedGameId);
+  if (shouldFloat) {
+    if (taflUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(taflUi.shell);
+    }
+    taflUi.shell.classList.toggle('is-cover-drawings', shouldCoverDrawings);
+    taflUi.shell.classList.add('is-drag-floating');
+    return;
+  }
+  if (shouldCoverDrawings) {
+    if (taflUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(taflUi.shell);
+    }
+    taflUi.shell.classList.add('is-cover-drawings');
+  } else {
+    if (taflUi.shell.parentElement !== gameLayer) {
+      gameLayer.appendChild(taflUi.shell);
+    }
+    taflUi.shell.classList.remove('is-cover-drawings');
+  }
+  taflUi.shell.classList.remove('is-drag-floating');
+}
+
+function getTaflPieceAtTileFromPayload(piecesPayload, row, col, excludeId = '') {
+  if (!piecesPayload || typeof piecesPayload !== 'object') {
+    return null;
+  }
+  for (const piece of Object.values(piecesPayload)) {
+    if (!piece || typeof piece !== 'object') {
+      continue;
+    }
+    if (excludeId && piece.id === excludeId) {
+      continue;
+    }
+    if (piece.row === row && piece.col === col) {
+      return piece;
+    }
+  }
+  return null;
+}
+
+function canTaflPieceOccupyTile(piece, row, col) {
+  if (!piece || typeof piece !== 'object') {
+    return false;
+  }
+  if (!isTaflInBounds(row, col)) {
+    return false;
+  }
+  if (piece.side !== 'king' && (isTaflCornerTile(row, col) || isTaflThroneTile(row, col))) {
+    return false;
+  }
+  return true;
+}
+
+function getTaflValidMovesForPiece(piecesPayload, piece) {
+  if (!piece || typeof piece !== 'object') {
+    return [];
+  }
+  const moves = [];
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 },
+    { row: 0, col: 1 }
+  ];
+  for (const direction of directions) {
+    let row = piece.row + direction.row;
+    let col = piece.col + direction.col;
+    while (row >= 0 && row < TAFL_BOARD_SIZE && col >= 0 && col < TAFL_BOARD_SIZE) {
+      if (getTaflPieceAtTileFromPayload(piecesPayload, row, col, piece.id)) {
+        break;
+      }
+      if (canTaflPieceOccupyTile(piece, row, col)) {
+        moves.push({ row, col });
+      }
+      row += direction.row;
+      col += direction.col;
+    }
+  }
+  return moves;
+}
+
+function isTaflTileHostileToFactionFromPayload(piecesPayload, row, col, faction) {
+  if (!isTaflInBounds(row, col)) {
+    return false;
+  }
+  if (isTaflCornerTile(row, col)) {
+    return true;
+  }
+  if (isTaflThroneTile(row, col)) {
+    const throneOccupant = getTaflPieceAtTileFromPayload(piecesPayload, row, col);
+    if (!throneOccupant) {
+      return true;
+    }
+    const throneFaction = getTaflPieceFactionSide(throneOccupant);
+    return Boolean(throneFaction) && throneFaction !== faction;
+  }
+  const occupant = getTaflPieceAtTileFromPayload(piecesPayload, row, col);
+  if (!occupant) {
+    return false;
+  }
+  const occupantFaction = getTaflPieceFactionSide(occupant);
+  return Boolean(occupantFaction) && occupantFaction !== faction;
+}
+
+function isTaflKingCapturedFromPayload(piecesPayload, kingPiece) {
+  if (!kingPiece || kingPiece.side !== 'king') {
+    return false;
+  }
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 },
+    { row: 0, col: 1 }
+  ];
+  for (const direction of directions) {
+    const checkRow = kingPiece.row + direction.row;
+    const checkCol = kingPiece.col + direction.col;
+    if (!isTaflInBounds(checkRow, checkCol)) {
+      // Board edge counts as a blocking side for king captures in this ruleset.
+      continue;
+    }
+    if (!isTaflTileHostileToFactionFromPayload(piecesPayload, checkRow, checkCol, 'defender')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areTaflDefendersFullyEncircled(piecesPayload) {
+  if (!piecesPayload || typeof piecesPayload !== 'object') {
+    return false;
+  }
+  const pieces = Object.values(piecesPayload).filter((piece) => piece && typeof piece === 'object');
+  const defenders = pieces.filter((piece) => getTaflPieceFactionSide(piece) === 'defender');
+  if (defenders.length === 0) {
+    return false;
+  }
+
+  const attackers = new Set(
+    pieces
+      .filter((piece) => getTaflPieceFactionSide(piece) === 'attacker')
+      .map((piece) => `${piece.row},${piece.col}`)
+  );
+  const reachableFromEdge = new Set();
+  const queue = [];
+
+  const enqueueIfTraversable = (row, col) => {
+    const key = `${row},${col}`;
+    if (attackers.has(key) || reachableFromEdge.has(key)) {
+      return;
+    }
+    reachableFromEdge.add(key);
+    queue.push({ row, col });
+  };
+
+  // Flood from board edge through all non-attacker tiles.
+  for (let row = 0; row < TAFL_BOARD_SIZE; row += 1) {
+    enqueueIfTraversable(row, 0);
+    enqueueIfTraversable(row, TAFL_BOARD_SIZE - 1);
+  }
+  for (let col = 0; col < TAFL_BOARD_SIZE; col += 1) {
+    enqueueIfTraversable(0, col);
+    enqueueIfTraversable(TAFL_BOARD_SIZE - 1, col);
+  }
+
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 },
+    { row: 0, col: 1 }
+  ];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+    for (const direction of directions) {
+      const nextRow = current.row + direction.row;
+      const nextCol = current.col + direction.col;
+      if (!isTaflInBounds(nextRow, nextCol)) {
+        continue;
+      }
+      enqueueIfTraversable(nextRow, nextCol);
+    }
+  }
+
+  // If any defender tile can still reach board edge through non-attacker space, defenders are not encircled.
+  for (const defender of defenders) {
+    if (reachableFromEdge.has(`${defender.row},${defender.col}`)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function getTaflCapturedPieceIdsFromMove(nextPieces, movedPiece) {
+  if (!nextPieces || typeof nextPieces !== 'object' || !movedPiece || typeof movedPiece !== 'object') {
+    return [];
+  }
+  const movedFaction = getTaflPieceFactionSide(movedPiece);
+  if (!movedFaction) {
+    return [];
+  }
+  const capturedIds = [];
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 },
+    { row: 0, col: 1 }
+  ];
+  for (const direction of directions) {
+    const adjacentRow = movedPiece.row + direction.row;
+    const adjacentCol = movedPiece.col + direction.col;
+    if (!isTaflInBounds(adjacentRow, adjacentCol)) {
+      continue;
+    }
+    const adjacentPiece = getTaflPieceAtTileFromPayload(nextPieces, adjacentRow, adjacentCol);
+    if (!adjacentPiece) {
+      continue;
+    }
+    const adjacentFaction = getTaflPieceFactionSide(adjacentPiece);
+    if (!adjacentFaction || adjacentFaction === movedFaction) {
+      continue;
+    }
+    if (adjacentPiece.side === 'king') {
+      if (isTaflKingCapturedFromPayload(nextPieces, adjacentPiece)) {
+        capturedIds.push(adjacentPiece.id);
+      }
+      continue;
+    }
+    const oppositeRow = adjacentRow + direction.row;
+    const oppositeCol = adjacentCol + direction.col;
+    if (!isTaflInBounds(oppositeRow, oppositeCol)) {
+      continue;
+    }
+    if (isTaflTileHostileToFactionFromPayload(nextPieces, oppositeRow, oppositeCol, adjacentFaction)) {
+      capturedIds.push(adjacentPiece.id);
+    }
+  }
+  return capturedIds;
+}
+
+function canTaflPieceMoveToTile(piecesPayload, piece, targetRow, targetCol) {
+  if (!piece || typeof piece !== 'object') {
+    return false;
+  }
+  const nextRow = Math.round(Number(targetRow));
+  const nextCol = Math.round(Number(targetCol));
+  if (!isTaflInBounds(nextRow, nextCol)) {
+    return false;
+  }
+  if (piece.row === nextRow && piece.col === nextCol) {
+    return false;
+  }
+  if (piece.row !== nextRow && piece.col !== nextCol) {
+    return false;
+  }
+  if (!canTaflPieceOccupyTile(piece, nextRow, nextCol)) {
+    return false;
+  }
+  if (getTaflPieceAtTileFromPayload(piecesPayload, nextRow, nextCol, piece.id)) {
+    return false;
+  }
+  const rowStep = Math.sign(nextRow - piece.row);
+  const colStep = Math.sign(nextCol - piece.col);
+  let checkRow = piece.row + rowStep;
+  let checkCol = piece.col + colStep;
+  while (checkRow !== nextRow || checkCol !== nextCol) {
+    if (getTaflPieceAtTileFromPayload(piecesPayload, checkRow, checkCol, piece.id)) {
+      return false;
+    }
+    checkRow += rowStep;
+    checkCol += colStep;
+  }
+  return true;
+}
+
+function renderTaflCoordinatesForBoard(taflUi, gameState, boardScreenWidth, boardRenderHeight) {
+  const coordinateLayer = taflUi?.coordinateLayer;
+  if (!(coordinateLayer instanceof HTMLElement)) {
+    return;
+  }
+  const shouldShowCoordinates = gameState?.showCoordinates !== false;
+  coordinateLayer.classList.toggle('hidden', !shouldShowCoordinates);
+  if (!shouldShowCoordinates) {
+    return;
+  }
+
+  const gridLeftPx = boardScreenWidth * TAFL_GRID_LEFT_RATIO;
+  const gridTopPx = boardRenderHeight * TAFL_GRID_TOP_RATIO;
+  const gridWidthPx = boardScreenWidth * TAFL_GRID_WIDTH_RATIO;
+  const gridHeightPx = boardRenderHeight * TAFL_GRID_HEIGHT_RATIO;
+  const tileWidth = gridWidthPx / TAFL_BOARD_SIZE;
+  const tileHeight = gridHeightPx / TAFL_BOARD_SIZE;
+  // Match Mons board coordinate proportions:
+  // x = -0.2 tiles, y = +0.26 tiles, font = 0.24 tile units.
+  const labelOffsetX = tileWidth * 0.2;
+  const labelOffsetY = tileHeight * 0.26;
+  const labelFontSize = Math.max(1, Math.min(tileWidth, tileHeight) * 0.24);
+  const rowLabelNudgeX = 0.3;
+  const colLabelNudgeY = -5.5;
+  coordinateLayer.style.setProperty('--tafl-coordinate-font-size', `${labelFontSize}px`);
+
+  const labels = coordinateLayer.querySelectorAll('.tafl-board-coordinate[data-tafl-axis][data-tafl-index]');
+  for (const label of labels) {
+    const axis = label.getAttribute('data-tafl-axis');
+    const index = Number(label.getAttribute('data-tafl-index'));
+    if (!Number.isFinite(index)) {
+      continue;
+    }
+    if (axis === 'col') {
+      const left = gridLeftPx + (index + 0.5) * tileWidth;
+      const top = gridTopPx + gridHeightPx + labelOffsetY + colLabelNudgeY;
+      label.textContent = getTaflColumnLabelText(index);
+      label.style.left = `${left.toFixed(3)}px`;
+      label.style.top = `${top.toFixed(3)}px`;
+      continue;
+    }
+    if (axis === 'row') {
+      const left = gridLeftPx - labelOffsetX + rowLabelNudgeX;
+      const top = gridTopPx + (index + 0.5) * tileHeight;
+      label.textContent = getTaflRowLabelText(index);
+      label.style.left = `${left.toFixed(3)}px`;
+      label.style.top = `${top.toFixed(3)}px`;
+    }
+  }
+}
+
+function renderTaflPiecesForBoard(taflUi, gameState, gameId, boardScreenWidth, boardRenderHeight) {
+  const pieceLayer = taflUi?.pieceLayer;
+  const hintLayer = taflUi?.hintLayer;
+  if (!(pieceLayer instanceof HTMLElement) || !(hintLayer instanceof HTMLElement)) {
+    return;
+  }
+  pieceLayer.textContent = '';
+  hintLayer.textContent = '';
+  const piecesPayload = gameState?.pieces && typeof gameState.pieces === 'object' ? gameState.pieces : {};
+  const pieces = Object.values(piecesPayload).filter((piece) => piece && typeof piece === 'object');
+  pieces.sort((left, right) => {
+    const leftPriority = left?.side === 'king' ? 2 : left?.side === 'defender' ? 1 : 0;
+    const rightPriority = right?.side === 'king' ? 2 : right?.side === 'defender' ? 1 : 0;
+    if (leftPriority !== rightPriority) {
+      return leftPriority - rightPriority;
+    }
+    return String(left?.id || '').localeCompare(String(right?.id || ''));
+  });
+
+  const isSelectedBoard = normalizeTaflGameId(taflSelectionGameId || activeTaflGameId) === normalizeTaflGameId(gameId);
+  let selectedPiece = isSelectedBoard && taflSelectionPieceId ? piecesPayload[taflSelectionPieceId] : null;
+  if (isSelectedBoard && taflSelectionPieceId && !selectedPiece) {
+    taflSelectionPieceId = '';
+    taflSelectionGameId = '';
+    selectedPiece = null;
+  }
+  if (selectedPiece && !canCurrentPlayerControlTaflPieceFromPayload(gameState, selectedPiece)) {
+    taflSelectionPieceId = '';
+    taflSelectionGameId = '';
+    selectedPiece = null;
+  }
+  const winner = normalizeTaflWinnerSide(gameState?.winner);
+  const validMoves = selectedPiece && !winner ? getTaflValidMovesForPiece(piecesPayload, selectedPiece) : [];
+
+  const gridLeftPx = boardScreenWidth * TAFL_GRID_LEFT_RATIO;
+  const gridTopPx = boardRenderHeight * TAFL_GRID_TOP_RATIO;
+  const gridWidthPx = boardScreenWidth * TAFL_GRID_WIDTH_RATIO;
+  const gridHeightPx = boardRenderHeight * TAFL_GRID_HEIGHT_RATIO;
+  const tileWidth = gridWidthPx / TAFL_BOARD_SIZE;
+  const tileHeight = gridHeightPx / TAFL_BOARD_SIZE;
+  const pieceSize = Math.max(16, Math.min(tileWidth, tileHeight) * 0.74);
+
+  for (const move of validMoves) {
+    const hint = document.createElement('span');
+    hint.className = 'tafl-move-hint';
+    hint.style.left = `${(((gridLeftPx + ((move.col + 0.5) / TAFL_BOARD_SIZE) * gridWidthPx) / boardScreenWidth) * 100).toFixed(4)}%`;
+    hint.style.top = `${(((gridTopPx + ((move.row + 0.5) / TAFL_BOARD_SIZE) * gridHeightPx) / boardRenderHeight) * 100).toFixed(4)}%`;
+    hintLayer.appendChild(hint);
+  }
+
+  for (const piece of pieces) {
+    const pieceButton = document.createElement('button');
+    pieceButton.type = 'button';
+    pieceButton.className = `tafl-piece tafl-piece-${piece.side || 'attacker'}`;
+    pieceButton.setAttribute('aria-label', `${piece.side || 'piece'} piece`);
+    pieceButton.dataset.taflPieceId = String(piece.id || '');
+    pieceButton.dataset.taflGameId = normalizeTaflGameId(gameId);
+    pieceButton.style.left = `${(((gridLeftPx + ((piece.col + 0.5) / TAFL_BOARD_SIZE) * gridWidthPx) / boardScreenWidth) * 100).toFixed(4)}%`;
+    pieceButton.style.top = `${(((gridTopPx + ((piece.row + 0.5) / TAFL_BOARD_SIZE) * gridHeightPx) / boardRenderHeight) * 100).toFixed(4)}%`;
+    pieceButton.style.width = `${pieceSize}px`;
+    pieceButton.style.height = `${pieceSize}px`;
+    pieceButton.classList.toggle('is-selected', Boolean(selectedPiece && selectedPiece.id === piece.id));
+
+    const icon = document.createElement('img');
+    icon.src = TAFL_PIECE_ICON_BY_SIDE[piece.side] || TAFL_PIECE_ICON_BY_SIDE.attacker;
+    icon.alt = '';
+    icon.draggable = false;
+    icon.setAttribute('aria-hidden', 'true');
+    pieceButton.appendChild(icon);
+
+    pieceButton.addEventListener('pointerdown', (event) => {
+      onTaflPiecePointerDown(event, piece.id, gameId);
+    });
+    pieceLayer.appendChild(pieceButton);
+  }
+}
+
+function triggerTaflCaptureFxForBoard(taflUi, gameState, gameId, boardScreenWidth, boardRenderHeight) {
+  const fxLayer = taflUi?.fxLayer;
+  if (!(fxLayer instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedGameId = normalizeTaflGameId(gameId);
+  const moveTick = Number(gameState?.moveTick) || 0;
+  const previousMoveTick = lastRenderedTaflMoveTickById.get(normalizedGameId);
+  if (previousMoveTick === moveTick) {
+    return;
+  }
+  lastRenderedTaflMoveTickById.set(normalizedGameId, moveTick);
+  if (!Number.isFinite(previousMoveTick) || previousMoveTick <= 0 || moveTick <= 0) {
+    return;
+  }
+  const lastMove = normalizeTaflLastMovePayload(gameState?.lastMove);
+  if (!lastMove || !Array.isArray(lastMove.captured) || lastMove.captured.length === 0) {
+    return;
+  }
+  const gridLeftPx = boardScreenWidth * TAFL_GRID_LEFT_RATIO;
+  const gridTopPx = boardRenderHeight * TAFL_GRID_TOP_RATIO;
+  const gridWidthPx = boardScreenWidth * TAFL_GRID_WIDTH_RATIO;
+  const gridHeightPx = boardRenderHeight * TAFL_GRID_HEIGHT_RATIO;
+  const tileWidth = gridWidthPx / TAFL_BOARD_SIZE;
+  const tileHeight = gridHeightPx / TAFL_BOARD_SIZE;
+  const pieceSize = Math.max(16, Math.min(tileWidth, tileHeight) * 0.74);
+
+  for (const capturedEntry of lastMove.captured) {
+    const entry = normalizeTaflCapturedEntryPayload(capturedEntry);
+    if (!entry) {
+      continue;
+    }
+    const burst = document.createElement('div');
+    burst.className = 'tafl-capture-burst';
+    burst.style.left = `${(((gridLeftPx + ((entry.col + 0.5) / TAFL_BOARD_SIZE) * gridWidthPx) / boardScreenWidth) * 100).toFixed(4)}%`;
+    burst.style.top = `${(((gridTopPx + ((entry.row + 0.5) / TAFL_BOARD_SIZE) * gridHeightPx) / boardRenderHeight) * 100).toFixed(4)}%`;
+    burst.style.setProperty('--piece-size', `${pieceSize}px`);
+
+    const ghost = document.createElement('span');
+    ghost.className = `tafl-capture-ghost tafl-piece-${entry.side}`;
+    if (entry.side === 'king' || entry.removed === false) {
+      ghost.classList.add('is-king-retained');
+    }
+    const icon = document.createElement('img');
+    icon.src = TAFL_PIECE_ICON_BY_SIDE[entry.side] || TAFL_PIECE_ICON_BY_SIDE.attacker;
+    icon.alt = '';
+    icon.draggable = false;
+    icon.setAttribute('aria-hidden', 'true');
+    ghost.appendChild(icon);
+    burst.appendChild(ghost);
+
+    const smokeCount = entry.side === 'king' || entry.removed === false ? 7 : 10;
+    for (let index = 0; index < smokeCount; index += 1) {
+      const smoke = document.createElement('span');
+      smoke.className = 'tafl-capture-smoke';
+      const angle = (Math.PI * 2 * index) / smokeCount + Math.random() * 0.3;
+      const distance = (entry.side === 'king' || entry.removed === false ? 14 : 20) + Math.random() * 13;
+      smoke.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+      smoke.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
+      smoke.style.setProperty('--smoke-delay', `${(Math.random() * 0.08).toFixed(3)}s`);
+      smoke.style.setProperty('--smoke-dur', `${(0.44 + Math.random() * 0.26).toFixed(3)}s`);
+      smoke.style.setProperty('--smoke-size', `${(7 + Math.random() * 9).toFixed(1)}px`);
+      burst.appendChild(smoke);
+    }
+
+    fxLayer.appendChild(burst);
+    window.requestAnimationFrame(() => {
+      burst.classList.add('is-active');
+    });
+    const cleanupDelay = entry.side === 'king' || entry.removed === false
+      ? TAFL_CAPTURE_FX_DURATION_MS + 220
+      : TAFL_CAPTURE_FX_DURATION_MS + 320;
+    window.setTimeout(() => {
+      burst.remove();
+    }, cleanupDelay);
+  }
+}
+
+function restartTaflWinOverlayAnimation(taflUi) {
+  const winOverlay = taflUi?.winOverlay;
+  if (!(winOverlay instanceof HTMLElement)) {
+    return;
+  }
+  if (Number.isFinite(taflUi.winAnimationTimeoutId) && taflUi.winAnimationTimeoutId > 0) {
+    window.clearTimeout(taflUi.winAnimationTimeoutId);
+    taflUi.winAnimationTimeoutId = 0;
+  }
+  winOverlay.classList.remove('is-animating');
+  void winOverlay.offsetWidth;
+  winOverlay.classList.add('is-animating');
+  taflUi.winAnimationTimeoutId = window.setTimeout(() => {
+    if (!winOverlay.isConnected) {
+      return;
+    }
+    winOverlay.classList.remove('is-animating');
+    taflUi.winAnimationTimeoutId = 0;
+  }, 1520);
+}
+
+function renderTaflWinOverlayForBoard(
+  taflUi,
+  gameState,
+  gameId,
+  boardScreenWidth = TAFL_BOARD_CANVAS_WIDTH,
+  boardScreenHeight = TAFL_BOARD_CANVAS_HEIGHT
+) {
+  const winOverlay = taflUi?.winOverlay;
+  const winDialog = taflUi?.winDialog;
+  const winClash = taflUi?.winClash;
+  const winTitle = taflUi?.winTitle;
+  const winButton = taflUi?.winButton;
+  if (
+    !(winOverlay instanceof HTMLElement) ||
+    !(winDialog instanceof HTMLElement) ||
+    !(winClash instanceof HTMLElement) ||
+    !(winTitle instanceof HTMLElement) ||
+    !(winButton instanceof HTMLButtonElement)
+  ) {
+    return;
+  }
+  const stableDialogWidth = snapToDevicePixel(
+    clamp(boardScreenWidth - 16, 96, 248),
+    96
+  );
+  setElementStylePx(winDialog, 'width', stableDialogWidth);
+  setElementStylePx(winDialog, 'maxWidth', stableDialogWidth);
+  const contentScale = clamp(stableDialogWidth / 248, 0.46, 1);
+  setElementStyleCustomProperty(winDialog, '--tafl-win-content-scale', `${contentScale.toFixed(3)}`);
+  const showClash = stableDialogWidth >= 184;
+  const showTitle = stableDialogWidth >= 152;
+  const isZoomedInView = stableDialogWidth >= 184;
+  const elementsOffsetY = isZoomedInView ? -25 : 0;
+  setElementStyleCustomProperty(winDialog, '--tafl-win-elements-offset-y', `${elementsOffsetY}px`);
+  winClash.classList.toggle('hidden', !showClash);
+  winTitle.classList.toggle('hidden', !showTitle);
+  if (showClash) {
+    setElementStyleValue(winDialog, 'padding', '14px 14px 16px');
+    setElementStyleValue(winDialog, 'gap', '10px');
+  } else if (showTitle) {
+    setElementStyleValue(winDialog, 'padding', '10px 10px 12px');
+    setElementStyleValue(winDialog, 'gap', '8px');
+  } else {
+    setElementStyleValue(winDialog, 'padding', '8px');
+    setElementStyleValue(winDialog, 'gap', '0px');
+  }
+  const buttonHeight = snapToDevicePixel(
+    clamp(34 * (0.68 + contentScale * 0.32), 22, 34),
+    22
+  );
+  const buttonMinWidth = snapToDevicePixel(
+    clamp(146 * (0.62 + contentScale * 0.38), 84, 146),
+    84
+  );
+  setElementStylePx(winButton, 'height', buttonHeight);
+  setElementStylePx(winButton, 'minWidth', buttonMinWidth);
+  setElementStyleValue(
+    winButton,
+    'fontSize',
+    `${clamp(12 * (0.68 + contentScale * 0.32), 8.5, 12).toFixed(2)}px`
+  );
+  setElementStyleValue(
+    winButton,
+    'letterSpacing',
+    `${clamp(0.09 * contentScale, 0.05, 0.09).toFixed(3)}em`
+  );
+  setElementStyleValue(
+    winTitle,
+    'fontSize',
+    `${clamp(28 * contentScale, 13, 28).toFixed(2)}px`
+  );
+  setElementStyleValue(
+    winTitle,
+    'letterSpacing',
+    `${clamp(0.13 * contentScale, 0.07, 0.13).toFixed(3)}em`
+  );
+  setElementStyleValue(
+    winTitle,
+    'lineHeight',
+    `${clamp(1.05 + (1 - contentScale) * 0.08, 1.05, 1.13).toFixed(3)}`
+  );
+
+  const normalizedGameId = normalizeTaflGameId(gameId);
+  const winner = normalizeTaflWinnerSide(gameState?.winner);
+  if (!winner) {
+    winOverlay.classList.remove('is-visible');
+    winOverlay.classList.remove('is-animating');
+    winOverlay.setAttribute('aria-hidden', 'true');
+    winTitle.textContent = '';
+    if (Number.isFinite(taflUi.winAnimationTimeoutId) && taflUi.winAnimationTimeoutId > 0) {
+      window.clearTimeout(taflUi.winAnimationTimeoutId);
+      taflUi.winAnimationTimeoutId = 0;
+    }
+    lastRenderedTaflWinnerById.set(normalizedGameId, '');
+    return;
+  }
+  const previousWinner = normalizeTaflWinnerSide(lastRenderedTaflWinnerById.get(normalizedGameId));
+  if (previousWinner !== winner) {
+    restartTaflWinOverlayAnimation(taflUi);
+  }
+  winTitle.textContent = winner === 'attacker' ? 'ATTACKERS WIN' : 'DEFENDERS WIN';
+  winButton.disabled = false;
+  winOverlay.classList.add('is-visible');
+  winOverlay.setAttribute('aria-hidden', 'false');
+  lastRenderedTaflWinnerById.set(normalizedGameId, winner);
+}
+
+function renderTaflHudForBoard(taflUi, gameState, boardScreenWidth, boardScreenHeight) {
+  const hud = taflUi?.hud;
+  const attackerButtonWrap = taflUi?.attackerButtonWrap;
+  const defenderButtonWrap = taflUi?.defenderButtonWrap;
+  const attackerAvatar = taflUi?.attackerAvatar;
+  const defenderAvatar = taflUi?.defenderAvatar;
+  const attackerClaimButton = taflUi?.attackerClaimButton;
+  const defenderClaimButton = taflUi?.defenderClaimButton;
+  const attackerClaimsList = taflUi?.attackerClaimsList;
+  const defenderClaimsList = taflUi?.defenderClaimsList;
+  const undoButton = taflUi?.undoButton;
+  const resetButton = taflUi?.resetButton;
+  const statusLabel = taflUi?.statusLabel;
+  if (
+    !(hud instanceof HTMLElement) ||
+    !(attackerButtonWrap instanceof HTMLElement) ||
+    !(defenderButtonWrap instanceof HTMLElement) ||
+    !(attackerAvatar instanceof HTMLImageElement) ||
+    !(defenderAvatar instanceof HTMLImageElement) ||
+    !(attackerClaimButton instanceof HTMLButtonElement) ||
+    !(defenderClaimButton instanceof HTMLButtonElement) ||
+    !(attackerClaimsList instanceof HTMLElement) ||
+    !(defenderClaimsList instanceof HTMLElement) ||
+    !(undoButton instanceof HTMLButtonElement) ||
+    !(resetButton instanceof HTMLButtonElement) ||
+    !(statusLabel instanceof HTMLElement)
+  ) {
+    return TAFL_HUD_MIN_HEIGHT;
+  }
+
+  const hudHeight = snapToDevicePixel(
+    Math.max(
+      TAFL_HUD_MIN_HEIGHT,
+      boardScreenHeight - boardScreenWidth,
+      boardScreenHeight * TAFL_HUD_HEIGHT_RATIO
+    ),
+    TAFL_HUD_MIN_HEIGHT
+  );
+  setElementStylePx(hud, 'width', boardScreenWidth);
+  setElementStylePx(hud, 'height', hudHeight);
+  const sideIconSize = snapToDevicePixel(clamp(boardScreenWidth * 0.058, 24, 40), 24);
+  setElementStylePx(attackerButtonWrap, 'width', sideIconSize);
+  setElementStylePx(attackerButtonWrap, 'height', sideIconSize);
+  setElementStylePx(defenderButtonWrap, 'width', sideIconSize);
+  setElementStylePx(defenderButtonWrap, 'height', sideIconSize);
+  setElementStylePx(attackerClaimButton, 'width', sideIconSize);
+  setElementStylePx(attackerClaimButton, 'height', sideIconSize);
+  setElementStylePx(defenderClaimButton, 'width', sideIconSize);
+  setElementStylePx(defenderClaimButton, 'height', sideIconSize);
+  setElementStylePx(attackerAvatar, 'width', sideIconSize);
+  setElementStylePx(attackerAvatar, 'height', sideIconSize);
+  setElementStylePx(defenderAvatar, 'width', sideIconSize);
+  setElementStylePx(defenderAvatar, 'height', sideIconSize);
+
+  renderTaflSideClaimsList(attackerClaimsList, gameState?.claims?.attacker, 'attacker', attackerClaimButton);
+  renderTaflSideClaimsList(defenderClaimsList, gameState?.claims?.defender, 'defender', defenderClaimButton);
+
+  const undoHistory = normalizeTaflUndoHistoryPayload(gameState?.undoHistory);
+  const topUndoEntry = undoHistory.length > 0 ? undoHistory[undoHistory.length - 1] : null;
+  const canUndo = Boolean(topUndoEntry) && canCurrentPlayerUndoTaflEntry(topUndoEntry);
+  const showUndoAtZoom = shouldShowMonsHudPotions(boardScreenWidth);
+  undoButton.classList.toggle('hidden', !showUndoAtZoom);
+  undoButton.disabled = !canUndo;
+  undoButton.classList.toggle('is-disabled', !canUndo);
+  statusLabel.textContent = '';
+  statusLabel.classList.remove('is-win');
+  statusLabel.classList.add('hidden');
+  resetButton.classList.add('hidden');
+  return hudHeight;
+}
+
+function syncTaflShellHudThemeStyles(taflUi) {
+  const shell = taflUi?.shell;
+  const hud = taflUi?.hud;
+  if (!(shell instanceof HTMLElement) || !(hud instanceof HTMLElement) || !(tableRoot instanceof HTMLElement)) {
+    return;
+  }
+  const rootStyles = window.getComputedStyle(tableRoot);
+  const isLightMode = tableRoot.classList.contains('light-mode');
+  const shellBackground = isLightMode
+    ? rootStyles.getPropertyValue('--game-board-shell-bg').trim()
+    : rootStyles.getPropertyValue('--tafl-shell-bg-dark').trim() ||
+      rootStyles.getPropertyValue('--game-board-shell-bg').trim();
+  const shellBorderColor = rootStyles.getPropertyValue('--game-board-shell-border').trim();
+  const shellShadow = rootStyles.getPropertyValue('--game-board-shell-shadow').trim();
+  const hudBackground = isLightMode
+    ? rootStyles.getPropertyValue('--game-board-hud-bg').trim()
+    : rootStyles.getPropertyValue('--tafl-hud-bg-dark').trim() ||
+      rootStyles.getPropertyValue('--game-board-hud-bg').trim();
+  const hudColor = rootStyles.getPropertyValue('--game-board-hud-color').trim();
+  if (shellBackground) {
+    shell.style.background = shellBackground;
+  }
+  if (shellBorderColor) {
+    shell.style.borderColor = shellBorderColor;
+  }
+  if (shellShadow) {
+    shell.style.boxShadow = shellShadow;
+  }
+  if (hudBackground) {
+    hud.style.background = hudBackground;
+  }
+  if (hudColor) {
+    hud.style.color = hudColor;
+  }
+}
+
+function renderTaflBoards() {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  const activeId = normalizeTaflGameId(activeTaflGameId);
+  const controlSize = MONS_MOVE_CONTROL_SIZE;
+  const controlGap = DECK_CONTROL_GAP;
+  const visibleIds = new Set();
+
+  for (const [gameId, gameState] of taflGameStatesById.entries()) {
+    if (!gameState || gameState.enabled === false) {
+      continue;
+    }
+    const normalizedGameId = normalizeTaflGameId(gameId);
+    const taflUi = ensureTaflBoardUi(normalizedGameId);
+    if (!taflUi?.shell || !taflUi.moveButton || !taflUi.optionsButton || !taflUi.hud) {
+      continue;
+    }
+    visibleIds.add(normalizedGameId);
+
+    const boardShouldCoverDrawings = gameState.coverDrawings === true;
+    if (taflUi.shell.classList.contains('is-drag-floating')) {
+      taflUi.shell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
+    } else if (boardShouldCoverDrawings) {
+      if (taflUi.shell.parentElement !== tableRoot) {
+        tableRoot.appendChild(taflUi.shell);
+      }
+      taflUi.shell.classList.add('is-cover-drawings');
+    } else {
+      if (taflUi.shell.parentElement !== gameLayer) {
+        gameLayer.appendChild(taflUi.shell);
+      }
+      taflUi.shell.classList.remove('is-cover-drawings');
+    }
+
+    const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
+    const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
+    const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    taflUi.shell.classList.remove('hidden');
+    setElementStylePx(taflUi.shell, 'left', boardScreen.x);
+    setElementStylePx(taflUi.shell, 'top', boardScreen.y);
+    setElementStylePx(taflUi.shell, 'width', boardScreenWidth);
+    setElementStylePx(taflUi.shell, 'height', boardScreenHeight);
+    syncTaflShellHudThemeStyles(taflUi);
+    const hudHeight = renderTaflHudForBoard(taflUi, gameState, boardScreenWidth, boardScreenHeight);
+    const boardRenderHeight = Math.max(1, boardScreenHeight - hudHeight);
+    taflUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
+    renderTaflCoordinatesForBoard(taflUi, gameState, boardScreenWidth, boardRenderHeight);
+    renderTaflPiecesForBoard(taflUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
+    triggerTaflCaptureFxForBoard(taflUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
+    renderTaflWinOverlayForBoard(
+      taflUi,
+      gameState,
+      normalizedGameId,
+      boardScreenWidth,
+      boardScreenHeight
+    );
+
+    const moveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
+    const moveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
+    taflUi.moveButton.classList.remove('hidden');
+    setElementStylePx(taflUi.moveButton, 'left', moveButtonX);
+    setElementStylePx(taflUi.moveButton, 'top', moveButtonY);
+    setElementStylePx(taflUi.moveButton, 'width', controlSize);
+    setElementStylePx(taflUi.moveButton, 'height', controlSize);
+    taflUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
+
+    taflUi.optionsButton.classList.remove('hidden');
+    setElementStylePx(taflUi.optionsButton, 'left', moveButtonX);
+    setElementStylePx(taflUi.optionsButton, 'top', moveButtonY - controlSize - controlGap);
+    setElementStylePx(taflUi.optionsButton, 'width', controlSize);
+    setElementStylePx(taflUi.optionsButton, 'height', controlSize);
+
+    if (normalizedGameId === activeId) {
+      const shellParent = boardShouldCoverDrawings ? tableRoot : gameLayer;
+      if (taflUi.shell.parentElement === shellParent) {
+        shellParent.appendChild(taflUi.shell);
+      }
+      tableRoot.appendChild(taflUi.optionsButton);
+      tableRoot.appendChild(taflUi.moveButton);
+    }
+  }
+
+  for (const [gameId, taflUi] of Array.from(taflBoardElementsById.entries())) {
+    if (visibleIds.has(gameId)) {
+      continue;
+    }
+    if (activeGameOptionsTarget === `tafl:${gameId}`) {
+      closeGameOptionsMenu();
+    }
+    removeTaflBoardUi(taflUi);
+    taflBoardElementsById.delete(gameId);
+    lastRenderedTaflMoveTickById.delete(normalizeTaflGameId(gameId));
+    lastRenderedTaflWinnerById.delete(normalizeTaflGameId(gameId));
+  }
 }
 
 function getCardHandOwnerId(cardState) {
@@ -6899,6 +8745,33 @@ function requestMediaStartBroadcast(dieId) {
     });
 }
 
+function pauseMediaControllerPlayback(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller || controller.disposed) {
+    return;
+  }
+  controller.pendingAutoStart = false;
+  if (controller.provider === 'youtube' && controller.player && typeof controller.player.pauseVideo === 'function') {
+    try {
+      controller.player.pauseVideo();
+    } catch {
+      // Pause can fail if API is not yet ready.
+    }
+    return;
+  }
+  if (controller.provider === 'soundcloud' && controller.widget && typeof controller.widget.pause === 'function') {
+    try {
+      controller.widget.pause();
+    } catch {
+      // Pause can fail if widget is not yet ready.
+    }
+  }
+}
+
 function tryAutoplayMediaController(dieId) {
   const normalizedDieId = String(dieId || '').trim();
   if (!normalizedDieId) {
@@ -7051,13 +8924,16 @@ function syncMediaStartSignalFromState(dieId, previousDieState, nextDieState) {
     clearMediaPlaybackTrackingForDie(normalizedDieId);
     return;
   }
+  const previousSignalKey = getMediaSignalKeyFromState(previousDieState);
+  const handledSignalKey = mediaSignalKeyByDieId.get(normalizedDieId);
   const nextSignalKey = getMediaSignalKeyFromState(nextDieState);
   if (!nextSignalKey) {
     mediaSignalKeyByDieId.delete(normalizedDieId);
+    if (previousSignalKey || handledSignalKey) {
+      pauseMediaControllerPlayback(normalizedDieId);
+    }
     return;
   }
-  const previousSignalKey = getMediaSignalKeyFromState(previousDieState);
-  const handledSignalKey = mediaSignalKeyByDieId.get(normalizedDieId);
   if (handledSignalKey === nextSignalKey && previousSignalKey === nextSignalKey) {
     return;
   }
@@ -8138,6 +10014,11 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   }
 
   if (dieType === 'd20') {
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    bg.setAttribute('points', '50,10 84.64,30 84.64,70 50,90 15.36,70 15.36,30');
+    bg.setAttribute('class', 'table-die-d20-bg');
+    svg.appendChild(bg);
+
     const shell = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     shell.setAttribute('points', '50,10 84.64,30 84.64,70 50,90 15.36,70 15.36,30');
     shell.setAttribute('class', 'table-die-d20-shell');
@@ -8153,6 +10034,15 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     svg.appendChild(text);
     return;
   }
+
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bgRect.setAttribute('x', '10');
+  bgRect.setAttribute('y', '10');
+  bgRect.setAttribute('width', '80');
+  bgRect.setAttribute('height', '80');
+  bgRect.setAttribute('rx', '18');
+  bgRect.setAttribute('class', 'table-die-d6-bg');
+  svg.appendChild(bgRect);
 
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttribute('x', '10');
@@ -8287,6 +10177,18 @@ function renderDieElement(dieId) {
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
   die.classList.toggle('table-die-counter', isCounter);
+  if ((dieType === 'd6' || dieType === 'd20') && rolling) {
+    const rollStartedAt = Number(dieState?.rollStartedAt);
+    const rollDurationMs = Math.max(1, Number(dieState?.rollDurationMs) || DIE_ROLL_DURATION_MS);
+    const elapsedMs = Number.isFinite(rollStartedAt) ? clamp(now - rollStartedAt, 0, rollDurationMs) : 0;
+    const progress = clamp(elapsedMs / rollDurationMs, 0, 1);
+    const isLightMode = tableRoot?.classList.contains('light-mode') === true;
+    const fadeStrength = isLightMode ? 0.92 : 0.7;
+    const backgroundOpacity = 1 - fadeStrength * Math.sin(progress * Math.PI);
+    die.style.setProperty('--die-roll-bg-opacity', backgroundOpacity.toFixed(3));
+  } else {
+    die.style.removeProperty('--die-roll-bg-opacity');
+  }
   if (isCounter) {
     const counterControlFontSize = clamp(
       screenWidth / COUNTER_CONTROL_FONT_WIDTH_DIVISOR,
@@ -8390,7 +10292,8 @@ function renderDieElement(dieId) {
           if (!(segmentElement instanceof SVGElement)) {
             continue;
           }
-          segmentElement.classList.remove('is-active', 'is-dimmed');
+          segmentElement.classList.remove('is-active');
+          segmentElement.classList.add('is-dimmed');
         }
       } else {
         const segmentCount = getSpinnerSegmentCount(dieState);
@@ -8412,7 +10315,8 @@ function renderDieElement(dieId) {
           if (!(labelElement instanceof SVGElement)) {
             continue;
           }
-          labelElement.classList.remove('is-active', 'is-dimmed');
+          labelElement.classList.remove('is-active');
+          labelElement.classList.add('is-dimmed');
         }
       } else {
         const segmentCount = getSpinnerSegmentCount(dieState);
@@ -9631,6 +11535,7 @@ function applyCamera() {
     setLocalHandCountLabel();
   }
   renderMonsBoard();
+  renderTaflBoards();
   if (selectionBoxElement && !selectionBoxElement.classList.contains('hidden')) {
     const startWorldX = Number(selectionBoxElement.dataset.startWorldX || 0);
     const startWorldY = Number(selectionBoxElement.dataset.startWorldY || 0);
@@ -9748,6 +11653,7 @@ function setLightMode(enabled, options = {}) {
 
   tableRoot.classList.toggle('light-mode', nextEnabled);
   setModeIcon(nextEnabled);
+  renderTaflBoards();
 
   if (!shouldAnimate) {
     return;
@@ -10697,8 +12603,9 @@ function isTabletopCompletelyEmpty() {
   const hasDice = diceById.size > 0;
   const hasDecks = deckStatesById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasDrawings;
+  return !hasCards && !hasDice && !hasDecks && !hasMonsBoards && !hasTaflBoards && !hasDrawings;
 }
 
 function hasRemovableDeleteTargets() {
@@ -10706,8 +12613,9 @@ function hasRemovableDeleteTargets() {
   const hasDice = diceById.size > 0;
   const hasDecks = deckStatesById.size > 0;
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return hasCards || hasDice || hasDecks || hasMonsBoards || hasDrawings;
+  return hasCards || hasDice || hasDecks || hasMonsBoards || hasTaflBoards || hasDrawings;
 }
 
 function syncRemoveComponentsButtonState() {
@@ -10756,6 +12664,9 @@ function resolveGameOptionsTitle(targetKey) {
   if (targetKey === MONS_GAME_KEY || String(targetKey || '').startsWith('mons:')) {
     return 'super metal mons!';
   }
+  if (targetKey === TAFL_GAME_KEY || String(targetKey || '').startsWith('tafl:')) {
+    return 'hnefatafl';
+  }
   return 'cool jpegs';
 }
 
@@ -10775,16 +12686,60 @@ function getMonsGameIdFromGameOptionsTarget(target) {
   return normalizeMonsGameId(raw.slice('mons:'.length));
 }
 
+function getTaflGameIdFromGameOptionsTarget(target) {
+  const raw = String(target || '');
+  if (!raw.startsWith('tafl:')) {
+    return '';
+  }
+  return normalizeTaflGameId(raw.slice('tafl:'.length));
+}
+
 function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
   const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
   if (targetMonsGameId) {
     return isMonsCoverDrawingsEnabled(targetMonsGameId);
+  }
+  const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(target);
+  if (targetTaflGameId) {
+    return isTaflCoverDrawingsEnabled(targetTaflGameId);
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(target);
   if (targetDeckId) {
     return isDeckCoverDrawingsEnabled(targetDeckId);
   }
   return false;
+}
+
+function canConfigureCoordinatesForGameOptionsTarget(target = activeGameOptionsTarget) {
+  return Boolean(getMonsGameIdFromGameOptionsTarget(target) || getTaflGameIdFromGameOptionsTarget(target));
+}
+
+function isShowCoordinatesEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
+  const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
+  if (targetMonsGameId) {
+    return isMonsShowCoordinatesEnabled(targetMonsGameId);
+  }
+  const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(target);
+  if (targetTaflGameId) {
+    return isTaflShowCoordinatesEnabled(targetTaflGameId);
+  }
+  return true;
+}
+
+function syncGameOptionsShowCoordinatesToggleState() {
+  if (!gameOptionsShowCoordinatesToggle) {
+    return;
+  }
+  const canConfigure = canConfigureCoordinatesForGameOptionsTarget(activeGameOptionsTarget);
+  if (gameOptionsShowCoordinatesRow) {
+    gameOptionsShowCoordinatesRow.classList.toggle('hidden', !canConfigure);
+  }
+  gameOptionsShowCoordinatesToggleSyncing = true;
+  gameOptionsShowCoordinatesToggle.checked = canConfigure
+    ? isShowCoordinatesEnabledForGameOptionsTarget(activeGameOptionsTarget)
+    : true;
+  gameOptionsShowCoordinatesToggle.disabled = !canConfigure;
+  gameOptionsShowCoordinatesToggleSyncing = false;
 }
 
 function syncGameOptionsCoverDrawingsToggleState() {
@@ -10808,6 +12763,9 @@ function openGameOptionsMenu(targetKey, targetId = '') {
   if (targetKey === MONS_GAME_KEY) {
     const normalizedMonsGameId = normalizeMonsGameId(targetId || activeMonsGameId || MONS_GAME_KEY);
     activeGameOptionsTarget = `mons:${normalizedMonsGameId}`;
+  } else if (targetKey === TAFL_GAME_KEY) {
+    const normalizedTaflGameId = normalizeTaflGameId(targetId || activeTaflGameId || TAFL_GAME_KEY);
+    activeGameOptionsTarget = `tafl:${normalizedTaflGameId}`;
   } else {
     activeGameOptionsTarget = `deck:${normalizeDeckId(targetId || activeDeckId || DECK_KEY)}`;
   }
@@ -10817,6 +12775,7 @@ function openGameOptionsMenu(targetKey, targetId = '') {
   } else if (gameOptionsTitle) {
     gameOptionsTitle.textContent = titleText;
   }
+  syncGameOptionsShowCoordinatesToggleState();
   syncGameOptionsCoverDrawingsToggleState();
   gameOptionsModal.classList.remove('hidden');
 }
@@ -10827,9 +12786,11 @@ function closeGameOptionsMenu() {
   }
   gameOptionsModal.classList.add('hidden');
   activeGameOptionsTarget = '';
+  syncGameOptionsShowCoordinatesToggleState();
   syncGameOptionsCoverDrawingsToggleState();
 }
 
+syncGameOptionsShowCoordinatesToggleState();
 syncGameOptionsCoverDrawingsToggleState();
 
 function closeClearTableWarningModal(shouldContinue = false) {
@@ -10937,6 +12898,11 @@ async function handleGameOptionsReset() {
     await resetSuperMetalMonsGame(targetMonsGameId);
     return;
   }
+  const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetTaflGameId) {
+    await resetHnefataflGame(targetTaflGameId);
+    return;
+  }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
   await resetCoolJpegsGame(targetDeckId || activeDeckId);
 }
@@ -10948,6 +12914,11 @@ async function handleGameOptionsPutAway() {
   const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(activeGameOptionsTarget);
   if (targetMonsGameId) {
     await putAwaySuperMetalMonsGame(targetMonsGameId);
+    return;
+  }
+  const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetTaflGameId) {
+    await putAwayHnefataflGame(targetTaflGameId);
     return;
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
@@ -11027,6 +12998,16 @@ deleteSelectionButton?.addEventListener('click', () => {
 gameOptionsCloseButton?.addEventListener('click', () => {
   closeGameOptionsMenu();
 });
+gameOptionsShowCoordinatesToggle?.addEventListener('change', () => {
+  if (gameOptionsShowCoordinatesToggleSyncing || !activeGameOptionsTarget) {
+    return;
+  }
+  setGameShowCoordinatesPreference(activeGameOptionsTarget, gameOptionsShowCoordinatesToggle.checked).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+    syncGameOptionsShowCoordinatesToggleState();
+  });
+});
 gameOptionsCoverDrawingsToggle?.addEventListener('change', () => {
   if (gameOptionsCoverDrawingsToggleSyncing || !activeGameOptionsTarget) {
     return;
@@ -11086,6 +13067,14 @@ coolJpegsTile?.addEventListener('click', async () => {
 superMetalMonsTile?.addEventListener('click', async () => {
   closeAssetMenu();
   spawnSuperMetalMonsBoard().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
+hnefataflTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnHnefataflBoard().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -11980,8 +13969,47 @@ function initializeStickerTileIconShuffle(tile) {
   });
 }
 
+function renderTaflTileSpawnPreview(tile = hnefataflTile) {
+  if (!(tile instanceof HTMLElement)) {
+    return;
+  }
+  const layer = tile.querySelector('.asset-tafl-preview-pieces');
+  if (!(layer instanceof HTMLElement)) {
+    return;
+  }
+  layer.textContent = '';
+  const spawnPoints = [
+    ...TAFL_ATTACKER_START_POSITIONS.map((point) => ({ side: 'attacker', row: point.row, col: point.col })),
+    ...TAFL_DEFENDER_START_POSITIONS.map((point) => ({ side: 'defender', row: point.row, col: point.col })),
+    { side: 'king', row: TAFL_THRONE_ROW, col: TAFL_THRONE_COL }
+  ];
+  const fragment = document.createDocumentFragment();
+  for (const point of spawnPoints) {
+    const iconSrc = TAFL_PIECE_ICON_BY_SIDE[point.side];
+    if (!iconSrc) {
+      continue;
+    }
+    const icon = document.createElement('img');
+    icon.className = `asset-tafl-preview-piece asset-tafl-preview-piece-${point.side}`;
+    icon.src = iconSrc;
+    icon.alt = '';
+    icon.loading = 'lazy';
+    icon.decoding = 'async';
+    const leftPercent =
+      (TAFL_GRID_LEFT_RATIO + ((point.col + 0.5) / TAFL_BOARD_SIZE) * TAFL_GRID_WIDTH_RATIO) * 100;
+    const topPercent =
+      (TAFL_GRID_TOP_RATIO + ((point.row + 0.5) / TAFL_BOARD_SIZE) * TAFL_GRID_HEIGHT_RATIO) * 100;
+    icon.style.left = `${leftPercent.toFixed(3)}%`;
+    icon.style.top = `${topPercent.toFixed(3)}%`;
+    fragment.appendChild(icon);
+  }
+  layer.appendChild(fragment);
+}
+
+renderTaflTileSpawnPreview(hnefataflTile);
 initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
+initializeTileTilt(hnefataflTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(spinnerComponentTile);
@@ -12768,6 +14796,7 @@ shieldPointerEvents(instanceWarningContinueButton);
 shieldPointerEvents(instanceWarningCancelButton);
 shieldPointerEvents(gameOptionsModal);
 shieldPointerEvents(gameOptionsCloseButton);
+shieldPointerEvents(gameOptionsShowCoordinatesToggle);
 shieldPointerEvents(gameOptionsCoverDrawingsToggle);
 shieldPointerEvents(gameOptionsResetButton);
 shieldPointerEvents(gameOptionsPutAwayButton);
@@ -13035,6 +15064,8 @@ async function startRealtimeSession() {
   let cursorHeartbeatIntervalId = 0;
   let localLockWatchdogIntervalId = 0;
   const endedTouchPointerIds = new Set();
+  const endedPointerAtById = new Map();
+  const pointerPressSerialById = new Map();
   const recentTouchTapByCardId = new Map();
   const recentTouchTapByDieId = new Map();
   const recentMouseClickByCardId = new Map();
@@ -13057,6 +15088,10 @@ async function startRealtimeSession() {
   let marbleFlickArrowElement = null;
   let marbleMotionRafId = 0;
   const marbleMotionByDieId = new Map();
+  const marbleActiveCollisionContactsByDieId = new Map();
+  const marbleCollisionCooldownByPair = new Map();
+  const marbleCollisionCooldownByTarget = new Map();
+  const marbleCollisionActionInFlight = new Set();
   const pendingDeleteKeys = new Set();
   const deleteModeUndoHistory = [];
   let deleteModeUndoPending = false;
@@ -13068,7 +15103,10 @@ async function startRealtimeSession() {
   let hasLoadedCursorSnapshot = false;
   const staleCardLockRecoveryAttemptAtById = new Map();
   const staleCardLockRecoveryInFlight = new Set();
+  const staleDieLockRecoveryAttemptAtById = new Map();
+  const staleDieLockRecoveryInFlight = new Set();
   let staleCardLockSweepInProgress = false;
+  let staleDieLockSweepInProgress = false;
   let hasSignaledSessionLeave = false;
 
   function getMonsGameRef(gameId = activeMonsGameId) {
@@ -13255,6 +15293,16 @@ async function startRealtimeSession() {
       return;
     }
 
+    if (kind === 'tafl-game') {
+      const gameId = normalizeTaflGameId(entry.gameId || activeTaflGameId);
+      const gamePayload = cloneDeleteUndoPayload(entry.gamePayload);
+      if (!gameId || !gamePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/games/${gameId}`), gamePayload);
+      return;
+    }
+
     if (kind === 'mons-piece') {
       const gameId = normalizeMonsGameId(entry.gameId || activeMonsGameId);
       const pieceId = String(entry.pieceId || '').trim();
@@ -13349,6 +15397,15 @@ async function startRealtimeSession() {
       );
     }
     return getUniqueConnectedElements(elements);
+  }
+
+  function getTaflGameDeleteFadeElements(gameId = activeTaflGameId) {
+    const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const taflUi = taflBoardElementsById.get(targetGameId);
+    if (!taflUi) {
+      return [];
+    }
+    return getUniqueConnectedElements([taflUi.shell, taflUi.moveButton, taflUi.optionsButton]);
   }
 
   function getMonsPieceDeleteFadeElement(pieceId, gameId = activeMonsGameId) {
@@ -13488,6 +15545,25 @@ async function startRealtimeSession() {
     if (didDelete && gameSnapshot) {
       pushDeleteModeUndoEntry({
         kind: 'mons-game',
+        gameId: targetGameId,
+        gamePayload: gameSnapshot
+      });
+    }
+  }
+
+  async function deleteTaflGameInRemoveMode(gameId = activeTaflGameId) {
+    const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const gameSnapshot = cloneDeleteUndoPayload(getTaflGameStateById(targetGameId));
+    const didDelete = await runDeleteWithFade(
+      `tafl-game:${targetGameId}`,
+      getTaflGameDeleteFadeElements(targetGameId),
+      async () => {
+        await putAwayHnefataflGame(targetGameId);
+      }
+    );
+    if (didDelete && gameSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'tafl-game',
         gameId: targetGameId,
         gamePayload: gameSnapshot
       });
@@ -13655,10 +15731,64 @@ async function startRealtimeSession() {
     patchLocalDie(dieId, stopPatch);
     queueDiePatch(dieId, stopPatch);
     marbleMotionByDieId.delete(dieId);
+    marbleActiveCollisionContactsByDieId.delete(dieId);
     if (dieState.holderClientId === clientId) {
       releaseDieLock(dieId).catch((error) => {
         console.error(error);
       });
+    }
+    return true;
+  }
+
+  async function forceRefreshMarbleStateForSecondaryDrag(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return false;
+    }
+    const localDieState = diceById.get(targetDieId);
+    if (!isMarbleDieState(localDieState)) {
+      return false;
+    }
+    const localStopPatch = {
+      moving: false,
+      velocityX: 0,
+      velocityY: 0,
+      holderClientId: null
+    };
+    marbleMotionByDieId.delete(targetDieId);
+    marbleActiveCollisionContactsByDieId.delete(targetDieId);
+    patchLocalDie(targetDieId, localStopPatch);
+    queueDiePatch(targetDieId, localStopPatch);
+    if (localDieState.holderClientId === clientId) {
+      releaseDieLock(targetDieId).catch((error) => {
+        console.error(error);
+      });
+    }
+    try {
+      await runTransaction(
+        ref(db, `${roomPath}/dice/${targetDieId}`),
+        (currentDie) => {
+          if (!currentDie || typeof currentDie !== 'object') {
+            return;
+          }
+          const normalized = normalizeDicePayload(currentDie);
+          if (!isMarbleDieState(normalized)) {
+            return currentDie;
+          }
+          return {
+            ...currentDie,
+            type: 'marble',
+            moving: false,
+            velocityX: 0,
+            velocityY: 0,
+            holderClientId: null,
+            updatedAt: Date.now()
+          };
+        },
+        { applyLocally: false }
+      );
+    } catch (error) {
+      console.error(error);
     }
     return true;
   }
@@ -14009,6 +16139,7 @@ async function startRealtimeSession() {
       handReorderState ||
       deckDragState ||
       monsDragState ||
+      taflDragState ||
       selectionBoxState
     );
   }
@@ -14019,6 +16150,74 @@ async function startRealtimeSession() {
     }
     const lastMotionAt = Number(dragState.lastMotionAt) || 0;
     return Date.now() - lastMotionAt >= RIGHT_CLICK_FLIP_REST_MS;
+  }
+
+  function releasePointerCaptureSafely(target, pointerId) {
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (!Number.isFinite(Number(pointerId))) {
+      return;
+    }
+    try {
+      if (target.hasPointerCapture?.(pointerId)) {
+        target.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // Ignore stale capture releases.
+    }
+  }
+
+  function clearDieDragStateAndReleaseCapture(state = dieDragState) {
+    if (!state) {
+      return null;
+    }
+    releasePointerCaptureSafely(state.captureTarget, state.pointerId);
+    if (dieDragState === state) {
+      dieDragState = null;
+    }
+    return state;
+  }
+
+  function recoverStuckPointerInteractions(now = Date.now()) {
+    let recoveredAny = false;
+    const staleAfterMs = STUCK_INTERACTION_RECOVERY_MS;
+
+    if (selectionBoxState) {
+      const selectionStartedAt = Number(selectionBoxState.startedAt) || 0;
+      if (selectionStartedAt > 0 && now - selectionStartedAt > staleAfterMs) {
+        selectionBoxState = null;
+        hideSelectionBox();
+        recoveredAny = true;
+      }
+    }
+
+    if (dieDragState) {
+      const startedAt = Number(dieDragState.startedAt) || 0;
+      const lastMotionAt = Number(dieDragState.lastMotionAt) || startedAt;
+      if (startedAt > 0 && now - Math.max(startedAt, lastMotionAt) > staleAfterMs) {
+        handleDieDragEnd({
+          type: 'pointercancel',
+          pointerId: dieDragState.pointerId,
+          pointerType: dieDragState.pointerType,
+          clientX: Number(dieDragState.lastClientX ?? dieDragState.startClientX ?? 0),
+          clientY: Number(dieDragState.lastClientY ?? dieDragState.startClientY ?? 0),
+          button: 0,
+          buttons: 0
+        });
+        recoveredAny = true;
+      }
+    }
+
+    if (mousePanState) {
+      const startedAt = Number(mousePanState.startedAt) || 0;
+      if (startedAt > 0 && now - startedAt > staleAfterMs * 2) {
+        mousePanState = null;
+        recoveredAny = true;
+      }
+    }
+
+    return recoveredAny;
   }
 
   function cancelActiveCardInteractions() {
@@ -14032,7 +16231,8 @@ async function startRealtimeSession() {
       dieDragState ||
       labelResizeState ||
       labelRotateState ||
-      groupDragState
+      groupDragState ||
+      taflDragState
     );
     const hasSelectedObjects = hasAnyGroupSelection();
     const hasMarbleFlick = Boolean(marbleFlickState);
@@ -14095,13 +16295,15 @@ async function startRealtimeSession() {
     resizingImageCardId = '';
     rotatingStickerCardId = '';
     cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
-    dieDragState = null;
+    clearDieDragStateAndReleaseCapture(dieDragState);
     labelResizeState = null;
     labelRotateState = null;
     rotatingLabelDieId = '';
     resizingLabelDieId = '';
     resizingMediaDieId = '';
     groupDragState = null;
+    const cancelledTaflDragState = taflDragState;
+    taflDragState = null;
     selectionBoxState = null;
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
@@ -14144,6 +16346,15 @@ async function startRealtimeSession() {
 
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
+    if (cancelledTaflDragState?.gameId) {
+      const cancelledTaflGameId = normalizeTaflGameId(cancelledTaflDragState.gameId);
+      setTaflBoardDragFloating(cancelledTaflGameId, false);
+      patchLocalTaflGame({ holderClientId: null }, cancelledTaflGameId);
+      queueMonsPatch({ holderClientId: null }, cancelledTaflGameId);
+      releaseMonsBoardLock(cancelledTaflGameId).catch((error) => {
+        console.error(error);
+      });
+    }
   }
 
   function releaseUnexpectedLocalCardLocks() {
@@ -14188,7 +16399,10 @@ async function startRealtimeSession() {
       if (!dieState || dieState.holderClientId !== clientId) {
         continue;
       }
-      if (isMarbleDieState(dieState) && (dieState.moving === true || marbleMotionByDieId.has(dieId))) {
+      if (
+        isMarbleDieState(dieState) &&
+        (dieState.moving === true || marbleMotionByDieId.has(dieId) || marbleFlickState?.dieId === dieId)
+      ) {
         continue;
       }
       if (
@@ -14214,6 +16428,20 @@ async function startRealtimeSession() {
         continue;
       }
       patchLocalMonsGame({ holderClientId: null }, normalizedGameId);
+      queueMonsPatch({ holderClientId: null }, normalizedGameId);
+      releaseMonsBoardLock(normalizedGameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const [gameId, gameState] of taflGameStatesById.entries()) {
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      const normalizedGameId = normalizeTaflGameId(gameId);
+      if (taflDragState?.gameId === normalizedGameId) {
+        continue;
+      }
+      patchLocalTaflGame({ holderClientId: null }, normalizedGameId);
       queueMonsPatch({ holderClientId: null }, normalizedGameId);
       releaseMonsBoardLock(normalizedGameId).catch((error) => {
         console.error(error);
@@ -14355,6 +16583,107 @@ async function startRealtimeSession() {
     return Boolean(latestCard) && !latestCard.holderClientId;
   }
 
+  async function tryRecoverStaleDieLock(dieId, expectedHolderClientId = '') {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return false;
+    }
+    if (!hasLoadedPresenceSnapshot && !hasLoadedCursorSnapshot) {
+      return false;
+    }
+
+    const currentDie = diceById.get(targetDieId);
+    if (!currentDie) {
+      return false;
+    }
+
+    const currentHolder = typeof currentDie.holderClientId === 'string' ? currentDie.holderClientId : '';
+    const expectedHolder = String(expectedHolderClientId || '').trim();
+    const lockHolder = currentHolder || expectedHolder;
+    if (!lockHolder || lockHolder === clientId) {
+      return true;
+    }
+
+    const now = Date.now();
+    if (isClientSessionLikelyActive(lockHolder, now)) {
+      return false;
+    }
+
+    const lastAttemptAt = staleDieLockRecoveryAttemptAtById.get(targetDieId) || 0;
+    if (now - lastAttemptAt < CARD_STALE_LOCK_RECOVERY_RETRY_MS) {
+      return false;
+    }
+    if (staleDieLockRecoveryInFlight.has(targetDieId)) {
+      return false;
+    }
+
+    staleDieLockRecoveryAttemptAtById.set(targetDieId, now);
+    staleDieLockRecoveryInFlight.add(targetDieId);
+    try {
+      const dieRef = ref(db, `${roomPath}/dice/${targetDieId}`);
+      const result = await runTransaction(
+        dieRef,
+        (snapshotDie) => {
+          if (!snapshotDie || typeof snapshotDie !== 'object') {
+            return;
+          }
+          const snapshotHolder =
+            typeof snapshotDie.holderClientId === 'string' && snapshotDie.holderClientId
+              ? snapshotDie.holderClientId
+              : '';
+          if (!snapshotHolder || snapshotHolder === clientId) {
+            return snapshotDie;
+          }
+          if (snapshotHolder !== lockHolder) {
+            return;
+          }
+          const normalizedType = normalizeDieType(snapshotDie.type);
+          return {
+            ...snapshotDie,
+            holderClientId: null,
+            ...(normalizedType === 'marble'
+              ? {
+                  moving: false,
+                  velocityX: 0,
+                  velocityY: 0
+                }
+              : null),
+            updatedAt: Date.now()
+          };
+        },
+        { applyLocally: false }
+      );
+      if (result.committed) {
+        const nextHolder =
+          typeof result.snapshot.val()?.holderClientId === 'string' && result.snapshot.val()?.holderClientId
+            ? result.snapshot.val().holderClientId
+            : '';
+        if (!nextHolder) {
+          const patch = {
+            holderClientId: null
+          };
+          const typeAfterRecovery = normalizeDieType(result.snapshot.val()?.type || currentDie.type);
+          if (typeAfterRecovery === 'marble') {
+            patch.moving = false;
+            patch.velocityX = 0;
+            patch.velocityY = 0;
+            marbleMotionByDieId.delete(targetDieId);
+          }
+          patchLocalDie(targetDieId, patch);
+          renderDieElement(targetDieId);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      staleDieLockRecoveryInFlight.delete(targetDieId);
+    }
+
+    const latestDie = diceById.get(targetDieId);
+    return Boolean(latestDie) && !latestDie.holderClientId;
+  }
+
   async function sweepStaleRemoteCardLocks() {
     if (staleCardLockSweepInProgress || hasActiveCardInteraction()) {
       return;
@@ -14393,14 +16722,107 @@ async function startRealtimeSession() {
     }
   }
 
+  async function sweepStaleRemoteDieLocks() {
+    if (staleDieLockSweepInProgress || hasActiveCardInteraction()) {
+      return;
+    }
+    if (!hasLoadedPresenceSnapshot && !hasLoadedCursorSnapshot) {
+      return;
+    }
+    staleDieLockSweepInProgress = true;
+    try {
+      const now = Date.now();
+      const candidates = [];
+      for (const [dieId, dieState] of diceById.entries()) {
+        if (!dieState || !dieState.holderClientId || dieState.holderClientId === clientId) {
+          continue;
+        }
+        if (isClientSessionLikelyActive(dieState.holderClientId, now)) {
+          continue;
+        }
+        const lastAttemptAt = staleDieLockRecoveryAttemptAtById.get(dieId) || 0;
+        if (now - lastAttemptAt < CARD_STALE_LOCK_RECOVERY_RETRY_MS) {
+          continue;
+        }
+        candidates.push([dieId, dieState.holderClientId]);
+        if (candidates.length >= CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT) {
+          break;
+        }
+      }
+      for (const [dieId, holderClientId] of candidates) {
+        await tryRecoverStaleDieLock(dieId, holderClientId);
+      }
+    } finally {
+      staleDieLockSweepInProgress = false;
+    }
+  }
+
   function markTouchPointerEnded(event) {
-    if (isTouchLikePointerEvent(event)) {
-      endedTouchPointerIds.add(event.pointerId);
+    const pointerId = Number(event?.pointerId);
+    if (Number.isFinite(pointerId)) {
+      endedPointerAtById.set(pointerId, Date.now());
+      if (endedPointerAtById.size > 64) {
+        const cutoff = Date.now() - 7000;
+        for (const [endedPointerId, endedAt] of endedPointerAtById.entries()) {
+          if (!Number.isFinite(endedAt) || endedAt < cutoff) {
+            endedPointerAtById.delete(endedPointerId);
+          }
+        }
+      }
+    }
+    if (isTouchLikePointerEvent(event) && Number.isFinite(pointerId)) {
+      endedTouchPointerIds.add(pointerId);
     }
   }
 
   function wasTouchPointerReleased(pointerType, pointerId) {
     return (pointerType === 'touch' || pointerType === 'pen') && endedTouchPointerIds.has(pointerId);
+  }
+
+  function wasPointerReleased(pointerId, startedAt = 0) {
+    const normalizedPointerId = Number(pointerId);
+    if (!Number.isFinite(normalizedPointerId)) {
+      return false;
+    }
+    const endedAt = Number(endedPointerAtById.get(normalizedPointerId)) || 0;
+    if (!Number.isFinite(endedAt) || endedAt <= 0) {
+      return false;
+    }
+    const startedAtNumber = Number(startedAt) || 0;
+    if (startedAtNumber > 0) {
+      return endedAt >= startedAtNumber;
+    }
+    return true;
+  }
+
+  function beginPointerPressSequence(pointerId) {
+    const normalizedPointerId = Number(pointerId);
+    if (!Number.isFinite(normalizedPointerId)) {
+      return 0;
+    }
+    const nextSerial = (Number(pointerPressSerialById.get(normalizedPointerId)) || 0) + 1;
+    pointerPressSerialById.set(normalizedPointerId, nextSerial);
+    if (pointerPressSerialById.size > 64) {
+      const orderedPointerIds = Array.from(pointerPressSerialById.keys());
+      const pruneCount = Math.max(0, orderedPointerIds.length - 48);
+      for (let index = 0; index < pruneCount; index += 1) {
+        pointerPressSerialById.delete(orderedPointerIds[index]);
+      }
+    }
+    return nextSerial;
+  }
+
+  function isPointerPressSequenceCurrent(pointerId, expectedSerial) {
+    const normalizedPointerId = Number(pointerId);
+    const normalizedExpectedSerial = Number(expectedSerial);
+    if (
+      !Number.isFinite(normalizedPointerId) ||
+      !Number.isFinite(normalizedExpectedSerial) ||
+      normalizedExpectedSerial <= 0
+    ) {
+      return false;
+    }
+    return (Number(pointerPressSerialById.get(normalizedPointerId)) || 0) === normalizedExpectedSerial;
   }
 
   function isTouchLikePointerEvent(event) {
@@ -15566,9 +17988,9 @@ async function startRealtimeSession() {
       renderLocalHandCards();
     }
     if (dieDragState) {
-      const draggedDieId = dieDragState.dieId;
+      const finishedDieDragState = clearDieDragStateAndReleaseCapture(dieDragState);
+      const draggedDieId = finishedDieDragState?.dieId;
       const draggedDieState = diceById.get(draggedDieId);
-      dieDragState = null;
       if (draggedDieState?.holderClientId === clientId) {
         patchLocalDie(draggedDieId, { holderClientId: null });
         queueDiePatch(draggedDieId, { holderClientId: null });
@@ -15905,6 +18327,18 @@ async function startRealtimeSession() {
     }
     syncCoverDrawingsGamesLayerState();
     renderMonsBoard();
+  }
+
+  function patchLocalTaflGame(patch, gameId = activeTaflGameId) {
+    const normalizedGameId = normalizeTaflGameId(gameId);
+    const baseGame = getTaflGameStateById(normalizedGameId) || normalizeTaflGamePayload({});
+    const nextGame = normalizeTaflGamePayload({ ...baseGame, ...patch });
+    taflGameStatesById.set(normalizedGameId, nextGame);
+    if (normalizeTaflGameId(activeTaflGameId) === normalizedGameId) {
+      taflGameState = nextGame;
+    }
+    syncCoverDrawingsGamesLayerState();
+    renderTaflBoards();
   }
 
   function getTopCardZ() {
@@ -16251,16 +18685,31 @@ async function startRealtimeSession() {
 
   async function acquireDieLock(dieId) {
     const holderRef = ref(db, `${roomPath}/dice/${dieId}/holderClientId`);
-    const result = await runTransaction(
-      holderRef,
-      (currentHolder) => {
-        if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
-          return;
-        }
-        return clientId;
-      },
-      { applyLocally: false }
-    );
+    const lockReducer = (currentHolder) => {
+      if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
+        return;
+      }
+      return clientId;
+    };
+
+    let result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
+    if (result.snapshot?.val() === clientId) {
+      onDisconnect(holderRef).set(null);
+      return true;
+    }
+
+    const blockingHolder =
+      typeof result.snapshot?.val() === 'string' && result.snapshot.val() ? result.snapshot.val() : '';
+    if (!blockingHolder || blockingHolder === clientId) {
+      return false;
+    }
+
+    const recovered = await tryRecoverStaleDieLock(dieId, blockingHolder);
+    if (!recovered) {
+      return false;
+    }
+
+    result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
     if (!result.committed || result.snapshot.val() !== clientId) {
       return false;
     }
@@ -19313,56 +21762,43 @@ async function startRealtimeSession() {
     if (targetDieIds.length === 0) {
       return;
     }
-    await runTransaction(
-      diceRef,
-      (currentDice) => {
-        if (!currentDice || typeof currentDice !== 'object') {
-          return;
-        }
-        const nextDice = { ...currentDice };
-        const now = Date.now();
-        let changed = false;
-        for (const dieId of targetDieIds) {
-          const currentDie = currentDice[dieId];
-          if (!currentDie || typeof currentDie !== 'object') {
-            continue;
-          }
-          const normalized = normalizeDicePayload(currentDie);
-          if (normalized.type === 'label' || normalized.type === 'media' || normalized.type === 'marble' || normalized.type === 'counter') {
-            continue;
-          }
-          if (normalized.holderClientId && normalized.holderClientId !== clientId) {
-            continue;
-          }
-          const sides = getDieSides(normalized.type, normalized);
-          const nextValue = getRandomIntInclusive(1, sides);
-          const isSpinner = normalized.type === 'spinner';
-          const rollDurationMs = isSpinner ? SPINNER_ROLL_DURATION_MS : DIE_ROLL_DURATION_MS;
-          const nextDie = {
-            ...currentDie,
-            type: normalized.type,
-            value: nextValue,
-            rollStartedAt: now,
-            rollDurationMs,
-            rollSeed: getRandomIntInclusive(0, 0x7fffffff),
-            updatedAt: now
-          };
-          if (isSpinner) {
-            nextDie.spinnerResultVisible = true;
-            nextDie.spinnerHighlightVisible = true;
-            nextDie.spinnerStartAngle = getSpinnerNeedleAngle(normalized, now);
-            nextDie.spinnerSpinTurns = getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS);
-          }
-          nextDice[dieId] = nextDie;
-          changed = true;
-        }
-        if (!changed) {
-          return;
-        }
-        return nextDice;
-      },
-      { applyLocally: false }
-    );
+    const now = Date.now();
+    for (const dieId of targetDieIds) {
+      const currentDie = diceById.get(dieId);
+      if (!currentDie || typeof currentDie !== 'object') {
+        continue;
+      }
+      const normalized = normalizeDicePayload(currentDie);
+      if (
+        normalized.type === 'label' ||
+        normalized.type === 'media' ||
+        normalized.type === 'marble' ||
+        normalized.type === 'counter'
+      ) {
+        continue;
+      }
+      if (normalized.holderClientId && normalized.holderClientId !== clientId) {
+        continue;
+      }
+      const sides = getDieSides(normalized.type, normalized);
+      const nextValue = getRandomIntInclusive(1, sides);
+      const isSpinner = normalized.type === 'spinner';
+      const patch = {
+        type: normalized.type,
+        value: nextValue,
+        rollStartedAt: now,
+        rollDurationMs: isSpinner ? SPINNER_ROLL_DURATION_MS : DIE_ROLL_DURATION_MS,
+        rollSeed: getRandomIntInclusive(0, 0x7fffffff)
+      };
+      if (isSpinner) {
+        patch.spinnerResultVisible = true;
+        patch.spinnerHighlightVisible = true;
+        patch.spinnerStartAngle = getSpinnerNeedleAngle(normalized, now);
+        patch.spinnerSpinTurns = getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS);
+      }
+      patchLocalDie(dieId, patch);
+      queueDiePatch(dieId, patch);
+    }
   }
 
   async function handleDieRollIntent(anchorDieId) {
@@ -19458,6 +21894,95 @@ async function startRealtimeSession() {
     arrow.classList.remove('hidden');
   };
 
+  function isMarbleSolidObstacleDieType(type) {
+    const normalizedType = normalizeDieType(type);
+    return (
+      normalizedType === 'd6' ||
+      normalizedType === 'd20' ||
+      normalizedType === 'coin' ||
+      normalizedType === 'spinner' ||
+      normalizedType === 'counter' ||
+      normalizedType === 'media'
+    );
+  }
+
+  function canMarbleTriggerCollisionEffectForDieType(type) {
+    const normalizedType = normalizeDieType(type);
+    return (
+      normalizedType === 'd6' ||
+      normalizedType === 'd20' ||
+      normalizedType === 'coin' ||
+      normalizedType === 'spinner' ||
+      normalizedType === 'counter' ||
+      normalizedType === 'media'
+    );
+  }
+
+  function pruneMarbleCollisionCooldownMaps(now = Date.now()) {
+    const pairExpiry = MARBLE_TRIGGER_COOLDOWN_MS * 8;
+    const targetExpiry = MARBLE_TARGET_TRIGGER_COOLDOWN_MS * 8;
+    for (const [key, lastAt] of marbleCollisionCooldownByPair.entries()) {
+      if (now - lastAt > pairExpiry) {
+        marbleCollisionCooldownByPair.delete(key);
+      }
+    }
+    for (const [key, lastAt] of marbleCollisionCooldownByTarget.entries()) {
+      if (now - lastAt > targetExpiry) {
+        marbleCollisionCooldownByTarget.delete(key);
+      }
+    }
+  }
+
+  function triggerMarbleCollisionEffect(marbleDieId, obstacleRect, impactSpeed = 0) {
+    if (!obstacleRect || obstacleRect.kind !== 'die') {
+      return;
+    }
+    const normalizedMarbleId = String(marbleDieId || '').trim();
+    const targetDieId = String(obstacleRect.dieId || '').trim();
+    if (!normalizedMarbleId || !targetDieId || normalizedMarbleId === targetDieId) {
+      return;
+    }
+    const targetType = normalizeDieType(obstacleRect.dieType);
+    if (!canMarbleTriggerCollisionEffectForDieType(targetType)) {
+      return;
+    }
+    const targetDieState = diceById.get(targetDieId);
+    if (!targetDieState || normalizeDieType(targetDieState.type) !== targetType) {
+      return;
+    }
+    if (targetDieState.holderClientId) {
+      return;
+    }
+    const impact = Math.max(0, Number(impactSpeed) || 0);
+    if (impact < MARBLE_TRIGGER_MIN_IMPACT_SPEED) {
+      return;
+    }
+
+    const now = Date.now();
+    if (marbleCollisionCooldownByPair.size > 320 || marbleCollisionCooldownByTarget.size > 320) {
+      pruneMarbleCollisionCooldownMaps(now);
+    }
+    const pairKey = `${normalizedMarbleId}|${targetDieId}`;
+    const targetKey = `die:${targetDieId}`;
+    const lastPairHitAt = Number(marbleCollisionCooldownByPair.get(pairKey)) || 0;
+    if (now - lastPairHitAt < MARBLE_TRIGGER_COOLDOWN_MS) {
+      return;
+    }
+    const lastTargetHitAt = Number(marbleCollisionCooldownByTarget.get(targetKey)) || 0;
+    if (now - lastTargetHitAt < MARBLE_TARGET_TRIGGER_COOLDOWN_MS) {
+      return;
+    }
+    marbleCollisionCooldownByPair.set(pairKey, now);
+    marbleCollisionCooldownByTarget.set(targetKey, now);
+    if (targetType === 'counter') {
+      applyCounterIncrementFromMarbleHit(targetDieId);
+    } else if (targetType === 'media') {
+      toggleMediaPlaybackFromMarbleHit(targetDieId);
+    } else {
+      rollSingleDieFromMarbleHit(targetDieId);
+    }
+  }
+
   function getMarbleObstacleRects() {
     const obstacleRects = [];
     for (const gameState of monsGameStatesById.values()) {
@@ -19467,18 +21992,43 @@ async function startRealtimeSession() {
       const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
       const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
       obstacleRects.push({
+        kind: 'mons-board',
         left: Number(gameState.x) - width / 2,
         right: Number(gameState.x) + width / 2,
         top: Number(gameState.y) - height / 2,
         bottom: Number(gameState.y) + height / 2
       });
     }
-    for (const dieState of diceById.values()) {
-      if (!isMediaDieState(dieState)) {
+    for (const gameState of taflGameStatesById.values()) {
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
+      const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
+      obstacleRects.push({
+        kind: 'tafl-board',
+        left: Number(gameState.x) - width / 2,
+        right: Number(gameState.x) + width / 2,
+        top: Number(gameState.y) - height / 2,
+        bottom: Number(gameState.y) + height / 2
+      });
+    }
+    for (const [dieId, dieState] of diceById.entries()) {
+      if (!dieState || typeof dieState !== 'object') {
+        continue;
+      }
+      if (dieState.holderClientId) {
+        continue;
+      }
+      const dieType = normalizeDieType(dieState.type);
+      if (!isMarbleSolidObstacleDieType(dieType)) {
         continue;
       }
       const dimensions = getDieWorldDimensions(dieState);
       obstacleRects.push({
+        kind: 'die',
+        dieId,
+        dieType,
         left: dieState.x - dimensions.width / 2,
         right: dieState.x + dimensions.width / 2,
         top: dieState.y - dimensions.height / 2,
@@ -19654,6 +22204,8 @@ async function startRealtimeSession() {
     const minY = radius;
     const maxY = WORLD_HEIGHT - radius;
     const collisionRects = Array.isArray(obstacleRects) ? obstacleRects : getMarbleObstacleRects();
+    const previousContacts = marbleActiveCollisionContactsByDieId.get(dieId) || new Set();
+    const nextContacts = new Set();
     let nextX = Number(marbleState.x) || WORLD_WIDTH / 2;
     let nextY = Number(marbleState.y) || WORLD_HEIGHT / 2;
     let velocityX = Number(state.velocityX) || 0;
@@ -19688,8 +22240,16 @@ async function startRealtimeSession() {
         if (!collision) {
           continue;
         }
+        const contactKey = rect?.kind === 'die' ? `die:${String(rect.dieId || '').trim()}` : '';
+        if (contactKey) {
+          nextContacts.add(contactKey);
+        }
         nextX += collision.normalX * (collision.penetration + 0.01);
         nextY += collision.normalY * (collision.penetration + 0.01);
+        const collisionSpeed = Math.hypot(velocityX, velocityY);
+        if (contactKey && !previousContacts.has(contactKey) && collisionSpeed >= MARBLE_TRIGGER_MIN_IMPACT_SPEED) {
+          triggerMarbleCollisionEffect(dieId, rect, collisionSpeed);
+        }
         const velocityAlongNormal = velocityX * collision.normalX + velocityY * collision.normalY;
         if (velocityAlongNormal < 0) {
           velocityX -= (1 + MARBLE_BOUNCE_RESTITUTION) * velocityAlongNormal * collision.normalX;
@@ -19735,6 +22295,12 @@ async function startRealtimeSession() {
       }
     }
 
+    if (nextContacts.size > 0) {
+      marbleActiveCollisionContactsByDieId.set(dieId, nextContacts);
+    } else {
+      marbleActiveCollisionContactsByDieId.delete(dieId);
+    }
+
     return {
       x: clamp(nextX, minX, maxX),
       y: clamp(nextY, minY, maxY),
@@ -19755,6 +22321,7 @@ async function startRealtimeSession() {
         const dieState = diceById.get(dieId);
         if (!isMarbleDieState(dieState)) {
           marbleMotionByDieId.delete(dieId);
+          marbleActiveCollisionContactsByDieId.delete(dieId);
           continue;
         }
         if (dieState.holderClientId !== clientId || dieState.moving !== true) {
@@ -19769,6 +22336,7 @@ async function startRealtimeSession() {
             queueDiePatch(dieId, stopPatch);
           }
           marbleMotionByDieId.delete(dieId);
+          marbleActiveCollisionContactsByDieId.delete(dieId);
           continue;
         }
         const deltaSeconds = Math.max(0, now - motionState.lastFrameAt) / 1000;
@@ -19776,6 +22344,7 @@ async function startRealtimeSession() {
         const stepResult = simulateMarbleStep(dieId, motionState, deltaSeconds, obstacleRects);
         if (!stepResult) {
           marbleMotionByDieId.delete(dieId);
+          marbleActiveCollisionContactsByDieId.delete(dieId);
           continue;
         }
         motionState.velocityX = stepResult.velocityX;
@@ -19802,6 +22371,7 @@ async function startRealtimeSession() {
           patchLocalDie(dieId, stopPatch);
           queueDiePatch(dieId, stopPatch);
           marbleMotionByDieId.delete(dieId);
+          marbleActiveCollisionContactsByDieId.delete(dieId);
           releaseDieLock(dieId).catch((error) => {
             console.error(error);
           });
@@ -19847,6 +22417,7 @@ async function startRealtimeSession() {
     const normalizedVelocityX = velocityX * speedScale;
     const normalizedVelocityY = velocityY * speedScale;
     const now = performance.now();
+    marbleActiveCollisionContactsByDieId.delete(dieId);
     marbleMotionByDieId.set(dieId, {
       velocityX: normalizedVelocityX,
       velocityY: normalizedVelocityY,
@@ -20047,6 +22618,7 @@ async function startRealtimeSession() {
   function syncMarbleMotionFromState(dieId, dieState) {
     if (!isMarbleDieState(dieState)) {
       marbleMotionByDieId.delete(dieId);
+      marbleActiveCollisionContactsByDieId.delete(dieId);
       return;
     }
     const incomingSpeed = getMarbleSpeed(dieState);
@@ -20084,6 +22656,7 @@ async function startRealtimeSession() {
       return;
     }
     marbleMotionByDieId.delete(dieId);
+    marbleActiveCollisionContactsByDieId.delete(dieId);
     if (marbleFlickState?.dieId === dieId) {
       cancelMarbleFlickGesture();
     }
@@ -20258,6 +22831,7 @@ async function startRealtimeSession() {
     const targetCardId = targetCardElement?.getAttribute('data-card-id') || null;
     selectionBoxState = {
       pointerId: event.pointerId,
+      startedAt: Date.now(),
       startWorldX: worldPoint.x,
       startWorldY: worldPoint.y,
       endWorldX: worldPoint.x,
@@ -20392,32 +22966,81 @@ async function startRealtimeSession() {
     if (!targetDieId || !Number.isFinite(step) || step === 0) {
       return;
     }
-    await runTransaction(
-      ref(db, `${roomPath}/dice/${targetDieId}`),
-      (currentDie) => {
-        if (!currentDie || typeof currentDie !== 'object') {
-          return;
+    const existingDie = diceById.get(targetDieId);
+    if (!isCounterDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+    const nextValue = clampCounterValue((Number(existingDie.value) || 0) + step);
+    if (nextValue === Number(existingDie.value) || !Number.isFinite(nextValue)) {
+      return;
+    }
+    const patch = {
+      type: 'counter',
+      value: nextValue
+    };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+  }
+
+  function applyCounterIncrementFromMarbleHit(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const targetDieState = diceById.get(targetDieId);
+    if (!isCounterDieState(targetDieState)) {
+      return;
+    }
+    if (targetDieState.holderClientId) {
+      return;
+    }
+    const nextValue = clampCounterValue((Number(targetDieState.value) || 0) + 1);
+    if (nextValue === targetDieState.value) {
+      return;
+    }
+    const patch = {
+      type: 'counter',
+      value: nextValue,
+      holderClientId: null
+    };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+  }
+
+  function toggleMediaPlaybackFromMarbleHit(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const targetDieState = diceById.get(targetDieId);
+    if (!isMediaDieState(targetDieState)) {
+      return;
+    }
+    if (targetDieState.holderClientId) {
+      return;
+    }
+    const hasActiveSignal = Boolean(getMediaSignalKeyFromState(targetDieState));
+    const patch = hasActiveSignal
+      ? {
+          type: 'media',
+          mediaStartedAt: 0,
+          mediaStartNonce: 0,
+          holderClientId: null
         }
-        const normalized = normalizeDicePayload(currentDie);
-        if (!isCounterDieState(normalized)) {
-          return currentDie;
-        }
-        if (normalized.holderClientId && normalized.holderClientId !== clientId) {
-          return currentDie;
-        }
-        const nextValue = clampCounterValue((Number(normalized.value) || 0) + step);
-        if (nextValue === normalized.value) {
-          return currentDie;
-        }
-        return {
-          ...currentDie,
-          type: 'counter',
-          value: nextValue,
-          updatedAt: Date.now()
+      : {
+          type: 'media',
+          mediaStartedAt: Date.now(),
+          mediaStartNonce: getRandomIntInclusive(1, 0x7fffffff),
+          holderClientId: null
         };
-      },
-      { applyLocally: false }
-    );
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+    if (hasActiveSignal) {
+      pauseMediaControllerPlayback(targetDieId);
+    }
   }
 
   async function resetCounterValue(dieId) {
@@ -20425,31 +23048,22 @@ async function startRealtimeSession() {
     if (!targetDieId) {
       return;
     }
-    await runTransaction(
-      ref(db, `${roomPath}/dice/${targetDieId}`),
-      (currentDie) => {
-        if (!currentDie || typeof currentDie !== 'object') {
-          return;
-        }
-        const normalized = normalizeDicePayload(currentDie);
-        if (!isCounterDieState(normalized)) {
-          return currentDie;
-        }
-        if (normalized.holderClientId && normalized.holderClientId !== clientId) {
-          return currentDie;
-        }
-        if (normalized.value === 0) {
-          return currentDie;
-        }
-        return {
-          ...currentDie,
-          type: 'counter',
-          value: 0,
-          updatedAt: Date.now()
-        };
-      },
-      { applyLocally: false }
-    );
+    const existingDie = diceById.get(targetDieId);
+    if (!isCounterDieState(existingDie)) {
+      return;
+    }
+    if (existingDie.holderClientId && existingDie.holderClientId !== clientId) {
+      return;
+    }
+    if ((Number(existingDie.value) || 0) === 0) {
+      return;
+    }
+    const patch = {
+      type: 'counter',
+      value: 0
+    };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
   }
 
   async function handleCounterControlPointerDown(event, dieId, delta, reset = false) {
@@ -20489,6 +23103,49 @@ async function startRealtimeSession() {
       await adjustCounterValue(dieId, delta);
     }
     schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function rollSingleDieFromMarbleHit(dieId) {
+    const targetDieId = String(dieId || '').trim();
+    if (!targetDieId) {
+      return;
+    }
+    const targetDieState = diceById.get(targetDieId);
+    if (!targetDieState || typeof targetDieState !== 'object') {
+      return;
+    }
+    const normalized = normalizeDicePayload(targetDieState);
+    if (
+      normalized.type === 'label' ||
+      normalized.type === 'media' ||
+      normalized.type === 'marble' ||
+      normalized.type === 'counter'
+    ) {
+      return;
+    }
+    if (normalized.holderClientId) {
+      return;
+    }
+    const sides = getDieSides(normalized.type, normalized);
+    const nextValue = getRandomIntInclusive(1, sides);
+    const now = Date.now();
+    const isSpinner = normalized.type === 'spinner';
+    const patch = {
+      type: normalized.type,
+      value: nextValue,
+      rollStartedAt: now,
+      rollDurationMs: isSpinner ? SPINNER_ROLL_DURATION_MS : DIE_ROLL_DURATION_MS,
+      rollSeed: getRandomIntInclusive(0, 0x7fffffff),
+      holderClientId: null
+    };
+    if (isSpinner) {
+      patch.spinnerResultVisible = true;
+      patch.spinnerHighlightVisible = true;
+      patch.spinnerStartAngle = getSpinnerNeedleAngle(normalized, now);
+      patch.spinnerSpinTurns = getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS);
+    }
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
   }
 
   async function handleLabelLockControlPointerDown(event, dieId) {
@@ -22207,6 +24864,8 @@ async function startRealtimeSession() {
   }
 
   async function handleDiePointerDown(event, dieId) {
+    recoverStuckPointerInteractions(Date.now());
+    const pointerDownStartedAt = Date.now();
     if (drawModeEnabled) {
       return;
     }
@@ -22222,10 +24881,46 @@ async function startRealtimeSession() {
       event.stopPropagation();
       return;
     }
-    const targetDieState = diceById.get(dieId);
+    let targetDieState = diceById.get(dieId);
     const isTargetMarble = isMarbleDieState(targetDieState);
     const isPrimaryMarbleFlick = event.button === 0 && isTargetMarble;
     const isMouseSecondaryMarbleDrag = event.pointerType === 'mouse' && event.button === 2 && isTargetMarble;
+    const pointerPressSerial = beginPointerPressSequence(event.pointerId);
+
+    if (isMouseSecondaryMarbleDrag) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (selectionBoxState) {
+        selectionBoxState = null;
+        hideSelectionBox();
+      }
+      cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
+      if (dieDragState && dieDragState.type === 'marble') {
+        const staleDieDragState = clearDieDragStateAndReleaseCapture(dieDragState);
+        const staleMarbleId = String(staleDieDragState?.dieId || '').trim();
+        if (staleMarbleId) {
+          const stalePatch = {
+            moving: false,
+            velocityX: 0,
+            velocityY: 0,
+            holderClientId: null
+          };
+          patchLocalDie(staleMarbleId, stalePatch);
+          queueDiePatch(staleMarbleId, stalePatch);
+          releaseDieLock(staleMarbleId).catch((error) => {
+            console.error(error);
+          });
+        }
+      }
+      await forceRefreshMarbleStateForSecondaryDrag(dieId);
+      if (
+        !isPointerPressSequenceCurrent(event.pointerId, pointerPressSerial) ||
+        wasPointerReleased(event.pointerId, pointerDownStartedAt)
+      ) {
+        return;
+      }
+      targetDieState = diceById.get(dieId) || targetDieState;
+    }
 
     if (isPrimaryMarbleFlick) {
       event.preventDefault();
@@ -22242,9 +24937,8 @@ async function startRealtimeSession() {
       return;
     }
     const effectivePointerType = getEffectivePointerType(event);
-    if (effectivePointerType === 'touch') {
-      endedTouchPointerIds.delete(event.pointerId);
-    }
+    endedPointerAtById.delete(event.pointerId);
+    endedTouchPointerIds.delete(event.pointerId);
     event.preventDefault();
     event.stopPropagation();
 
@@ -22293,13 +24987,27 @@ async function startRealtimeSession() {
       return;
     }
     if (isMarbleDieState(dieState)) {
-      settleMarbleIfNearlyStill(dieId, dieState, MARBLE_RESTART_BLOCK_SPEED);
-      const refreshedDie = diceById.get(dieId) || dieState;
-      if (!isMarbleEffectivelyMoving(refreshedDie) && marbleMotionByDieId.has(dieId)) {
-        marbleMotionByDieId.delete(dieId);
-      }
-      if (isMarbleEffectivelyMoving(refreshedDie) || marbleMotionByDieId.has(dieId)) {
-        return;
+      if (isMouseSecondaryMarbleDrag) {
+        if (marbleMotionByDieId.has(dieId) || isMarbleEffectivelyMoving(dieState)) {
+          marbleMotionByDieId.delete(dieId);
+          const immediateStopPatch = {
+            moving: false,
+            velocityX: 0,
+            velocityY: 0,
+            holderClientId: null
+          };
+          patchLocalDie(dieId, immediateStopPatch);
+          queueDiePatch(dieId, immediateStopPatch);
+        }
+      } else {
+        settleMarbleIfNearlyStill(dieId, dieState, MARBLE_RESTART_BLOCK_SPEED);
+        const refreshedDie = diceById.get(dieId) || dieState;
+        if (!isMarbleEffectivelyMoving(refreshedDie) && marbleMotionByDieId.has(dieId)) {
+          marbleMotionByDieId.delete(dieId);
+        }
+        if (isMarbleEffectivelyMoving(refreshedDie) || marbleMotionByDieId.has(dieId)) {
+          return;
+        }
       }
     }
     const currentDieState = diceById.get(dieId) || dieState;
@@ -22318,6 +25026,18 @@ async function startRealtimeSession() {
     if (!acquired) {
       return;
     }
+    if (!isPointerPressSequenceCurrent(event.pointerId, pointerPressSerial)) {
+      patchLocalDie(dieId, { holderClientId: null });
+      queueDiePatch(dieId, { holderClientId: null });
+      await releaseDieLock(dieId);
+      return;
+    }
+    if (wasPointerReleased(event.pointerId, pointerDownStartedAt)) {
+      patchLocalDie(dieId, { holderClientId: null });
+      queueDiePatch(dieId, { holderClientId: null });
+      await releaseDieLock(dieId);
+      return;
+    }
     if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       await releaseDieLock(dieId);
       return;
@@ -22328,6 +25048,8 @@ async function startRealtimeSession() {
       dieId,
       pointerId: event.pointerId,
       pointerType: effectivePointerType,
+      captureTarget: event.currentTarget instanceof Element ? event.currentTarget : null,
+      startedAt: Date.now(),
       type: normalizeDieType(currentDieState.type),
       startClientX: event.clientX,
       startClientY: event.clientY,
@@ -22339,7 +25061,7 @@ async function startRealtimeSession() {
       height: getDieWorldDimensions(currentDieState).height,
       mouseButtonMask: isMouseSecondaryMarbleDrag ? 2 : 1,
       moved: false,
-      lastMotionAt: 0
+      lastMotionAt: Date.now()
     };
 
     const startPatch = {
@@ -22360,7 +25082,11 @@ async function startRealtimeSession() {
       return;
     }
     const mouseButtonMask = dieDragState.mouseButtonMask || 1;
-    if (dieDragState.pointerType === 'mouse' && (event.buttons & mouseButtonMask) === 0) {
+    const isSecondaryMarbleDrag =
+      dieDragState.pointerType === 'mouse' &&
+      dieDragState.type === 'marble' &&
+      mouseButtonMask === 2;
+    if (dieDragState.pointerType === 'mouse' && !isSecondaryMarbleDrag && (event.buttons & mouseButtonMask) === 0) {
       handleDieDragEnd({
         type: 'pointercancel',
         pointerId: event.pointerId,
@@ -22436,8 +25162,10 @@ async function startRealtimeSession() {
       return;
     }
 
-    const finishedDrag = dieDragState;
-    dieDragState = null;
+    const finishedDrag = clearDieDragStateAndReleaseCapture(dieDragState);
+    if (!finishedDrag) {
+      return;
+    }
     const releasePatch = {
       holderClientId: null
     };
@@ -22820,6 +25548,115 @@ async function startRealtimeSession() {
     return true;
   }
 
+  async function toggleTaflSideClaim(side, gameId = activeTaflGameId) {
+    const normalizedSide = side === 'attacker' ? 'attacker' : side === 'defender' ? 'defender' : '';
+    if (!normalizedSide || !localPlayerToken) {
+      return false;
+    }
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const otherSide = normalizedSide === 'attacker' ? 'defender' : 'attacker';
+    const result = await runTransaction(
+      ref(db, `${roomPath}/games/${targetTaflGameId}`),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeTaflGamePayload(currentGame);
+        const claims = normalizeTaflClaimsPayload(normalized.claims);
+        const nextSideClaims = [...claims[normalizedSide]];
+        const nextOtherSideClaims = [...claims[otherSide]];
+        const currentSideIndex = nextSideClaims.findIndex((entry) => entry?.token === localPlayerToken);
+        if (currentSideIndex >= 0) {
+          nextSideClaims.splice(currentSideIndex, 1);
+        } else {
+          const otherSideIndex = nextOtherSideClaims.findIndex((entry) => entry?.token === localPlayerToken);
+          if (otherSideIndex >= 0) {
+            nextOtherSideClaims.splice(otherSideIndex, 1);
+          }
+          if (nextSideClaims.length >= 2) {
+            return currentGame;
+          }
+          nextSideClaims.push({
+            token: localPlayerToken,
+            name: String(playerState.name || '').trim().slice(0, 24),
+            color: normalizeHexColor(playerState.color)
+          });
+        }
+        return {
+          ...normalized,
+          claims: {
+            [normalizedSide]: nextSideClaims,
+            [otherSide]: nextOtherSideClaims
+          },
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeTaflGamePayload(result.snapshot.val());
+    taflGameStatesById.set(targetTaflGameId, normalized);
+    if (normalizeTaflGameId(activeTaflGameId) === targetTaflGameId) {
+      taflGameState = normalized;
+    }
+    if (taflSelectionPieceId) {
+      const selectedPiece = normalized.pieces?.[taflSelectionPieceId] || null;
+      if (!selectedPiece || !canCurrentPlayerControlTaflPieceFromPayload(normalized, selectedPiece)) {
+        taflSelectionPieceId = '';
+        taflSelectionGameId = '';
+      }
+    }
+    renderTaflBoards();
+    return true;
+  }
+
+  async function undoTaflLastAction(gameId = activeTaflGameId) {
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const result = await runTransaction(
+      ref(db, `${roomPath}/games/${targetTaflGameId}`),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalized = normalizeTaflGamePayload(currentGame);
+        const undoHistory = normalizeTaflUndoHistoryPayload(normalized.undoHistory);
+        if (undoHistory.length === 0) {
+          return currentGame;
+        }
+        const topUndoEntry = undoHistory[undoHistory.length - 1];
+        if (!canCurrentPlayerUndoTaflEntry(topUndoEntry)) {
+          return currentGame;
+        }
+        return {
+          ...normalized,
+          pieces: normalizeTaflPiecesPayload(topUndoEntry.pieces),
+          winner: normalizeTaflWinnerSide(topUndoEntry.winner),
+          moveTick: (Number(normalized.moveTick) || 0) + 1,
+          lastMove: normalizeTaflLastMovePayload(topUndoEntry.lastMove),
+          undoHistory: undoHistory.slice(0, -1),
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !result.snapshot?.val()) {
+      return false;
+    }
+    const normalized = normalizeTaflGamePayload(result.snapshot.val());
+    taflGameStatesById.set(targetTaflGameId, normalized);
+    if (normalizeTaflGameId(activeTaflGameId) === targetTaflGameId) {
+      taflGameState = normalized;
+    }
+    if (taflSelectionPieceId && !normalized.pieces?.[taflSelectionPieceId]) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+    }
+    renderTaflBoards();
+    return true;
+  }
+
   onDeckMovePointerDown = (event, deckId) => {
     handleDeckMovePointerDown(event, deckId).catch((error) => {
       console.error(error);
@@ -22829,6 +25666,445 @@ async function startRealtimeSession() {
     handleMonsMovePointerDown(event, gameId).catch((error) => {
       console.error(error);
     });
+  };
+  const handleTaflMovePointerDownLocal = async (event, gameId = activeTaflGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await onDeleteTaflGameInRemoveMode(gameId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    if (normalizeTaflGameId(activeTaflGameId) !== targetTaflGameId) {
+      setActiveTaflGameId(targetTaflGameId);
+    }
+    if (taflDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState) {
+      return;
+    }
+    const targetTaflGameState = getTaflGameStateById(targetTaflGameId);
+    if (!targetTaflGameState) {
+      return;
+    }
+    if (targetTaflGameState.holderClientId && targetTaflGameState.holderClientId !== clientId) {
+      return;
+    }
+
+    const acquired = await acquireMonsBoardLock(targetTaflGameId);
+    if (!acquired) {
+      return;
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseMonsBoardLock(targetTaflGameId);
+      return;
+    }
+
+    taflDragState = {
+      gameId: targetTaflGameId,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: targetTaflGameState.x,
+      startY: targetTaflGameState.y,
+      width: targetTaflGameState.width,
+      height: targetTaflGameState.height
+    };
+
+    patchLocalTaflGame({ holderClientId: clientId }, targetTaflGameId);
+    queueMonsPatch({ holderClientId: clientId }, targetTaflGameId);
+    setTaflBoardDragFloating(targetTaflGameId, true);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+  const handleTaflDragMoveLocal = (event) => {
+    if (!taflDragState || event.pointerId !== taflDragState.pointerId) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      handleTaflDragEndLocal({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const targetTaflGameId = normalizeTaflGameId(taflDragState.gameId || activeTaflGameId);
+    const deltaX = (event.clientX - taflDragState.startClientX) / camera.scale;
+    const deltaY = (event.clientY - taflDragState.startClientY) / camera.scale;
+    const nextX = clamp(
+      taflDragState.startX + deltaX,
+      taflDragState.width / 2,
+      WORLD_WIDTH - taflDragState.width / 2
+    );
+    const nextY = clamp(
+      taflDragState.startY + deltaY,
+      taflDragState.height / 2,
+      WORLD_HEIGHT - taflDragState.height / 2
+    );
+
+    const patch = {
+      x: nextX,
+      y: nextY,
+      holderClientId: clientId
+    };
+    patchLocalTaflGame(patch, targetTaflGameId);
+    queueMonsPatch(patch, targetTaflGameId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  };
+  const handleTaflDragEndLocal = (event) => {
+    if (!taflDragState || event.pointerId !== taflDragState.pointerId) {
+      return;
+    }
+    if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
+      return;
+    }
+
+    const targetTaflGameId = normalizeTaflGameId(taflDragState.gameId || activeTaflGameId);
+    taflDragState = null;
+    setTaflBoardDragFloating(targetTaflGameId, false);
+    patchLocalTaflGame({ holderClientId: null }, targetTaflGameId);
+    queueMonsPatch({ holderClientId: null }, targetTaflGameId);
+    releaseMonsBoardLock(targetTaflGameId).catch((error) => {
+      console.error(error);
+    });
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+  onTaflMovePointerDown = (event, gameId = activeTaflGameId) => {
+    handleTaflMovePointerDownLocal(event, gameId).catch((error) => {
+      console.error(error);
+    });
+  };
+  const moveTaflPieceToTile = async (pieceId, row, col, gameId = activeTaflGameId) => {
+    const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const targetPieceId = String(pieceId || '').trim();
+    if (!targetPieceId) {
+      return false;
+    }
+    const targetRef = ref(db, `${roomPath}/games/${targetGameId}`);
+    let moved = false;
+    const result = await runTransaction(
+      targetRef,
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return currentGame;
+        }
+        const normalizedGame = normalizeTaflGamePayload(currentGame);
+        if (normalizedGame.enabled === false) {
+          return currentGame;
+        }
+        if (normalizeTaflWinnerSide(normalizedGame.winner)) {
+          return currentGame;
+        }
+        const piecesPayload = normalizeTaflPiecesPayload(normalizedGame.pieces);
+        const piece = piecesPayload[targetPieceId];
+        if (!piece) {
+          return currentGame;
+        }
+        if (!canCurrentPlayerControlTaflPieceFromPayload(normalizedGame, piece)) {
+          return currentGame;
+        }
+        const undoEntry = buildTaflUndoSnapshotPayloadFromGame(normalizedGame, localPlayerToken, clientId);
+        const destinationRow = clamp(Math.round(Number(row)), 0, TAFL_BOARD_SIZE - 1);
+        const destinationCol = clamp(Math.round(Number(col)), 0, TAFL_BOARD_SIZE - 1);
+        if (!canTaflPieceMoveToTile(piecesPayload, piece, destinationRow, destinationCol)) {
+          return currentGame;
+        }
+
+        const nextPieces = {
+          ...piecesPayload,
+          [targetPieceId]: {
+            ...piece,
+            row: destinationRow,
+            col: destinationCol
+          }
+        };
+        const movedPiece = nextPieces[targetPieceId];
+        const capturedIds = getTaflCapturedPieceIdsFromMove(nextPieces, movedPiece);
+        const capturedEntries = capturedIds
+          .map((capturedId) => {
+            const capturedPiece = nextPieces[capturedId];
+            if (!capturedPiece || typeof capturedPiece !== 'object') {
+              return null;
+            }
+            return {
+              id: capturedPiece.id,
+              side: capturedPiece.side,
+              row: capturedPiece.row,
+              col: capturedPiece.col,
+              removed: capturedPiece.side !== 'king'
+            };
+          })
+          .filter((entry) => entry && typeof entry === 'object');
+        for (const capturedId of capturedIds) {
+          if (capturedId === 'king') {
+            continue;
+          }
+          delete nextPieces[capturedId];
+        }
+        let winner = '';
+        const kingAfterMove = Object.values(nextPieces).find((candidate) => candidate && candidate.side === 'king') || null;
+        const kingCaptured = kingAfterMove ? isTaflKingCapturedFromPayload(nextPieces, kingAfterMove) : true;
+        if (!kingAfterMove || capturedIds.includes('king') || kingCaptured) {
+          winner = 'attacker';
+        } else if (isTaflCornerTile(kingAfterMove.row, kingAfterMove.col)) {
+          winner = 'defender';
+        } else if (areTaflDefendersFullyEncircled(nextPieces)) {
+          winner = 'attacker';
+        }
+
+        moved = true;
+        return {
+          ...currentGame,
+          ...normalizedGame,
+          pieces: nextPieces,
+          moveTick: (Number(normalizedGame.moveTick) || 0) + 1,
+          lastMove: {
+            pieceId: targetPieceId,
+            side: piece.side,
+            fromRow: piece.row,
+            fromCol: piece.col,
+            toRow: destinationRow,
+            toCol: destinationCol,
+            captured: capturedEntries
+          },
+          winner,
+          undoHistory: appendTaflUndoHistoryEntry(normalizedGame.undoHistory, undoEntry),
+          updatedAt: Date.now()
+        };
+      },
+      MONS_ACTION_TRANSACTION_OPTIONS
+    );
+    if (!result.committed || !moved) {
+      return false;
+    }
+    const nextPayload = result.snapshot?.val();
+    if (nextPayload && typeof nextPayload === 'object') {
+      const normalized = normalizeTaflGamePayload(nextPayload);
+      taflGameStatesById.set(targetGameId, normalized);
+      if (normalizeTaflGameId(activeTaflGameId) === targetGameId) {
+        taflGameState = normalized;
+      }
+      const movedPieceStillExists = Boolean(normalized.pieces && normalized.pieces[targetPieceId]);
+      if (!movedPieceStillExists || normalizeTaflWinnerSide(normalized.winner)) {
+        taflSelectionPieceId = '';
+        taflSelectionGameId = '';
+      } else {
+        taflSelectionPieceId = targetPieceId;
+        taflSelectionGameId = targetGameId;
+      }
+    }
+    renderTaflBoards();
+    return true;
+  };
+  onTaflPiecePointerDown = (event, pieceId, gameId = activeTaflGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteTaflGameInRemoveMode(targetGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (normalizeTaflGameId(activeTaflGameId) !== targetGameId) {
+      setActiveTaflGameId(targetGameId);
+    }
+    const targetGameState = getTaflGameStateById(targetGameId);
+    const targetPieceId = String(pieceId || '').trim();
+    if (!targetGameState || !targetPieceId || !targetGameState.pieces?.[targetPieceId]) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (normalizeTaflWinnerSide(targetGameState.winner)) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    const targetPiece = targetGameState.pieces[targetPieceId];
+    if (!canCurrentPlayerControlTaflPieceFromPayload(targetGameState, targetPiece)) {
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    const isAlreadySelected =
+      taflSelectionPieceId === targetPieceId &&
+      normalizeTaflGameId(taflSelectionGameId || targetGameId) === targetGameId;
+    taflSelectionPieceId = isAlreadySelected ? '' : targetPieceId;
+    taflSelectionGameId = isAlreadySelected ? '' : targetGameId;
+    renderTaflBoards();
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+  onTaflBoardTilePointerDown = (event, row, col, gameId = activeTaflGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteTaflGameInRemoveMode(targetGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (normalizeTaflGameId(activeTaflGameId) !== targetGameId) {
+      setActiveTaflGameId(targetGameId);
+    }
+
+    const targetGameState = getTaflGameStateById(targetGameId);
+    const targetRow = clamp(Math.round(Number(row)), 0, TAFL_BOARD_SIZE - 1);
+    const targetCol = clamp(Math.round(Number(col)), 0, TAFL_BOARD_SIZE - 1);
+    if (!targetGameState || targetGameState.enabled === false) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (normalizeTaflWinnerSide(targetGameState.winner)) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    const piecesPayload = targetGameState.pieces && typeof targetGameState.pieces === 'object' ? targetGameState.pieces : {};
+    const clickedPiece = getTaflPieceAtTileFromPayload(piecesPayload, targetRow, targetCol);
+    if (clickedPiece?.id) {
+      if (!canCurrentPlayerControlTaflPieceFromPayload(targetGameState, clickedPiece)) {
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      taflSelectionPieceId = clickedPiece.id;
+      taflSelectionGameId = targetGameId;
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    const selectedGameId = normalizeTaflGameId(taflSelectionGameId || targetGameId);
+    const selectedPiece =
+      selectedGameId === targetGameId && taflSelectionPieceId
+        ? piecesPayload[taflSelectionPieceId] || null
+        : null;
+    if (!selectedPiece) {
+      taflSelectionPieceId = '';
+      taflSelectionGameId = '';
+      renderTaflBoards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    if (!canTaflPieceMoveToTile(piecesPayload, selectedPiece, targetRow, targetCol)) {
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    moveTaflPieceToTile(selectedPiece.id, targetRow, targetCol, targetGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+  onTaflSideClaimClick = (event, side, gameId = activeTaflGameId) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    if (normalizeTaflGameId(activeTaflGameId) !== targetTaflGameId) {
+      setActiveTaflGameId(targetTaflGameId);
+      renderTaflBoards();
+    }
+    toggleTaflSideClaim(side, targetTaflGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onTaflUndoButtonClick = (event, gameId = activeTaflGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    if (normalizeTaflGameId(activeTaflGameId) !== targetTaflGameId) {
+      setActiveTaflGameId(targetTaflGameId);
+      renderTaflBoards();
+    }
+    undoTaflLastAction(targetTaflGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onTaflWinResetButtonClick = (event, gameId = activeTaflGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    const targetState = getTaflGameStateById(targetTaflGameId);
+    if (!targetState || !normalizeTaflWinnerSide(targetState.winner)) {
+      return;
+    }
+    resetHnefataflGame(targetTaflGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onTaflDragMove = (event) => {
+    handleTaflDragMoveLocal(event);
+  };
+  onTaflDragEnd = (event) => {
+    handleTaflDragEndLocal(event);
+  };
+  onDeleteTaflGameInRemoveMode = async (gameId = activeTaflGameId) => {
+    await deleteTaflGameInRemoveMode(gameId);
   };
   onMonsUndoButtonClick = (event, gameId = activeMonsGameId) => {
     if (event) {
@@ -23325,6 +26601,83 @@ async function startRealtimeSession() {
     }
   };
 
+  spawnHnefataflBoard = async () => {
+    const viewportCenter = getViewportWorldCenter();
+    const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
+    const spawnY = clamp(viewportCenter.y, MONS_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - MONS_BOARD_WORLD_HEIGHT / 2);
+    let createdTaflGameId = '';
+    const result = await runTransaction(
+      gamesRef,
+      (currentGames) => {
+        const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+        const existingTaflIds = Object.keys(baseGames).filter((rawGameId) => {
+          if (!isTaflGameId(rawGameId)) {
+            return false;
+          }
+          const payload = baseGames[rawGameId];
+          return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+        });
+        let nextTaflGameId =
+          existingTaflIds.length === 0 && !baseGames[TAFL_GAME_KEY]
+            ? TAFL_GAME_KEY
+            : `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        while (Object.prototype.hasOwnProperty.call(baseGames, nextTaflGameId)) {
+          nextTaflGameId = `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        }
+        createdTaflGameId = nextTaflGameId;
+        return {
+          ...baseGames,
+          [nextTaflGameId]: buildFreshTaflGamePayload({
+            x: spawnX,
+            y: spawnY,
+            width: MONS_BOARD_WORLD_WIDTH,
+            height: MONS_BOARD_WORLD_HEIGHT
+          })
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!result.committed) {
+      return;
+    }
+    if (createdTaflGameId) {
+      setActiveTaflGameId(createdTaflGameId);
+      renderTaflBoards();
+    }
+  };
+
+  resetHnefataflGame = async (gameId = activeTaflGameId) => {
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    await runTransaction(
+      ref(db, `${roomPath}/games/${targetTaflGameId}`),
+      (currentGame) => {
+        const normalized =
+          currentGame && typeof currentGame === 'object'
+            ? normalizeTaflGamePayload(currentGame)
+            : normalizeTaflGamePayload({ enabled: true });
+        return buildFreshTaflGamePayload({
+          x: normalized.x,
+          y: normalized.y,
+          width: normalized.width,
+          height: normalized.height,
+          claims: normalized.claims,
+          showCoordinates: normalized.showCoordinates !== false,
+          coverDrawings: normalized.coverDrawings === true
+        });
+      },
+      { applyLocally: false }
+    );
+    setActiveTaflGameId(targetTaflGameId);
+    renderTaflBoards();
+  };
+
+  putAwayHnefataflGame = async (gameId = activeTaflGameId) => {
+    const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
+    await update(gamesRef, {
+      [targetTaflGameId]: null
+    });
+  };
+
   resetCoolJpegsGame = async (deckId = activeDeckId) => {
     const targetDeckId = normalizeDeckId(deckId);
     const center = getDeckCenterPosition(targetDeckId);
@@ -23411,6 +26764,7 @@ async function startRealtimeSession() {
           width: normalized.width,
           height: normalized.height,
           claims: normalized.claims,
+          showCoordinates: normalized.showCoordinates !== false,
           coverDrawings: normalized.coverDrawings === true
         });
       },
@@ -23431,6 +26785,16 @@ async function startRealtimeSession() {
       renderMonsBoard();
       return;
     }
+    const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(target);
+    if (targetTaflGameId) {
+      if (!getTaflGameStateById(targetTaflGameId)) {
+        return;
+      }
+      patchLocalTaflGame({ coverDrawings: shouldCoverDrawings }, targetTaflGameId);
+      queueMonsPatch({ coverDrawings: shouldCoverDrawings }, targetTaflGameId);
+      renderTaflBoards();
+      return;
+    }
     const targetDeckId = getDeckIdFromGameOptionsTarget(target) || activeDeckId;
     if (!targetDeckId || !getDeckStateById(targetDeckId)) {
       return;
@@ -23438,6 +26802,29 @@ async function startRealtimeSession() {
     patchLocalDeck({ coverDrawings: shouldCoverDrawings }, targetDeckId);
     queueDeckPatch({ coverDrawings: shouldCoverDrawings }, targetDeckId);
     renderAllCards();
+  };
+
+  setGameShowCoordinatesPreference = async (target, enabled) => {
+    const shouldShowCoordinates = enabled !== false;
+    const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
+    if (targetMonsGameId) {
+      if (!getMonsGameStateById(targetMonsGameId)) {
+        return;
+      }
+      patchLocalMonsGame({ showCoordinates: shouldShowCoordinates }, targetMonsGameId);
+      queueMonsPatch({ showCoordinates: shouldShowCoordinates }, targetMonsGameId);
+      renderMonsBoard();
+      return;
+    }
+    const targetTaflGameId = getTaflGameIdFromGameOptionsTarget(target);
+    if (targetTaflGameId) {
+      if (!getTaflGameStateById(targetTaflGameId)) {
+        return;
+      }
+      patchLocalTaflGame({ showCoordinates: shouldShowCoordinates }, targetTaflGameId);
+      queueMonsPatch({ showCoordinates: shouldShowCoordinates }, targetTaflGameId);
+      renderTaflBoards();
+    }
   };
 
   putAwaySuperMetalMonsGame = async (gameId = activeMonsGameId) => {
@@ -23496,7 +26883,13 @@ async function startRealtimeSession() {
     rotatingStickerCardId = '';
     cancelMarbleFlickGesture({ releaseLock: true, resetState: true });
     marbleMotionByDieId.clear();
-    dieDragState = null;
+    marbleActiveCollisionContactsByDieId.clear();
+    marbleCollisionCooldownByPair.clear();
+    marbleCollisionCooldownByTarget.clear();
+    marbleCollisionActionInFlight.clear();
+    staleDieLockRecoveryAttemptAtById.clear();
+    staleDieLockRecoveryInFlight.clear();
+    clearDieDragStateAndReleaseCapture(dieDragState);
     labelResizeState = null;
     labelRotateState = null;
     rotatingLabelDieId = '';
@@ -23509,8 +26902,11 @@ async function startRealtimeSession() {
     recentTouchTapByDieId.clear();
     recentMouseClickByCardId.clear();
     recentMouseClickByDieId.clear();
+    endedPointerAtById.clear();
+    endedTouchPointerIds.clear();
     deckDragState = null;
     monsDragState = null;
+    taflDragState = null;
     handReorderState = null;
     handDropPreview = null;
     syncHandHoverDragLock();
@@ -23535,6 +26931,7 @@ async function startRealtimeSession() {
     }
     removeAllDeckUiArtifacts();
     removeMonsBoardElements();
+    removeTaflBoardElements();
     closeDiceAddModal();
     closeStickerAddModal();
     closeMonsItemChoiceModal();
@@ -23624,6 +27021,12 @@ async function startRealtimeSession() {
     monsGameState = null;
     monsGameStatesById.clear();
     activeMonsGameId = MONS_GAME_KEY;
+    taflGameState = null;
+    taflGameStatesById.clear();
+    lastRenderedTaflMoveTickById.clear();
+    activeTaflGameId = TAFL_GAME_KEY;
+    taflSelectionPieceId = '';
+    taflSelectionGameId = '';
     syncCoverDrawingsGamesLayerState();
     setLocalHandCountLabel();
     setHandHoverDragLock(false);
@@ -23732,6 +27135,7 @@ async function startRealtimeSession() {
     renderDeckControls();
     scheduleAuctionBidUiRender();
     refreshMonsClaimLabelsOnly();
+    refreshTaflClaimLabelsOnly();
 
     const displayCount = visibleEntries.length + 1;
     setRealtimeStatus(`connected • players: ${displayCount}`);
@@ -23916,9 +27320,10 @@ async function startRealtimeSession() {
           closeLabelEditor({ commit: false });
         }
         if (dieDragState?.dieId === dieId) {
-          dieDragState = null;
+          clearDieDragStateAndReleaseCapture(dieDragState);
         }
         marbleMotionByDieId.delete(dieId);
+        marbleActiveCollisionContactsByDieId.delete(dieId);
         if (marbleFlickState?.dieId === dieId) {
           cancelMarbleFlickGesture();
         }
@@ -23935,6 +27340,16 @@ async function startRealtimeSession() {
           dieSelectionChanged = true;
         }
         clearMediaPlaybackTrackingForDie(dieId);
+        staleDieLockRecoveryAttemptAtById.delete(dieId);
+        staleDieLockRecoveryInFlight.delete(dieId);
+        marbleCollisionActionInFlight.delete(`die:${dieId}`);
+        marbleCollisionCooldownByTarget.delete(`die:${dieId}`);
+        for (const pairKey of Array.from(marbleCollisionCooldownByPair.keys())) {
+          const [sourceDieId, targetDieId] = String(pairKey || '').split('|');
+          if (sourceDieId === dieId || targetDieId === dieId) {
+            marbleCollisionCooldownByPair.delete(pairKey);
+          }
+        }
         diceById.delete(dieId);
       }
       renderAllDice();
@@ -24101,8 +27516,16 @@ async function startRealtimeSession() {
       }
       const nextGamesRaw = snapshot.val();
       const nextMonsEntries = [];
+      const nextTaflEntries = [];
       if (nextGamesRaw && typeof nextGamesRaw === 'object') {
         for (const [rawGameId, rawGamePayload] of Object.entries(nextGamesRaw)) {
+          if (isTaflGameId(rawGameId)) {
+            if (!rawGamePayload || typeof rawGamePayload !== 'object' || rawGamePayload.enabled === false) {
+              continue;
+            }
+            nextTaflEntries.push([normalizeTaflGameId(rawGameId), normalizeTaflGamePayload(rawGamePayload)]);
+            continue;
+          }
           if (!isMonsGameId(rawGameId)) {
             continue;
           }
@@ -24124,6 +27547,17 @@ async function startRealtimeSession() {
         }
         monsGameStatesById.delete(existingMonsGameId);
       }
+      const nextTaflIds = new Set();
+      for (const [nextTaflGameId, nextTaflGameState] of nextTaflEntries) {
+        taflGameStatesById.set(nextTaflGameId, nextTaflGameState);
+        nextTaflIds.add(nextTaflGameId);
+      }
+      for (const existingTaflGameId of Array.from(taflGameStatesById.keys())) {
+        if (nextTaflIds.has(existingTaflGameId)) {
+          continue;
+        }
+        taflGameStatesById.delete(existingTaflGameId);
+      }
       let monsSelectionChanged = false;
       for (const selectedMonsGameId of Array.from(selectedMonsGameIds)) {
         if (nextMonsIds.has(selectedMonsGameId)) {
@@ -24138,25 +27572,45 @@ async function startRealtimeSession() {
       if (optionsMonsGameId && !nextMonsIds.has(optionsMonsGameId)) {
         closeGameOptionsMenu();
       }
+      const optionsTaflGameId = getTaflGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+      if (optionsTaflGameId && !nextTaflIds.has(optionsTaflGameId)) {
+        closeGameOptionsMenu();
+      }
       syncGameOptionsCoverDrawingsToggleState();
 
       if (nextMonsIds.size === 0) {
         setActiveMonsGameId(MONS_GAME_KEY);
         monsGameState = null;
-        renderMonsBoard();
-        if (monsSelectionChanged) {
-          syncSelectionDeleteButtonUi();
+      } else {
+        let fallbackMonsGameId = normalizeMonsGameId(activeMonsGameId);
+        if (!nextMonsIds.has(fallbackMonsGameId)) {
+          fallbackMonsGameId = nextMonsIds.has(MONS_GAME_KEY) ? MONS_GAME_KEY : nextMonsEntries[0]?.[0] || MONS_GAME_KEY;
         }
-        syncClearTableButtonState();
-        return;
+        setActiveMonsGameId(fallbackMonsGameId);
       }
 
-      let fallbackMonsGameId = normalizeMonsGameId(activeMonsGameId);
-      if (!nextMonsIds.has(fallbackMonsGameId)) {
-        fallbackMonsGameId = nextMonsIds.has(MONS_GAME_KEY) ? MONS_GAME_KEY : nextMonsEntries[0]?.[0] || MONS_GAME_KEY;
+      if (nextTaflIds.size === 0) {
+        setActiveTaflGameId(TAFL_GAME_KEY);
+        taflGameState = null;
+        taflSelectionPieceId = '';
+        taflSelectionGameId = '';
+      } else {
+        let fallbackTaflGameId = normalizeTaflGameId(activeTaflGameId);
+        if (!nextTaflIds.has(fallbackTaflGameId)) {
+          fallbackTaflGameId = nextTaflIds.has(TAFL_GAME_KEY) ? TAFL_GAME_KEY : nextTaflEntries[0]?.[0] || TAFL_GAME_KEY;
+        }
+        setActiveTaflGameId(fallbackTaflGameId);
+        const selectedTaflGameId = normalizeTaflGameId(taflSelectionGameId || activeTaflGameId);
+        const selectedTaflGame = taflGameStatesById.get(selectedTaflGameId);
+        const selectedTaflPiece = selectedTaflGame?.pieces?.[taflSelectionPieceId] || null;
+        if (!selectedTaflGame || !selectedTaflPiece || !canCurrentPlayerControlTaflPieceFromPayload(selectedTaflGame, selectedTaflPiece)) {
+          taflSelectionPieceId = '';
+          taflSelectionGameId = '';
+        }
       }
-      setActiveMonsGameId(fallbackMonsGameId);
+
       renderMonsBoard();
+      renderTaflBoards();
       if (monsSelectionChanged) {
         syncSelectionDeleteButtonUi();
       }
@@ -24231,6 +27685,9 @@ async function startRealtimeSession() {
   window.addEventListener('pointermove', handleMonsDragMove);
   window.addEventListener('pointerup', handleMonsDragEnd);
   window.addEventListener('pointercancel', handleMonsDragEnd);
+  window.addEventListener('pointermove', onTaflDragMove);
+  window.addEventListener('pointerup', onTaflDragEnd);
+  window.addEventListener('pointercancel', onTaflDragEnd);
 
   handReclaimIntervalId = window.setInterval(() => {
     scheduleHandReclaimCheck();
@@ -24261,6 +27718,12 @@ async function startRealtimeSession() {
       marbleMotionRafId = 0;
     }
     marbleMotionByDieId.clear();
+    marbleActiveCollisionContactsByDieId.clear();
+    marbleCollisionCooldownByPair.clear();
+    marbleCollisionCooldownByTarget.clear();
+    marbleCollisionActionInFlight.clear();
+    staleDieLockRecoveryAttemptAtById.clear();
+    staleDieLockRecoveryInFlight.clear();
     cancelMarbleFlickGesture();
     if (drawingsLiftCutoffFlushTimerId) {
       window.clearTimeout(drawingsLiftCutoffFlushTimerId);
@@ -24453,6 +27916,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   );
 
   tableRoot.addEventListener('pointerdown', (event) => {
+    recoverStuckPointerInteractions(Date.now());
+    endedPointerAtById.delete(event.pointerId);
+    endedTouchPointerIds.delete(event.pointerId);
     if (labelEditState) {
       const targetElement = event.target instanceof Element ? event.target : null;
       if (!targetElement?.closest('.table-label-editor')) {
@@ -24471,6 +27937,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
           tableRoot.setPointerCapture?.(event.pointerId);
           mousePanState = {
             pointerId: event.pointerId,
+            startedAt: Date.now(),
             startClientX: event.clientX,
             startClientY: event.clientY,
             startPanX: camera.panX,
@@ -24555,6 +28022,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         mousePanState = {
           pointerId: event.pointerId,
+          startedAt: Date.now(),
           startClientX: event.clientX,
           startClientY: event.clientY,
           startPanX: camera.panX,
@@ -24783,8 +28251,12 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   });
 
   localLockWatchdogIntervalId = window.setInterval(() => {
+    recoverStuckPointerInteractions(Date.now());
     releaseUnexpectedLocalCardLocks();
     sweepStaleRemoteCardLocks().catch((error) => {
+      console.error(error);
+    });
+    sweepStaleRemoteDieLocks().catch((error) => {
       console.error(error);
     });
   }, 1200);

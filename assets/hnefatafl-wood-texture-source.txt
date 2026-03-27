@@ -1,0 +1,5 @@
+Source: Wikimedia Commons
+File: Light wood texture
+Page: https://commons.wikimedia.org/wiki/File:Light_wood_texture.jpg
+Direct asset: https://upload.wikimedia.org/wikipedia/commons/b/b9/Light_wood_texture.jpg
+License: Public Domain Mark 1.0
