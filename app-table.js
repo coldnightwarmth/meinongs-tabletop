@@ -66,6 +66,8 @@ const noteComponentTile = document.getElementById('noteComponentTile');
 const imageComponentTile = document.getElementById('imageComponentTile');
 const stickerComponentTile = document.getElementById('stickerComponentTile');
 const marbleComponentTile = document.getElementById('marbleComponentTile');
+const stackPointComponentTile = document.getElementById('stackPointComponentTile');
+const secretAreaComponentTile = document.getElementById('secretAreaComponentTile');
 const mediaComponentTile = document.getElementById('mediaComponentTile');
 const diceAddModal = document.getElementById('diceAddModal');
 const diceAddBackButton = document.getElementById('diceAddBackButton');
@@ -198,6 +200,7 @@ const CARD_SIZE_MULTIPLIER = 1.8;
 const CARD_WIDTH = 120 * CARD_SIZE_MULTIPLIER;
 const CARD_HEIGHT = 168 * CARD_SIZE_MULTIPLIER;
 const CARD_FLIP_DURATION_MS = 220;
+const NOTE_ATTACHMENT_PICKUP_SYNC_MS = 220;
 const DECK_CONTROL_SIZE = 28;
 const DECK_CONTROL_GAP = 9;
 const DECK_SHUFFLE_FX_DURATION_MS = 980;
@@ -233,6 +236,9 @@ const DRAW_TOOL_DRAG_MIN_DISTANCE = 3;
 const DELETE_FADE_DURATION_MS = 170;
 const ROOM_LINK_COPY_FEEDBACK_MS = 1300;
 const ASSET_ELEMENT_LOAD_TIMEOUT_MS = 12000;
+const SPAWN_LOADING_INDICATOR_TIMEOUT_MS = 9000;
+const HOT_DECK_FRONT_PRELOAD_PER_DECK = 10;
+const HOT_DECK_FRONT_PRELOAD_DELAY_MS = 90;
 const CURSOR_PENCIL_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20L8.8 18.8L19.2 8.4C19.8 7.8 19.8 6.9 19.2 6.3L17.7 4.8C17.1 4.2 16.2 4.2 15.6 4.8L5.2 15.2L4 20Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.8 6.6L17.4 10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>';
 const HAND_DROP_REGION_HEIGHT = 110;
@@ -252,6 +258,7 @@ const CURSOR_STALE_TIMEOUT_MS = 35000;
 const PRESENCE_STALE_TIMEOUT_MS = 45000;
 const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
 const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
+const CARD_WRITE_RETRY_DELAY_MS = 220;
 const DECK_KEY = 'cool-jpegs';
 const POKER_DECK_KEY = 'poker-deck';
 const DECK_KIND_COOL = 'cool-jpegs';
@@ -384,6 +391,9 @@ const DIE_SIZE_COUNTER_HEIGHT = 136;
 const DIE_SIZE_TIMER_WIDTH = 296;
 const DIE_SIZE_TIMER_HEIGHT = 204;
 const DIE_SIZE_MARBLE = 90;
+const STACK_POINT_SLOT_PADDING = 8;
+const DIE_SIZE_STACK_POINT_WIDTH = CARD_WIDTH + STACK_POINT_SLOT_PADDING * 2;
+const DIE_SIZE_STACK_POINT_HEIGHT = CARD_HEIGHT + STACK_POINT_SLOT_PADDING * 2;
 const CHIP_SET_MIN_STACKS = 1;
 const CHIP_SET_MAX_STACKS = 5;
 const CHIP_STACK_MIN_QUANTITY = 1;
@@ -475,12 +485,24 @@ const LABEL_DEFAULT_SPAWN_WIDTH = 332;
 const LABEL_MEASURE_BUFFER_X = 8;
 const LABEL_MEASURE_BUFFER_Y = 0;
 const NOTE_COMPONENT_SUBTYPE = 'note';
+const SECRET_AREA_COMPONENT_SUBTYPE = 'secret-area';
 const NOTE_TEXT_MAX_LENGTH = 24000;
 const NOTE_COMPONENT_DEFAULT_WORLD_SIZE = 252;
 const NOTE_COMPONENT_MIN_WORLD_SIZE = 150;
 const NOTE_COMPONENT_MAX_WORLD_SIZE = 760;
 const NOTE_FACE_LINE_WRAP_CHARS = 48;
 const NOTE_FACE_MAX_LINES = 24;
+const NOTE_FACE_SVG_SIZE = 240;
+const NOTE_FACE_PAPER_INSET = 8;
+const NOTE_FACE_PAPER_SIZE = NOTE_FACE_SVG_SIZE - NOTE_FACE_PAPER_INSET * 2;
+const NOTE_FACE_TEXT_PADDING_LEFT = 6;
+const NOTE_FACE_TEXT_PADDING_TOP = 6;
+const NOTE_FACE_TEXT_PADDING_RIGHT = 14;
+const NOTE_FACE_TEXT_PADDING_BOTTOM = 6;
+const NOTE_FACE_TEXT_FONT_SIZE = 24.5;
+const NOTE_FACE_TEXT_LINE_HEIGHT = 28.5;
+const NOTE_FACE_TEXT_CHAR_WIDTH_FACTOR = 0.56;
+const NOTE_FACE_TEXT_BASELINE_FACTOR = 0.82;
 const NOTE_HELD_VISUAL_SCALE = 1.123;
 const STICKER_PACK_PLAY_THINGS = 'play-things';
 const STICKER_PACK_SWAG = 'swag-pack';
@@ -1053,21 +1075,34 @@ function splitNoteTextIntoFaceLines(rawText, maxCharsPerLine = NOTE_FACE_LINE_WR
 
 function createNoteFaceSvgDataUri(rawText = '', face = 'front') {
   const safeFace = face === 'back' ? 'back' : 'front';
-  const noteLines = splitNoteTextIntoFaceLines(rawText);
-  const textStartY = 18;
-  const textLineHeight = 10.6;
+  const availableTextWidth = Math.max(
+    8,
+    NOTE_FACE_PAPER_SIZE - NOTE_FACE_TEXT_PADDING_LEFT - NOTE_FACE_TEXT_PADDING_RIGHT
+  );
+  const availableTextHeight = Math.max(
+    10,
+    NOTE_FACE_PAPER_SIZE - NOTE_FACE_TEXT_PADDING_TOP - NOTE_FACE_TEXT_PADDING_BOTTOM
+  );
+  const maxCharsPerLine = Math.max(
+    4,
+    Math.floor(availableTextWidth / Math.max(1, NOTE_FACE_TEXT_FONT_SIZE * NOTE_FACE_TEXT_CHAR_WIDTH_FACTOR))
+  );
+  const maxLines = Math.max(1, Math.floor(availableTextHeight / NOTE_FACE_TEXT_LINE_HEIGHT));
+  const noteLines = splitNoteTextIntoFaceLines(rawText, maxCharsPerLine, maxLines);
+  const textStartX = NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_LEFT;
+  const textStartY = NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_TOP + NOTE_FACE_TEXT_FONT_SIZE * NOTE_FACE_TEXT_BASELINE_FACTOR;
   const textMarkup = noteLines
     .map((line, index) => {
       const safeLine = escapePokerSvgText(line);
-      const lineY = textStartY + index * textLineHeight;
-      return `<text x="10" y="${lineY}" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="9.8" fill="#3c341f">${safeLine}</text>`;
+      const lineY = textStartY + index * NOTE_FACE_TEXT_LINE_HEIGHT;
+      return `<text x="${textStartX}" y="${lineY}" font-family="Trebuchet MS, Segoe UI, sans-serif" font-size="${NOTE_FACE_TEXT_FONT_SIZE}" fill="#3c341f">${safeLine}</text>`;
     })
     .join('');
   const paperFill = safeFace === 'back' ? '#e8ce78' : '#f2d97f';
   return encodeSvgDataUri(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-      <rect x="8" y="8" width="224" height="224" fill="${paperFill}" />
-      <rect x="8" y="8" width="224" height="224" fill="none" stroke="rgba(85,68,27,0.34)" stroke-width="2"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${NOTE_FACE_SVG_SIZE} ${NOTE_FACE_SVG_SIZE}">
+      <rect x="${NOTE_FACE_PAPER_INSET}" y="${NOTE_FACE_PAPER_INSET}" width="${NOTE_FACE_PAPER_SIZE}" height="${NOTE_FACE_PAPER_SIZE}" fill="${paperFill}" />
+      <rect x="${NOTE_FACE_PAPER_INSET}" y="${NOTE_FACE_PAPER_INSET}" width="${NOTE_FACE_PAPER_SIZE}" height="${NOTE_FACE_PAPER_SIZE}" fill="none" stroke="rgba(85,68,27,0.34)" stroke-width="2"/>
       <g>${textMarkup}</g>
     </svg>
   `);
@@ -1229,6 +1264,9 @@ const selectedCardIds = new Set();
 const selectedDiceIds = new Set();
 const selectedDeckIds = new Set();
 const selectedMonsGameIds = new Set();
+const selectedChipSetIds = new Set();
+const selectedTaflGameIds = new Set();
+const selectedGoGameIds = new Set();
 const frontImageLoadState = new Map();
 const frontImagePromises = new Map();
 const frontDisplayPendingByCard = new Map();
@@ -1237,6 +1275,9 @@ const handDisplayPendingByCard = new Map();
 const noteAttachmentRenderKeyByCardId = new Map();
 const noteAttachmentDisplayFaceByCardId = new Map();
 const noteAttachmentFaceSwapTimersByCardId = new Map();
+const noteAttachmentPickupSyncRafByCardId = new Map();
+let activeNoteEditCardId = '';
+let activeNoteEditFace = 'front';
 const discardReturnAnimatingCardIds = new Set();
 const discardReturnAnimationTimers = new Map();
 const drawingStrokes = new Map();
@@ -1251,12 +1292,16 @@ let frontImagePendingLoadCount = 0;
 let elementAssetPendingLoadCount = 0;
 let assetElementLoadObserver = null;
 const trackedAssetElementLoads = new WeakMap();
+const trackedAssetLoadContainerCounts = new WeakMap();
 
 let localPosition = { x: 0.5, y: 0.5 };
 let syncCursorState = () => {};
 let localClientId = '';
 let localPlayerToken = '';
 let latestPresenceByToken = {};
+let hasLoadedInitialCardsSnapshot = false;
+let secretAreaRegionsCacheDirty = true;
+let secretAreaRegionsCache = [];
 let deckState = null;
 const deckStatesById = new Map();
 const chipSetsById = new Map();
@@ -1331,6 +1376,7 @@ let chipStackDropIndicatorVisible = false;
 let deckDropIndicatorDeckId = '';
 let discardDropIndicatorDeckId = '';
 let auctionDropIndicatorDeckId = '';
+let stackPointDropTargetDieId = '';
 let chipStackDropIndicatorChipSetId = '';
 let chipStackDropIndicatorStackIndex = -1;
 let handTray = null;
@@ -1362,6 +1408,8 @@ let deckShuffleDarkenedCardId = '';
 let diceRollAnimationRafId = 0;
 let cameraRenderRafId = 0;
 let cameraPersistTimerId = 0;
+const spawnLoadingIndicatorsById = new Map();
+let hotDeckFrontPreloadTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
@@ -1475,6 +1523,12 @@ let spawnTimer = async () => {
 let spawnMarble = async () => {
   showStatusMessage('Firebase connection is required before adding marbles.');
 };
+let spawnStackPointComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding stack points.');
+};
+let spawnSecretAreaComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding secret areas.');
+};
 let spawnSpinnerComponent = async () => {
   showStatusMessage('Firebase connection is required before adding spinners.');
 };
@@ -1531,6 +1585,7 @@ let onCardPointerDown = () => {};
 let onCardResizePointerDown = () => {};
 let onCardRotatePointerDown = () => {};
 let onCardContextMenu = () => {};
+let onCardDoubleClick = () => {};
 let onStickerLockControlPointerDown = () => {};
 let onHandCardPointerDown = () => {};
 let onDiePointerDown = () => {};
@@ -1568,6 +1623,7 @@ let onDrawingStrokePointerDown = () => {};
 let onPlayerColorChanged = () => {};
 let onPlayerColorPickerPointerDown = () => {};
 let onPlayerColorPickerClosed = () => {};
+let onPlayerNameChanged = () => {};
 let drawModeEnabled = false;
 let deleteModeEnabled = false;
 let activeDrawTool = DRAW_TOOL_FREE;
@@ -1948,6 +2004,34 @@ function normalizeDeckId(rawDeckId) {
   return normalized;
 }
 
+function normalizeOptionalDeckId(rawDeckId) {
+  const normalized = String(rawDeckId || '').trim().toLowerCase();
+  return normalized || '';
+}
+
+function isStandardDeckInstanceId(rawDeckId) {
+  const deckId = normalizeDeckId(rawDeckId);
+  return (
+    deckId === DECK_KEY ||
+    deckId === POKER_DECK_KEY ||
+    deckId.startsWith(`${DECK_KEY}-copy-`) ||
+    deckId.startsWith(`${POKER_DECK_KEY}-copy-`)
+  );
+}
+
+function inferDeckIdFromCardId(cardId) {
+  const normalizedCardId = String(cardId || '').trim().toLowerCase();
+  if (!normalizedCardId) {
+    return '';
+  }
+  const match = normalizedCardId.match(/^(.+)-\d{3}$/);
+  if (!match || !match[1]) {
+    return '';
+  }
+  const candidateDeckId = normalizeDeckId(match[1]);
+  return isStandardDeckInstanceId(candidateDeckId) ? candidateDeckId : '';
+}
+
 function isPokerDeckId(rawDeckId) {
   const normalizedDeckId = normalizeDeckId(rawDeckId);
   return normalizedDeckId === POKER_DECK_KEY || normalizedDeckId.startsWith(`${POKER_DECK_KEY}-copy-`);
@@ -2303,6 +2387,9 @@ function normalizeDieType(type) {
   if (type === 'marble') {
     return 'marble';
   }
+  if (type === 'stack-point' || type === 'stackpoint' || type === 'stack_point') {
+    return 'stack-point';
+  }
   if (type === 'spinner') {
     return 'spinner';
   }
@@ -2317,6 +2404,10 @@ function normalizeDieType(type) {
 
 function isLabelDieState(dieState) {
   return normalizeDieType(dieState?.type) === 'label';
+}
+
+function isStackPointDieState(dieState) {
+  return normalizeDieType(dieState?.type) === 'stack-point';
 }
 
 function isLabelDieLocked(dieState) {
@@ -2522,6 +2613,9 @@ function getChipStackDropTargetAtPosition(x, y, chipDieState = null) {
   const hitRadius = DIE_SIZE_CHIP * 0.52;
   for (const [chipSetId, chipSetState] of chipSetsById.entries()) {
     const normalizedSet = normalizeChipSetPayload(chipSetState);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(normalizedSet.x, normalizedSet.y)) {
+      continue;
+    }
     for (let stackIndex = 0; stackIndex < normalizedSet.stackCount; stackIndex += 1) {
       const stackState = normalizedSet.stacks[stackIndex];
       if (!stackState) {
@@ -2626,7 +2720,13 @@ function getSpinnerNeedleAngle(dieState, now = Date.now()) {
 
 function getDieSides(type, payload = null) {
   const normalizedType = normalizeDieType(type);
-  if (normalizedType === 'label' || normalizedType === 'media' || normalizedType === 'counter' || normalizedType === 'timer') {
+  if (
+    normalizedType === 'label' ||
+    normalizedType === 'media' ||
+    normalizedType === 'counter' ||
+    normalizedType === 'timer' ||
+    normalizedType === 'stack-point'
+  ) {
     return 1;
   }
   if (normalizedType === 'marble') {
@@ -2660,6 +2760,9 @@ function getDieSize(type) {
   }
   if (normalizedType === 'marble') {
     return DIE_SIZE_MARBLE;
+  }
+  if (normalizedType === 'stack-point') {
+    return Math.max(DIE_SIZE_STACK_POINT_WIDTH, DIE_SIZE_STACK_POINT_HEIGHT);
   }
   if (normalizedType === 'spinner') {
     return DIE_SIZE_SPINNER;
@@ -2737,22 +2840,28 @@ function getTimerDisplayDigits(elapsedMs) {
   ];
 }
 
-function getTimerControlIconSvg(action) {
+function getTimerControlIconSvg(action, isRunning = false, elapsedMs = 0) {
   if (action === 'reset') {
     return '<path d="M8.4 8.2A4.8 4.8 0 1 1 7.2 12" /><path d="M7.3 6.35V9.6H10.55" />';
   }
   if (action === 'pause') {
-    return '<path d="M8.65 6.3V17.7" /><path d="M15.35 6.3V17.7" />';
+    if (isRunning) {
+      return '<path d="M8.65 6.3V17.7" /><path d="M15.35 6.3V17.7" />';
+    }
+    return '<path d="M9.1 7.05L17.2 12L9.1 16.95Z" />';
   }
   if (action === 'split') {
-    return '<path d="M12 5.7V18.3" /><path d="M7.05 10.65L12 5.7L16.95 10.65" />';
+    return '<path d="M12 5.7V18.3" /><path d="M7.05 13.35L12 18.3L16.95 13.35" />';
   }
   return '';
 }
 
-function getTimerControlLabel(action, isRunning = false) {
+function getTimerControlLabel(action, isRunning = false, elapsedMs = 0) {
   if (action === 'pause') {
-    return isRunning ? 'pause' : 'resume';
+    if (isRunning) {
+      return 'pause';
+    }
+    return clampTimerElapsedMs(elapsedMs) <= 0 ? 'start' : 'resume';
   }
   if (action === 'split') {
     return 'split';
@@ -2773,7 +2882,7 @@ function getTimerSplitLabel(splitIndex) {
 }
 
 function getTimerSplitOrderIndex(totalSplits, reverseIndex) {
-  return totalSplits - reverseIndex;
+  return reverseIndex + 1;
 }
 
 function getTimerSplitRows(splits) {
@@ -2822,9 +2931,9 @@ function renderTimerSplitRows(splitsContainer, splits) {
   splitsContainer.appendChild(fragment);
 }
 
-function createTimerControlContent(action, isRunning = false) {
-  const label = getTimerControlLabel(action, isRunning);
-  const iconSvg = getTimerControlIconSvg(action);
+function createTimerControlContent(action, isRunning = false, elapsedMs = 0) {
+  const label = getTimerControlLabel(action, isRunning, elapsedMs);
+  const iconSvg = getTimerControlIconSvg(action, isRunning, elapsedMs);
   const content = document.createElement('span');
   content.className = 'table-timer-control-content';
   const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -2842,20 +2951,26 @@ function createTimerControlContent(action, isRunning = false) {
   return content;
 }
 
-function setTimerControlLabel(controlElement, action, isRunning = false) {
+function setTimerControlLabel(controlElement, action, isRunning = false, elapsedMs = 0) {
   if (!(controlElement instanceof HTMLElement)) {
     return;
   }
-  const nextLabel = getTimerControlLabel(action, isRunning);
+  const nextLabel = getTimerControlLabel(action, isRunning, elapsedMs);
+  const nextIconSvg = getTimerControlIconSvg(action, isRunning, elapsedMs);
+  let iconElement = controlElement.querySelector('.table-timer-control-icon');
   let labelElement = controlElement.querySelector('[data-timer-control-label="1"]');
-  if (!(labelElement instanceof HTMLElement)) {
-    const content = createTimerControlContent(action, isRunning);
+  if (!(labelElement instanceof HTMLElement) || !(iconElement instanceof SVGElement)) {
+    const content = createTimerControlContent(action, isRunning, elapsedMs);
     controlElement.textContent = '';
     controlElement.appendChild(content);
-    return;
+    iconElement = controlElement.querySelector('.table-timer-control-icon');
+    labelElement = controlElement.querySelector('[data-timer-control-label="1"]');
   }
-  if (labelElement.textContent !== nextLabel) {
+  if (labelElement instanceof HTMLElement && labelElement.textContent !== nextLabel) {
     labelElement.textContent = nextLabel;
+  }
+  if (iconElement instanceof SVGElement && iconElement.innerHTML !== nextIconSvg) {
+    iconElement.innerHTML = nextIconSvg;
   }
 }
 
@@ -3026,6 +3141,12 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
       height: DIE_SIZE_TIMER_HEIGHT
     };
   }
+  if (dieType === 'stack-point') {
+    return {
+      width: DIE_SIZE_STACK_POINT_WIDTH,
+      height: DIE_SIZE_STACK_POINT_HEIGHT
+    };
+  }
   if (dieType !== 'label') {
     const size = getDieSize(dieType);
     return { width: size, height: size };
@@ -3155,6 +3276,7 @@ function normalizeDicePayload(payload) {
   const timerStartedAt = Number.isFinite(timerStartedAtRaw) && timerStartedAtRaw > 0 ? Math.floor(timerStartedAtRaw) : 0;
   const timerRunning = type === 'timer' && payload?.timerRunning === true && timerStartedAt > 0 && timerElapsedMs < TIMER_MAX_ELAPSED_MS;
   const timerSplits = type === 'timer' ? normalizeTimerSplits(payload?.timerSplits) : [];
+  const timerSplitsVisible = type === 'timer' ? (payload?.timerSplitsVisible === true || timerSplits.length > 0) : false;
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
   const labelLocked = type === 'label' ? payload?.labelLocked === true : false;
   const labelRotation = type === 'label' ? normalizeStickerRotationDegrees(payload?.labelRotation) : 0;
@@ -3200,6 +3322,8 @@ function normalizeDicePayload(payload) {
       ? 0
     : type === 'chip'
       ? 1
+    : type === 'stack-point'
+      ? 1
     : clamp(Number.isFinite(nextValue) ? Math.round(nextValue) : 1, 1, sides);
   return {
     type,
@@ -3222,6 +3346,7 @@ function normalizeDicePayload(payload) {
     timerRunning,
     timerStartedAt,
     timerSplits,
+    timerSplitsVisible,
     textScale,
     labelLocked,
     labelRotation,
@@ -3247,7 +3372,12 @@ function normalizeDicePayload(payload) {
     velocityY,
     marbleHue,
     rollStartedAt:
-      type === 'label' || type === 'media' || type === 'marble' || type === 'counter' || type === 'timer'
+      type === 'label' ||
+      type === 'media' ||
+      type === 'marble' ||
+      type === 'counter' ||
+      type === 'timer' ||
+      type === 'stack-point'
         ? 0
         : Number.isFinite(rollStartedAt)
           ? Math.max(0, rollStartedAt)
@@ -3262,7 +3392,14 @@ function isDieRolling(dieState, now = Date.now()) {
     return false;
   }
   const dieType = normalizeDieType(dieState.type);
-  if (dieType === 'label' || dieType === 'media' || dieType === 'marble' || dieType === 'counter' || dieType === 'timer') {
+  if (
+    dieType === 'label' ||
+    dieType === 'media' ||
+    dieType === 'marble' ||
+    dieType === 'counter' ||
+    dieType === 'timer' ||
+    dieType === 'stack-point'
+  ) {
     return false;
   }
   const startedAt = Number(dieState.rollStartedAt);
@@ -5042,6 +5179,53 @@ function ensureFrontImageLoaded(src) {
   return promise;
 }
 
+function warmCardFrontVariants(frontSrc, preferredCardScreenWidth = LOW_RES_FRONT_SWITCH_SCREEN_WIDTH) {
+  const normalizedFrontSrc = String(frontSrc || '').trim();
+  if (!normalizedFrontSrc) {
+    return;
+  }
+  const normalizedScreenWidth = Math.max(1, Number(preferredCardScreenWidth) || LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
+  const variants = resolveFrontVariantSources(normalizedFrontSrc, normalizedScreenWidth);
+  if (variants.preferredSrc) {
+    void ensureFrontImageLoaded(variants.preferredSrc);
+  }
+  if (variants.fallbackSrc && variants.fallbackSrc !== variants.preferredSrc) {
+    void ensureFrontImageLoaded(variants.fallbackSrc);
+  }
+}
+
+function warmCardFrontOnDeckExit(previousCardState, nextCardState) {
+  if (!previousCardState || !nextCardState) {
+    return;
+  }
+  if (previousCardState.inDeck === true && nextCardState.inDeck !== true) {
+    const preferredCardScreenWidth = snapToDevicePixel(getCardTableDimensions(nextCardState).width * camera.scale);
+    warmCardFrontVariants(nextCardState.frontSrc, preferredCardScreenWidth);
+  }
+}
+
+function runHotDeckFrontPreload() {
+  hotDeckFrontPreloadTimerId = 0;
+  if (cards.size === 0) {
+    return;
+  }
+  for (const deckId of getDeckIdsInRoom()) {
+    const topDeckCardIds = getDeckCardIds(deckId)
+      .sort((leftId, rightId) => (Number(cards.get(rightId)?.z) || 0) - (Number(cards.get(leftId)?.z) || 0))
+      .slice(0, HOT_DECK_FRONT_PRELOAD_PER_DECK);
+    for (const cardId of topDeckCardIds) {
+      warmCardFrontVariants(cards.get(cardId)?.frontSrc, LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
+    }
+  }
+}
+
+function scheduleHotDeckFrontPreload() {
+  if (hotDeckFrontPreloadTimerId) {
+    return;
+  }
+  hotDeckFrontPreloadTimerId = window.setTimeout(runHotDeckFrontPreload, HOT_DECK_FRONT_PRELOAD_DELAY_MS);
+}
+
 async function preloadImageSources(sources, concurrency) {
   const pendingSources = [...sources];
   const workerCount = Math.max(1, concurrency);
@@ -5093,6 +5277,47 @@ function clearNoteAttachmentFaceSwapTimer(cardId) {
   }
 }
 
+function clearNoteAttachmentPickupSync(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  const rafId = noteAttachmentPickupSyncRafByCardId.get(normalizedCardId);
+  if (rafId) {
+    window.cancelAnimationFrame(rafId);
+  }
+  noteAttachmentPickupSyncRafByCardId.delete(normalizedCardId);
+}
+
+function scheduleNoteAttachmentPickupSync(cardId, durationMs = NOTE_ATTACHMENT_PICKUP_SYNC_MS) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  clearNoteAttachmentPickupSync(normalizedCardId);
+  const normalizedDuration = Math.max(0, Number(durationMs) || 0);
+  const startedAt = performance.now();
+  const step = () => {
+    if (!noteAttachmentPickupSyncRafByCardId.has(normalizedCardId)) {
+      return;
+    }
+    const cardState = cards.get(normalizedCardId);
+    if (!isNoteComponentCard(cardState)) {
+      clearNoteAttachmentPickupSync(normalizedCardId);
+      return;
+    }
+    rerenderAttachedDrawingStrokesForCard(normalizedCardId);
+    if (performance.now() - startedAt >= normalizedDuration) {
+      noteAttachmentPickupSyncRafByCardId.delete(normalizedCardId);
+      return;
+    }
+    const nextRafId = window.requestAnimationFrame(step);
+    noteAttachmentPickupSyncRafByCardId.set(normalizedCardId, nextRafId);
+  };
+  const rafId = window.requestAnimationFrame(step);
+  noteAttachmentPickupSyncRafByCardId.set(normalizedCardId, rafId);
+}
+
 function getDisplayedNoteAttachmentFace(cardId, fallbackFace = 'front') {
   const normalizedCardId = String(cardId || '').trim();
   const normalizedFallbackFace = fallbackFace === 'back' ? 'back' : 'front';
@@ -5123,6 +5348,7 @@ function clearNoteAttachmentFaceState(cardId) {
     return;
   }
   clearNoteAttachmentFaceSwapTimer(normalizedCardId);
+  clearNoteAttachmentPickupSync(normalizedCardId);
   noteAttachmentDisplayFaceByCardId.delete(normalizedCardId);
 }
 
@@ -5606,6 +5832,7 @@ function hideChipSetUi(chipUi) {
   }
   chipUi.moveButton?.classList.add('hidden');
   chipUi.moveButton?.classList.remove('is-held-by-self');
+  chipUi.moveButton?.classList.remove('is-group-selected');
   for (const stackEntry of chipUi.stacks || []) {
     stackEntry?.slot?.classList.add('hidden');
     stackEntry?.slot?.classList.remove('is-empty');
@@ -5710,8 +5937,15 @@ function removeAllChipSetUiArtifacts() {
 }
 
 function renderChipSets() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    hideAllChipSetUiElements();
+    chipStackDropIndicator?.classList.add('hidden');
+    chipStackDropIndicator?.classList.remove('is-visible');
+    return;
+  }
   ensureChipStackDropIndicator();
   const renderedChipSetIds = new Set();
+  let chipSetSelectionChanged = false;
   const controlSize = DECK_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const chipScreenSize = snapToDevicePixel(DIE_SIZE_CHIP * camera.scale);
@@ -5722,6 +5956,13 @@ function renderChipSets() {
       continue;
     }
     renderedChipSetIds.add(chipSetId);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(chipSetState.x, chipSetState.y)) {
+      hideChipSetUi(chipUi);
+      if (selectedChipSetIds.delete(chipSetId)) {
+        chipSetSelectionChanged = true;
+      }
+      continue;
+    }
     const chipCenterScreen = worldToScreen({ x: chipSetState.x, y: chipSetState.y });
     for (let index = 0; index < chipUi.stacks.length; index += 1) {
       const stackEntry = chipUi.stacks[index];
@@ -5761,6 +6002,7 @@ function renderChipSets() {
     setElementStylePx(chipUi.moveButton, 'width', controlSize);
     setElementStylePx(chipUi.moveButton, 'height', controlSize);
     chipUi.moveButton.classList.toggle('is-held-by-self', chipSetState.holderClientId === localClientId);
+    chipUi.moveButton.classList.toggle('is-group-selected', selectedChipSetIds.has(chipSetId));
   }
 
   for (const [existingChipSetId, existingChipUi] of chipSetUiById.entries()) {
@@ -5788,19 +6030,33 @@ function renderChipSets() {
   if (!chipStackDropIndicator || !targetCenter) {
     chipStackDropIndicator?.classList.add('hidden');
     chipStackDropIndicator?.classList.remove('is-visible');
+    if (chipSetSelectionChanged) {
+      syncSelectionDeleteButtonUi();
+    }
     return;
   }
   setElementStylePx(chipStackDropIndicator, 'left', targetCenter.x);
   setElementStylePx(chipStackDropIndicator, 'top', targetCenter.y - chipScreenSize / 2 - DECK_DROP_INDICATOR_OFFSET_Y);
   chipStackDropIndicator.classList.remove('hidden');
   chipStackDropIndicator.classList.add('is-visible');
+  if (chipSetSelectionChanged) {
+    syncSelectionDeleteButtonUi();
+  }
 }
 
 function renderDeckControls() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    hideAllDeckUiElements();
+    deckDropIndicator?.classList.add('hidden');
+    discardDropIndicator?.classList.add('hidden');
+    auctionDropIndicator?.classList.add('hidden');
+    return;
+  }
   ensureDeckDropIndicators();
   const { deckIds, metricsByDeck } = buildDeckCardMetrics();
   const renderedDeckIds = new Set();
   let hasVisibleDeck = false;
+  let deckSelectionChanged = false;
   const controlSize = DECK_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const dealTargetCount = getActivePlayerTokensForDeal().length;
@@ -5855,8 +6111,15 @@ function renderDeckControls() {
       continue;
     }
 
-    hasVisibleDeck = true;
     renderedDeckIds.add(deckId);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(targetDeckState.x, targetDeckState.y)) {
+      hideDeckUi(deckUi);
+      if (selectedDeckIds.delete(deckId)) {
+        deckSelectionChanged = true;
+      }
+      continue;
+    }
+    hasVisibleDeck = true;
 
     const deckScreen = worldToScreen({ x: targetDeckState.x, y: targetDeckState.y });
     const discardScreen = worldToScreen(getDiscardCenterPosition(deckId));
@@ -6049,6 +6312,9 @@ function renderDeckControls() {
     if (activeGameOptionsTarget.startsWith('deck:')) {
       closeGameOptionsMenu();
     }
+  }
+  if (deckSelectionChanged) {
+    syncSelectionDeleteButtonUi();
   }
 }
 
@@ -8908,12 +9174,25 @@ function renderMonsSpawnGhosts() {
 }
 
 function renderMonsBoard() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    hideMonsBoardElements();
+    return;
+  }
   syncCoverDrawingsGamesLayerState();
   monsGameState = getMonsGameStateById(activeMonsGameId);
   if (!monsGameState || monsGameState.enabled === false) {
     lastActiveMonsLayerRenderKey = '';
     lastActiveMonsHudRenderKey = '';
     lastActiveMonsBoardFlipped = null;
+    hideMonsBoardElements();
+    renderInactiveMonsBoardGhosts();
+    return;
+  }
+
+  if (isWorldPointHiddenBySecretAreaForLocalViewer(monsGameState.x, monsGameState.y)) {
+    if (selectedMonsGameIds.delete(normalizeMonsGameId(activeMonsGameId))) {
+      syncSelectionDeleteButtonUi();
+    }
     hideMonsBoardElements();
     renderInactiveMonsBoardGhosts();
     return;
@@ -10170,6 +10449,16 @@ function syncTaflShellHudThemeStyles(taflUi) {
 }
 
 function renderTaflBoards() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    for (const taflUi of taflBoardElementsById.values()) {
+      taflUi?.shell?.classList.add('hidden');
+      taflUi?.moveButton?.classList.add('hidden');
+      taflUi?.optionsButton?.classList.add('hidden');
+      taflUi?.attackerClaimsList?.classList.add('hidden');
+      taflUi?.defenderClaimsList?.classList.add('hidden');
+    }
+    return;
+  }
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -10177,6 +10466,7 @@ function renderTaflBoards() {
   const controlSize = MONS_MOVE_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const visibleIds = new Set();
+  let taflSelectionChanged = false;
 
   for (const [gameId, gameState] of taflGameStatesById.entries()) {
     if (!gameState || gameState.enabled === false) {
@@ -10188,6 +10478,17 @@ function renderTaflBoards() {
       continue;
     }
     visibleIds.add(normalizedGameId);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      taflUi.shell.classList.add('hidden');
+      taflUi.moveButton.classList.add('hidden');
+      taflUi.optionsButton.classList.add('hidden');
+      taflUi.attackerClaimsList?.classList.add('hidden');
+      taflUi.defenderClaimsList?.classList.add('hidden');
+      if (selectedTaflGameIds.delete(normalizedGameId)) {
+        taflSelectionChanged = true;
+      }
+      continue;
+    }
 
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
     if (taflUi.shell.classList.contains('is-drag-floating')) {
@@ -10208,6 +10509,8 @@ function renderTaflBoards() {
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
     taflUi.shell.classList.remove('hidden');
+    taflUi.attackerClaimsList?.classList.remove('hidden');
+    taflUi.defenderClaimsList?.classList.remove('hidden');
     setElementStylePx(taflUi.shell, 'left', boardScreen.x);
     setElementStylePx(taflUi.shell, 'top', boardScreen.y);
     setElementStylePx(taflUi.shell, 'width', boardScreenWidth);
@@ -10244,6 +10547,7 @@ function renderTaflBoards() {
     setElementStylePx(taflUi.moveButton, 'width', controlSize);
     setElementStylePx(taflUi.moveButton, 'height', controlSize);
     taflUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
+    taflUi.moveButton.classList.toggle('is-group-selected', selectedTaflGameIds.has(normalizedGameId));
 
     taflUi.optionsButton.classList.remove('hidden');
     setElementStylePx(taflUi.optionsButton, 'left', moveButtonX);
@@ -10272,6 +10576,9 @@ function renderTaflBoards() {
     taflBoardElementsById.delete(gameId);
     lastRenderedTaflMoveTickById.delete(normalizeTaflGameId(gameId));
     lastRenderedTaflWinnerById.delete(normalizeTaflGameId(gameId));
+  }
+  if (taflSelectionChanged) {
+    syncSelectionDeleteButtonUi();
   }
 }
 
@@ -11237,6 +11544,16 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
 }
 
 function renderGoBoards() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    for (const goUi of goBoardElementsById.values()) {
+      goUi?.shell?.classList.add('hidden');
+      goUi?.moveButton?.classList.add('hidden');
+      goUi?.optionsButton?.classList.add('hidden');
+      goUi?.blackClaimsList?.classList.add('hidden');
+      goUi?.whiteClaimsList?.classList.add('hidden');
+    }
+    return;
+  }
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -11244,6 +11561,7 @@ function renderGoBoards() {
   const controlSize = MONS_MOVE_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const visibleIds = new Set();
+  let goSelectionChanged = false;
 
   for (const [gameId, gameState] of goGameStatesById.entries()) {
     if (!gameState || gameState.enabled === false) {
@@ -11256,6 +11574,17 @@ function renderGoBoards() {
       continue;
     }
     visibleIds.add(normalizedGameId);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      goUi.shell.classList.add('hidden');
+      goUi.moveButton.classList.add('hidden');
+      goUi.optionsButton.classList.add('hidden');
+      goUi.blackClaimsList?.classList.add('hidden');
+      goUi.whiteClaimsList?.classList.add('hidden');
+      if (selectedGoGameIds.delete(normalizedGameId)) {
+        goSelectionChanged = true;
+      }
+      continue;
+    }
 
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
     if (goUi.shell.classList.contains('is-drag-floating')) {
@@ -11276,6 +11605,8 @@ function renderGoBoards() {
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
     goUi.shell.classList.remove('hidden');
+    goUi.blackClaimsList?.classList.remove('hidden');
+    goUi.whiteClaimsList?.classList.remove('hidden');
     setElementStylePx(goUi.shell, 'left', boardScreen.x);
     setElementStylePx(goUi.shell, 'top', boardScreen.y);
     setElementStylePx(goUi.shell, 'width', boardScreenWidth);
@@ -11307,6 +11638,7 @@ function renderGoBoards() {
     setElementStylePx(goUi.moveButton, 'width', controlSize);
     setElementStylePx(goUi.moveButton, 'height', controlSize);
     goUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
+    goUi.moveButton.classList.toggle('is-group-selected', selectedGoGameIds.has(normalizedGameId));
 
     goUi.optionsButton.classList.remove('hidden');
     setElementStylePx(goUi.optionsButton, 'left', moveButtonX);
@@ -11337,6 +11669,9 @@ function renderGoBoards() {
     lastRenderedGoMoveTickById.delete(gameId);
     goPlacementPulseByGameId.delete(gameId);
   }
+  if (goSelectionChanged) {
+    syncSelectionDeleteButtonUi();
+  }
 }
 
 function getCardHandOwnerId(cardState) {
@@ -11352,6 +11687,17 @@ function getCardHandOwnerId(cardState) {
   }
   // Backward-compatibility for older room state.
   return typeof cardState.handOwnerClientId === 'string' && cardState.handOwnerClientId ? cardState.handOwnerClientId : null;
+}
+
+function isCardOwnedByLocalHandOwner(ownerId) {
+  const normalizedOwnerId = typeof ownerId === 'string' ? ownerId : '';
+  if (!normalizedOwnerId) {
+    return false;
+  }
+  if (localPlayerToken && normalizedOwnerId === localPlayerToken) {
+    return true;
+  }
+  return Boolean(localClientId) && normalizedOwnerId === localClientId;
 }
 
 function getHandCountsByOwner() {
@@ -11955,7 +12301,13 @@ function getCardComponentType(cardState) {
 
 function getCardComponentSubtype(cardState) {
   const rawSubtype = String(cardState?.componentSubtype || '').trim().toLowerCase();
-  return rawSubtype === NOTE_COMPONENT_SUBTYPE ? NOTE_COMPONENT_SUBTYPE : '';
+  if (rawSubtype === NOTE_COMPONENT_SUBTYPE) {
+    return NOTE_COMPONENT_SUBTYPE;
+  }
+  if (rawSubtype === SECRET_AREA_COMPONENT_SUBTYPE) {
+    return SECRET_AREA_COMPONENT_SUBTYPE;
+  }
+  return '';
 }
 
 function isImageComponentCard(cardState) {
@@ -11968,6 +12320,14 @@ function isStickerComponentCard(cardState) {
 
 function isNoteComponentCard(cardState) {
   return isImageComponentCard(cardState) && getCardComponentSubtype(cardState) === NOTE_COMPONENT_SUBTYPE;
+}
+
+function isSecretAreaComponentCard(cardState) {
+  return (
+    isImageComponentCard(cardState) &&
+    getCardComponentSubtype(cardState) === SECRET_AREA_COMPONENT_SUBTYPE &&
+    cardState?.componentCardSized === false
+  );
 }
 
 function isNativeImageComponentCard(cardState) {
@@ -12042,6 +12402,250 @@ function canCardEnterHand(cardState) {
     return true;
   }
   return !isNativeImageComponentCard(cardState);
+}
+
+function getSecretAreaOwnerPlayerToken(cardState) {
+  if (!isSecretAreaComponentCard(cardState)) {
+    return '';
+  }
+  return String(cardState?.componentOwnerPlayerToken || '').trim();
+}
+
+function normalizeOptionalHexColor(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return /^#[0-9a-f]{6}$/.test(normalized) ? normalized : '';
+}
+
+function getLivePlayerColorByToken(playerToken) {
+  const normalizedToken = String(playerToken || '').trim();
+  if (!normalizedToken) {
+    return '';
+  }
+  if (localPlayerToken && normalizedToken === localPlayerToken) {
+    return normalizeHexColor(playerState.color || '#ff7a59');
+  }
+  for (const [cursorId, payload] of Object.entries(latestRoomCursors || {})) {
+    const payloadToken = typeof payload?.playerToken === 'string' && payload.playerToken
+      ? payload.playerToken
+      : cursorId;
+    if (!payloadToken || payloadToken !== normalizedToken) {
+      continue;
+    }
+    const normalizedColor = normalizeOptionalHexColor(payload?.color || '');
+    if (normalizedColor) {
+      return normalizedColor;
+    }
+  }
+  return '';
+}
+
+function getLivePlayerNameByToken(playerToken) {
+  const normalizedToken = String(playerToken || '').trim();
+  if (!normalizedToken) {
+    return '';
+  }
+  if (localPlayerToken && normalizedToken === localPlayerToken) {
+    return String(playerState.name || '').trim();
+  }
+  for (const [cursorId, payload] of Object.entries(latestRoomCursors || {})) {
+    const payloadToken = typeof payload?.playerToken === 'string' && payload.playerToken
+      ? payload.playerToken
+      : cursorId;
+    if (!payloadToken || payloadToken !== normalizedToken) {
+      continue;
+    }
+    return String(payload?.name || '').trim();
+  }
+  return '';
+}
+
+function resolveSecretAreaOutlineColor(cardState) {
+  if (!isSecretAreaComponentCard(cardState)) {
+    return '';
+  }
+  const ownerToken = getSecretAreaOwnerPlayerToken(cardState);
+  const liveColor = getLivePlayerColorByToken(ownerToken);
+  if (liveColor) {
+    return liveColor;
+  }
+  const storedOwnerColor = normalizeOptionalHexColor(cardState?.componentOwnerColor || '');
+  if (storedOwnerColor) {
+    return storedOwnerColor;
+  }
+  if (ownerToken) {
+    return colorFromId(ownerToken);
+  }
+  return '';
+}
+
+function updateSecretAreaOwnerRowElement(cardElement, cardState) {
+  if (!(cardElement instanceof HTMLElement)) {
+    return;
+  }
+  const ownerRow =
+    cardElement._secretAreaOwnerRow instanceof HTMLElement
+      ? cardElement._secretAreaOwnerRow
+      : cardElement.querySelector('.secret-area-owner-row');
+  if (!(ownerRow instanceof HTMLElement)) {
+    return;
+  }
+  if (!isSecretAreaComponentCard(cardState)) {
+    ownerRow.classList.add('hidden');
+    ownerRow.setAttribute('aria-hidden', 'true');
+    return;
+  }
+  const ownerToken = getSecretAreaOwnerPlayerToken(cardState);
+  const ownerColor = resolveSecretAreaOutlineColor(cardState) || colorFromId(ownerToken || cardElement.dataset.cardId || '');
+  const storedOwnerName = String(cardState?.componentOwnerName || '').trim();
+  const ownerName = getLivePlayerNameByToken(ownerToken) || storedOwnerName || 'anon';
+  const ownerDot =
+    cardElement._secretAreaOwnerDot instanceof HTMLElement
+      ? cardElement._secretAreaOwnerDot
+      : ownerRow.querySelector('.secret-area-owner-dot');
+  const ownerNameElement =
+    cardElement._secretAreaOwnerName instanceof HTMLElement
+      ? cardElement._secretAreaOwnerName
+      : ownerRow.querySelector('.secret-area-owner-name');
+  if (ownerDot instanceof HTMLElement) {
+    ownerDot.style.background = ownerColor;
+  }
+  if (ownerNameElement instanceof HTMLElement) {
+    ownerNameElement.textContent = ownerName || 'anon';
+  }
+  ownerRow.classList.remove('hidden');
+  ownerRow.setAttribute('aria-hidden', 'false');
+}
+
+function getSecretAreaVisibilitySignature(cardState) {
+  if (!isSecretAreaComponentCard(cardState)) {
+    return '';
+  }
+  const ownerToken = getSecretAreaOwnerPlayerToken(cardState);
+  const rotation = normalizeStickerRotationDegrees(cardState?.componentRotation);
+  const width = Math.max(1, Number(cardState?.componentWidth) || CARD_WIDTH);
+  const height = Math.max(1, Number(cardState?.componentHeight) || CARD_HEIGHT);
+  const ownerInHand = getCardHandOwnerId(cardState) || '';
+  return [
+    ownerToken,
+    Number(cardState?.x || 0).toFixed(3),
+    Number(cardState?.y || 0).toFixed(3),
+    width.toFixed(3),
+    height.toFixed(3),
+    rotation.toFixed(2),
+    cardState?.inDeck ? '1' : '0',
+    cardState?.inDiscard ? '1' : '0',
+    cardState?.inAuction ? '1' : '0',
+    ownerInHand
+  ].join('|');
+}
+
+function didSecretAreaVisibilityFieldsChange(previousCard, nextCard) {
+  const previousSignature = getSecretAreaVisibilitySignature(previousCard);
+  const nextSignature = getSecretAreaVisibilitySignature(nextCard);
+  return previousSignature !== nextSignature;
+}
+
+function markSecretAreaRegionsCacheDirty() {
+  secretAreaRegionsCacheDirty = true;
+}
+
+function rebuildSecretAreaRegionsCache() {
+  if (!secretAreaRegionsCacheDirty) {
+    return;
+  }
+  const nextRegions = [];
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isSecretAreaComponentCard(cardState)) {
+      continue;
+    }
+    if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    const width = Math.max(1, Number(cardState.componentWidth) || CARD_WIDTH);
+    const height = Math.max(1, Number(cardState.componentHeight) || CARD_HEIGHT);
+    nextRegions.push({
+      cardId,
+      x: Number(cardState.x) || WORLD_WIDTH / 2,
+      y: Number(cardState.y) || WORLD_HEIGHT / 2,
+      width,
+      height,
+      rotationDeg: normalizeStickerRotationDegrees(cardState.componentRotation),
+      ownerPlayerToken: getSecretAreaOwnerPlayerToken(cardState)
+    });
+  }
+  secretAreaRegionsCache = nextRegions;
+  secretAreaRegionsCacheDirty = false;
+}
+
+function isWorldPointInsideSecretAreaRegion(worldX, worldY, region) {
+  if (!region) {
+    return false;
+  }
+  const x = Number(worldX);
+  const y = Number(worldY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return false;
+  }
+  const dx = x - region.x;
+  const dy = y - region.y;
+  const radians = (Number(region.rotationDeg) || 0) * (Math.PI / 180);
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const localX = dx * cos + dy * sin;
+  const localY = -dx * sin + dy * cos;
+  return Math.abs(localX) <= region.width / 2 && Math.abs(localY) <= region.height / 2;
+}
+
+function isWorldPointHiddenBySecretAreaForLocalViewer(worldX, worldY, options = {}) {
+  if (!hasLoadedInitialCardsSnapshot) {
+    return false;
+  }
+  rebuildSecretAreaRegionsCache();
+  const ignoredCardId = String(options.ignoreCardId || '').trim();
+  for (const region of secretAreaRegionsCache) {
+    if (ignoredCardId && region.cardId === ignoredCardId) {
+      continue;
+    }
+    if (!region.ownerPlayerToken || region.ownerPlayerToken === localPlayerToken) {
+      continue;
+    }
+    if (isWorldPointInsideSecretAreaRegion(worldX, worldY, region)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getCardWorldCenter(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return null;
+  }
+  const deckId = normalizeDeckId(cardState.deckId || activeDeckId || DECK_KEY);
+  const targetDeckState = getDeckStateById(deckId);
+  if (cardState.inDeck && targetDeckState) {
+    return { x: targetDeckState.x, y: targetDeckState.y };
+  }
+  if (cardState.inDiscard && targetDeckState) {
+    return getDiscardCenterPosition(deckId);
+  }
+  if (cardState.inAuction && targetDeckState) {
+    return getAuctionCenterPosition(deckId);
+  }
+  return {
+    x: Number(cardState.x) || WORLD_WIDTH / 2,
+    y: Number(cardState.y) || WORLD_HEIGHT / 2
+  };
+}
+
+function isCardHiddenBySecretAreaForLocalViewer(cardId, cardState) {
+  if (!cardState || isSecretAreaComponentCard(cardState)) {
+    return false;
+  }
+  const worldCenter = getCardWorldCenter(cardState);
+  if (!worldCenter) {
+    return false;
+  }
+  return isWorldPointHiddenBySecretAreaForLocalViewer(worldCenter.x, worldCenter.y, { ignoreCardId: cardId });
 }
 
 function getCardPositionOverflow(cardState) {
@@ -12385,35 +12989,54 @@ function getImageComponentFaceBlankColor(cardState, face = 'front') {
   return '';
 }
 
-function normalizeCardPayload(payload) {
+function normalizeCardPayload(payload, cardId = '') {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextZ = Number(payload?.z);
+  const nextUpdatedAt = Number(payload?.updatedAt);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const handOwnerClientId = typeof payload?.handOwnerClientId === 'string' && payload.handOwnerClientId ? payload.handOwnerClientId : null;
   const handOwnerPlayerToken =
     typeof payload?.handOwnerPlayerToken === 'string' && payload.handOwnerPlayerToken ? payload.handOwnerPlayerToken : null;
   const rawFrontSrc = String(payload?.frontSrc || '').trim();
-  const deckId = normalizeDeckId(payload?.deckId || DECK_KEY);
   const rawComponentType = String(payload?.componentType || '').trim().toLowerCase();
   const rawComponentSubtype = String(payload?.componentSubtype || '').trim().toLowerCase();
   const componentType = rawComponentType === 'image' || rawComponentType === 'sticker' ? rawComponentType : '';
-  const componentSubtype =
-    componentType === 'image' && rawComponentSubtype === NOTE_COMPONENT_SUBTYPE ? NOTE_COMPONENT_SUBTYPE : '';
+  const componentSubtype = componentType === 'image' &&
+    (rawComponentSubtype === NOTE_COMPONENT_SUBTYPE || rawComponentSubtype === SECRET_AREA_COMPONENT_SUBTYPE)
+    ? rawComponentSubtype
+    : '';
   const isImageComponent = componentType === 'image';
   const isStickerComponent = componentType === 'sticker';
   const isNoteComponent = isImageComponent && componentSubtype === NOTE_COMPONENT_SUBTYPE;
+  const isSecretAreaComponent = isImageComponent && componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE;
   const componentCardSized = componentType
     ? (isStickerComponent
       ? false
       : isNoteComponent
         ? true
+        : isSecretAreaComponent
+          ? false
         : payload?.componentCardSized !== false)
     : true;
   const componentLocked = componentType && componentCardSized === false ? payload?.componentLocked === true : false;
   const componentRotation = componentType && componentCardSized === false ? normalizeStickerRotationDegrees(payload?.componentRotation) : 0;
   const noteFrontText = isNoteComponent ? normalizeNoteText(payload?.noteFrontText || '') : '';
   const noteBackText = isNoteComponent ? normalizeNoteText(payload?.noteBackText || '') : '';
+  const componentOwnerPlayerToken =
+    isSecretAreaComponent && typeof payload?.componentOwnerPlayerToken === 'string'
+      ? String(payload.componentOwnerPlayerToken || '').trim()
+      : '';
+  const componentOwnerName =
+    isSecretAreaComponent && typeof payload?.componentOwnerName === 'string'
+      ? String(payload.componentOwnerName || '').trim().slice(0, 24)
+      : '';
+  const componentOwnerColor = isSecretAreaComponent
+    ? normalizeOptionalHexColor(payload?.componentOwnerColor || '')
+    : '';
+  const explicitDeckId = normalizeOptionalDeckId(payload?.deckId);
+  const inferredDeckId = componentType ? '' : inferDeckIdFromCardId(cardId);
+  const deckId = normalizeDeckId(inferredDeckId || explicitDeckId || DECK_KEY);
   const componentFrontBlank = isImageComponent && !isNoteComponent ? payload?.componentFrontBlank === true : false;
   const componentBackBlank = isImageComponent && !isNoteComponent ? payload?.componentBackBlank === true : false;
   const componentTwoSided = isImageComponent
@@ -12492,6 +13115,9 @@ function normalizeCardPayload(payload) {
     componentBackColor,
     noteFrontText,
     noteBackText,
+    componentOwnerPlayerToken,
+    componentOwnerName,
+    componentOwnerColor,
     componentLocked,
     componentRotation,
     componentAspectRatio,
@@ -12503,6 +13129,7 @@ function normalizeCardPayload(payload) {
     inDiscard,
     inAuction,
     drawLifted,
+    updatedAt: Number.isFinite(nextUpdatedAt) ? Math.floor(nextUpdatedAt) : 0,
     holderClientId,
     handOwnerClientId,
     handOwnerPlayerToken
@@ -12536,6 +13163,53 @@ function ensureDieElement(dieId) {
     face.className = 'table-die-face';
     die.appendChild(face);
     die._dieFace = face;
+
+    const stackPointCountBadge = document.createElement('div');
+    stackPointCountBadge.className = 'deck-count-badge table-stack-point-count hidden';
+    stackPointCountBadge.setAttribute('aria-hidden', 'true');
+    stackPointCountBadge.textContent = '0';
+    die.appendChild(stackPointCountBadge);
+    die._stackPointCountBadge = stackPointCountBadge;
+
+    const stackPointShuffleButton = document.createElement('div');
+    stackPointShuffleButton.className = 'deck-control-button table-stack-point-shuffle-button hidden';
+    stackPointShuffleButton.setAttribute('role', 'button');
+    stackPointShuffleButton.setAttribute('tabindex', '-1');
+    stackPointShuffleButton.setAttribute('aria-label', 'shuffle stack');
+    stackPointShuffleButton.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 7C5.2 5.1 7.4 4 10 4C13.8 4 16.8 6.7 17.6 10.2M20 8V12H16M20 17C18.8 18.9 16.6 20 14 20C10.2 20 7.2 17.3 6.4 13.8M4 16V12H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    stackPointShuffleButton.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.pointerType === 'mouse' && event.button !== 0) {
+        return;
+      }
+      if (deleteModeEnabled || drawModeEnabled || stackPointShuffleButton.classList.contains('is-disabled')) {
+        return;
+      }
+      stackPointShuffleButton.classList.remove('is-pressing');
+      void stackPointShuffleButton.offsetWidth;
+      stackPointShuffleButton.classList.add('is-pressing');
+      handleStackPointShuffle(dieId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+    });
+    stackPointShuffleButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    stackPointShuffleButton.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    stackPointShuffleButton.addEventListener('animationend', (event) => {
+      if (event.animationName === 'deckShufflePress') {
+        stackPointShuffleButton.classList.remove('is-pressing');
+      }
+    });
+    die.appendChild(stackPointShuffleButton);
+    die._stackPointShuffleButton = stackPointShuffleButton;
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'table-label-resize-handle hidden';
@@ -12849,7 +13523,7 @@ function ensureTimerFaceShell(face, dieId) {
     control.setAttribute('title', spec.title);
     control.setAttribute('aria-label', spec.title);
     control.setAttribute('data-timer-action', spec.action);
-    control.appendChild(createTimerControlContent(spec.action, spec.action === 'pause'));
+    control.appendChild(createTimerControlContent(spec.action, false, 0));
     control.addEventListener('pointerdown', (event) => {
       onTimerControlPointerDown(event, dieId, spec.action);
     });
@@ -12901,7 +13575,7 @@ function renderTimerFaceValue(dieId, dieState, now = Date.now()) {
     shell._timerPauseButton = pauseButton;
   }
   if (pauseButton instanceof HTMLElement) {
-    setTimerControlLabel(pauseButton, 'pause', dieState?.timerRunning === true);
+    setTimerControlLabel(pauseButton, 'pause', dieState?.timerRunning === true, elapsed);
   }
   let splitButton = shell._timerSplitButton;
   if (!(splitButton instanceof HTMLElement)) {
@@ -12918,16 +13592,24 @@ function renderTimerFaceValue(dieId, dieState, now = Date.now()) {
   }
   if (splitsContainer instanceof HTMLElement) {
     const splits = normalizeTimerSplits(dieState?.timerSplits);
+    const shouldShowSplits = dieState?.timerSplitsVisible === true || splits.length > 0;
+    shell.classList.toggle('is-no-splits', !shouldShowSplits);
+    const wasVisible = splitsContainer.dataset.timerSplitsVisible === '1';
+    splitsContainer.classList.toggle('hidden', !shouldShowSplits);
+    splitsContainer.dataset.timerSplitsVisible = shouldShowSplits ? '1' : '0';
+    if (!shouldShowSplits) {
+      return;
+    }
     const nextSignature = splits.join('|');
     const previousSignature = String(splitsContainer.dataset.timerSplitSignature || '');
-    if (previousSignature !== nextSignature) {
+    const previousCount = Math.max(0, Math.round(Number(splitsContainer.dataset.timerSplitCount) || 0));
+    if (previousSignature !== nextSignature || !wasVisible) {
       const previousScrollTop = splitsContainer.scrollTop;
-      const wasNearBottom =
-        splitsContainer.scrollHeight - (previousScrollTop + splitsContainer.clientHeight) <= 8;
       renderTimerSplitRows(splitsContainer, splits);
       splitsContainer.dataset.timerSplitSignature = nextSignature;
-      if (wasNearBottom) {
-        splitsContainer.scrollTop = splitsContainer.scrollHeight;
+      splitsContainer.dataset.timerSplitCount = String(splits.length);
+      if (!wasVisible || splits.length > previousCount || splits.length === 0) {
+        splitsContainer.scrollTop = 0;
       } else {
         const maxScrollTop = Math.max(0, splitsContainer.scrollHeight - splitsContainer.clientHeight);
         splitsContainer.scrollTop = clamp(previousScrollTop, 0, maxScrollTop);
@@ -12948,9 +13630,10 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   }
   if (dieType === 'timer') {
     const splitSignature = normalizeTimerSplits(dieState?.timerSplits).join(',');
+    const splitVisibility = dieState?.timerSplitsVisible === true ? 1 : 0;
     const running = dieState?.timerRunning === true ? 1 : 0;
     const baseElapsed = clampTimerElapsedMs(dieState?.timerElapsedMs);
-    return `timer|${running}|${baseElapsed}|${splitSignature}`;
+    return `timer|${running}|${baseElapsed}|${splitVisibility}|${splitSignature}`;
   }
   if (dieType === 'chip') {
     return `chip|${normalizeHexColor(dieState?.chipColor || '#ffffff')}|${normalizeChipLabelText(dieState?.chipLabel || dieState?.chipValue || '1') || '1'}`;
@@ -12966,6 +13649,9 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
     const highlightVisible = dieState?.spinnerHighlightVisible === true ? 1 : 0;
     const rollingState = isDieRolling(dieState) ? 1 : 0;
     return `spinner|${segmentCount}|${clamp(Math.round(Number(faceValue) || 1), 1, segmentCount)}|${labels}|${resultVisible}|${highlightVisible}|${rollingState}`;
+  }
+  if (dieType === 'stack-point') {
+    return 'stack-point';
   }
   if (dieType === 'marble') {
     return `marble|${normalizeMarbleHue(dieState?.marbleHue)}`;
@@ -13052,6 +13738,12 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     teardownMediaController(dieId);
     face.classList.remove('table-label-text');
     renderTimerFaceValue(dieId, dieState, Date.now());
+    return;
+  }
+  if (dieType === 'stack-point') {
+    teardownMediaController(dieId);
+    face.classList.remove('table-label-text');
+    face.textContent = '';
     return;
   }
   teardownMediaController(dieId);
@@ -13374,6 +14066,13 @@ function renderDieElement(dieId) {
     removeDieElement(dieId);
     return false;
   }
+  if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
+    if (selectedDiceIds.delete(dieId)) {
+      syncSelectionDeleteButtonUi();
+    }
+    removeDieElement(dieId);
+    return false;
+  }
   const die = ensureDieElement(dieId);
   if (!die) {
     return false;
@@ -13420,6 +14119,9 @@ function renderDieElement(dieId) {
   const isTimer = dieType === 'timer';
   const isSpinner = dieType === 'spinner';
   const isChip = dieType === 'chip';
+  const isStackPoint = dieType === 'stack-point';
+  const timerSplitCount = isTimer ? normalizeTimerSplits(dieState?.timerSplits).length : 0;
+  const timerHasVisibleSplits = isTimer && (dieState?.timerSplitsVisible === true || timerSplitCount > 0);
   const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
   const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
   if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
@@ -13480,11 +14182,13 @@ function renderDieElement(dieId) {
   die.classList.toggle('table-die-spinner', isSpinner);
   die.classList.toggle('table-die-coin', dieType === 'coin');
   die.classList.toggle('table-die-chip', isChip);
+  die.classList.toggle('table-die-stack-point', isStackPoint);
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
   die.classList.toggle('table-die-counter', isCounter);
   die.classList.toggle('table-die-timer', isTimer);
+  die.classList.toggle('is-timer-no-splits', isTimer && !timerHasVisibleSplits);
   if ((dieType === 'd6' || dieType === 'd20') && rolling) {
     const rollStartedAt = Number(dieState?.rollStartedAt);
     const rollDurationMs = Math.max(1, Number(dieState?.rollDurationMs) || DIE_ROLL_DURATION_MS);
@@ -13523,6 +14227,7 @@ function renderDieElement(dieId) {
   }
   die.classList.toggle('is-marble-moving', dieType === 'marble' && dieState.moving === true);
   die.classList.toggle('is-marble-fast', dieType === 'marble' && dieState.moving === true && marbleWarbleStrength > 0.001);
+  die.classList.toggle('is-stack-point-hovered', isStackPoint && stackPointDropTargetDieId === dieId);
   die.classList.toggle('is-label-locked', isLabelLocked);
   die.classList.toggle('is-label-lockable', canToggleLabelLock);
   die.classList.toggle('is-held-by-self', heldBySelf);
@@ -13572,6 +14277,8 @@ function renderDieElement(dieId) {
     die.setAttribute('aria-label', 'chip');
   } else if (dieType === 'spinner') {
     die.setAttribute('aria-label', 'spinner');
+  } else if (dieType === 'stack-point') {
+    die.setAttribute('aria-label', 'stack point');
   } else if (dieType === 'marble') {
     die.setAttribute('aria-label', 'marble');
   } else {
@@ -13689,6 +14396,12 @@ function renderDieElement(dieId) {
 }
 
 function renderAllDice() {
+  if (!hasLoadedInitialCardsSnapshot) {
+    for (const dieId of Array.from(diceElements.keys())) {
+      removeDieElement(dieId);
+    }
+    return;
+  }
   if (resizingLabelDieId && !diceById.has(resizingLabelDieId)) {
     resizingLabelDieId = '';
   }
@@ -13716,6 +14429,102 @@ function renderAllDice() {
       renderAllDice();
     });
   }
+}
+
+function renderStackPointCountBadges() {
+  for (const [dieId, die] of diceElements.entries()) {
+    const stackPointCountBadge =
+      die?._stackPointCountBadge instanceof HTMLElement ? die._stackPointCountBadge : die?.querySelector?.('.table-stack-point-count');
+    const stackPointShuffleButton =
+      die?._stackPointShuffleButton instanceof HTMLElement
+        ? die._stackPointShuffleButton
+        : die?.querySelector?.('.table-stack-point-shuffle-button');
+    if (!(stackPointCountBadge instanceof HTMLElement)) {
+      continue;
+    }
+    const dieState = diceById.get(dieId);
+    if (!isStackPointDieState(dieState)) {
+      stackPointCountBadge.classList.add('hidden');
+      if (stackPointShuffleButton instanceof HTMLElement) {
+        stackPointShuffleButton.classList.add('hidden');
+        stackPointShuffleButton.classList.add('is-disabled');
+      }
+      continue;
+    }
+    const stackCardCount = getStackPointCardCount(dieId, { includeHeldCards: false });
+    if (stackCardCount > 0) {
+      stackPointCountBadge.textContent = String(stackCardCount);
+      stackPointCountBadge.classList.remove('hidden');
+    } else {
+      stackPointCountBadge.classList.add('hidden');
+    }
+    if (stackPointShuffleButton instanceof HTMLElement) {
+      const canShuffle = stackCardCount >= 2;
+      stackPointShuffleButton.classList.toggle('hidden', stackCardCount <= 0);
+      stackPointShuffleButton.classList.toggle('is-disabled', !canShuffle);
+      if (!canShuffle) {
+        stackPointShuffleButton.classList.remove('is-pressing');
+      }
+    }
+  }
+}
+
+function getActiveNoteEditState() {
+  if (!activeNoteEditCardId) {
+    return null;
+  }
+  return {
+    cardId: activeNoteEditCardId,
+    face: activeNoteEditFace === 'back' ? 'back' : 'front',
+    closing: false
+  };
+}
+
+function isNoteCardEditing(cardId) {
+  const targetCardId = String(cardId || '').trim();
+  if (!targetCardId) {
+    return false;
+  }
+  const activeNoteEditState = getActiveNoteEditState();
+  return Boolean(activeNoteEditState && activeNoteEditState.cardId === targetCardId);
+}
+
+function setNoteEditorTextValue(editor, nextTextValue = '') {
+  const normalizedText = normalizeNoteText(nextTextValue);
+  if (editor instanceof HTMLTextAreaElement) {
+    if (editor.value !== normalizedText) {
+      editor.value = normalizedText;
+    }
+    return normalizedText;
+  }
+  if (editor instanceof HTMLElement) {
+    if ((editor.textContent || '') !== normalizedText) {
+      editor.textContent = normalizedText;
+    }
+    return normalizedText;
+  }
+  return normalizedText;
+}
+
+function applyNoteEditorLayoutStyles(editor, screenWidth = CARD_WIDTH, screenHeight = CARD_HEIGHT) {
+  if (!(editor instanceof HTMLElement)) {
+    return;
+  }
+  const width = Math.max(1, Number(screenWidth) || CARD_WIDTH);
+  const height = Math.max(1, Number(screenHeight) || CARD_HEIGHT);
+  const scale = Math.max(0.001, Math.min(width, height) / NOTE_FACE_SVG_SIZE);
+  const fontSizePx = Math.max(1, NOTE_FACE_TEXT_FONT_SIZE * scale);
+  const lineHeightPx = Math.max(1, NOTE_FACE_TEXT_LINE_HEIGHT * scale);
+  const paddingTopPx = (NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_TOP) * scale;
+  const paddingRightPx = (NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_RIGHT) * scale;
+  const paddingBottomPx = (NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_BOTTOM) * scale;
+  const paddingLeftPx = (NOTE_FACE_PAPER_INSET + NOTE_FACE_TEXT_PADDING_LEFT) * scale;
+  editor.style.setProperty('--note-editor-font-size', `${fontSizePx.toFixed(2)}px`);
+  editor.style.setProperty('--note-editor-line-height', `${lineHeightPx.toFixed(2)}px`);
+  editor.style.setProperty('--note-editor-pad-top', `${paddingTopPx.toFixed(2)}px`);
+  editor.style.setProperty('--note-editor-pad-right', `${paddingRightPx.toFixed(2)}px`);
+  editor.style.setProperty('--note-editor-pad-bottom', `${paddingBottomPx.toFixed(2)}px`);
+  editor.style.setProperty('--note-editor-pad-left', `${paddingLeftPx.toFixed(2)}px`);
 }
 
 function ensureCardElement(cardId) {
@@ -13749,6 +14558,45 @@ function ensureCardElement(cardId) {
     });
     card.appendChild(image);
     card._cardImage = image;
+
+    const noteInlineText = document.createElement('textarea');
+    noteInlineText.className = 'table-note-inline-text';
+    noteInlineText.setAttribute('aria-hidden', 'true');
+    noteInlineText.readOnly = true;
+    noteInlineText.rows = 1;
+    noteInlineText.wrap = 'soft';
+    noteInlineText.spellcheck = false;
+    noteInlineText.autocapitalize = 'off';
+    noteInlineText.autocomplete = 'off';
+    noteInlineText.setAttribute('autocorrect', 'off');
+    noteInlineText.setAttribute('tabindex', '-1');
+    noteInlineText.addEventListener('pointerdown', (event) => {
+      if (isNoteCardEditing(cardId)) {
+        event.stopPropagation();
+      }
+    });
+    noteInlineText.addEventListener('contextmenu', (event) => {
+      if (isNoteCardEditing(cardId)) {
+        event.stopPropagation();
+      }
+    });
+    card.appendChild(noteInlineText);
+    card._cardNoteInlineText = noteInlineText;
+
+    const secretAreaOwnerRow = document.createElement('div');
+    secretAreaOwnerRow.className = 'secret-area-owner-row hidden';
+    secretAreaOwnerRow.setAttribute('aria-hidden', 'true');
+    const secretAreaOwnerDot = document.createElement('span');
+    secretAreaOwnerDot.className = 'secret-area-owner-dot';
+    secretAreaOwnerDot.setAttribute('aria-hidden', 'true');
+    const secretAreaOwnerName = document.createElement('span');
+    secretAreaOwnerName.className = 'secret-area-owner-name';
+    secretAreaOwnerName.textContent = 'anon';
+    secretAreaOwnerRow.append(secretAreaOwnerDot, secretAreaOwnerName);
+    card.appendChild(secretAreaOwnerRow);
+    card._secretAreaOwnerRow = secretAreaOwnerRow;
+    card._secretAreaOwnerDot = secretAreaOwnerDot;
+    card._secretAreaOwnerName = secretAreaOwnerName;
 
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'table-card-resize-handle hidden';
@@ -13811,6 +14659,9 @@ function ensureCardElement(cardId) {
     card.addEventListener('contextmenu', (event) => {
       onCardContextMenu(event, cardId);
     });
+    card.addEventListener('dblclick', (event) => {
+      onCardDoubleClick(event, cardId);
+    });
 
     cardLayer.appendChild(card);
     cardElements.set(cardId, card);
@@ -13849,6 +14700,138 @@ function hideSelectionBox() {
     return;
   }
   selectionBoxElement.classList.add('hidden');
+}
+
+function createSpawnLoadingIndicator({
+  worldX,
+  worldY,
+  worldWidth = CARD_WIDTH,
+  worldHeight = CARD_HEIGHT,
+  isReady = null
+} = {}) {
+  if (!tableRoot || !Number.isFinite(worldX) || !Number.isFinite(worldY)) {
+    return '';
+  }
+  const indicatorId = `spawn-load-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const indicatorElement = document.createElement('div');
+  indicatorElement.className = 'spawn-loading-indicator';
+  indicatorElement.setAttribute('aria-hidden', 'true');
+  indicatorElement.innerHTML = '<span class="spawn-loading-indicator-ring"></span>';
+  tableRoot.appendChild(indicatorElement);
+  spawnLoadingIndicatorsById.set(indicatorId, {
+    element: indicatorElement,
+    worldX,
+    worldY,
+    worldWidth: Math.max(24, Number(worldWidth) || CARD_WIDTH),
+    worldHeight: Math.max(24, Number(worldHeight) || CARD_HEIGHT),
+    expiresAt: Date.now() + SPAWN_LOADING_INDICATOR_TIMEOUT_MS,
+    isReady: typeof isReady === 'function' ? isReady : null
+  });
+  scheduleApplyCamera();
+  return indicatorId;
+}
+
+function updateSpawnLoadingIndicator(indicatorId, patch = {}) {
+  const normalizedIndicatorId = String(indicatorId || '').trim();
+  if (!normalizedIndicatorId) {
+    return;
+  }
+  const existing = spawnLoadingIndicatorsById.get(normalizedIndicatorId);
+  if (!existing) {
+    return;
+  }
+  if (Number.isFinite(Number(patch.worldX))) {
+    existing.worldX = Number(patch.worldX);
+  }
+  if (Number.isFinite(Number(patch.worldY))) {
+    existing.worldY = Number(patch.worldY);
+  }
+  if (Number.isFinite(Number(patch.worldWidth))) {
+    existing.worldWidth = Math.max(24, Number(patch.worldWidth));
+  }
+  if (Number.isFinite(Number(patch.worldHeight))) {
+    existing.worldHeight = Math.max(24, Number(patch.worldHeight));
+  }
+  if (typeof patch.isReady === 'function') {
+    existing.isReady = patch.isReady;
+  }
+  if (Number.isFinite(Number(patch.expiresAt))) {
+    existing.expiresAt = Number(patch.expiresAt);
+  } else if (patch.extendTimeout === true) {
+    existing.expiresAt = Date.now() + SPAWN_LOADING_INDICATOR_TIMEOUT_MS;
+  }
+}
+
+function removeSpawnLoadingIndicator(indicatorId) {
+  const normalizedIndicatorId = String(indicatorId || '').trim();
+  if (!normalizedIndicatorId) {
+    return;
+  }
+  const existing = spawnLoadingIndicatorsById.get(normalizedIndicatorId);
+  if (!existing) {
+    return;
+  }
+  existing.element?.remove();
+  spawnLoadingIndicatorsById.delete(normalizedIndicatorId);
+}
+
+function clearSpawnLoadingIndicators() {
+  for (const indicator of spawnLoadingIndicatorsById.values()) {
+    indicator.element?.remove();
+  }
+  spawnLoadingIndicatorsById.clear();
+}
+
+function renderSpawnLoadingIndicators() {
+  if (!tableRoot || spawnLoadingIndicatorsById.size === 0) {
+    return;
+  }
+  const now = Date.now();
+  for (const [indicatorId, indicator] of spawnLoadingIndicatorsById.entries()) {
+    if (!indicator || !(indicator.element instanceof HTMLElement)) {
+      spawnLoadingIndicatorsById.delete(indicatorId);
+      continue;
+    }
+    const isReady = typeof indicator.isReady === 'function' ? indicator.isReady() : false;
+    if (isReady || now >= (Number(indicator.expiresAt) || 0)) {
+      indicator.element.remove();
+      spawnLoadingIndicatorsById.delete(indicatorId);
+      continue;
+    }
+    const screen = worldToScreen({ x: indicator.worldX, y: indicator.worldY });
+    const screenSize = Math.max(
+      28,
+      snapToDevicePixel(Math.min(indicator.worldWidth, indicator.worldHeight) * camera.scale * 0.38)
+    );
+    setElementStylePx(indicator.element, 'left', screen.x - screenSize / 2);
+    setElementStylePx(indicator.element, 'top', screen.y - screenSize / 2);
+    setElementStylePx(indicator.element, 'width', screenSize);
+    setElementStylePx(indicator.element, 'height', screenSize);
+    indicator.element.classList.remove('hidden');
+  }
+}
+
+function finalizeSpawnLoadingIndicator(indicatorId, isReady) {
+  if (!indicatorId) {
+    return;
+  }
+  if (typeof isReady === 'function') {
+    updateSpawnLoadingIndicator(indicatorId, {
+      isReady,
+      extendTimeout: true
+    });
+  } else {
+    removeSpawnLoadingIndicator(indicatorId);
+    return;
+  }
+  scheduleApplyCamera();
+}
+
+function failSpawnLoadingIndicator(indicatorId) {
+  if (!indicatorId) {
+    return;
+  }
+  removeSpawnLoadingIndicator(indicatorId);
 }
 
 function renderSelectionBox(startWorld, endWorld) {
@@ -13968,6 +14951,7 @@ function setHoveredHandCard(cardId) {
     return;
   }
 
+  const previousHoveredCardId = hoveredHandCardId;
   if (hoveredHandCardId) {
     const previousElement = handCardElements.get(hoveredHandCardId);
     previousElement?.classList.remove('is-hovered');
@@ -13977,6 +14961,18 @@ function setHoveredHandCard(cardId) {
   if (hoveredHandCardId) {
     const nextElement = handCardElements.get(hoveredHandCardId);
     nextElement?.classList.add('is-hovered');
+  }
+  if (previousHoveredCardId) {
+    const previousCardState = cards.get(previousHoveredCardId);
+    if (previousCardState && isNoteComponentCard(previousCardState) && getCardHandOwnerId(previousCardState) === localPlayerToken) {
+      rerenderAttachedDrawingStrokesForCard(previousHoveredCardId);
+    }
+  }
+  if (hoveredHandCardId) {
+    const nextCardState = cards.get(hoveredHandCardId);
+    if (nextCardState && isNoteComponentCard(nextCardState) && getCardHandOwnerId(nextCardState) === localPlayerToken) {
+      rerenderAttachedDrawingStrokesForCard(hoveredHandCardId);
+    }
   }
 }
 
@@ -14059,6 +15055,13 @@ function ensureHandCardElement(cardId) {
       }
     });
     card.appendChild(image);
+    const noteDrawingLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    noteDrawingLayer.classList.add('hand-note-drawing-layer');
+    noteDrawingLayer.setAttribute('aria-hidden', 'true');
+    noteDrawingLayer.setAttribute('preserveAspectRatio', 'none');
+    noteDrawingLayer.setAttribute('viewBox', '0 0 1 1');
+    card.appendChild(noteDrawingLayer);
+    card._handNoteDrawingLayer = noteDrawingLayer;
     card.addEventListener('pointerdown', (event) => {
       onHandCardPointerDown(event, cardId);
     });
@@ -14078,6 +15081,22 @@ function removeHandCardElement(cardId) {
   handDisplayPendingByCard.delete(cardId);
 }
 
+function getHandNoteDrawingLayer(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return null;
+  }
+  const handCard = handCardElements.get(normalizedCardId);
+  if (!(handCard instanceof HTMLElement)) {
+    return null;
+  }
+  const layer =
+    handCard._handNoteDrawingLayer instanceof SVGElement
+      ? handCard._handNoteDrawingLayer
+      : handCard.querySelector('.hand-note-drawing-layer');
+  return layer instanceof SVGElement ? layer : null;
+}
+
 function removeTableCardElement(cardId) {
   const tableCard = cardElements.get(cardId);
   if (tableCard) {
@@ -14086,6 +15105,7 @@ function removeTableCardElement(cardId) {
   }
   clearCardFlipTimer(cardId);
   clearNoteAttachmentFaceState(cardId);
+  clearNoteAttachmentPickupSync(cardId);
   cardFaces.delete(cardId);
   frontDisplayPendingByCard.delete(cardId);
   noteAttachmentRenderKeyByCardId.delete(cardId);
@@ -14213,6 +15233,22 @@ function renderLocalHandCards() {
     handCard.classList.toggle('is-preview', isPreviewCard);
     handCard.classList.toggle('is-hovered', !isActiveReorderCard && !isPreviewCard && hoveredHandCardId === cardId);
     handCard.classList.toggle('is-note-component', isNoteHandCard);
+    const handNoteDrawingLayer = getHandNoteDrawingLayer(cardId);
+    if (handNoteDrawingLayer instanceof SVGElement) {
+      if (isNoteHandCard) {
+        handNoteDrawingLayer.classList.add('is-active');
+        handNoteDrawingLayer.setAttribute(
+          'viewBox',
+          `0 0 ${Math.max(1, handDimensions.width)} ${Math.max(1, handDimensions.height)}`
+        );
+      } else {
+        handNoteDrawingLayer.classList.remove('is-active');
+        handNoteDrawingLayer.setAttribute('viewBox', '0 0 1 1');
+      }
+    }
+    if (isNoteHandCard) {
+      rerenderAttachedDrawingStrokesForCard(cardId);
+    }
 
     const image = handCard.querySelector('img');
     if (!image) {
@@ -14392,12 +15428,23 @@ function renderCardElement(cardId) {
     return;
   }
 
+  if (isCardHiddenBySecretAreaForLocalViewer(cardId, cardState)) {
+    if (selectedCardIds.delete(cardId)) {
+      syncSelectionDeleteButtonUi();
+    }
+    removeTableCardElement(cardId);
+    noteAttachmentRenderKeyByCardId.delete(cardId);
+    rerenderAttachedDrawingStrokesForCard(cardId);
+    return;
+  }
+
   removeHandCardElement(cardId);
 
   const card = ensureCardElement(cardId);
   if (!card) {
     return;
   }
+  const wasHeldBySelf = card.classList.contains('is-held-by-self');
 
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
@@ -14464,8 +15511,10 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-cover-drawings', !isHeld && !isCoolStackCard && shouldAlwaysCoverDrawings);
   const isImageComponent = isImageComponentCard(cardState);
   const isStickerComponent = isStickerComponentCard(cardState);
+  const isSecretAreaComponent = isSecretAreaComponentCard(cardState);
   const isComponentLocked = isNativeImageComponentLocked(cardState);
   const isStickerLocked = isStickerComponent && isComponentLocked;
+  const noteCardFace = cardState.face === 'back' ? 'back' : 'front';
   const componentRotationDeg = isNativeImageComponentCard(cardState) ? normalizeStickerRotationDegrees(cardState.componentRotation) : 0;
   const isImageComponentCardMode = isImageComponent && cardState.componentCardSized !== false;
   const isImageComponentNativeMode = isImageComponent && cardState.componentCardSized === false;
@@ -14484,6 +15533,7 @@ function renderCardElement(cardId) {
   const isRotatingThisCard = rotatingStickerCardId === cardId;
   card.classList.toggle('is-image-component', isImageComponent);
   card.classList.toggle('is-sticker-component', isStickerComponent);
+  card.classList.toggle('is-secret-area-component', isSecretAreaComponent);
   card.classList.toggle('is-note-component', isNoteComponent);
   card.classList.toggle('is-sticker-locked', isStickerLocked);
   card.classList.toggle('is-component-locked', isComponentLocked);
@@ -14494,7 +15544,25 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-resizable-image', isResizableImage);
   card.classList.toggle('is-resizing', isResizingThisCard);
   card.classList.toggle('is-rotating', isRotatingThisCard);
+  if (isNoteComponent) {
+    if (wasHeldBySelf !== heldBySelf) {
+      scheduleNoteAttachmentPickupSync(cardId);
+    }
+  } else {
+    clearNoteAttachmentPickupSync(cardId);
+  }
   card.style.setProperty('--card-rotation-deg', `${componentRotationDeg}deg`);
+  if (isSecretAreaComponent) {
+    const secretAreaOutlineColor = resolveSecretAreaOutlineColor(cardState);
+    if (secretAreaOutlineColor) {
+      card.style.setProperty('--secret-area-owner-color', secretAreaOutlineColor);
+    } else {
+      card.style.removeProperty('--secret-area-owner-color');
+    }
+  } else {
+    card.style.removeProperty('--secret-area-owner-color');
+  }
+  updateSecretAreaOwnerRowElement(card, cardState);
   if (!isResizingThisCard && !isResizableImage) {
     card.classList.remove('is-resize-hovered');
   }
@@ -14611,7 +15679,7 @@ function renderCardElement(cardId) {
       void ensureFrontImageLoaded(preferredFrontSrc);
     }
 
-    card.classList.toggle('is-front-pending', showingFront && !displaySrc);
+    card.classList.toggle('is-front-pending', showingFront && !blankFaceColor && !displaySrc);
 
     if (isNoteComponent) {
       const previousNoteFace = previousFace === 'back' ? 'back' : 'front';
@@ -14647,6 +15715,53 @@ function renderCardElement(cardId) {
     cardFaces.set(cardId, cardState.face);
   }
 
+  const noteInlineText =
+    card._cardNoteInlineText instanceof HTMLElement ? card._cardNoteInlineText : card.querySelector('.table-note-inline-text');
+  if (noteInlineText instanceof HTMLElement) {
+    if (isNoteComponent) {
+      applyNoteEditorLayoutStyles(noteInlineText, cardScreenWidth, cardScreenHeight);
+      const activeNoteEditState = getActiveNoteEditState();
+      const editingThisCard = isNoteCardEditing(cardId);
+      const renderedFace = editingThisCard
+        ? activeNoteEditState?.face === 'back'
+          ? 'back'
+          : 'front'
+        : getDisplayedNoteAttachmentFace(cardId, noteCardFace);
+      const faceText =
+        renderedFace === 'back'
+          ? normalizeNoteText(cardState.noteBackText || '')
+          : normalizeNoteText(cardState.noteFrontText || '');
+      if (!editingThisCard) {
+        setNoteEditorTextValue(noteInlineText, faceText);
+      }
+      noteInlineText.classList.toggle('is-visible', editingThisCard);
+      noteInlineText.classList.toggle('is-editing', editingThisCard);
+      if (noteInlineText instanceof HTMLTextAreaElement) {
+        noteInlineText.readOnly = !editingThisCard;
+      } else {
+        noteInlineText.setAttribute('contenteditable', editingThisCard ? 'true' : 'false');
+      }
+      noteInlineText.setAttribute('aria-hidden', editingThisCard ? 'false' : 'true');
+      card.classList.toggle('is-note-editing', editingThisCard);
+      if (editingThisCard) {
+        card.dataset.noteEditing = '1';
+      } else {
+        delete card.dataset.noteEditing;
+      }
+    } else {
+      setNoteEditorTextValue(noteInlineText, '');
+      noteInlineText.classList.remove('is-visible', 'is-editing');
+      if (noteInlineText instanceof HTMLTextAreaElement) {
+        noteInlineText.readOnly = true;
+      } else {
+        noteInlineText.setAttribute('contenteditable', 'false');
+      }
+      noteInlineText.setAttribute('aria-hidden', 'true');
+      card.classList.remove('is-note-editing');
+      delete card.dataset.noteEditing;
+    }
+  }
+
   if (isNoteComponent) {
     const noteVisualScale = getNoteAttachmentVisualScale(cardState, cardId);
     const noteIsFlipping = card.classList.contains('is-flipping');
@@ -14676,6 +15791,7 @@ function renderCardElement(cardId) {
 
 function renderAllCards() {
   renderTableCardsAndDeckControls();
+  renderStackPointCountBadges();
   renderLocalHandCards();
   setLocalHandCountLabel();
 }
@@ -14738,9 +15854,22 @@ function setDrawToolMode(mode) {
   syncDrawModeUi();
 }
 
-function hasOwnDrawingStrokes() {
+function isNoteAttachedDrawingStroke(strokeState) {
+  const attachedCardId = String(strokeState?.attachedCardId || '').trim();
+  if (!attachedCardId) {
+    return false;
+  }
+  const attachedPoints = Array.isArray(strokeState?.attachedPoints) ? strokeState.attachedPoints : [];
+  return attachedPoints.length > 0;
+}
+
+function hasOwnDrawingStrokes(options = {}) {
+  const includeNoteAttached = options.includeNoteAttached !== false;
   for (const strokeState of drawingStrokes.values()) {
     if (!strokeState || typeof strokeState !== 'object') {
+      continue;
+    }
+    if (!includeNoteAttached && isNoteAttachedDrawingStroke(strokeState)) {
       continue;
     }
     const ownerToken = typeof strokeState.authorPlayerToken === 'string' ? strokeState.authorPlayerToken : '';
@@ -14755,17 +15884,19 @@ function hasOwnDrawingStrokes() {
 }
 
 function syncDrawActionButtonsState() {
-  const hasOwnStrokes = hasOwnDrawingStrokes();
-  const canUseActions = drawModeEnabled && hasOwnStrokes;
+  const hasOwnStrokes = hasOwnDrawingStrokes({ includeNoteAttached: true });
+  const hasOwnClearableStrokes = hasOwnDrawingStrokes({ includeNoteAttached: false });
+  const canClear = drawModeEnabled && hasOwnClearableStrokes;
+  const canUndo = drawModeEnabled && hasOwnStrokes;
   if (drawClearButton) {
-    drawClearButton.disabled = !canUseActions;
-    drawClearButton.classList.toggle('is-disabled', !canUseActions);
-    drawClearButton.setAttribute('title', canUseActions ? 'delete my drawings' : 'no drawings to delete');
+    drawClearButton.disabled = !canClear;
+    drawClearButton.classList.toggle('is-disabled', !canClear);
+    drawClearButton.setAttribute('title', canClear ? 'delete my drawings' : 'no free drawings to delete');
   }
   if (drawUndoButton) {
-    drawUndoButton.disabled = !canUseActions;
-    drawUndoButton.classList.toggle('is-disabled', !canUseActions);
-    drawUndoButton.setAttribute('title', canUseActions ? 'undo last stroke' : 'no drawings to undo');
+    drawUndoButton.disabled = !canUndo;
+    drawUndoButton.classList.toggle('is-disabled', !canUndo);
+    drawUndoButton.setAttribute('title', canUndo ? 'undo last stroke' : 'no drawings to undo');
   }
 }
 
@@ -14889,6 +16020,19 @@ function getNoteAttachmentVisualScale(cardState, cardId = '') {
   if (!cardState || typeof cardState !== 'object') {
     return 1;
   }
+  if (normalizedCardId) {
+    const cardElement = cardElements.get(normalizedCardId);
+    if (cardElement instanceof HTMLElement && cardElement.isConnected && tableRoot) {
+      const cardRect = cardElement.getBoundingClientRect();
+      const baseDimensions = getCardTableDimensions(cardState);
+      const baseWidth = Math.max(1, Number(baseDimensions.width) || NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
+      const cameraScale = Math.max(0.001, Number(camera.scale) || 1);
+      const worldWidth = cardRect.width / cameraScale;
+      if (Number.isFinite(worldWidth) && worldWidth > 0) {
+        return clamp(worldWidth / baseWidth, 0.45, 2.4);
+      }
+    }
+  }
   if (cardState.holderClientId && cardState.holderClientId === localClientId) {
     return NOTE_HELD_VISUAL_SCALE;
   }
@@ -14905,8 +16049,52 @@ function getNoteAttachmentBoundsForCard(cardState, cardId = '') {
   if (!isNoteComponentCard(cardState)) {
     return null;
   }
-  if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+  if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction) {
     return null;
+  }
+  const handOwnerId = getCardHandOwnerId(cardState);
+  if (handOwnerId) {
+    if (!isCardOwnedByLocalHandOwner(handOwnerId)) {
+      return null;
+    }
+    const normalizedCardId = String(cardId || '').trim();
+    const handCard = normalizedCardId ? handCardElements.get(normalizedCardId) : null;
+    if (!(handCard instanceof HTMLElement) || !handCard.isConnected || !tableRoot) {
+      return null;
+    }
+    const handRect = handCard.getBoundingClientRect();
+    const tableRect = tableRoot.getBoundingClientRect();
+    if (!handRect.width || !handRect.height || !tableRect.width || !tableRect.height) {
+      return null;
+    }
+    const cameraScale = Math.max(0.001, Number(camera.scale) || 1);
+    const leftScreen = handRect.left - tableRect.left;
+    const topScreen = handRect.top - tableRect.top;
+    return {
+      left: (leftScreen - camera.panX) / cameraScale,
+      top: (topScreen - camera.panY) / cameraScale,
+      width: handRect.width / cameraScale,
+      height: handRect.height / cameraScale
+    };
+  }
+  const normalizedCardId = String(cardId || '').trim();
+  if (normalizedCardId && tableRoot) {
+    const tableCard = cardElements.get(normalizedCardId);
+    if (tableCard instanceof HTMLElement && tableCard.isConnected) {
+      const tableCardRect = tableCard.getBoundingClientRect();
+      const tableRect = tableRoot.getBoundingClientRect();
+      if (tableCardRect.width > 0 && tableCardRect.height > 0 && tableRect.width > 0 && tableRect.height > 0) {
+        const cameraScale = Math.max(0.001, Number(camera.scale) || 1);
+        const leftScreen = tableCardRect.left - tableRect.left;
+        const topScreen = tableCardRect.top - tableRect.top;
+        return {
+          left: (leftScreen - camera.panX) / cameraScale,
+          top: (topScreen - camera.panY) / cameraScale,
+          width: tableCardRect.width / cameraScale,
+          height: tableCardRect.height / cameraScale
+        };
+      }
+    }
   }
   const size = getCardTableDimensions(cardState);
   const baseWidth = Math.max(1, Number(size.width) || NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
@@ -15017,8 +16205,7 @@ function getResolvedDrawingStrokePoints(strokeState) {
   if (
     attachedCardState.inDeck ||
     attachedCardState.inDiscard ||
-    attachedCardState.inAuction ||
-    getCardHandOwnerId(attachedCardState)
+    attachedCardState.inAuction
   ) {
     return { points: basePoints, hidden: true };
   }
@@ -15088,6 +16275,18 @@ function getDrawingStrokeTargetLayer(strokeState) {
   if (attachedCardId) {
     const attachedCardState = cards.get(attachedCardId);
     if (attachedCardState && isNoteComponentCard(attachedCardState)) {
+      const ownerId = getCardHandOwnerId(attachedCardState);
+      const isOwnedByLocalHand = ownerId && isCardOwnedByLocalHandOwner(ownerId);
+      const isLocalHandPreview =
+        !ownerId &&
+        handDropPreview?.cardId === attachedCardId &&
+        attachedCardState.holderClientId === localClientId;
+      if (isOwnedByLocalHand || isLocalHandPreview) {
+        const handNoteLayer = getHandNoteDrawingLayer(attachedCardId);
+        if (handNoteLayer instanceof SVGElement) {
+          return handNoteLayer;
+        }
+      }
       return drawingLayer instanceof SVGElement ? drawingLayer : drawingBackLayer;
     }
   }
@@ -15132,24 +16331,65 @@ function renderDrawingStroke(strokeId) {
   const resolved = getResolvedDrawingStrokePoints(strokeState);
   if (resolved.hidden || !Array.isArray(resolved.points) || resolved.points.length === 0) {
     stroke.style.display = 'none';
-    stroke.classList.remove('is-note-attached', 'is-note-flipping');
+    stroke.classList.remove('is-note-attached', 'is-note-flipping', 'is-hand-note-attached', 'is-note-editing-dim');
     stroke.setAttribute('stroke-width', String(DRAW_STROKE_WORLD_WIDTH));
     return;
   }
   stroke.style.display = '';
   const isNoteAttached = Boolean(String(resolved.attachedCardId || '').trim());
-  const noteVisualScale = Math.max(1, Number(resolved.noteVisualScale) || 1);
+  const attachedCardId = String(resolved.attachedCardId || '').trim();
+  const isAttachedNoteBeingEdited = isNoteAttached && isNoteCardEditing(attachedCardId);
+  let noteVisualScale = Math.max(1, Number(resolved.noteVisualScale) || 1);
+  const usingHandNoteLayer = stroke.parentElement instanceof SVGElement && stroke.parentElement.classList.contains('hand-note-drawing-layer');
+  if (usingHandNoteLayer && isNoteAttached) {
+    const attachedCardState = cards.get(String(resolved.attachedCardId || '').trim());
+    const handCard = handCardElements.get(String(resolved.attachedCardId || '').trim());
+    if (attachedCardState && handCard instanceof HTMLElement) {
+      const baseDimensions = getCardTableDimensions(attachedCardState);
+      const baseRenderedWidth = handCard.offsetWidth || 0;
+      if (baseRenderedWidth > 0 && baseDimensions.width > 0) {
+        noteVisualScale = clamp(baseRenderedWidth / baseDimensions.width, 0.25, 3.5);
+      }
+    }
+  }
   stroke.classList.toggle('is-note-attached', isNoteAttached);
   stroke.classList.toggle('is-note-flipping', isNoteAttached && resolved.noteFlipping === true);
+  stroke.classList.toggle('is-hand-note-attached', usingHandNoteLayer && isNoteAttached);
+  stroke.classList.toggle('is-note-editing-dim', isAttachedNoteBeingEdited);
   stroke.setAttribute(
     'stroke-width',
     String(isNoteAttached ? DRAW_STROKE_WORLD_WIDTH * noteVisualScale : DRAW_STROKE_WORLD_WIDTH)
   );
   const points = resolved.points;
-  const pointsText =
-    points.length === 1
-      ? `${points[0].x},${points[0].y} ${points[0].x + 0.01},${points[0].y + 0.01}`
-      : points.map((point) => `${point.x},${point.y}`).join(' ');
+  let pointsText = '';
+  if (usingHandNoteLayer && isNoteAttached) {
+    const attachedCardId = String(resolved.attachedCardId || '').trim();
+    const handCard = handCardElements.get(attachedCardId);
+    const normalizedAttachedPoints = Array.isArray(strokeState?.attachedPoints) ? strokeState.attachedPoints : [];
+    if (handCard instanceof HTMLElement) {
+      const localWidth = Math.max(1, handCard.offsetWidth || 1);
+      const localHeight = Math.max(1, handCard.offsetHeight || 1);
+      const localPoints =
+        normalizedAttachedPoints.length === points.length && normalizedAttachedPoints.length > 0
+          ? normalizedAttachedPoints.map((point) => ({
+            x: clamp(Number(point?.x) || 0, 0, 1) * localWidth,
+            y: clamp(Number(point?.y) || 0, 0, 1) * localHeight
+          }))
+          : [];
+      pointsText =
+        localPoints.length === 1
+          ? `${localPoints[0].x},${localPoints[0].y} ${localPoints[0].x + 0.01},${localPoints[0].y + 0.01}`
+          : localPoints.length > 1
+            ? localPoints.map((point) => `${point.x},${point.y}`).join(' ')
+            : '';
+    }
+  }
+  if (!pointsText) {
+    pointsText =
+      points.length === 1
+        ? `${points[0].x},${points[0].y} ${points[0].x + 0.01},${points[0].y + 0.01}`
+        : points.map((point) => `${point.x},${point.y}`).join(' ');
+  }
   stroke.setAttribute('stroke', normalizeHexColor(strokeState.color || '#ff7a59'));
   stroke.setAttribute('points', pointsText);
 }
@@ -15228,6 +16468,7 @@ function applyCamera() {
     const endWorldY = Number(selectionBoxElement.dataset.endWorldY || 0);
     renderSelectionBox({ x: startWorldX, y: startWorldY }, { x: endWorldX, y: endWorldY });
   }
+  renderSpawnLoadingIndicators();
   renderAllDots();
   syncMarbleFlickArrow();
   scheduleCameraViewPersist();
@@ -15255,7 +16496,7 @@ function setZoomAtClient(clientX, clientY, nextScale) {
   camera.scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
   camera.panX = screen.x - worldX * camera.scale;
   camera.panY = screen.y - worldY * camera.scale;
-  applyCamera();
+  scheduleApplyCamera();
 }
 
 function initializeCamera() {
@@ -16454,8 +17695,14 @@ function syncWipeAllDrawingsButtonState() {
     syncTableResetRowLayout();
     return;
   }
-  const hasDrawings = drawingStrokes.size > 0;
-  const isDisabled = !isRoomOwner || !hasDrawings;
+  let hasWipeableDrawings = false;
+  for (const strokeState of drawingStrokes.values()) {
+    if (!isNoteAttachedDrawingStroke(strokeState)) {
+      hasWipeableDrawings = true;
+      break;
+    }
+  }
+  const isDisabled = !isRoomOwner || !hasWipeableDrawings;
   wipeAllDrawingsButton.disabled = isDisabled;
   wipeAllDrawingsButton.classList.toggle('is-disabled', isDisabled);
   syncTableResetRowLayout();
@@ -16491,7 +17738,11 @@ function getDeckIdFromGameOptionsTarget(target) {
   if (!raw.startsWith('deck:')) {
     return '';
   }
-  return normalizeDeckId(raw.slice('deck:'.length));
+  const rawDeckId = raw.slice('deck:'.length).trim();
+  if (!rawDeckId) {
+    return '';
+  }
+  return normalizeDeckId(rawDeckId);
 }
 
 function getMonsGameIdFromGameOptionsTarget(target) {
@@ -16798,11 +18049,11 @@ function hasGameInstanceOnTable(gameKey) {
       return true;
     }
   }
-  for (const cardState of cards.values()) {
+  for (const [cardId, cardState] of cards.entries()) {
     if (!cardState || typeof cardState !== 'object' || isVisualImageComponentCard(cardState)) {
       continue;
     }
-    const deckId = normalizeDeckId(cardState.deckId || (requestedDeckKind === DECK_KIND_POKER ? POKER_DECK_KEY : DECK_KEY));
+    const deckId = getCardDeckInstanceId(cardId, cardState);
     if (normalizeDeckKind(getDeckStateById(deckId)?.kind, deckId) === requestedDeckKind) {
       return true;
     }
@@ -17095,6 +18346,20 @@ timerComponentTile?.addEventListener('click', () => {
 marbleComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnMarble().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+stackPointComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnStackPointComponent().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+secretAreaComponentTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnSecretAreaComponent().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -18098,6 +19363,8 @@ initializeTileTilt(noteComponentTile);
 initializeTileTilt(imageComponentTile);
 initializeTileTilt(stickerComponentTile);
 initializeTileTilt(marbleComponentTile);
+initializeTileTilt(stackPointComponentTile);
+initializeTileTilt(secretAreaComponentTile);
 initializeTileTilt(mediaComponentTile);
 initializeDiceTilePipShuffle(diceComponentTile);
 initializeCounterTileDigitShuffle(counterComponentTile);
@@ -18304,6 +19571,30 @@ function getTotalPendingAssetLoadCount() {
   return Math.max(0, frontImagePendingLoadCount) + Math.max(0, elementAssetPendingLoadCount);
 }
 
+function getAssetLoadingContainerForElement(element) {
+  if (!(element instanceof Element)) {
+    return null;
+  }
+  const container = element.closest(
+    '.asset-gallery-item, .table-card, .hand-card, .table-die, .mons-game-shell, .tafl-game-shell, .go-game-shell, .chip-stack-slot'
+  );
+  return container instanceof HTMLElement ? container : null;
+}
+
+function setAssetLoadingContainerPendingDelta(container, delta) {
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  const previousCount = trackedAssetLoadContainerCounts.get(container) || 0;
+  const nextCount = Math.max(0, previousCount + delta);
+  if (nextCount > 0) {
+    trackedAssetLoadContainerCounts.set(container, nextCount);
+  } else {
+    trackedAssetLoadContainerCounts.delete(container);
+  }
+  container.classList.toggle('is-asset-loading', nextCount > 0);
+}
+
 function syncAssetLoadingStatusVisibility() {
   const totalPending = getTotalPendingAssetLoadCount();
   if (assetLoadingStatus) {
@@ -18340,6 +19631,9 @@ function clearTrackedAssetElementLoad(element, options = {}) {
   element.removeEventListener('error', tracker.onResolve);
   if (tracker.timeoutId) {
     window.clearTimeout(tracker.timeoutId);
+  }
+  if (tracker.container instanceof HTMLElement) {
+    setAssetLoadingContainerPendingDelta(tracker.container, -1);
   }
   trackedAssetElementLoads.delete(element);
   if (options.resolvePending !== false) {
@@ -18391,6 +19685,10 @@ function trackAssetElementLoadIfNeeded(element) {
     return;
   }
 
+  const container = getAssetLoadingContainerForElement(element);
+  if (container) {
+    setAssetLoadingContainerPendingDelta(container, 1);
+  }
   const finish = beginElementAssetLoad();
   let settled = false;
   const onResolve = () => {
@@ -18407,7 +19705,8 @@ function trackAssetElementLoadIfNeeded(element) {
     src,
     timeoutId,
     onResolve,
-    finish
+    finish,
+    container
   });
   element.addEventListener('load', onResolve);
   element.addEventListener('error', onResolve);
@@ -18675,6 +19974,7 @@ function applyNameInput() {
 
   setNameButtonLabel();
   syncCursorState();
+  onPlayerNameChanged();
   refreshMonsClaimLabelsOnly();
 }
 
@@ -18785,6 +20085,9 @@ function isCursorPayloadActive(id, payload, now = Date.now()) {
 }
 
 function buildVisibleCursorEntries(allCursors, localId) {
+  if (!hasLoadedInitialCardsSnapshot) {
+    return [];
+  }
   const now = Date.now();
   const byToken = new Map();
   for (const [id, payload] of Object.entries(allCursors || {})) {
@@ -18805,6 +20108,13 @@ function buildVisibleCursorEntries(allCursors, localId) {
       continue;
     }
     if (!isCursorPayloadActive(id, payload, now)) {
+      continue;
+    }
+    const worldPosition = normalizedToWorld({
+      x: Number(payload.x) || 0,
+      y: Number(payload.y) || 0
+    });
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(worldPosition.x, worldPosition.y)) {
       continue;
     }
 
@@ -19020,6 +20330,8 @@ shieldPointerEvents(noteComponentTile);
 shieldPointerEvents(imageComponentTile);
 shieldPointerEvents(stickerComponentTile);
 shieldPointerEvents(marbleComponentTile);
+shieldPointerEvents(stackPointComponentTile);
+shieldPointerEvents(secretAreaComponentTile);
 shieldPointerEvents(mediaComponentTile);
 shieldPointerEvents(diceAddModal);
 shieldPointerEvents(diceAddBackButton);
@@ -19132,6 +20444,8 @@ async function startRealtimeSession() {
   }
 
   initializeCamera();
+  hasLoadedInitialCardsSnapshot = false;
+  markSecretAreaRegionsCacheDirty();
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -19330,6 +20644,7 @@ async function startRealtimeSession() {
 
   let cardWriteScheduled = false;
   const pendingCardWrites = new Map();
+  let cardWriteRetryTimerId = 0;
   let dieWriteScheduled = false;
   const pendingDieWrites = new Map();
   let cardWriteGeneration = 0;
@@ -19699,7 +21014,7 @@ async function startRealtimeSession() {
       );
     }
     for (const [cardId, cardState] of cards.entries()) {
-      if (!cardState || normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
+      if (!cardState || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
         continue;
       }
       elements.push(cardElements.get(cardId), handCardElements.get(cardId));
@@ -19866,7 +21181,7 @@ async function startRealtimeSession() {
     const deckSnapshot = cloneDeleteUndoPayload(deckStatesById.get(targetDeckId));
     const deckCardsSnapshot = {};
     for (const [cardId, cardState] of cards.entries()) {
-      if (!cardState || normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
+      if (!cardState || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
         continue;
       }
       const cardSnapshot = cloneDeleteUndoPayload(cardState);
@@ -20022,10 +21337,13 @@ async function startRealtimeSession() {
       if (!cardState) {
         return false;
       }
-      return !selectedDeckIdSet.has(normalizeDeckId(cardState.deckId || DECK_KEY));
+      return !selectedDeckIdSet.has(getCardDeckInstanceId(cardId, cardState));
     });
     const selectedDieIdList = Array.from(selectedDiceIds);
     const selectedMonsGameIdList = Array.from(selectedMonsGameIds).map((gameId) => normalizeMonsGameId(gameId));
+    const selectedChipSetIdList = Array.from(selectedChipSetIds).map((chipSetId) => String(chipSetId || '').trim());
+    const selectedTaflGameIdList = Array.from(selectedTaflGameIds).map((gameId) => normalizeTaflGameId(gameId));
+    const selectedGoGameIdList = Array.from(selectedGoGameIds).map((gameId) => normalizeGoGameId(gameId));
 
     releaseAllSelectedObjects();
     syncSelectionDeleteButtonUi();
@@ -20042,6 +21360,15 @@ async function startRealtimeSession() {
     }
     for (const gameId of selectedMonsGameIdList) {
       deleteJobs.push(deleteMonsGameInRemoveMode(gameId));
+    }
+    for (const chipSetId of selectedChipSetIdList) {
+      deleteJobs.push(deleteChipSetById(chipSetId));
+    }
+    for (const gameId of selectedTaflGameIdList) {
+      deleteJobs.push(onDeleteTaflGameInRemoveMode(gameId));
+    }
+    for (const gameId of selectedGoGameIdList) {
+      deleteJobs.push(onDeleteGoGameInRemoveMode(gameId));
     }
 
     if (deleteJobs.length === 0) {
@@ -20301,6 +21628,56 @@ async function startRealtimeSession() {
     }
   }
 
+  function syncSecretAreaOutlineColors() {
+    for (const [cardId, cardElement] of cardElements.entries()) {
+      if (!(cardElement instanceof HTMLElement)) {
+        continue;
+      }
+      const cardState = cards.get(cardId);
+      if (!isSecretAreaComponentCard(cardState)) {
+        cardElement.style.removeProperty('--secret-area-owner-color');
+        updateSecretAreaOwnerRowElement(cardElement, cardState);
+        continue;
+      }
+      const nextOutlineColor = resolveSecretAreaOutlineColor(cardState);
+      if (nextOutlineColor) {
+        cardElement.style.setProperty('--secret-area-owner-color', nextOutlineColor);
+      } else {
+        cardElement.style.removeProperty('--secret-area-owner-color');
+      }
+      updateSecretAreaOwnerRowElement(cardElement, cardState);
+    }
+  }
+
+  function syncLocalSecretAreaOwnerColor(nextColor = playerState.color) {
+    if (!localPlayerToken) {
+      return;
+    }
+    const normalizedColor = normalizeHexColor(nextColor || playerState.color || '#ff7a59');
+    const normalizedName = String(playerState.name || '').trim().slice(0, 24);
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!isSecretAreaComponentCard(cardState)) {
+        continue;
+      }
+      if (getSecretAreaOwnerPlayerToken(cardState) !== localPlayerToken) {
+        continue;
+      }
+      if (
+        normalizeOptionalHexColor(cardState.componentOwnerColor || '') === normalizedColor &&
+        String(cardState.componentOwnerName || '').trim() === normalizedName
+      ) {
+        continue;
+      }
+      const patch = {
+        componentOwnerColor: normalizedColor,
+        componentOwnerName: normalizedName
+      };
+      patchLocalCard(cardId, patch);
+      queueCardPatch(cardId, patch);
+    }
+    syncSecretAreaOutlineColors();
+  }
+
   onPlayerColorPickerPointerDown = () => {
     beginLabelColorTrackingFromEditor();
   };
@@ -20309,25 +21686,127 @@ async function startRealtimeSession() {
   };
   onPlayerColorChanged = (nextColor) => {
     applyLabelHighlightColorFromPlayer(nextColor);
+    syncLocalSecretAreaOwnerColor(nextColor);
+  };
+  onPlayerNameChanged = () => {
+    syncLocalSecretAreaOwnerColor(playerState.color);
   };
 
   function isNoteCardEditing(cardId) {
     return Boolean(noteEditState && !noteEditState.closing && noteEditState.cardId === cardId);
   }
 
+  function getNoteEditorTextValue(editor) {
+    if (editor instanceof HTMLTextAreaElement) {
+      return normalizeNoteText(editor.value || '');
+    }
+    if (editor instanceof HTMLElement) {
+      return normalizeNoteText(editor.textContent || '');
+    }
+    return '';
+  }
+
+  function setNoteEditorTextValue(editor, nextTextValue = '') {
+    const normalizedText = normalizeNoteText(nextTextValue);
+    if (editor instanceof HTMLTextAreaElement) {
+      if (editor.value !== normalizedText) {
+        editor.value = normalizedText;
+      }
+      return normalizedText;
+    }
+    if (editor instanceof HTMLElement) {
+      if ((editor.textContent || '') !== normalizedText) {
+        editor.textContent = normalizedText;
+      }
+      return normalizedText;
+    }
+    return normalizedText;
+  }
+
+  function getContentEditableSelectionOffsets(editor) {
+    if (editor instanceof HTMLTextAreaElement) {
+      const selectionStart = Number(editor.selectionStart);
+      const selectionEnd = Number(editor.selectionEnd);
+      const textLength = normalizeNoteText(editor.value || '').length;
+      const start = clamp(Number.isFinite(selectionStart) ? selectionStart : textLength, 0, textLength);
+      const end = clamp(Number.isFinite(selectionEnd) ? selectionEnd : start, start, textLength);
+      return { start, end };
+    }
+    if (!(editor instanceof HTMLElement)) {
+      return null;
+    }
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount < 1) {
+      return null;
+    }
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      return null;
+    }
+    const startRange = range.cloneRange();
+    startRange.selectNodeContents(editor);
+    startRange.setEnd(range.startContainer, range.startOffset);
+    const endRange = range.cloneRange();
+    endRange.selectNodeContents(editor);
+    endRange.setEnd(range.endContainer, range.endOffset);
+    return {
+      start: startRange.toString().length,
+      end: endRange.toString().length
+    };
+  }
+
+  function setContentEditableSelectionOffsets(editor, startOffset = 0, endOffset = startOffset) {
+    if (editor instanceof HTMLTextAreaElement) {
+      const textLength = normalizeNoteText(editor.value || '').length;
+      const targetStart = clamp(Math.round(Number(startOffset) || 0), 0, textLength);
+      const targetEnd = clamp(Math.round(Number(endOffset) || targetStart), targetStart, textLength);
+      editor.setSelectionRange(targetStart, targetEnd);
+      return;
+    }
+    if (!(editor instanceof HTMLElement)) {
+      return;
+    }
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+    const textLength = normalizeNoteText(editor.textContent || '').length;
+    const targetStart = clamp(Math.round(Number(startOffset) || 0), 0, textLength);
+    const targetEnd = clamp(Math.round(Number(endOffset) || targetStart), targetStart, textLength);
+    const findOffsetPosition = (target) => {
+      let walked = 0;
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+      let currentNode = null;
+      while ((currentNode = walker.nextNode())) {
+        const nodeLength = currentNode.textContent?.length || 0;
+        if (walked + nodeLength >= target) {
+          return { node: currentNode, offset: target - walked };
+        }
+        walked += nodeLength;
+      }
+      return { node: editor, offset: editor.childNodes.length };
+    };
+    const start = findOffsetPosition(targetStart);
+    const end = findOffsetPosition(targetEnd);
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
   function doesNoteEditorTextFit(editor) {
-    if (!(editor instanceof HTMLTextAreaElement)) {
+    if (!(editor instanceof HTMLElement)) {
       return true;
     }
     return editor.scrollHeight <= editor.clientHeight + 1 && editor.scrollWidth <= editor.clientWidth + 1;
   }
 
   function clampNoteEditorTextToFit(editor, nextTextValue = '', fallbackTextValue = '') {
-    if (!(editor instanceof HTMLTextAreaElement)) {
+    if (!(editor instanceof HTMLElement)) {
       return normalizeNoteText(nextTextValue);
     }
-    const normalizedNextText = normalizeNoteText(nextTextValue);
-    editor.value = normalizedNextText;
+    const normalizedNextText = setNoteEditorTextValue(editor, nextTextValue);
     if (doesNoteEditorTextFit(editor)) {
       return normalizedNextText;
     }
@@ -20335,7 +21814,7 @@ async function startRealtimeSession() {
     const normalizedFallback = normalizeNoteText(fallbackTextValue);
     let bestText = '';
     if (normalizedFallback) {
-      editor.value = normalizedFallback;
+      setNoteEditorTextValue(editor, normalizedFallback);
       if (doesNoteEditorTextFit(editor)) {
         bestText = normalizedFallback;
       }
@@ -20346,7 +21825,7 @@ async function startRealtimeSession() {
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const candidate = normalizedNextText.slice(0, mid);
-      editor.value = candidate;
+      setNoteEditorTextValue(editor, candidate);
       if (doesNoteEditorTextFit(editor)) {
         bestText = candidate;
         low = mid + 1;
@@ -20354,7 +21833,7 @@ async function startRealtimeSession() {
         high = mid - 1;
       }
     }
-    editor.value = bestText;
+    setNoteEditorTextValue(editor, bestText);
     return bestText;
   }
 
@@ -20385,27 +21864,52 @@ async function startRealtimeSession() {
     }
   }
 
-  function closeNoteEditor(options = {}) {
-    if (!noteEditState || noteEditState.closing) {
+function closeNoteEditor(options = {}) {
+    if (!noteEditState) {
+      return;
+    }
+    if (noteEditState.closing && options.force !== true) {
       return;
     }
     noteEditState.closing = true;
     const { cardId, editor, face } = noteEditState;
     const shouldCommit = options.commit !== false;
-    if (shouldCommit && editor instanceof HTMLTextAreaElement) {
-      applyNoteFaceTextPatch(cardId, face, editor.value, { queue: true });
+    try {
+      if (shouldCommit && editor instanceof HTMLElement) {
+        applyNoteFaceTextPatch(cardId, face, getNoteEditorTextValue(editor), { queue: true });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      if (editor instanceof HTMLElement) {
+        editor.onblur = null;
+        editor.oninput = null;
+        editor.onkeydown = null;
+        editor.onpointerdown = null;
+        editor.oncontextmenu = null;
+        if (editor instanceof HTMLTextAreaElement) {
+          editor.readOnly = true;
+        } else {
+          editor.setAttribute('contenteditable', 'false');
+        }
+        editor.classList.remove('is-editing');
+        editor.setAttribute('aria-hidden', 'true');
+        editor.blur?.();
+      }
+      const cardElement = cardElements.get(cardId);
+      if (cardElement) {
+        cardElement.classList.remove('is-note-editing');
+        delete cardElement.dataset.noteEditing;
+        delete cardElement.dataset.faceRenderKey;
+      }
+      if (activeNoteEditCardId === cardId) {
+        activeNoteEditCardId = '';
+        activeNoteEditFace = 'front';
+      }
+      noteEditState = null;
+      renderCardElement(cardId);
+      rerenderAttachedDrawingStrokesForCard(cardId);
     }
-    if (editor instanceof HTMLTextAreaElement && editor.isConnected) {
-      editor.remove();
-    }
-    const cardElement = cardElements.get(cardId);
-    if (cardElement) {
-      cardElement.classList.remove('is-note-editing');
-      delete cardElement.dataset.noteEditing;
-      delete cardElement.dataset.faceRenderKey;
-    }
-    noteEditState = null;
-    renderCardElement(cardId);
   }
 
   function beginNoteEditing(cardId) {
@@ -20435,8 +21939,11 @@ async function startRealtimeSession() {
     if (!(cardElement instanceof HTMLElement)) {
       return;
     }
-    const cardImage = cardElement.querySelector('img');
-    if (!(cardImage instanceof HTMLImageElement)) {
+    const editor =
+      cardElement._cardNoteInlineText instanceof HTMLElement
+        ? cardElement._cardNoteInlineText
+        : cardElement.querySelector('.table-note-inline-text');
+    if (!(editor instanceof HTMLElement)) {
       return;
     }
     const editFace = cardState.face === 'back' ? 'back' : 'front';
@@ -20444,43 +21951,37 @@ async function startRealtimeSession() {
 
     cardElement.classList.add('is-note-editing');
     cardElement.dataset.noteEditing = '1';
-    const editor = document.createElement('textarea');
-    editor.className = 'table-note-editor';
-    editor.rows = 1;
-    editor.maxLength = NOTE_TEXT_MAX_LENGTH;
-    editor.spellcheck = false;
-    editor.autocapitalize = 'off';
-    editor.autocomplete = 'off';
-    editor.inputMode = 'text';
-    editor.value = existingText;
-    editor.addEventListener('pointerdown', (event) => {
+    editor.classList.add('is-editing');
+    if (editor instanceof HTMLTextAreaElement) {
+      editor.readOnly = false;
+    } else {
+      editor.setAttribute('contenteditable', 'true');
+    }
+    editor.setAttribute('spellcheck', 'false');
+    editor.setAttribute('autocapitalize', 'off');
+    editor.setAttribute('autocomplete', 'off');
+    editor.setAttribute('autocorrect', 'off');
+    editor.setAttribute('aria-hidden', 'false');
+    setNoteEditorTextValue(editor, existingText);
+    editor.onpointerdown = (event) => {
       event.stopPropagation();
-    });
-    editor.addEventListener('contextmenu', (event) => {
+    };
+    editor.oncontextmenu = (event) => {
       event.stopPropagation();
-    });
-    editor.addEventListener('input', () => {
+    };
+    editor.oninput = () => {
       const previousValidText = noteEditState?.lastValidText ?? '';
-      const previousSelectionStart = Number(editor.selectionStart);
-      const previousSelectionEnd = Number(editor.selectionEnd);
-      const fittedText = clampNoteEditorTextToFit(editor, editor.value, previousValidText);
+      const currentText = getNoteEditorTextValue(editor);
+      const selectionOffsets = getContentEditableSelectionOffsets(editor);
+      const fittedText = clampNoteEditorTextToFit(editor, currentText, previousValidText);
       if (noteEditState && noteEditState.cardId === targetCardId) {
         noteEditState.lastValidText = fittedText;
       }
-      const nextSelectionStart = clamp(
-        Number.isFinite(previousSelectionStart) ? previousSelectionStart : fittedText.length,
-        0,
-        fittedText.length
-      );
-      const nextSelectionEnd = clamp(
-        Number.isFinite(previousSelectionEnd) ? previousSelectionEnd : nextSelectionStart,
-        0,
-        fittedText.length
-      );
-      editor.setSelectionRange(nextSelectionStart, nextSelectionEnd);
-      applyNoteFaceTextPatch(targetCardId, editFace, fittedText, { queue: true });
-    });
-    editor.addEventListener('keydown', (event) => {
+      const nextSelectionStart = clamp(Number(selectionOffsets?.start ?? fittedText.length), 0, fittedText.length);
+      const nextSelectionEnd = clamp(Number(selectionOffsets?.end ?? nextSelectionStart), nextSelectionStart, fittedText.length);
+      setContentEditableSelectionOffsets(editor, nextSelectionStart, nextSelectionEnd);
+    };
+    editor.onkeydown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         closeNoteEditor({ commit: false });
@@ -20490,11 +21991,10 @@ async function startRealtimeSession() {
         event.preventDefault();
         closeNoteEditor({ commit: true });
       }
-    });
-    editor.addEventListener('blur', () => {
+    };
+    editor.onblur = () => {
       closeNoteEditor({ commit: true });
-    });
-    cardElement.appendChild(editor);
+    };
     const fittedInitialText = clampNoteEditorTextToFit(editor, existingText, '');
     if (fittedInitialText !== existingText) {
       applyNoteFaceTextPatch(targetCardId, editFace, fittedInitialText, { queue: true });
@@ -20507,9 +22007,12 @@ async function startRealtimeSession() {
       closing: false,
       lastValidText: fittedInitialText
     };
+    activeNoteEditCardId = targetCardId;
+    activeNoteEditFace = editFace;
+    rerenderAttachedDrawingStrokesForCard(targetCardId);
     editor.focus({ preventScroll: true });
-    const end = editor.value.length;
-    editor.setSelectionRange(end, end);
+    const end = fittedInitialText.length;
+    setContentEditableSelectionOffsets(editor, end, end);
   }
 
   function closeLabelEditor(options = {}) {
@@ -20721,6 +22224,7 @@ async function startRealtimeSession() {
       groupDragState ||
       handReorderState ||
       deckDragState ||
+      chipSetDragState ||
       monsDragState ||
       taflDragState ||
       goDragState ||
@@ -20828,6 +22332,7 @@ async function startRealtimeSession() {
 
     const cardIdsToRelease = new Set();
     const dieIdsToRelease = new Set();
+    const chipSetIdsToRelease = new Set();
     if (cardDragState?.cardId) {
       cardIdsToRelease.add(cardDragState.cardId);
     }
@@ -20856,11 +22361,19 @@ async function startRealtimeSession() {
         dieIdsToRelease.add(dieId);
       }
     }
+    if (groupDragState?.baseChipSetPositions instanceof Map) {
+      for (const chipSetId of groupDragState.baseChipSetPositions.keys()) {
+        chipSetIdsToRelease.add(chipSetId);
+      }
+    }
     for (const selectedId of selectedCardIds) {
       cardIdsToRelease.add(selectedId);
     }
     for (const selectedId of selectedDiceIds) {
       dieIdsToRelease.add(selectedId);
+    }
+    for (const selectedId of selectedChipSetIds) {
+      chipSetIdsToRelease.add(selectedId);
     }
 
     const selectedIds = Array.from(selectedCardIds);
@@ -20872,6 +22385,11 @@ async function startRealtimeSession() {
     selectedDiceIds.clear();
     for (const selectedId of selectedDieIds) {
       renderDieElement(selectedId);
+    }
+    const selectedChipSetIdList = Array.from(selectedChipSetIds);
+    selectedChipSetIds.clear();
+    if (selectedChipSetIdList.length > 0) {
+      renderChipSets();
     }
     syncSelectionDeleteButtonUi();
 
@@ -20896,6 +22414,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
     hideSelectionBox();
@@ -20931,9 +22450,23 @@ async function startRealtimeSession() {
         console.error(error);
       });
     }
+    for (const chipSetId of chipSetIdsToRelease) {
+      const chipSetState = chipSetsById.get(chipSetId);
+      if (!chipSetState || chipSetState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalChipSet({ holderClientId: null }, chipSetId);
+      queueChipSetPatch({ holderClientId: null }, chipSetId);
+      releaseChipSetLock(chipSetId).catch((error) => {
+        console.error(error);
+      });
+    }
 
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
+    releaseSelectedChipSets();
+    releaseSelectedTaflBoards();
+    releaseSelectedGoBoards();
     if (cancelledTaflDragState?.gameId) {
       const cancelledTaflGameId = normalizeTaflGameId(cancelledTaflDragState.gameId);
       setTaflBoardDragFloating(cancelledTaflGameId, false);
@@ -20962,6 +22495,9 @@ async function startRealtimeSession() {
     const movableSelectedDieIds = new Set(getMovableSelectedDieIds());
     const movableSelectedDeckIds = new Set(getMovableSelectedDeckIds());
     const movableSelectedMonsIds = new Set(getMovableSelectedMonsGameIds());
+    const movableSelectedChipSetIds = new Set(getMovableSelectedChipSetIds());
+    const movableSelectedTaflIds = new Set(getMovableSelectedTaflGameIds());
+    const movableSelectedGoIds = new Set(getMovableSelectedGoGameIds());
     for (const [cardId, cardState] of cards.entries()) {
       if (!cardState || cardState.holderClientId !== clientId) {
         continue;
@@ -21016,6 +22552,19 @@ async function startRealtimeSession() {
         console.error(error);
       });
     }
+    for (const [chipSetId, chipSetState] of chipSetsById.entries()) {
+      if (!chipSetState || chipSetState.holderClientId !== clientId) {
+        continue;
+      }
+      if (chipSetDragState?.chipSetId === chipSetId || movableSelectedChipSetIds.has(chipSetId)) {
+        continue;
+      }
+      patchLocalChipSet({ holderClientId: null }, chipSetId);
+      queueChipSetPatch({ holderClientId: null }, chipSetId);
+      releaseChipSetLock(chipSetId).catch((error) => {
+        console.error(error);
+      });
+    }
     for (const [gameId, gameState] of monsGameStatesById.entries()) {
       if (!gameState || gameState.holderClientId !== clientId) {
         continue;
@@ -21035,7 +22584,7 @@ async function startRealtimeSession() {
         continue;
       }
       const normalizedGameId = normalizeTaflGameId(gameId);
-      if (taflDragState?.gameId === normalizedGameId) {
+      if (taflDragState?.gameId === normalizedGameId || movableSelectedTaflIds.has(normalizedGameId)) {
         continue;
       }
       patchLocalTaflGame({ holderClientId: null }, normalizedGameId);
@@ -21049,7 +22598,7 @@ async function startRealtimeSession() {
         continue;
       }
       const normalizedGameId = normalizeGoGameId(gameId);
-      if (goDragState?.gameId === normalizedGameId) {
+      if (goDragState?.gameId === normalizedGameId || movableSelectedGoIds.has(normalizedGameId)) {
         continue;
       }
       patchLocalGoGame({ holderClientId: null }, normalizedGameId);
@@ -21632,6 +23181,23 @@ async function startRealtimeSession() {
     renderDeckControls();
   }
 
+  function setStackPointDropTarget(dieId = '') {
+    const normalizedDieId = String(dieId || '').trim();
+    const canShow = Boolean(cardDragState || groupDragState || handReorderState?.releaseToTable);
+    const nextDieId = canShow && normalizedDieId ? normalizedDieId : '';
+    if (stackPointDropTargetDieId === nextDieId) {
+      return;
+    }
+    const previousDieId = stackPointDropTargetDieId;
+    stackPointDropTargetDieId = nextDieId;
+    if (previousDieId) {
+      renderDieElement(previousDieId);
+    }
+    if (nextDieId) {
+      renderDieElement(nextDieId);
+    }
+  }
+
   function setChipStackDropIndicator(visible, chipSetId = '', stackIndex = -1) {
     const draggingChip = Boolean(dieDragState && dieDragState.type === 'chip');
     const normalizedChipSetId = String(chipSetId || '').trim();
@@ -21980,6 +23546,68 @@ async function startRealtimeSession() {
     await set(ref(db, `${roomPath}/auctionBids/${activeAuctionCardId}/${bidOwnerToken}`), bidPayload);
   };
 
+  function flushQueuedCardPatches(scheduledGeneration) {
+    if (scheduledGeneration !== cardWriteGeneration) {
+      return;
+    }
+    if (pendingCardWrites.size === 0) {
+      return;
+    }
+    for (const [pendingCardId, pendingPatch] of pendingCardWrites.entries()) {
+      pendingCardWrites.delete(pendingCardId);
+      update(ref(db, `${roomPath}/cards/${pendingCardId}`), {
+        ...pendingPatch,
+        updatedAt: serverTimestamp()
+      }).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+        if (isTableResetting || scheduledGeneration !== cardWriteGeneration) {
+          return;
+        }
+        const nextQueuedPatch = pendingCardWrites.get(pendingCardId) || {};
+        pendingCardWrites.set(pendingCardId, { ...pendingPatch, ...nextQueuedPatch });
+        scheduleCardPatchFlush(CARD_WRITE_RETRY_DELAY_MS);
+      });
+    }
+  }
+
+  function scheduleCardPatchFlush(delayMs = 0) {
+    if (isTableResetting || pendingCardWrites.size === 0) {
+      return;
+    }
+    if (delayMs > 0) {
+      if (cardWriteRetryTimerId || cardWriteScheduled) {
+        return;
+      }
+      cardWriteRetryTimerId = window.setTimeout(() => {
+        cardWriteRetryTimerId = 0;
+        if (cardWriteScheduled || pendingCardWrites.size === 0) {
+          return;
+        }
+        cardWriteScheduled = true;
+        const scheduledGeneration = cardWriteGeneration;
+        window.requestAnimationFrame(() => {
+          cardWriteScheduled = false;
+          flushQueuedCardPatches(scheduledGeneration);
+        });
+      }, Math.max(0, Number(delayMs) || 0));
+      return;
+    }
+    if (cardWriteRetryTimerId) {
+      window.clearTimeout(cardWriteRetryTimerId);
+      cardWriteRetryTimerId = 0;
+    }
+    if (cardWriteScheduled) {
+      return;
+    }
+    cardWriteScheduled = true;
+    const scheduledGeneration = cardWriteGeneration;
+    window.requestAnimationFrame(() => {
+      cardWriteScheduled = false;
+      flushQueuedCardPatches(scheduledGeneration);
+    });
+  }
+
   function queueCardPatch(cardId, patch) {
     if (isTableResetting || !cardId || !patch || typeof patch !== 'object') {
       return;
@@ -21993,28 +23621,7 @@ async function startRealtimeSession() {
     }
     const queuedPatch = pendingCardWrites.get(cardId) || {};
     pendingCardWrites.set(cardId, { ...queuedPatch, ...nextPatch });
-    if (cardWriteScheduled) {
-      return;
-    }
-
-    cardWriteScheduled = true;
-    const scheduledGeneration = cardWriteGeneration;
-    window.requestAnimationFrame(() => {
-      cardWriteScheduled = false;
-      if (scheduledGeneration !== cardWriteGeneration) {
-        return;
-      }
-      for (const [pendingCardId, pendingPatch] of pendingCardWrites.entries()) {
-        pendingCardWrites.delete(pendingCardId);
-        update(ref(db, `${roomPath}/cards/${pendingCardId}`), {
-          ...pendingPatch,
-          updatedAt: serverTimestamp()
-        }).catch((error) => {
-          console.error(error);
-          setRealtimeStatus('firebase: write blocked');
-        });
-      }
-    });
+    scheduleCardPatchFlush();
   }
 
   function queueDiePatch(dieId, patch) {
@@ -22718,6 +24325,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     syncShapeDrawingAssistVisuals();
   };
   setDeleteModeEnabled = (enabled) => {
@@ -22767,9 +24375,13 @@ async function startRealtimeSession() {
   setDeleteModeEnabled(deleteModeEnabled);
   setDrawModeEnabled(drawModeEnabled);
 
-  function getOwnedStrokeEntries() {
+  function getOwnedStrokeEntries(options = {}) {
+    const includeNoteAttached = options.includeNoteAttached !== false;
     const ownedStrokeEntries = [];
     for (const [strokeId, strokeState] of drawingStrokes.entries()) {
+      if (!includeNoteAttached && isNoteAttachedDrawingStroke(strokeState)) {
+        continue;
+      }
       const ownerToken = typeof strokeState?.authorPlayerToken === 'string' ? strokeState.authorPlayerToken : '';
       const ownerClient = typeof strokeState?.authorClientId === 'string' ? strokeState.authorClientId : '';
       const matchesToken = Boolean(localPlayerToken) && ownerToken === localPlayerToken;
@@ -22785,7 +24397,7 @@ async function startRealtimeSession() {
     drawShapePointerState = null;
     drawShapeAnchorState = null;
     syncShapeDrawingAssistVisuals();
-    const ownedStrokeIds = getOwnedStrokeEntries().map(([strokeId]) => strokeId);
+    const ownedStrokeIds = getOwnedStrokeEntries({ includeNoteAttached: false }).map(([strokeId]) => strokeId);
 
     if (ownedStrokeIds.length === 0) {
       return;
@@ -22994,12 +24606,27 @@ async function startRealtimeSession() {
       patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch || {}, 'drawLifted')
         ? { ...patch, drawLifted: true }
         : patch;
-    const nextCard = normalizeCardPayload({ ...existingCard, ...nextPatch });
+    const localPatch = Object.prototype.hasOwnProperty.call(nextPatch || {}, 'updatedAt')
+      ? nextPatch
+      : { ...nextPatch, updatedAt: Date.now() };
+    const nextCard = normalizeCardPayload({ ...existingCard, ...localPatch }, cardId);
+    warmCardFrontOnDeckExit(existingCard, nextCard);
     cards.set(cardId, nextCard);
+    markSecretAreaRegionsCacheDirty();
+    const secretAreaVisibilityChanged = didSecretAreaVisibilityFieldsChange(existingCard, nextCard);
     if (didCardDeckMetricsFieldsChange(existingCard, nextCard)) {
       markCardDeckMetricsCacheDirty();
     }
     renderCardElement(cardId);
+    renderStackPointCountBadges();
+    if (secretAreaVisibilityChanged) {
+      renderDeckControls();
+      renderAllDice();
+      renderChipSets();
+      renderMonsBoard();
+      renderTaflBoards();
+      renderGoBoards();
+    }
   }
 
   function patchLocalDeck(patch, deckId = activeDeckId) {
@@ -23090,9 +24717,17 @@ async function startRealtimeSession() {
     });
   }
 
-  function getCardDeckId(cardState) {
-    return normalizeDeckId(cardState?.deckId || activeDeckId || DECK_KEY);
+function getCardDeckId(cardState) {
+  return normalizeDeckId(cardState?.deckId || activeDeckId || DECK_KEY);
+}
+
+function getCardDeckInstanceId(cardId, cardState) {
+  const inferredDeckId = inferDeckIdFromCardId(cardId);
+  if (inferredDeckId) {
+    return inferredDeckId;
   }
+  return normalizeDeckId(cardState?.deckId || DECK_KEY);
+}
 
   function getDeckIdAtPosition(x, y, region = 'deck') {
     const deckIds = getDeckIdsInRoom();
@@ -23110,16 +24745,25 @@ async function startRealtimeSession() {
           continue;
         }
         center = getDiscardCenterPosition(candidateDeckId);
+        if (isWorldPointHiddenBySecretAreaForLocalViewer(center.x, center.y)) {
+          continue;
+        }
         matches = Math.abs(x - center.x) <= CARD_WIDTH / 2 && Math.abs(y - center.y) <= CARD_HEIGHT / 2;
       } else if (region === 'auction') {
         if (!deckSupportsAuction(candidateDeckId)) {
           continue;
         }
         center = getAuctionCenterPosition(candidateDeckId);
+        if (isWorldPointHiddenBySecretAreaForLocalViewer(center.x, center.y)) {
+          continue;
+        }
         matches =
           Math.abs(x - center.x) <= (CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
           Math.abs(y - center.y) <= (CARD_HEIGHT + AUCTION_SLOT_EXTRA_SIZE) / 2;
       } else {
+        if (isWorldPointHiddenBySecretAreaForLocalViewer(center.x, center.y)) {
+          continue;
+        }
         matches = Math.abs(x - center.x) <= CARD_WIDTH / 2 && Math.abs(y - center.y) <= CARD_HEIGHT / 2;
       }
       if (!matches) {
@@ -23132,6 +24776,134 @@ async function startRealtimeSession() {
       }
     }
     return matchedDeckId;
+  }
+
+  function isPositionOverStackPoint(x, y, stackPointDieId = '') {
+    const normalizedDieId = String(stackPointDieId || '').trim();
+    if (!normalizedDieId) {
+      return false;
+    }
+    const stackPointState = diceById.get(normalizedDieId);
+    if (!isStackPointDieState(stackPointState)) {
+      return false;
+    }
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(stackPointState.x, stackPointState.y)) {
+      return false;
+    }
+    if (stackPointState.holderClientId && stackPointState.holderClientId !== clientId) {
+      return false;
+    }
+    return isPositionInsideStackPointBounds(x, y, stackPointState);
+  }
+
+  function getStackPointIdAtPosition(x, y, preferredStackPointDieId = '') {
+    const targetX = Number(x);
+    const targetY = Number(y);
+    if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+      return '';
+    }
+    let matchedDieId = '';
+    let bestDistance = Number.POSITIVE_INFINITY;
+    const normalizedPreferredId = String(preferredStackPointDieId || '').trim();
+    const candidateDieIds = normalizedPreferredId
+      ? [normalizedPreferredId, ...Array.from(diceById.keys()).filter((dieId) => dieId !== normalizedPreferredId)]
+      : Array.from(diceById.keys());
+    for (const dieId of candidateDieIds) {
+      const dieState = diceById.get(dieId);
+      if (!isStackPointDieState(dieState)) {
+        continue;
+      }
+      if (!isPositionOverStackPoint(targetX, targetY, dieId)) {
+        continue;
+      }
+      const distance = Math.hypot(targetX - dieState.x, targetY - dieState.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        matchedDieId = dieId;
+      }
+    }
+    return matchedDieId;
+  }
+
+  function getStackPointTopZ(stackPointDieId = '', excludedCardId = '') {
+    const stackCardIds = getStackPointCardIds(stackPointDieId, {
+      includeHeldCards: true,
+      excludedCardId
+    });
+    if (stackCardIds.length === 0) {
+      return 1;
+    }
+    let topZ = 1;
+    for (const cardId of stackCardIds) {
+      const cardState = cards.get(cardId);
+      if (!cardState) {
+        continue;
+      }
+      topZ = Math.max(topZ, Number(cardState.z) || 0);
+    }
+    return topZ;
+  }
+
+  function getStackPointCardIds(stackPointDieId = '', options = {}) {
+    const normalizedDieId = String(stackPointDieId || '').trim();
+    const stackPointState = diceById.get(normalizedDieId);
+    if (!normalizedDieId || !isStackPointDieState(stackPointState)) {
+      return [];
+    }
+    const includeHeldCards = options.includeHeldCards === true;
+    const normalizedExcludedCardId = String(options.excludedCardId || '').trim();
+    const stackCardIds = [];
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!cardState) {
+        continue;
+      }
+      if (normalizedExcludedCardId && cardId === normalizedExcludedCardId) {
+        continue;
+      }
+      if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+        continue;
+      }
+      if (!includeHeldCards && cardState.holderClientId) {
+        continue;
+      }
+      if (!isPositionInsideStackPointBounds(cardState.x, cardState.y, stackPointState)) {
+        continue;
+      }
+      stackCardIds.push(cardId);
+    }
+    stackCardIds.sort((leftId, rightId) => {
+      const leftState = cards.get(leftId);
+      const rightState = cards.get(rightId);
+      const byZ = (Number(leftState?.z) || 0) - (Number(rightState?.z) || 0);
+      if (byZ !== 0) {
+        return byZ;
+      }
+      return leftId.localeCompare(rightId);
+    });
+    return stackCardIds;
+  }
+
+  function getStackPointCardCount(stackPointDieId = '', options = {}) {
+    return getStackPointCardIds(stackPointDieId, options).length;
+  }
+
+  function getTopCardIdOnStackPoint(stackPointDieId = '') {
+    const stackCardIds = getStackPointCardIds(stackPointDieId, { includeHeldCards: true });
+    if (stackCardIds.length === 0) {
+      return '';
+    }
+    return stackCardIds[stackCardIds.length - 1] || '';
+  }
+
+  function isPositionInsideStackPointBounds(x, y, stackPointState) {
+    if (!isStackPointDieState(stackPointState)) {
+      return false;
+    }
+    const dimensions = getDieWorldDimensions(stackPointState);
+    return (
+      Math.abs(x - stackPointState.x) <= dimensions.width / 2 &&
+      Math.abs(y - stackPointState.y) <= dimensions.height / 2
+    );
   }
 
   function isPositionOverDeck(x, y, deckId = activeDeckId) {
@@ -23166,20 +24938,20 @@ async function startRealtimeSession() {
     );
   }
 
-  function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
-    const cardState = cards.get(cardId);
-    if (!cardState || !canCardUseDeckZones(cardState)) {
-      return false;
-    }
-    const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
-    if (!deckSupportsAuction(targetDeckId)) {
-      return false;
-    }
-    if (getAuctionCardCount(targetDeckId) === 0) {
-      return true;
-    }
-    return cardState.inAuction && normalizeDeckId(cardState.deckId) === targetDeckId;
+function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
+  const cardState = cards.get(cardId);
+  if (!cardState || !canCardUseDeckZones(cardState)) {
+    return false;
   }
+  const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
+  if (!deckSupportsAuction(targetDeckId)) {
+    return false;
+  }
+  if (getAuctionCardCount(targetDeckId) === 0) {
+    return true;
+  }
+  return cardState.inAuction && normalizeDeckId(cardState.deckId) === targetDeckId;
+}
 
   function canPlaceCardsOnAuction(cardIds, deckId = activeDeckId) {
     if (!Array.isArray(cardIds) || cardIds.length === 0) {
@@ -23192,14 +24964,14 @@ async function startRealtimeSession() {
     if (getAuctionCardCount(targetDeckId) === 0) {
       return true;
     }
-    return cardIds.every((cardId) => {
-      const cardState = cards.get(cardId);
-      if (!cardState || !canCardUseDeckZones(cardState)) {
-        return false;
-      }
-      return Boolean(cardState.inAuction) && normalizeDeckId(cardState.deckId) === targetDeckId;
-    });
-  }
+  return cardIds.every((cardId) => {
+    const cardState = cards.get(cardId);
+    if (!cardState || !canCardUseDeckZones(cardState)) {
+      return false;
+    }
+    return Boolean(cardState.inAuction) && normalizeDeckId(cardState.deckId) === targetDeckId;
+  });
+}
 
   function getDiscardTopZ(deckId = activeDeckId) {
     const metrics = getDeckMetricsEntry(deckId);
@@ -23349,6 +25121,40 @@ async function startRealtimeSession() {
     return buildAuctionPlacementPatch(getAuctionTopZ(targetDeckId) + 1, targetDeckId);
   }
 
+  function buildStackPointDropPatch(cardId, preferredStackPointDieId = '') {
+    const cardState = cards.get(cardId);
+    if (!cardState || !canCardUseDeckZones(cardState)) {
+      return null;
+    }
+    const targetDieId = getStackPointIdAtPosition(
+      cardState.x,
+      cardState.y,
+      preferredStackPointDieId
+    );
+    if (!targetDieId) {
+      return null;
+    }
+    const targetStackPointState = diceById.get(targetDieId);
+    if (!isStackPointDieState(targetStackPointState)) {
+      return null;
+    }
+    if (!isPositionOverStackPoint(cardState.x, cardState.y, targetDieId)) {
+      return null;
+    }
+    return {
+      x: targetStackPointState.x,
+      y: targetStackPointState.y,
+      z: getStackPointTopZ(targetDieId, cardId) + 1,
+      deckId: getCardDeckId(cardState),
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+  }
+
   async function bringDeckToFront(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
     const orderedDeckCards = [];
@@ -23356,7 +25162,7 @@ async function startRealtimeSession() {
       if (!cardState || typeof cardState !== 'object') {
         continue;
       }
-      if (normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
+      if (getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
         continue;
       }
       if (!cardState.inDeck && !cardState.inDiscard && !cardState.inAuction) {
@@ -23518,8 +25324,37 @@ async function startRealtimeSession() {
     });
   }
 
+  function getMovableSelectedChipSetIds() {
+    return Array.from(selectedChipSetIds).filter((chipSetId) => {
+      const chipSetState = chipSetsById.get(chipSetId);
+      return Boolean(chipSetState) && chipSetState.holderClientId === clientId;
+    });
+  }
+
+  function getMovableSelectedTaflGameIds() {
+    return Array.from(selectedTaflGameIds).filter((gameId) => {
+      const gameState = getTaflGameStateById(gameId);
+      return Boolean(gameState) && gameState.enabled !== false && gameState.holderClientId === clientId;
+    });
+  }
+
+  function getMovableSelectedGoGameIds() {
+    return Array.from(selectedGoGameIds).filter((gameId) => {
+      const gameState = getGoGameStateById(gameId);
+      return Boolean(gameState) && gameState.enabled !== false && gameState.holderClientId === clientId;
+    });
+  }
+
   function hasAnyGroupSelection() {
-    return selectedCardIds.size > 0 || selectedDiceIds.size > 0 || selectedDeckIds.size > 0 || selectedMonsGameIds.size > 0;
+    return (
+      selectedCardIds.size > 0 ||
+      selectedDiceIds.size > 0 ||
+      selectedDeckIds.size > 0 ||
+      selectedMonsGameIds.size > 0 ||
+      selectedChipSetIds.size > 0 ||
+      selectedTaflGameIds.size > 0 ||
+      selectedGoGameIds.size > 0
+    );
   }
 
   function syncSelectionDeleteButtonState() {
@@ -23629,11 +25464,80 @@ async function startRealtimeSession() {
     syncSelectionDeleteButtonUi();
   }
 
+  function releaseSelectedChipSets() {
+    const selectedIds = Array.from(selectedChipSetIds);
+    selectedChipSetIds.clear();
+    let shouldRender = selectedIds.length > 0;
+    for (const chipSetId of selectedIds) {
+      const chipSetState = chipSetsById.get(chipSetId);
+      if (chipSetState?.holderClientId === clientId) {
+        patchLocalChipSet({ holderClientId: null }, chipSetId);
+        queueChipSetPatch({ holderClientId: null }, chipSetId);
+        releaseChipSetLock(chipSetId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        shouldRender = true;
+      }
+    }
+    if (shouldRender) {
+      renderChipSets();
+    }
+    syncSelectionDeleteButtonUi();
+  }
+
+  function releaseSelectedTaflBoards() {
+    const selectedIds = Array.from(selectedTaflGameIds);
+    selectedTaflGameIds.clear();
+    let shouldRender = selectedIds.length > 0;
+    for (const gameId of selectedIds) {
+      const gameState = getTaflGameStateById(gameId);
+      if (gameState?.holderClientId === clientId) {
+        patchLocalTaflGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        shouldRender = true;
+      }
+    }
+    if (shouldRender) {
+      renderTaflBoards();
+    }
+    syncSelectionDeleteButtonUi();
+  }
+
+  function releaseSelectedGoBoards() {
+    const selectedIds = Array.from(selectedGoGameIds);
+    selectedGoGameIds.clear();
+    let shouldRender = selectedIds.length > 0;
+    for (const gameId of selectedIds) {
+      const gameState = getGoGameStateById(gameId);
+      if (gameState?.holderClientId === clientId) {
+        patchLocalGoGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        shouldRender = true;
+      }
+    }
+    if (shouldRender) {
+      renderGoBoards();
+    }
+    syncSelectionDeleteButtonUi();
+  }
+
   function releaseAllSelectedObjects() {
     releaseSelectedCards();
     releaseSelectedDice();
     releaseSelectedDecks();
     releaseSelectedMonsBoards();
+    releaseSelectedChipSets();
+    releaseSelectedTaflBoards();
+    releaseSelectedGoBoards();
     syncSelectionDeleteButtonUi();
   }
 
@@ -23647,6 +25551,9 @@ async function startRealtimeSession() {
     const diceCandidates = [];
     const deckCandidates = [];
     const monsCandidates = [];
+    const chipSetCandidates = [];
+    const taflCandidates = [];
+    const goCandidates = [];
     const overlapsSelectionRect = (centerX, centerY, width, height) => {
       const halfWidth = Math.max(0, Number(width) || 0) / 2;
       const halfHeight = Math.max(0, Number(height) || 0) / 2;
@@ -23658,6 +25565,9 @@ async function startRealtimeSession() {
     };
 
     for (const [cardId, cardState] of cards.entries()) {
+      if (isCardHiddenBySecretAreaForLocalViewer(cardId, cardState)) {
+        continue;
+      }
       if (cardState.inDeck) {
         continue;
       }
@@ -23685,6 +25595,9 @@ async function startRealtimeSession() {
       if (!dieState) {
         continue;
       }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
+        continue;
+      }
       if (isLabelDieLocked(dieState)) {
         continue;
       }
@@ -23703,6 +25616,9 @@ async function startRealtimeSession() {
       if (!deckState) {
         continue;
       }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(deckState.x, deckState.y)) {
+        continue;
+      }
       if (deckState.holderClientId && deckState.holderClientId !== clientId) {
         continue;
       }
@@ -23716,6 +25632,9 @@ async function startRealtimeSession() {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
       if (gameState.holderClientId && gameState.holderClientId !== clientId) {
         continue;
       }
@@ -23724,8 +25643,64 @@ async function startRealtimeSession() {
       }
     }
 
+    for (const [chipSetId, rawChipSetState] of chipSetsById.entries()) {
+      const chipSetState = normalizeChipSetPayload(rawChipSetState);
+      if (!chipSetState) {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(chipSetState.x, chipSetState.y)) {
+        continue;
+      }
+      if (chipSetState.holderClientId && chipSetState.holderClientId !== clientId) {
+        continue;
+      }
+      if (overlapsSelectionRect(chipSetState.x, chipSetState.y, getChipSetWorldWidth(chipSetState), DIE_SIZE_CHIP)) {
+        chipSetCandidates.push(String(chipSetId || '').trim());
+      }
+    }
+
+    for (const [rawGameId, gameState] of taflGameStatesById.entries()) {
+      const normalizedGameId = normalizeTaflGameId(rawGameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
+      if (gameState.holderClientId && gameState.holderClientId !== clientId) {
+        continue;
+      }
+      if (overlapsSelectionRect(gameState.x, gameState.y, gameState.width, gameState.height)) {
+        taflCandidates.push(normalizedGameId);
+      }
+    }
+
+    for (const [rawGameId, gameState] of goGameStatesById.entries()) {
+      const normalizedGameId = normalizeGoGameId(rawGameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
+      if (gameState.holderClientId && gameState.holderClientId !== clientId) {
+        continue;
+      }
+      if (overlapsSelectionRect(gameState.x, gameState.y, gameState.width, gameState.height)) {
+        goCandidates.push(normalizedGameId);
+      }
+    }
+
     releaseAllSelectedObjects();
-    if (cardCandidates.length === 0 && diceCandidates.length === 0 && deckCandidates.length === 0 && monsCandidates.length === 0) {
+    if (
+      cardCandidates.length === 0 &&
+      diceCandidates.length === 0 &&
+      deckCandidates.length === 0 &&
+      monsCandidates.length === 0 &&
+      chipSetCandidates.length === 0 &&
+      taflCandidates.length === 0 &&
+      goCandidates.length === 0
+    ) {
       return;
     }
 
@@ -23784,6 +25759,36 @@ async function startRealtimeSession() {
       patchLocalMonsGame({ holderClientId: clientId }, gameId);
       queueMonsPatch({ holderClientId: clientId }, gameId);
     }
+
+    for (const chipSetId of chipSetCandidates) {
+      const acquired = await acquireChipSetLock(chipSetId);
+      if (!acquired) {
+        continue;
+      }
+      selectedChipSetIds.add(chipSetId);
+      patchLocalChipSet({ holderClientId: clientId }, chipSetId);
+      queueChipSetPatch({ holderClientId: clientId }, chipSetId);
+    }
+
+    for (const gameId of taflCandidates) {
+      const acquired = await acquireMonsBoardLock(gameId);
+      if (!acquired) {
+        continue;
+      }
+      selectedTaflGameIds.add(gameId);
+      patchLocalTaflGame({ holderClientId: clientId }, gameId);
+      queueMonsPatch({ holderClientId: clientId }, gameId);
+    }
+
+    for (const gameId of goCandidates) {
+      const acquired = await acquireMonsBoardLock(gameId);
+      if (!acquired) {
+        continue;
+      }
+      selectedGoGameIds.add(gameId);
+      patchLocalGoGame({ holderClientId: clientId }, gameId);
+      queueMonsPatch({ holderClientId: clientId }, gameId);
+    }
     syncSelectionDeleteButtonUi();
   }
 
@@ -23792,6 +25797,9 @@ async function startRealtimeSession() {
     const baseDiePositions = new Map();
     const baseDeckPositions = new Map();
     const baseMonsPositions = new Map();
+    const baseChipSetPositions = new Map();
+    const baseTaflPositions = new Map();
+    const baseGoPositions = new Map();
 
     for (const cardId of getMovableSelectedIds()) {
       const cardState = cards.get(cardId);
@@ -23829,12 +25837,36 @@ async function startRealtimeSession() {
       }
       baseMonsPositions.set(gameId, { x: gameState.x, y: gameState.y });
     }
+    for (const chipSetId of getMovableSelectedChipSetIds()) {
+      const chipSetState = chipSetsById.get(chipSetId);
+      if (!chipSetState) {
+        continue;
+      }
+      baseChipSetPositions.set(chipSetId, { x: chipSetState.x, y: chipSetState.y });
+    }
+    for (const gameId of getMovableSelectedTaflGameIds()) {
+      const gameState = getTaflGameStateById(gameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      baseTaflPositions.set(gameId, { x: gameState.x, y: gameState.y });
+    }
+    for (const gameId of getMovableSelectedGoGameIds()) {
+      const gameState = getGoGameStateById(gameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      baseGoPositions.set(gameId, { x: gameState.x, y: gameState.y });
+    }
 
     return {
       basePositions,
       baseDiePositions,
       baseDeckPositions,
-      baseMonsPositions
+      baseMonsPositions,
+      baseChipSetPositions,
+      baseTaflPositions,
+      baseGoPositions
     };
   }
 
@@ -23994,6 +26026,160 @@ async function startRealtimeSession() {
     return true;
   }
 
+  function beginGroupDragFromChipSet(event, chipSetId) {
+    const normalizedChipSetId = String(chipSetId || '').trim();
+    if (
+      !selectedChipSetIds.has(normalizedChipSetId) ||
+      chipSetDragState ||
+      dieDragState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return false;
+    }
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return false;
+    }
+    const groupBase = buildGroupDragBase();
+    const anchorChipSetState = chipSetsById.get(normalizedChipSetId);
+    const anchorBase = groupBase.baseChipSetPositions.get(normalizedChipSetId);
+    if (!anchorChipSetState || !anchorBase) {
+      releaseAllSelectedObjects();
+      return false;
+    }
+    groupDragState = {
+      pointerId: event.pointerId,
+      pointerType: getEffectivePointerType(event),
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      anchorOffsetX: worldPoint.x - anchorChipSetState.x,
+      anchorOffsetY: worldPoint.y - anchorChipSetState.y,
+      anchorType: 'chip-set',
+      anchorId: normalizedChipSetId,
+      anchorCardId: '',
+      anchorWidth: getChipSetWorldWidth(anchorChipSetState),
+      anchorHeight: DIE_SIZE_CHIP,
+      ...groupBase,
+      moved: false
+    };
+    syncHandHoverDragLock();
+    bringSelectedDeckStacksToFront(groupBase.baseDeckPositions);
+    return true;
+  }
+
+  function beginGroupDragFromTafl(event, gameId) {
+    const normalizedGameId = normalizeTaflGameId(gameId);
+    if (
+      !selectedTaflGameIds.has(normalizedGameId) ||
+      taflDragState ||
+      monsDragState ||
+      goDragState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return false;
+    }
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return false;
+    }
+    const groupBase = buildGroupDragBase();
+    const anchorGameState = getTaflGameStateById(normalizedGameId);
+    const anchorBase = groupBase.baseTaflPositions.get(normalizedGameId);
+    if (!anchorGameState || !anchorBase) {
+      releaseAllSelectedObjects();
+      return false;
+    }
+
+    groupDragState = {
+      pointerId: event.pointerId,
+      pointerType: getEffectivePointerType(event),
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      anchorOffsetX: worldPoint.x - anchorGameState.x,
+      anchorOffsetY: worldPoint.y - anchorGameState.y,
+      anchorType: 'tafl',
+      anchorId: normalizedGameId,
+      anchorCardId: '',
+      anchorWidth: anchorGameState.width,
+      anchorHeight: anchorGameState.height,
+      ...groupBase,
+      moved: false
+    };
+    syncHandHoverDragLock();
+    bringSelectedDeckStacksToFront(groupBase.baseDeckPositions);
+    return true;
+  }
+
+  function beginGroupDragFromGo(event, gameId) {
+    const normalizedGameId = normalizeGoGameId(gameId);
+    if (
+      !selectedGoGameIds.has(normalizedGameId) ||
+      goDragState ||
+      monsDragState ||
+      taflDragState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return false;
+    }
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return false;
+    }
+    const groupBase = buildGroupDragBase();
+    const anchorGameState = getGoGameStateById(normalizedGameId);
+    const anchorBase = groupBase.baseGoPositions.get(normalizedGameId);
+    if (!anchorGameState || !anchorBase) {
+      releaseAllSelectedObjects();
+      return false;
+    }
+
+    groupDragState = {
+      pointerId: event.pointerId,
+      pointerType: getEffectivePointerType(event),
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      anchorOffsetX: worldPoint.x - anchorGameState.x,
+      anchorOffsetY: worldPoint.y - anchorGameState.y,
+      anchorType: 'go',
+      anchorId: normalizedGameId,
+      anchorCardId: '',
+      anchorWidth: anchorGameState.width,
+      anchorHeight: anchorGameState.height,
+      ...groupBase,
+      moved: false
+    };
+    syncHandHoverDragLock();
+    bringSelectedDeckStacksToFront(groupBase.baseDeckPositions);
+    return true;
+  }
+
   function beginGroupDragFromDie(event, dieId) {
     if (
       !selectedDiceIds.has(dieId) ||
@@ -24070,6 +26256,7 @@ async function startRealtimeSession() {
       setDeckDropIndicator(false);
       setDiscardDropIndicator(false);
       setAuctionDropIndicator(false);
+      setStackPointDropTarget('');
       setHandDropGlow(false);
       setHandDropPreview(null);
       return true;
@@ -24078,8 +26265,14 @@ async function startRealtimeSession() {
     let anchorBase = null;
     if (groupDragState.anchorType === 'deck') {
       anchorBase = groupDragState.baseDeckPositions.get(groupDragState.anchorId);
+    } else if (groupDragState.anchorType === 'chip-set') {
+      anchorBase = groupDragState.baseChipSetPositions.get(groupDragState.anchorId);
     } else if (groupDragState.anchorType === 'mons') {
       anchorBase = groupDragState.baseMonsPositions.get(groupDragState.anchorId);
+    } else if (groupDragState.anchorType === 'tafl') {
+      anchorBase = groupDragState.baseTaflPositions.get(groupDragState.anchorId);
+    } else if (groupDragState.anchorType === 'go') {
+      anchorBase = groupDragState.baseGoPositions.get(groupDragState.anchorId);
     } else if (groupDragState.anchorType === 'die') {
       anchorBase = groupDragState.baseDiePositions.get(groupDragState.anchorId);
     } else {
@@ -24102,6 +26295,13 @@ async function startRealtimeSession() {
       anchorMaxX = anchorDieBounds.maxX;
       anchorMinY = anchorDieBounds.minY;
       anchorMaxY = anchorDieBounds.maxY;
+    } else if (groupDragState.anchorType === 'chip-set') {
+      const anchorChipSetState = chipSetsById.get(groupDragState.anchorId);
+      const anchorChipBounds = getChipSetCenterBounds(anchorChipSetState);
+      anchorMinX = anchorChipBounds.minX;
+      anchorMaxX = anchorChipBounds.maxX;
+      anchorMinY = anchorChipBounds.minY;
+      anchorMaxY = anchorChipBounds.maxY;
     } else if (groupDragState.anchorType === 'card') {
       const anchorCardState = cards.get(groupDragState.anchorId);
       const anchorCardBounds = getCardPositionBounds(anchorCardState, anchorWidth, anchorHeight);
@@ -24156,6 +26356,9 @@ async function startRealtimeSession() {
     const deckTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'deck') : '';
     const discardTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'discard') : '';
     const auctionTargetDeckId = hasDropEligibleCards && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorHoverX, anchorHoverY, 'auction') : '';
+    const stackPointTargetDieId = hasDropEligibleCards && canAnchorUseDeckZones
+      ? getStackPointIdAtPosition(anchorHoverX, anchorHoverY)
+      : '';
     const overDeck = Boolean(deckTargetDeckId);
     const overDiscard = Boolean(discardTargetDeckId);
     let overAuction = false;
@@ -24230,18 +26433,69 @@ async function startRealtimeSession() {
       queueMonsPatch(patch, selectedGameId);
     }
 
+    for (const [selectedChipSetId, base] of groupDragState.baseChipSetPositions.entries()) {
+      const chipSetState = chipSetsById.get(selectedChipSetId);
+      const chipSetBounds = getChipSetCenterBounds(chipSetState || { stackCount: CHIP_SET_MIN_STACKS });
+      const nextX = clamp(base.x + deltaX, chipSetBounds.minX, chipSetBounds.maxX);
+      const nextY = clamp(base.y + deltaY, chipSetBounds.minY, chipSetBounds.maxY);
+      const patch = {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId,
+        z: getTopObjectZ() + 1
+      };
+      patchLocalChipSet(patch, selectedChipSetId);
+      queueChipSetPatch(patch, selectedChipSetId);
+    }
+
+    for (const [selectedGameId, base] of groupDragState.baseTaflPositions.entries()) {
+      const targetGameState = getTaflGameStateById(selectedGameId);
+      const halfWidth = Math.max(1, Number(targetGameState?.width) || TAFL_BOARD_WORLD_WIDTH) / 2;
+      const halfHeight = Math.max(1, Number(targetGameState?.height) || TAFL_BOARD_WORLD_HEIGHT) / 2;
+      const nextX = clamp(base.x + deltaX, halfWidth, WORLD_WIDTH - halfWidth);
+      const nextY = clamp(base.y + deltaY, halfHeight, WORLD_HEIGHT - halfHeight);
+      const patch = {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      };
+      patchLocalTaflGame(patch, selectedGameId);
+      queueMonsPatch(patch, selectedGameId);
+    }
+
+    for (const [selectedGameId, base] of groupDragState.baseGoPositions.entries()) {
+      const targetGameState = getGoGameStateById(selectedGameId);
+      const halfWidth = Math.max(1, Number(targetGameState?.width) || GO_BOARD_WORLD_WIDTH) / 2;
+      const halfHeight = Math.max(1, Number(targetGameState?.height) || GO_BOARD_WORLD_HEIGHT) / 2;
+      const nextX = clamp(base.x + deltaX, halfWidth, WORLD_WIDTH - halfWidth);
+      const nextY = clamp(base.y + deltaY, halfHeight, WORLD_HEIGHT - halfHeight);
+      const patch = {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      };
+      patchLocalGoGame(patch, selectedGameId);
+      queueMonsPatch(patch, selectedGameId);
+    }
+
     if (hasDropEligibleCards) {
       setHandDropGlow(overHandDropRegion);
       setHandDropPreview(null);
       setDiscardDropIndicator(overDiscard && !overHandDropRegion && !overAuction, discardTargetDeckId);
       setAuctionDropIndicator(overAuction && !overHandDropRegion, auctionTargetDeckId);
       setDeckDropIndicator(overDeck && !overHandDropRegion && !overDiscard && !overAuction, deckTargetDeckId);
+      setStackPointDropTarget(
+        !overHandDropRegion && !overDeck && !overDiscard && !overAuction
+          ? stackPointTargetDieId
+          : ''
+      );
     } else {
       setHandDropGlow(false);
       setHandDropPreview(null);
       setDeckDropIndicator(false);
       setDiscardDropIndicator(false);
       setAuctionDropIndicator(false);
+      setStackPointDropTarget('');
     }
     schedulePublishFromClient(event.clientX, event.clientY);
     event.preventDefault();
@@ -24268,6 +26522,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -24376,6 +26631,9 @@ async function startRealtimeSession() {
     const deckTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'deck') : '';
     const discardTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'discard') : '';
     const auctionTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'auction') : '';
+    const stackPointTargetDieId = anchorCardState && canAnchorUseDeckZones
+      ? getStackPointIdAtPosition(anchorCardState.x, anchorCardState.y, stackPointDropTargetDieId)
+      : '';
     const shouldStackOnDeck =
       deckEligibleSelectedIds.length > 0 &&
       Boolean(deckTargetDeckId) &&
@@ -24394,6 +26652,11 @@ async function startRealtimeSession() {
         const cardState = cards.get(cardId);
         return Boolean(cardState) && isPositionOverAuction(cardState.x, cardState.y, auctionTargetDeckId);
       });
+    const shouldStackOnStackPoint =
+      deckEligibleSelectedIds.length > 0 &&
+      Boolean(stackPointTargetDieId) &&
+      Boolean(anchorCardState) &&
+      isPositionOverStackPoint(anchorCardState.x, anchorCardState.y, stackPointTargetDieId);
 
     if (shouldStackOnAuction && auctionTargetDeckId) {
       selectedCardIds.clear();
@@ -24464,6 +26727,42 @@ async function startRealtimeSession() {
         });
       }
       releaseNonDeckSelectedCards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return true;
+    }
+
+    if (shouldStackOnStackPoint && stackPointTargetDieId) {
+      const targetStackPointState = diceById.get(stackPointTargetDieId);
+      if (!isStackPointDieState(targetStackPointState)) {
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return true;
+      }
+      selectedCardIds.clear();
+      syncSelectionDeleteButtonUi();
+      let nextStackZ = getStackPointTopZ(stackPointTargetDieId) + 1;
+      for (const cardId of deckEligibleSelectedIds) {
+        const patch = {
+          x: targetStackPointState.x,
+          y: targetStackPointState.y,
+          z: nextStackZ,
+          deckId: getCardDeckId(cards.get(cardId)),
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null
+        };
+        nextStackZ += 1;
+        patchLocalCard(cardId, patch);
+        queueCardPatch(cardId, patch);
+        releaseCardLock(cardId).catch((error) => {
+          console.error(error);
+        });
+      }
+      releaseNonDeckSelectedCards();
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return true;
     }
 
     schedulePublishFromClient(event.clientX, event.clientY);
@@ -26445,32 +28744,20 @@ async function startRealtimeSession() {
     if (!isCardFlippable(existingCardState)) {
       return;
     }
-    const cardRef = ref(db, `${roomPath}/cards/${cardId}`);
-    await runTransaction(
-      cardRef,
-      (currentCard) => {
-        if (!currentCard || typeof currentCard !== 'object') {
-          return;
-        }
-        const normalizedCard = normalizeCardPayload(currentCard);
-        if (!isCardFlippable(normalizedCard)) {
-          return;
-        }
-        if (currentCard.inAuction === true) {
-          return;
-        }
-        const holder = typeof currentCard.holderClientId === 'string' ? currentCard.holderClientId : null;
-        if (holder && holder !== clientId) {
-          return;
-        }
-        return {
-          ...currentCard,
-          face: currentCard.face === 'front' ? 'back' : 'front',
-          updatedAt: Date.now()
-        };
-      },
-      { applyLocally: false }
-    );
+    if (existingCardState?.inAuction) {
+      return;
+    }
+    const holder = typeof existingCardState?.holderClientId === 'string' ? existingCardState.holderClientId : null;
+    if (holder && holder !== clientId) {
+      return;
+    }
+    const nextFace = existingCardState.face === 'front' ? 'back' : 'front';
+    const facePatch = {
+      face: nextFace
+    };
+    // Patch only `face` so flips never overwrite fresher snap/position fields.
+    patchLocalCard(cardId, facePatch);
+    queueCardPatch(cardId, facePatch);
   }
 
   async function handleSelectedGroupFlip(anchorCardId) {
@@ -26569,7 +28856,8 @@ async function startRealtimeSession() {
         normalized.type === 'media' ||
         normalized.type === 'marble' ||
         normalized.type === 'counter' ||
-        normalized.type === 'timer'
+        normalized.type === 'timer' ||
+        normalized.type === 'stack-point'
       ) {
         continue;
       }
@@ -26613,6 +28901,9 @@ async function startRealtimeSession() {
       return;
     }
     if (normalizeDieType(anchorDieState?.type) === 'timer') {
+      return;
+    }
+    if (normalizeDieType(anchorDieState?.type) === 'stack-point') {
       return;
     }
     if (isMarbleDieState(anchorDieState)) {
@@ -26794,6 +29085,9 @@ async function startRealtimeSession() {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
       const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
       const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
       obstacleRects.push({
@@ -26808,6 +29102,9 @@ async function startRealtimeSession() {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
       const width = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
       const height = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
       obstacleRects.push({
@@ -26820,6 +29117,9 @@ async function startRealtimeSession() {
     }
     for (const [gameId, gameState] of goGameStatesById.entries()) {
       if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
         continue;
       }
       let left = NaN;
@@ -26864,6 +29164,9 @@ async function startRealtimeSession() {
     }
     for (const [dieId, dieState] of diceById.entries()) {
       if (!dieState || typeof dieState !== 'object') {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
         continue;
       }
       if (dieState.holderClientId) {
@@ -26944,6 +29247,9 @@ async function startRealtimeSession() {
 
     for (const [otherDieId, otherState] of diceById.entries()) {
       if (otherDieId === dieId || !isMarbleDieState(otherState)) {
+        continue;
+      }
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(otherState.x, otherState.y)) {
         continue;
       }
 
@@ -27360,18 +29666,47 @@ async function startRealtimeSession() {
       return false;
     }
     settleMarbleIfNearlyStill(dieId, targetDie, MARBLE_RESTART_BLOCK_SPEED);
-    const refreshedTargetDie = diceById.get(dieId) || targetDie;
+    let refreshedTargetDie = diceById.get(dieId) || targetDie;
+    const targetHolderClientId =
+      typeof refreshedTargetDie?.holderClientId === 'string' && refreshedTargetDie.holderClientId
+        ? refreshedTargetDie.holderClientId
+        : '';
+    if (targetHolderClientId && targetHolderClientId !== clientId) {
+      const recovered = await tryRecoverStaleDieLock(dieId, targetHolderClientId);
+      if (!recovered) {
+        return false;
+      }
+      refreshedTargetDie = diceById.get(dieId) || refreshedTargetDie;
+    }
+    const hasLocalMotionEntry = marbleMotionByDieId.has(dieId);
+    const targetSpeed = getMarbleSpeed(refreshedTargetDie);
+    const targetAppearsMoving =
+      refreshedTargetDie.moving === true ||
+      hasLocalMotionEntry ||
+      targetSpeed > MARBLE_FORCE_STOP_SPEED;
+    if (targetAppearsMoving) {
+      const forceStopPatch = {
+        moving: false,
+        velocityX: 0,
+        velocityY: 0,
+        holderClientId: null
+      };
+      patchLocalDie(dieId, forceStopPatch);
+      queueDiePatch(dieId, forceStopPatch);
+      marbleMotionByDieId.delete(dieId);
+      marbleActiveCollisionContactsByDieId.delete(dieId);
+      if (targetHolderClientId === clientId) {
+        releaseDieLock(dieId).catch((error) => {
+          console.error(error);
+        });
+      }
+    }
+    refreshedTargetDie = diceById.get(dieId) || refreshedTargetDie;
     if (!isMarbleEffectivelyMoving(refreshedTargetDie) && marbleMotionByDieId.has(dieId)) {
       marbleMotionByDieId.delete(dieId);
     }
     if (isMarbleEffectivelyMoving(refreshedTargetDie) || marbleMotionByDieId.has(dieId)) {
       return false;
-    }
-    if (refreshedTargetDie.holderClientId && refreshedTargetDie.holderClientId !== clientId) {
-      const recovered = await tryRecoverStaleDieLock(dieId, refreshedTargetDie.holderClientId);
-      if (!recovered) {
-        return false;
-      }
     }
     const lockState = diceById.get(dieId) || refreshedTargetDie;
     if (!isMarbleDieState(lockState)) {
@@ -28076,7 +30411,8 @@ async function startRealtimeSession() {
       timerElapsedMs: clampTimerElapsedMs(existingDie.timerElapsedMs),
       timerRunning: existingDie.timerRunning === true,
       timerStartedAt: existingDie.timerRunning === true ? (Number(existingDie.timerStartedAt) || now) : 0,
-      timerSplits: nextSplits
+      timerSplits: nextSplits,
+      timerSplitsVisible: true
     };
     patchLocalDie(targetDieId, splitPatch);
     queueDiePatch(targetDieId, splitPatch);
@@ -28099,7 +30435,8 @@ async function startRealtimeSession() {
       timerElapsedMs: 0,
       timerRunning: false,
       timerStartedAt: 0,
-      timerSplits: []
+      timerSplits: [],
+      timerSplitsVisible: true
     };
     patchLocalDie(targetDieId, resetPatch);
     queueDiePatch(targetDieId, resetPatch);
@@ -28831,6 +31168,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -29038,6 +31376,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -29271,6 +31610,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -29282,9 +31622,28 @@ async function startRealtimeSession() {
       return;
     }
 
-    if (consumeDoubleTapIfPresent(cardId, event) || consumeDoubleClickIfPresent(cardId, event)) {
+    const consumedDoubleTap = consumeDoubleTapIfPresent(cardId, event);
+    const consumedDoubleClick = consumeDoubleClickIfPresent(cardId, event);
+    if (consumedDoubleTap || consumedDoubleClick) {
       if (isNoteComponentCard(existingCard)) {
-        beginNoteEditing(cardId);
+        const pointerId = Number(event.pointerId);
+        const pointerPressedAt = Date.now();
+        let openAttempts = 0;
+        const openNoteEditor = () => {
+          openAttempts += 1;
+          if (
+            Number.isFinite(pointerId) &&
+            openAttempts < 12 &&
+            !wasPointerReleased(pointerId, pointerPressedAt)
+          ) {
+            window.setTimeout(openNoteEditor, 16);
+            return;
+          }
+          beginNoteEditing(cardId);
+        };
+        // Defer opening until the double-click/tap press has settled so the
+        // editor does not immediately blur/close on the same pointer sequence.
+        window.setTimeout(openNoteEditor, 0);
       } else {
         handleCardFlipIntent(cardId).catch((error) => {
           console.error(error);
@@ -29310,13 +31669,14 @@ async function startRealtimeSession() {
       return;
     }
 
+    const isStackedDeckCard = Boolean(existingCard.inDeck || existingCard.inDiscard || existingCard.inAuction);
     if (hasAnyGroupSelection()) {
-      if (selectedCardIds.has(cardId) && beginGroupDrag(event, cardId)) {
+      if (!isStackedDeckCard && selectedCardIds.has(cardId) && beginGroupDrag(event, cardId)) {
         safeSetPointerCapture(event.currentTarget, event.pointerId);
         schedulePublishFromClient(event.clientX, event.clientY);
         return;
       }
-      if (!selectedCardIds.has(cardId)) {
+      if (!selectedCardIds.has(cardId) || isStackedDeckCard) {
         releaseAllSelectedObjects();
       }
     }
@@ -29467,6 +31827,16 @@ async function startRealtimeSession() {
     setDeckDropIndicator(handReorderState.releaseToTable && overDeck && !overDiscard && !overAuction, deckTargetId);
     setDiscardDropIndicator(handReorderState.releaseToTable && overDiscard && !overAuction, discardTargetId);
     setAuctionDropIndicator(handReorderState.releaseToTable && overAuction, auctionTargetId);
+    const stackPointTargetDieId =
+      handReorderState.releaseToTable &&
+      canUseDeckZones &&
+      worldPoint &&
+      !overDeck &&
+      !overDiscard &&
+      !overAuction
+        ? getStackPointIdAtPosition(worldPoint.x, worldPoint.y)
+        : '';
+    setStackPointDropTarget(stackPointTargetDieId);
     if (handReorderState.releaseToTable) {
       renderLocalHandCards();
       renderDeckControls();
@@ -29478,6 +31848,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
 
     const currentLocalIds = getLocalHandIdsSortedByZ();
     const cardId = handReorderState.cardId;
@@ -29516,6 +31887,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
     renderLocalHandCards();
@@ -29538,6 +31910,7 @@ async function startRealtimeSession() {
         const auctionDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'auction') : '';
         const discardDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'discard') : '';
         const mainDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'deck') : '';
+        const stackPointDieId = canUseDeckZones ? getStackPointIdAtPosition(dropX, dropY) : '';
         const releasePatch = canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
           : canUseDeckZones && Boolean(discardDeckId) && isDeckDiscardEnabled(discardDeckId)
@@ -29554,6 +31927,20 @@ async function startRealtimeSession() {
                 holderClientId: null,
                 handOwnerClientId: null,
                 handOwnerPlayerToken: null
+              }
+            : canUseDeckZones && Boolean(stackPointDieId)
+              ? buildStackPointDropPatch(finishedState.cardId, stackPointDieId) || {
+                x: dropX,
+                y: dropY,
+                face: releaseFace,
+                deckId: getCardDeckId(droppedCard),
+                inDeck: false,
+                inDiscard: false,
+                inAuction: false,
+                holderClientId: null,
+                handOwnerClientId: null,
+                handOwnerPlayerToken: null,
+                z: topZ
               }
             : {
               x: dropX,
@@ -29635,6 +32022,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -29695,6 +32083,7 @@ async function startRealtimeSession() {
       setDeckDropIndicator(false);
       setDiscardDropIndicator(false);
       setAuctionDropIndicator(false);
+      setStackPointDropTarget('');
       setHandDropGlow(false);
       setHandDropPreview(null);
       return;
@@ -29729,6 +32118,11 @@ async function startRealtimeSession() {
     const deckTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'deck') : '';
     const overDiscard = Boolean(discardTargetDeckId);
     const overAuction = Boolean(auctionTargetDeckId) && canPlaceCardOnAuction(cardDragState.cardId, auctionTargetDeckId);
+    const stackPointTargetDieId =
+      canUseDeckZones && !overHandDropRegion && !overDiscard && !overAuction && !deckTargetDeckId
+        ? getStackPointIdAtPosition(nextX, nextY)
+        : '';
+    setStackPointDropTarget(stackPointTargetDieId);
     setDiscardDropIndicator(overDiscard && !overHandDropRegion && !overAuction, discardTargetDeckId);
     setAuctionDropIndicator(overAuction && !overHandDropRegion, auctionTargetDeckId);
     setDeckDropIndicator(Boolean(deckTargetDeckId) && !overHandDropRegion && !overDiscard && !overAuction, deckTargetDeckId);
@@ -29780,6 +32174,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     setHandDropPreview(null);
 
@@ -29795,14 +32190,15 @@ async function startRealtimeSession() {
       finalPatch =
         buildAuctionDropPatch(finishedDrag.cardId, auctionDropIndicatorDeckId) ||
         buildDiscardDropPatch(finishedDrag.cardId, discardDropIndicatorDeckId) ||
-        buildDeckDropPatch(finishedDrag.cardId, deckDropIndicatorDeckId) || {
-        holderClientId: null,
-        inDeck: false,
-        inDiscard: false,
-        inAuction: false,
-        handOwnerClientId: null,
-        handOwnerPlayerToken: null
-      };
+        buildDeckDropPatch(finishedDrag.cardId, deckDropIndicatorDeckId) ||
+        buildStackPointDropPatch(finishedDrag.cardId, stackPointDropTargetDieId) || {
+          holderClientId: null,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null
+        };
     }
 
     patchLocalCard(finishedDrag.cardId, finalPatch);
@@ -29885,6 +32281,18 @@ async function startRealtimeSession() {
       console.error(error);
     });
   };
+  onCardDoubleClick = (event, cardId) => {
+    if (drawModeEnabled || deleteModeEnabled) {
+      return;
+    }
+    const cardState = cards.get(cardId);
+    if (!isNoteComponentCard(cardState)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    beginNoteEditing(cardId);
+  };
   onHandCardPointerDown = (event, cardId) => {
     handleHandCardPointerDown(event, cardId).catch((error) => {
       console.error(error);
@@ -29923,6 +32331,15 @@ async function startRealtimeSession() {
       return;
     }
     const contextDieState = diceById.get(dieId);
+    if (isStackPointDieState(contextDieState)) {
+      const topCardIdOnStackPoint = getTopCardIdOnStackPoint(dieId);
+      if (topCardIdOnStackPoint) {
+        handleRightClickFlipIntent(topCardIdOnStackPoint).catch((error) => {
+          console.error(error);
+        });
+      }
+      return;
+    }
     if (isMarbleDieState(contextDieState)) {
       return;
     }
@@ -30034,7 +32451,6 @@ async function startRealtimeSession() {
       let startedFlick = await beginMarbleFlickGesture(event, dieId);
       if (!startedFlick) {
         const retryState = diceById.get(dieId);
-        const retrySpeed = getMarbleSpeed(retryState);
         const hasActiveLocalMotion = marbleMotionByDieId.has(dieId);
         const blockingHolder =
           typeof retryState?.holderClientId === 'string' && retryState.holderClientId
@@ -30047,12 +32463,7 @@ async function startRealtimeSession() {
         const canTryRecovery =
           isMarbleDieState(retryState) &&
           !hasActiveLocalMotion &&
-          (
-            hasRecoverableBlockingHolder ||
-            !blockingHolder ||
-            blockingHolder === clientId ||
-            retrySpeed <= MARBLE_RESTART_BLOCK_SPEED * 1.5
-          );
+          hasRecoverableBlockingHolder;
         if (canTryRecovery) {
           await forceRefreshMarbleStateForSecondaryDrag(dieId);
           startedFlick = await beginMarbleFlickGesture(event, dieId);
@@ -30089,14 +32500,25 @@ async function startRealtimeSession() {
     endedTouchPointerIds.delete(event.pointerId);
     event.preventDefault();
     event.stopPropagation();
+    const interactionDieState = targetDieState || diceById.get(dieId);
+    const stackPointTopCardId =
+      !isMouseSecondaryMarbleDrag && isStackPointDieState(interactionDieState)
+        ? getTopCardIdOnStackPoint(dieId)
+        : '';
 
     if (
       !isMouseSecondaryMarbleDrag &&
       (consumeDieDoubleTapIfPresent(dieId, event) || consumeDieDoubleClickIfPresent(dieId, event))
     ) {
-      handleDieRollIntent(dieId).catch((error) => {
-        console.error(error);
-      });
+      if (stackPointTopCardId) {
+        handleCardFlipIntent(stackPointTopCardId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        handleDieRollIntent(dieId).catch((error) => {
+          console.error(error);
+        });
+      }
       return;
     }
     if (!isMouseSecondaryMarbleDrag) {
@@ -30115,6 +32537,23 @@ async function startRealtimeSession() {
       }
       if (!selectedDiceIds.has(dieId)) {
         releaseAllSelectedObjects();
+      }
+    }
+
+    const preDragDieState = targetDieState || diceById.get(dieId);
+    const shouldPreferTopCardFromStackPoint =
+      !isMouseSecondaryMarbleDrag &&
+      isStackPointDieState(preDragDieState) &&
+      !selectedDiceIds.has(dieId);
+    if (shouldPreferTopCardFromStackPoint) {
+      const stackPointCardCount = getStackPointCardCount(dieId, { includeHeldCards: false });
+      if (stackPointCardCount > 0) {
+        const topCardIdOnStackPoint = getTopCardIdOnStackPoint(dieId);
+        if (topCardIdOnStackPoint) {
+          await handleCardPointerDown(event, topCardIdOnStackPoint);
+        }
+        // Non-empty stack points should not be dragged directly.
+        return;
       }
     }
 
@@ -30629,6 +33068,16 @@ async function startRealtimeSession() {
     if (!targetChipSet) {
       return;
     }
+    if (hasAnyGroupSelection()) {
+      if (selectedChipSetIds.has(targetChipSetId) && beginGroupDragFromChipSet(event, targetChipSetId)) {
+        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedChipSetIds.has(targetChipSetId)) {
+        releaseAllSelectedObjects();
+      }
+    }
     if (targetChipSet.holderClientId && targetChipSet.holderClientId !== clientId) {
       return;
     }
@@ -30878,6 +33327,46 @@ async function startRealtimeSession() {
     );
   }
 
+  async function handleStackPointShuffle(stackPointDieId = '') {
+    const targetStackPointDieId = String(stackPointDieId || '').trim();
+    const stackPointState = diceById.get(targetStackPointDieId);
+    if (!targetStackPointDieId || !isStackPointDieState(stackPointState)) {
+      return;
+    }
+    if (stackPointState.holderClientId && stackPointState.holderClientId !== clientId) {
+      return;
+    }
+
+    const stackCardIds = getStackPointCardIds(targetStackPointDieId, { includeHeldCards: false });
+    if (stackCardIds.length < 2) {
+      return;
+    }
+
+    const shuffledCardIds = [...stackCardIds];
+    for (let index = shuffledCardIds.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      const temp = shuffledCardIds[index];
+      shuffledCardIds[index] = shuffledCardIds[swapIndex];
+      shuffledCardIds[swapIndex] = temp;
+    }
+
+    const sortedZValues = stackCardIds
+      .map((cardId) => Number(cards.get(cardId)?.z) || 0)
+      .sort((left, right) => left - right);
+    const updatesByPath = {};
+    const startedAt = Date.now();
+    for (let index = 0; index < shuffledCardIds.length; index += 1) {
+      const cardId = shuffledCardIds[index];
+      const nextZ = Number.isFinite(sortedZValues[index]) ? sortedZValues[index] : index + 1;
+      patchLocalCard(cardId, { z: nextZ });
+      updatesByPath[`${cardId}/z`] = nextZ;
+      updatesByPath[`${cardId}/updatedAt`] = startedAt + index;
+    }
+    if (Object.keys(updatesByPath).length > 0) {
+      await update(cardsRef, updatesByPath);
+    }
+  }
+
   async function handleDealOneToEachPlayer(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
     const targetDeckState = getDeckStateById(targetDeckId);
@@ -30893,6 +33382,13 @@ async function startRealtimeSession() {
       return;
     }
 
+    const topDeckCardsForDeal = getDeckCardIds(targetDeckId)
+      .sort((leftId, rightId) => (Number(cards.get(rightId)?.z) || 0) - (Number(cards.get(leftId)?.z) || 0))
+      .slice(0, targetOwnerTokens.length);
+    for (const cardId of topDeckCardsForDeal) {
+      warmCardFrontVariants(cards.get(cardId)?.frontSrc, LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
+    }
+
     await runTransaction(
       cardsRef,
       (currentCards) => {
@@ -30900,11 +33396,11 @@ async function startRealtimeSession() {
           return;
         }
 
-        const deckEntries = Object.entries(currentCards).filter(([, cardState]) => {
+        const deckEntries = Object.entries(currentCards).filter(([cardId, cardState]) => {
           if (!cardState || typeof cardState !== 'object') {
             return false;
           }
-          return cardState.inDeck === true && normalizeDeckId(cardState.deckId || DECK_KEY) === targetDeckId;
+          return cardState.inDeck === true && getCardDeckInstanceId(cardId, cardState) === targetDeckId;
         });
         if (deckEntries.length < targetOwnerTokens.length) {
           return;
@@ -31207,6 +33703,16 @@ async function startRealtimeSession() {
     const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     if (normalizeTaflGameId(activeTaflGameId) !== targetTaflGameId) {
       setActiveTaflGameId(targetTaflGameId);
+    }
+    if (hasAnyGroupSelection()) {
+      if (selectedTaflGameIds.has(targetTaflGameId) && beginGroupDragFromTafl(event, targetTaflGameId)) {
+        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedTaflGameIds.has(targetTaflGameId)) {
+        releaseAllSelectedObjects();
+      }
     }
     if (taflDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState) {
       return;
@@ -31925,6 +34431,16 @@ async function startRealtimeSession() {
     if (normalizeGoGameId(activeGoGameId) !== targetGoGameId) {
       setActiveGoGameId(targetGoGameId);
     }
+    if (hasAnyGroupSelection()) {
+      if (selectedGoGameIds.has(targetGoGameId) && beginGroupDragFromGo(event, targetGoGameId)) {
+        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedGoGameIds.has(targetGoGameId)) {
+        releaseAllSelectedObjects();
+      }
+    }
     if (goDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState || taflDragState) {
       return;
     }
@@ -32258,28 +34774,42 @@ async function startRealtimeSession() {
       stackCount,
       stacks: seedStacks
     });
-    await runTransaction(
-      chipSetsRef,
-      (currentChipSets) => {
-        const baseChipSets = currentChipSets && typeof currentChipSets === 'object' ? { ...currentChipSets } : {};
-        let nextTopZ = getTopObjectZ();
-        for (const payload of Object.values(baseChipSets)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
-        }
-        let nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseChipSets, nextChipSetId)) {
-          nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        baseChipSets[nextChipSetId] = {
-          ...seededChipSet,
-          z: nextTopZ + 1,
-          holderClientId: null,
-          updatedAt: Date.now()
-        };
-        return baseChipSets;
-      },
-      { applyLocally: false }
-    );
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: seededChipSet.x,
+      worldY: seededChipSet.y,
+      worldWidth: getChipSetWorldWidth(seededChipSet),
+      worldHeight: CHIP_STACK_WORLD_SIZE
+    });
+    let createdChipSetId = '';
+    try {
+      await runTransaction(
+        chipSetsRef,
+        (currentChipSets) => {
+          const baseChipSets = currentChipSets && typeof currentChipSets === 'object' ? { ...currentChipSets } : {};
+          let nextTopZ = getTopObjectZ();
+          for (const payload of Object.values(baseChipSets)) {
+            nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+          }
+          let nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          while (Object.prototype.hasOwnProperty.call(baseChipSets, nextChipSetId)) {
+            nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          createdChipSetId = nextChipSetId;
+          baseChipSets[nextChipSetId] = {
+            ...seededChipSet,
+            z: nextTopZ + 1,
+            holderClientId: null,
+            updatedAt: Date.now()
+          };
+          return baseChipSets;
+        },
+        { applyLocally: false }
+      );
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdChipSetId) && chipSetsById.has(createdChipSetId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
 
   spawnDice = async (type = 'd6', count = 1) => {
@@ -32289,69 +34819,90 @@ async function startRealtimeSession() {
     const viewportCenter = getViewportWorldCenter();
     const spawnCenterX = clamp(viewportCenter.x, dieDimensions.width / 2, WORLD_WIDTH - dieDimensions.width / 2);
     const spawnCenterY = clamp(viewportCenter.y, dieDimensions.height / 2, WORLD_HEIGHT - dieDimensions.height / 2);
-    await runTransaction(
-      diceRef,
-      (currentDice) => {
-        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
-        let nextTopZ = getTopObjectZ();
-        for (const payload of Object.values(baseDice)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
-        }
-        const totalSpan = (normalizedCount - 1) * DICE_SPAWN_GAP;
-        const startX = spawnCenterX - totalSpan / 2;
-        for (let index = 0; index < normalizedCount; index += 1) {
-          let nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-          while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
-            nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+    const totalSpan = (normalizedCount - 1) * DICE_SPAWN_GAP;
+    const spawnWorldWidth = dieDimensions.width + totalSpan;
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: spawnWorldWidth,
+      worldHeight: dieDimensions.height
+    });
+    let createdDieIds = [];
+    try {
+      await runTransaction(
+        diceRef,
+        (currentDice) => {
+          const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+          let nextTopZ = getTopObjectZ();
+          for (const payload of Object.values(baseDice)) {
+            nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
           }
-          const sides = getDieSides(normalizedType);
-          const x = clamp(
-            startX + index * DICE_SPAWN_GAP,
-            dieDimensions.width / 2,
-            WORLD_WIDTH - dieDimensions.width / 2
-          );
-          const y = spawnCenterY;
-          nextTopZ += 1;
-          const createdAt = Date.now();
-          const initialValue =
-            normalizedType === 'counter'
-              ? 0
-              : normalizedType === 'timer'
+          const generatedIds = [];
+          const startX = spawnCenterX - totalSpan / 2;
+          for (let index = 0; index < normalizedCount; index += 1) {
+            let nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+            while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+              nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+            }
+            generatedIds.push(nextDieId);
+            const sides = getDieSides(normalizedType);
+            const x = clamp(
+              startX + index * DICE_SPAWN_GAP,
+              dieDimensions.width / 2,
+              WORLD_WIDTH - dieDimensions.width / 2
+            );
+            const y = spawnCenterY;
+            nextTopZ += 1;
+            const createdAt = Date.now();
+            const initialValue =
+              normalizedType === 'counter'
                 ? 0
-              : 1 + Math.floor(Math.random() * sides);
-          baseDice[nextDieId] = {
-            type: normalizedType,
-            x,
-            y,
-            z: nextTopZ,
-            value: initialValue,
-            holderClientId: null,
-            ...(normalizedType === 'timer'
-              ? {
-                timerElapsedMs: 0,
-                timerRunning: false,
-                timerStartedAt: 0,
-                timerSplits: []
-              }
-              : {}),
-            ...(normalizedType === 'marble'
-              ? {
-                moving: false,
-                velocityX: 0,
-                velocityY: 0,
-                marbleHue: getRandomMarbleHue()
-              }
-              : {}),
-            rollStartedAt: 0,
-            rollDurationMs: DIE_ROLL_DURATION_MS,
-            rollSeed: Math.floor(Math.random() * 0x7fffffff),
-            updatedAt: createdAt
-          };
-        }
-        return baseDice;
-      },
-      { applyLocally: false }
-    );
+                : normalizedType === 'timer'
+                  ? 0
+                : 1 + Math.floor(Math.random() * sides);
+            baseDice[nextDieId] = {
+              type: normalizedType,
+              x,
+              y,
+              z: nextTopZ,
+              value: initialValue,
+              holderClientId: null,
+              ...(normalizedType === 'timer'
+                ? {
+                  timerElapsedMs: 0,
+                  timerRunning: false,
+                  timerStartedAt: 0,
+                  timerSplits: [],
+                  timerSplitsVisible: false
+                }
+                : {}),
+              ...(normalizedType === 'marble'
+                ? {
+                  moving: false,
+                  velocityX: 0,
+                  velocityY: 0,
+                  marbleHue: getRandomMarbleHue()
+                }
+                : {}),
+              rollStartedAt: 0,
+              rollDurationMs: DIE_ROLL_DURATION_MS,
+              rollSeed: Math.floor(Math.random() * 0x7fffffff),
+              updatedAt: createdAt
+            };
+          }
+          createdDieIds = generatedIds;
+          return baseDice;
+        },
+        { applyLocally: false }
+      );
+      finalizeSpawnLoadingIndicator(
+        indicatorId,
+        () => createdDieIds.length > 0 && createdDieIds.every((dieId) => diceById.has(dieId))
+      );
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnCoin = async () => {
     await spawnDice('coin', 1);
@@ -32365,6 +34916,22 @@ async function startRealtimeSession() {
   spawnMarble = async () => {
     await spawnDice('marble', 1);
   };
+  spawnStackPointComponent = async () => {
+    await spawnDice('stack-point', 1);
+  };
+  spawnSecretAreaComponent = async () => {
+    await spawnImageComponent('', {
+      componentType: 'image',
+      componentSubtype: SECRET_AREA_COMPONENT_SUBTYPE,
+      componentOwnerPlayerToken: localPlayerToken,
+      componentOwnerName: playerState.name,
+      componentOwnerColor: playerState.color,
+      cardSized: false,
+      twoSided: false,
+      frontBlank: true,
+      frontBlankColor: '#ffffff'
+    });
+  };
   spawnSpinnerComponent = async (options = {}) => {
     const segmentCount = normalizeSpinnerSegmentCount(options.segments);
     const textEnabled = options.textEnabled === true;
@@ -32375,42 +34942,56 @@ async function startRealtimeSession() {
     const viewportCenter = getViewportWorldCenter();
     const spawnCenterX = clamp(viewportCenter.x, spinnerDimensions.width / 2, WORLD_WIDTH - spinnerDimensions.width / 2);
     const spawnCenterY = clamp(viewportCenter.y, spinnerDimensions.height / 2, WORLD_HEIGHT - spinnerDimensions.height / 2);
-    await runTransaction(
-      diceRef,
-      (currentDice) => {
-        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
-        let nextTopZ = getTopObjectZ();
-        for (const payload of Object.values(baseDice)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
-        }
-        nextTopZ += 1;
-        let nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
-          nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        const initialValue = getRandomIntInclusive(1, segmentCount);
-        baseDice[nextDieId] = {
-          type: 'spinner',
-          x: spawnCenterX,
-          y: spawnCenterY,
-          z: nextTopZ,
-          value: initialValue,
-          spinnerSegments: segmentCount,
-          spinnerLabels: labels,
-          spinnerResultVisible: false,
-          spinnerHighlightVisible: false,
-          spinnerStartAngle: getSpinnerSegmentCenterAngle(initialValue, segmentCount),
-          spinnerSpinTurns: getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS),
-          holderClientId: null,
-          rollStartedAt: 0,
-          rollDurationMs: SPINNER_ROLL_DURATION_MS,
-          rollSeed: Math.floor(Math.random() * 0x7fffffff),
-          updatedAt: Date.now()
-        };
-        return baseDice;
-      },
-      { applyLocally: false }
-    );
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: spinnerDimensions.width,
+      worldHeight: spinnerDimensions.height
+    });
+    let createdSpinnerId = '';
+    try {
+      await runTransaction(
+        diceRef,
+        (currentDice) => {
+          const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+          let nextTopZ = getTopObjectZ();
+          for (const payload of Object.values(baseDice)) {
+            nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+          }
+          nextTopZ += 1;
+          let nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+            nextDieId = `spinner-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          createdSpinnerId = nextDieId;
+          const initialValue = getRandomIntInclusive(1, segmentCount);
+          baseDice[nextDieId] = {
+            type: 'spinner',
+            x: spawnCenterX,
+            y: spawnCenterY,
+            z: nextTopZ,
+            value: initialValue,
+            spinnerSegments: segmentCount,
+            spinnerLabels: labels,
+            spinnerResultVisible: false,
+            spinnerHighlightVisible: false,
+            spinnerStartAngle: getSpinnerSegmentCenterAngle(initialValue, segmentCount),
+            spinnerSpinTurns: getRandomIntInclusive(SPINNER_ROLL_MIN_TURNS, SPINNER_ROLL_MAX_TURNS),
+            holderClientId: null,
+            rollStartedAt: 0,
+            rollDurationMs: SPINNER_ROLL_DURATION_MS,
+            rollSeed: Math.floor(Math.random() * 0x7fffffff),
+            updatedAt: Date.now()
+          };
+          return baseDice;
+        },
+        { applyLocally: false }
+      );
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdSpinnerId) && diceById.has(createdSpinnerId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnLabelComponent = async () => {
     const labelText = LABEL_DEFAULT_TEXT;
@@ -32433,96 +35014,113 @@ async function startRealtimeSession() {
     const labelCenterBounds = getDieCenterBounds('label', labelLayout.labelWidth, labelLayout.labelHeight);
     const spawnCenterX = clamp(viewportCenter.x, labelCenterBounds.minX, labelCenterBounds.maxX);
     const spawnCenterY = clamp(viewportCenter.y, labelCenterBounds.minY, labelCenterBounds.maxY);
-    await runTransaction(
-      diceRef,
-      (currentDice) => {
-        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
-        let nextTopZ = getTopObjectZ();
-        for (const payload of Object.values(baseDice)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
-        }
-        nextTopZ += 1;
-        let nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
-          nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        baseDice[nextDieId] = {
-          type: 'label',
-          x: spawnCenterX,
-          y: spawnCenterY,
-          z: nextTopZ,
-          value: 1,
-          text: labelText,
-          textColor: labelColor,
-          textScale: labelLayout.textScale,
-          labelLocked: false,
-          labelRotation: 0,
-          labelWidth: labelLayout.labelWidth,
-          labelHeight: labelLayout.labelHeight,
-          holderClientId: null,
-          rollStartedAt: 0,
-          rollDurationMs: DIE_ROLL_DURATION_MS,
-          rollSeed: 0,
-          updatedAt: Date.now()
-        };
-        return baseDice;
-      },
-      { applyLocally: false }
-    );
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: labelLayout.labelWidth,
+      worldHeight: labelLayout.labelHeight
+    });
+    let createdLabelId = '';
+    try {
+      await runTransaction(
+        diceRef,
+        (currentDice) => {
+          const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+          let nextTopZ = getTopObjectZ();
+          for (const payload of Object.values(baseDice)) {
+            nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+          }
+          nextTopZ += 1;
+          let nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+            nextDieId = `label-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          createdLabelId = nextDieId;
+          baseDice[nextDieId] = {
+            type: 'label',
+            x: spawnCenterX,
+            y: spawnCenterY,
+            z: nextTopZ,
+            value: 1,
+            text: labelText,
+            textColor: labelColor,
+            textScale: labelLayout.textScale,
+            labelLocked: false,
+            labelRotation: 0,
+            labelWidth: labelLayout.labelWidth,
+            labelHeight: labelLayout.labelHeight,
+            holderClientId: null,
+            rollStartedAt: 0,
+            rollDurationMs: DIE_ROLL_DURATION_MS,
+            rollSeed: 0,
+            updatedAt: Date.now()
+          };
+          return baseDice;
+        },
+        { applyLocally: false }
+      );
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdLabelId) && diceById.has(createdLabelId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnNoteComponent = async () => {
     const noteSize = clampNoteComponentSize(NOTE_COMPONENT_DEFAULT_WORLD_SIZE, NOTE_COMPONENT_DEFAULT_WORLD_SIZE);
     const viewportCenter = getViewportWorldCenter();
     const spawnCenterX = clamp(viewportCenter.x, noteSize.width / 2, WORLD_WIDTH - noteSize.width / 2);
     const spawnCenterY = clamp(viewportCenter.y, noteSize.height / 2, WORLD_HEIGHT - noteSize.height / 2);
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        const baseCards = currentCards && typeof currentCards === 'object' ? { ...currentCards } : {};
-        let nextTopZ = 1;
-        for (const payload of Object.values(baseCards)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 1);
-        }
-        nextTopZ += 1;
-        let nextCardId = `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseCards, nextCardId)) {
-          nextCardId = `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        baseCards[nextCardId] = {
-          x: spawnCenterX,
-          y: spawnCenterY,
-          z: nextTopZ,
-          face: 'front',
-          frontSrc: createNoteFaceSvgDataUri('', 'front'),
-          backSrc: createNoteFaceSvgDataUri('', 'back'),
-          componentType: 'image',
-          componentSubtype: NOTE_COMPONENT_SUBTYPE,
-          componentCardSized: true,
-          componentTwoSided: true,
-          componentFrontBlank: false,
-          componentBackBlank: false,
-          componentFrontColor: '#f2d97f',
-          componentBackColor: '#e9cf78',
-          noteFrontText: '',
-          noteBackText: '',
-          componentLocked: false,
-          componentRotation: 0,
-          componentAspectRatio: 1,
-          componentWidth: noteSize.width,
-          componentHeight: noteSize.height,
-          deckId: DECK_KEY,
-          inDeck: false,
-          inDiscard: false,
-          inAuction: false,
-          holderClientId: null,
-          handOwnerClientId: null,
-          handOwnerPlayerToken: null,
-          updatedAt: Date.now()
-        };
-        return baseCards;
-      },
-      { applyLocally: false }
-    );
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: noteSize.width,
+      worldHeight: noteSize.height
+    });
+    let createdNoteId = '';
+    try {
+      const nextTopZ = getTopCardZ() + 1;
+      const nextCardRef = push(cardsRef);
+      const nextCardId = String(nextCardRef.key || '').trim();
+      if (!nextCardId) {
+        throw new Error('Unable to allocate note id');
+      }
+      createdNoteId = nextCardId;
+      await set(nextCardRef, {
+        x: spawnCenterX,
+        y: spawnCenterY,
+        z: nextTopZ,
+        face: 'front',
+        frontSrc: createNoteFaceSvgDataUri('', 'front'),
+        backSrc: createNoteFaceSvgDataUri('', 'back'),
+        componentType: 'image',
+        componentSubtype: NOTE_COMPONENT_SUBTYPE,
+        componentCardSized: true,
+        componentTwoSided: true,
+        componentFrontBlank: false,
+        componentBackBlank: false,
+        componentFrontColor: '#f2d97f',
+        componentBackColor: '#e9cf78',
+        noteFrontText: '',
+        noteBackText: '',
+        componentLocked: false,
+        componentRotation: 0,
+        componentAspectRatio: 1,
+        componentWidth: noteSize.width,
+        componentHeight: noteSize.height,
+        deckId: DECK_KEY,
+        inDeck: false,
+        inDiscard: false,
+        inAuction: false,
+        holderClientId: null,
+        handOwnerClientId: null,
+        handOwnerPlayerToken: null,
+        updatedAt: serverTimestamp()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdNoteId) && cards.has(createdNoteId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnMediaComponent = async (mediaDetails = {}) => {
     const provider = normalizeMediaProvider(mediaDetails.provider);
@@ -32540,46 +35138,78 @@ async function startRealtimeSession() {
     const mediaCenterBounds = getDieCenterBounds('media', mediaSize.width, mediaSize.height);
     const spawnCenterX = clamp(viewportCenter.x, mediaCenterBounds.minX, mediaCenterBounds.maxX);
     const spawnCenterY = clamp(viewportCenter.y, mediaCenterBounds.minY, mediaCenterBounds.maxY);
-    await runTransaction(
-      diceRef,
-      (currentDice) => {
-        const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
-        let nextTopZ = getTopObjectZ();
-        for (const payload of Object.values(baseDice)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
-        }
-        nextTopZ += 1;
-        let nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
-          nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        baseDice[nextDieId] = {
-          type: 'media',
-          x: spawnCenterX,
-          y: spawnCenterY,
-          z: nextTopZ,
-          value: 1,
-          mediaProvider: provider,
-          mediaSourceUrl: sourceUrl,
-          mediaEmbedUrl: embedUrl,
-          mediaStartedAt: 0,
-          mediaStartNonce: 0,
-          mediaWidth: mediaSize.width,
-          mediaHeight: mediaSize.height,
-          holderClientId: null,
-          rollStartedAt: 0,
-          rollDurationMs: DIE_ROLL_DURATION_MS,
-          rollSeed: 0,
-          updatedAt: Date.now()
-        };
-        return baseDice;
-      },
-      { applyLocally: false }
-    );
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: mediaSize.width,
+      worldHeight: mediaSize.height
+    });
+    let createdMediaId = '';
+    try {
+      await runTransaction(
+        diceRef,
+        (currentDice) => {
+          const baseDice = currentDice && typeof currentDice === 'object' ? { ...currentDice } : {};
+          let nextTopZ = getTopObjectZ();
+          for (const payload of Object.values(baseDice)) {
+            nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 0);
+          }
+          nextTopZ += 1;
+          let nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          while (Object.prototype.hasOwnProperty.call(baseDice, nextDieId)) {
+            nextDieId = `media-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+          }
+          createdMediaId = nextDieId;
+          baseDice[nextDieId] = {
+            type: 'media',
+            x: spawnCenterX,
+            y: spawnCenterY,
+            z: nextTopZ,
+            value: 1,
+            mediaProvider: provider,
+            mediaSourceUrl: sourceUrl,
+            mediaEmbedUrl: embedUrl,
+            mediaStartedAt: 0,
+            mediaStartNonce: 0,
+            mediaWidth: mediaSize.width,
+            mediaHeight: mediaSize.height,
+            holderClientId: null,
+            rollStartedAt: 0,
+            rollDurationMs: DIE_ROLL_DURATION_MS,
+            rollSeed: 0,
+            updatedAt: Date.now()
+          };
+          return baseDice;
+        },
+        { applyLocally: false }
+      );
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdMediaId) && diceById.has(createdMediaId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnImageComponent = async (frontSrc, options = {}) => {
     const requestedComponentType = String(options.componentType || 'image').trim().toLowerCase();
     const componentType = requestedComponentType === 'sticker' ? 'sticker' : 'image';
+    const requestedSubtype = String(options.componentSubtype || '').trim().toLowerCase();
+    const componentSubtype =
+      componentType === 'image' &&
+      (requestedSubtype === NOTE_COMPONENT_SUBTYPE || requestedSubtype === SECRET_AREA_COMPONENT_SUBTYPE)
+        ? requestedSubtype
+        : '';
+    const componentOwnerPlayerToken =
+      componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE
+        ? String(options.componentOwnerPlayerToken || '').trim()
+        : '';
+    const componentOwnerName =
+      componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE
+        ? String(options.componentOwnerName || playerState.name || '').trim().slice(0, 24)
+        : '';
+    const componentOwnerColor =
+      componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE
+        ? normalizeHexColor(options.componentOwnerColor || playerState.color || '#ff7a59')
+        : '';
     const isStickerComponent = componentType === 'sticker';
     const frontBlank = !isStickerComponent && options.frontBlank === true;
     const normalizedFrontSrc = frontBlank ? '' : normalizeImageComponentSrc(frontSrc);
@@ -32590,73 +35220,89 @@ async function startRealtimeSession() {
     const twoSided = !isStickerComponent && options.twoSided === true;
     const backBlank = twoSided && options.backBlank === true;
     const normalizedBackSrc = twoSided && !backBlank ? normalizeImageComponentSrc(options.backSrc || '') : '';
+    const viewportCenter = getViewportWorldCenter();
+    const fallbackHalfWidth = CARD_WIDTH / 2;
+    const fallbackHalfHeight = CARD_HEIGHT / 2;
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: clamp(viewportCenter.x, fallbackHalfWidth, WORLD_WIDTH - fallbackHalfWidth),
+      worldY: clamp(viewportCenter.y, fallbackHalfHeight, WORLD_HEIGHT - fallbackHalfHeight),
+      worldWidth: CARD_WIDTH,
+      worldHeight: CARD_HEIGHT
+    });
+    let createdCardId = '';
     const frontBlankColor = normalizeHexColor(options.frontBlankColor || '#ffffff');
     const backBlankColor = normalizeHexColor(options.backBlankColor || '#ffffff');
-    const nativeSizeBase = useCardSize
-      ? { width: CARD_WIDTH, height: CARD_HEIGHT }
-      : frontBlank
+    try {
+      const nativeSizeBase = useCardSize
         ? { width: CARD_WIDTH, height: CARD_HEIGHT }
-        : (isStickerComponent && shouldUseNormalizedStickerSpawnSize(normalizedFrontSrc))
-          ? { width: STICKER_DEFAULT_SPAWN_SIZE, height: STICKER_DEFAULT_SPAWN_SIZE }
-          : await loadImageNaturalSize(normalizedFrontSrc);
-    const nativeSize = isStickerComponent && !useCardSize
-      ? clampStickerSquareSize(nativeSizeBase.width, nativeSizeBase.height)
-      : nativeSizeBase;
-    const componentAspectRatio = !useCardSize
-      ? (isStickerComponent
-        ? 1
-        : Math.max(0.0001, nativeSize.width / Math.max(1, nativeSize.height)))
-      : 0;
-    const viewportCenter = getViewportWorldCenter();
-    const halfWidth = nativeSize.width / 2;
-    const halfHeight = nativeSize.height / 2;
-    const spawnCenterX = clamp(viewportCenter.x, halfWidth, WORLD_WIDTH - halfWidth);
-    const spawnCenterY = clamp(viewportCenter.y, halfHeight, WORLD_HEIGHT - halfHeight);
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        const baseCards = currentCards && typeof currentCards === 'object' ? { ...currentCards } : {};
-        let nextTopZ = 1;
-        for (const payload of Object.values(baseCards)) {
-          nextTopZ = Math.max(nextTopZ, Number(payload?.z) || 1);
-        }
-        nextTopZ += 1;
-        let nextCardId = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        while (Object.prototype.hasOwnProperty.call(baseCards, nextCardId)) {
-          nextCardId = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
-        }
-        baseCards[nextCardId] = {
-          x: spawnCenterX,
-          y: spawnCenterY,
-          z: nextTopZ,
-          face: 'front',
-          frontSrc: normalizedFrontSrc,
-          backSrc: normalizedBackSrc,
-          componentType,
-          componentCardSized: useCardSize,
-          componentTwoSided: twoSided,
-          componentFrontBlank: frontBlank,
-          componentBackBlank: backBlank,
-          componentFrontColor: frontBlankColor,
-          componentBackColor: backBlankColor,
-          componentLocked: false,
-          componentRotation: 0,
-          componentAspectRatio,
-          componentWidth: nativeSize.width,
-          componentHeight: nativeSize.height,
-          deckId: DECK_KEY,
-          inDeck: false,
-          inDiscard: false,
-          inAuction: false,
-          holderClientId: null,
-          handOwnerClientId: null,
-          handOwnerPlayerToken: null,
-          updatedAt: Date.now()
-        };
-        return baseCards;
-      },
-      { applyLocally: false }
-    );
+        : frontBlank
+          ? { width: CARD_WIDTH, height: CARD_HEIGHT }
+          : (isStickerComponent && shouldUseNormalizedStickerSpawnSize(normalizedFrontSrc))
+            ? { width: STICKER_DEFAULT_SPAWN_SIZE, height: STICKER_DEFAULT_SPAWN_SIZE }
+            : await loadImageNaturalSize(normalizedFrontSrc);
+      const nativeSize = isStickerComponent && !useCardSize
+        ? clampStickerSquareSize(nativeSizeBase.width, nativeSizeBase.height)
+        : nativeSizeBase;
+      const componentAspectRatio = !useCardSize
+        ? (isStickerComponent
+          ? 1
+          : Math.max(0.0001, nativeSize.width / Math.max(1, nativeSize.height)))
+        : 0;
+      const halfWidth = nativeSize.width / 2;
+      const halfHeight = nativeSize.height / 2;
+      const spawnCenterX = clamp(viewportCenter.x, halfWidth, WORLD_WIDTH - halfWidth);
+      const spawnCenterY = clamp(viewportCenter.y, halfHeight, WORLD_HEIGHT - halfHeight);
+      updateSpawnLoadingIndicator(indicatorId, {
+        worldX: spawnCenterX,
+        worldY: spawnCenterY,
+        worldWidth: nativeSize.width,
+        worldHeight: nativeSize.height,
+        extendTimeout: true
+      });
+      const nextTopZ = getTopCardZ() + 1;
+      const nextCardRef = push(cardsRef);
+      const nextCardId = String(nextCardRef.key || '').trim();
+      if (!nextCardId) {
+        throw new Error('Unable to allocate image id');
+      }
+      createdCardId = nextCardId;
+      await set(nextCardRef, {
+        x: spawnCenterX,
+        y: spawnCenterY,
+        z: nextTopZ,
+        face: 'front',
+        frontSrc: normalizedFrontSrc,
+        backSrc: normalizedBackSrc,
+        componentType,
+        componentSubtype,
+        componentCardSized: useCardSize,
+        componentTwoSided: twoSided,
+        componentFrontBlank: frontBlank,
+        componentBackBlank: backBlank,
+        componentFrontColor: frontBlankColor,
+        componentBackColor: backBlankColor,
+        componentOwnerPlayerToken,
+        componentOwnerName,
+        componentOwnerColor,
+        componentLocked: false,
+        componentRotation: 0,
+        componentAspectRatio,
+        componentWidth: nativeSize.width,
+        componentHeight: nativeSize.height,
+        deckId: DECK_KEY,
+        inDeck: false,
+        inDiscard: false,
+        inAuction: false,
+        holderClientId: null,
+        handOwnerClientId: null,
+        handOwnerPlayerToken: null,
+        updatedAt: serverTimestamp()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdCardId) && cards.has(createdCardId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
   spawnStickerComponent = async (stickerSrc) => {
     const normalizedStickerSrc = normalizeImageComponentSrc(stickerSrc);
@@ -32677,41 +35323,47 @@ async function startRealtimeSession() {
       x: clamp(viewportCenter.x, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2),
       y: clamp(viewportCenter.y, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2)
     };
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenter.x,
+      worldY: spawnCenter.y,
+      worldWidth: CARD_WIDTH,
+      worldHeight: CARD_HEIGHT
+    });
     const hasCards = cards.size > 0;
     const hasDecks = deckStatesById.size > 0;
     const nextDeckId = !hasCards && !hasDecks
       ? DECK_KEY
       : `${DECK_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        const baseCards = currentCards && typeof currentCards === 'object' ? currentCards : {};
-        const extraStack = buildCoolJpegsDeck({
-          deckId: nextDeckId,
-          center: spawnCenter,
-          inDeck: true,
-          zStart: 1
-        });
-        return {
-          ...baseCards,
-          ...extraStack
-        };
-      },
-      { applyLocally: false }
-    );
-
-    await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
-      x: spawnCenter.x,
-      y: spawnCenter.y,
-      shuffleTick: 0,
-      holderClientId: null,
-      includeDiscard: true,
-      coverDrawings: false,
-      kind: DECK_KIND_COOL,
-      updatedAt: serverTimestamp()
+    const extraStack = buildCoolJpegsDeck({
+      deckId: nextDeckId,
+      center: spawnCenter,
+      inDeck: true,
+      zStart: 1
     });
-    setActiveDeckId(nextDeckId);
+    const expectedDeckCardCount = Object.keys(extraStack).length;
+
+    try {
+      await update(cardsRef, extraStack);
+
+      await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
+        x: spawnCenter.x,
+        y: spawnCenter.y,
+        shuffleTick: 0,
+        holderClientId: null,
+        includeDiscard: true,
+        coverDrawings: false,
+        kind: DECK_KIND_COOL,
+        updatedAt: serverTimestamp()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => (
+        deckStatesById.has(nextDeckId) &&
+        getDeckCardCount(nextDeckId) >= Math.max(1, expectedDeckCardCount)
+      ));
+      setActiveDeckId(nextDeckId);
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
 
   spawnPokerDeck = async () => {
@@ -32720,85 +35372,107 @@ async function startRealtimeSession() {
       x: clamp(viewportCenter.x, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2),
       y: clamp(viewportCenter.y, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2)
     };
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenter.x,
+      worldY: spawnCenter.y,
+      worldWidth: CARD_WIDTH,
+      worldHeight: CARD_HEIGHT
+    });
     const hasBasePokerDeck =
       deckStatesById.has(POKER_DECK_KEY) ||
       Array.from(cards.values()).some((cardState) => normalizeDeckId(cardState?.deckId || '') === POKER_DECK_KEY);
     const nextDeckId = hasBasePokerDeck
       ? `${POKER_DECK_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
       : POKER_DECK_KEY;
-
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        const baseCards = currentCards && typeof currentCards === 'object' ? currentCards : {};
-        const extraStack = buildPokerDeck({
-          deckId: nextDeckId,
-          center: spawnCenter,
-          inDeck: true,
-          zStart: 1
-        });
-        return {
-          ...baseCards,
-          ...extraStack
-        };
-      },
-      { applyLocally: false }
-    );
-
-    await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
-      x: spawnCenter.x,
-      y: spawnCenter.y,
-      shuffleTick: 0,
-      holderClientId: null,
-      includeDiscard: true,
-      coverDrawings: false,
-      kind: DECK_KIND_POKER,
-      updatedAt: serverTimestamp()
+    const extraStack = buildPokerDeck({
+      deckId: nextDeckId,
+      center: spawnCenter,
+      inDeck: true,
+      zStart: 1
     });
-    setActiveDeckId(nextDeckId);
+    const expectedDeckCardCount = Object.keys(extraStack).length;
+
+    try {
+      await update(cardsRef, extraStack);
+
+      await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
+        x: spawnCenter.x,
+        y: spawnCenter.y,
+        shuffleTick: 0,
+        holderClientId: null,
+        includeDiscard: true,
+        coverDrawings: false,
+        kind: DECK_KIND_POKER,
+        updatedAt: serverTimestamp()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => (
+        deckStatesById.has(nextDeckId) &&
+        getDeckCardCount(nextDeckId) >= Math.max(1, expectedDeckCardCount)
+      ));
+      setActiveDeckId(nextDeckId);
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
   };
 
   spawnSuperMetalMonsBoard = async () => {
     const viewportCenter = getViewportWorldCenter();
     const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
     const spawnY = clamp(viewportCenter.y, MONS_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - MONS_BOARD_WORLD_HEIGHT / 2);
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnX,
+      worldY: spawnY,
+      worldWidth: MONS_BOARD_WORLD_WIDTH,
+      worldHeight: MONS_BOARD_WORLD_HEIGHT
+    });
     let createdMonsGameId = '';
-    const result = await runTransaction(
-      gamesRef,
-      (currentGames) => {
-        const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
-        const existingMonsIds = Object.keys(baseGames).filter((rawGameId) => {
-          if (!isMonsGameId(rawGameId)) {
-            return false;
+    try {
+      const result = await runTransaction(
+        gamesRef,
+        (currentGames) => {
+          const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+          const existingMonsIds = Object.keys(baseGames).filter((rawGameId) => {
+            if (!isMonsGameId(rawGameId)) {
+              return false;
+            }
+            const payload = baseGames[rawGameId];
+            return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+          });
+          let nextMonsGameId =
+            existingMonsIds.length === 0 && !baseGames[MONS_GAME_KEY]
+              ? MONS_GAME_KEY
+              : `${MONS_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          while (Object.prototype.hasOwnProperty.call(baseGames, nextMonsGameId)) {
+            nextMonsGameId = `${MONS_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
           }
-          const payload = baseGames[rawGameId];
-          return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
-        });
-        let nextMonsGameId =
-          existingMonsIds.length === 0 && !baseGames[MONS_GAME_KEY]
-            ? MONS_GAME_KEY
-            : `${MONS_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        while (Object.prototype.hasOwnProperty.call(baseGames, nextMonsGameId)) {
-          nextMonsGameId = `${MONS_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        }
-        createdMonsGameId = nextMonsGameId;
-        return {
-          ...baseGames,
-          [nextMonsGameId]: buildFreshMonsGamePayload({
-            x: spawnX,
-            y: spawnY,
-            width: MONS_BOARD_WORLD_WIDTH,
-            height: MONS_BOARD_WORLD_HEIGHT
-          })
-        };
-      },
-      { applyLocally: false }
-    );
-    if (!result.committed) {
-      return;
-    }
-    if (createdMonsGameId) {
-      setActiveMonsGameId(createdMonsGameId);
+          createdMonsGameId = nextMonsGameId;
+          return {
+            ...baseGames,
+            [nextMonsGameId]: buildFreshMonsGamePayload({
+              x: spawnX,
+              y: spawnY,
+              width: MONS_BOARD_WORLD_WIDTH,
+              height: MONS_BOARD_WORLD_HEIGHT
+            })
+          };
+        },
+        { applyLocally: false }
+      );
+      if (!result.committed) {
+        failSpawnLoadingIndicator(indicatorId);
+        return;
+      }
+      finalizeSpawnLoadingIndicator(
+        indicatorId,
+        () => Boolean(createdMonsGameId) && monsGameStatesById.has(createdMonsGameId)
+      );
+      if (createdMonsGameId) {
+        setActiveMonsGameId(createdMonsGameId);
+      }
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
     }
   };
 
@@ -32806,44 +35480,60 @@ async function startRealtimeSession() {
     const viewportCenter = getViewportWorldCenter();
     const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
     const spawnY = clamp(viewportCenter.y, MONS_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - MONS_BOARD_WORLD_HEIGHT / 2);
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnX,
+      worldY: spawnY,
+      worldWidth: MONS_BOARD_WORLD_WIDTH,
+      worldHeight: MONS_BOARD_WORLD_HEIGHT
+    });
     let createdTaflGameId = '';
-    const result = await runTransaction(
-      gamesRef,
-      (currentGames) => {
-        const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
-        const existingTaflIds = Object.keys(baseGames).filter((rawGameId) => {
-          if (!isTaflGameId(rawGameId)) {
-            return false;
+    try {
+      const result = await runTransaction(
+        gamesRef,
+        (currentGames) => {
+          const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+          const existingTaflIds = Object.keys(baseGames).filter((rawGameId) => {
+            if (!isTaflGameId(rawGameId)) {
+              return false;
+            }
+            const payload = baseGames[rawGameId];
+            return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+          });
+          let nextTaflGameId =
+            existingTaflIds.length === 0 && !baseGames[TAFL_GAME_KEY]
+              ? TAFL_GAME_KEY
+              : `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          while (Object.prototype.hasOwnProperty.call(baseGames, nextTaflGameId)) {
+            nextTaflGameId = `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
           }
-          const payload = baseGames[rawGameId];
-          return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
-        });
-        let nextTaflGameId =
-          existingTaflIds.length === 0 && !baseGames[TAFL_GAME_KEY]
-            ? TAFL_GAME_KEY
-            : `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        while (Object.prototype.hasOwnProperty.call(baseGames, nextTaflGameId)) {
-          nextTaflGameId = `${TAFL_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        }
-        createdTaflGameId = nextTaflGameId;
-        return {
-          ...baseGames,
-          [nextTaflGameId]: buildFreshTaflGamePayload({
-            x: spawnX,
-            y: spawnY,
-            width: MONS_BOARD_WORLD_WIDTH,
-            height: MONS_BOARD_WORLD_HEIGHT
-          })
-        };
-      },
-      { applyLocally: false }
-    );
-    if (!result.committed) {
-      return;
-    }
-    if (createdTaflGameId) {
-      setActiveTaflGameId(createdTaflGameId);
-      renderTaflBoards();
+          createdTaflGameId = nextTaflGameId;
+          return {
+            ...baseGames,
+            [nextTaflGameId]: buildFreshTaflGamePayload({
+              x: spawnX,
+              y: spawnY,
+              width: MONS_BOARD_WORLD_WIDTH,
+              height: MONS_BOARD_WORLD_HEIGHT
+            })
+          };
+        },
+        { applyLocally: false }
+      );
+      if (!result.committed) {
+        failSpawnLoadingIndicator(indicatorId);
+        return;
+      }
+      finalizeSpawnLoadingIndicator(
+        indicatorId,
+        () => Boolean(createdTaflGameId) && taflGameStatesById.has(createdTaflGameId)
+      );
+      if (createdTaflGameId) {
+        setActiveTaflGameId(createdTaflGameId);
+        renderTaflBoards();
+      }
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
     }
   };
 
@@ -32851,44 +35541,60 @@ async function startRealtimeSession() {
     const viewportCenter = getViewportWorldCenter();
     const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
     const spawnY = clamp(viewportCenter.y, MONS_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - MONS_BOARD_WORLD_HEIGHT / 2);
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnX,
+      worldY: spawnY,
+      worldWidth: MONS_BOARD_WORLD_WIDTH,
+      worldHeight: MONS_BOARD_WORLD_HEIGHT
+    });
     let createdGoGameId = '';
-    const result = await runTransaction(
-      gamesRef,
-      (currentGames) => {
-        const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
-        const existingGoIds = Object.keys(baseGames).filter((rawGameId) => {
-          if (!isGoGameId(rawGameId)) {
-            return false;
+    try {
+      const result = await runTransaction(
+        gamesRef,
+        (currentGames) => {
+          const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+          const existingGoIds = Object.keys(baseGames).filter((rawGameId) => {
+            if (!isGoGameId(rawGameId)) {
+              return false;
+            }
+            const payload = baseGames[rawGameId];
+            return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+          });
+          let nextGoGameId =
+            existingGoIds.length === 0 && !baseGames[GO_GAME_KEY]
+              ? GO_GAME_KEY
+              : `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          while (Object.prototype.hasOwnProperty.call(baseGames, nextGoGameId)) {
+            nextGoGameId = `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
           }
-          const payload = baseGames[rawGameId];
-          return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
-        });
-        let nextGoGameId =
-          existingGoIds.length === 0 && !baseGames[GO_GAME_KEY]
-            ? GO_GAME_KEY
-            : `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        while (Object.prototype.hasOwnProperty.call(baseGames, nextGoGameId)) {
-          nextGoGameId = `${GO_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-        }
-        createdGoGameId = nextGoGameId;
-        return {
-          ...baseGames,
-          [nextGoGameId]: buildFreshGoGamePayload({
-            x: spawnX,
-            y: spawnY,
-            width: MONS_BOARD_WORLD_WIDTH,
-            height: MONS_BOARD_WORLD_HEIGHT
-          })
-        };
-      },
-      { applyLocally: false }
-    );
-    if (!result.committed) {
-      return;
-    }
-    if (createdGoGameId) {
-      setActiveGoGameId(createdGoGameId);
-      renderGoBoards();
+          createdGoGameId = nextGoGameId;
+          return {
+            ...baseGames,
+            [nextGoGameId]: buildFreshGoGamePayload({
+              x: spawnX,
+              y: spawnY,
+              width: MONS_BOARD_WORLD_WIDTH,
+              height: MONS_BOARD_WORLD_HEIGHT
+            })
+          };
+        },
+        { applyLocally: false }
+      );
+      if (!result.committed) {
+        failSpawnLoadingIndicator(indicatorId);
+        return;
+      }
+      finalizeSpawnLoadingIndicator(
+        indicatorId,
+        () => Boolean(createdGoGameId) && goGameStatesById.has(createdGoGameId)
+      );
+      if (createdGoGameId) {
+        setActiveGoGameId(createdGoGameId);
+        renderGoBoards();
+      }
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
     }
   };
 
@@ -32976,26 +35682,19 @@ async function startRealtimeSession() {
         inDeck: true,
         zStart: 1
       });
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        const baseCards = currentCards && typeof currentCards === 'object' ? { ...currentCards } : {};
-        for (const [cardId, cardState] of Object.entries(baseCards)) {
-          if (!cardState || typeof cardState !== 'object') {
-            continue;
-          }
-          if (normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
-            continue;
-          }
-          delete baseCards[cardId];
-        }
-        return {
-          ...baseCards,
-          ...nextDeckCards
-        };
-      },
-      { applyLocally: false }
-    );
+    const updatesByPath = {};
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!cardState || isVisualImageComponentCard(cardState) || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
+        continue;
+      }
+      updatesByPath[cardId] = null;
+    }
+    for (const [cardId, cardPayload] of Object.entries(nextDeckCards)) {
+      updatesByPath[cardId] = cardPayload;
+    }
+    if (Object.keys(updatesByPath).length > 0) {
+      await update(cardsRef, updatesByPath);
+    }
     await update(ref(db, `${roomPath}/decks/${targetDeckId}`), {
       x: center.x,
       y: center.y,
@@ -33010,31 +35709,16 @@ async function startRealtimeSession() {
 
   putAwayCoolJpegsGame = async (deckId = activeDeckId) => {
     const targetDeckId = normalizeDeckId(deckId);
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        if (!currentCards || typeof currentCards !== 'object') {
-          return currentCards;
-        }
-        const nextCards = { ...currentCards };
-        let removedAny = false;
-        for (const [cardId, cardState] of Object.entries(nextCards)) {
-          if (!cardState || typeof cardState !== 'object') {
-            continue;
-          }
-          if (normalizeDeckId(cardState.deckId || DECK_KEY) !== targetDeckId) {
-            continue;
-          }
-          delete nextCards[cardId];
-          removedAny = true;
-        }
-        if (!removedAny) {
-          return currentCards;
-        }
-        return nextCards;
-      },
-      { applyLocally: false }
-    );
+    const updatesByPath = {};
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!cardState || isVisualImageComponentCard(cardState) || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
+        continue;
+      }
+      updatesByPath[cardId] = null;
+    }
+    if (Object.keys(updatesByPath).length > 0) {
+      await update(cardsRef, updatesByPath);
+    }
     await update(ref(db, `${roomPath}/decks`), {
       [targetDeckId]: null
     });
@@ -33275,6 +35959,10 @@ async function startRealtimeSession() {
     closeNoteEditor({ commit: true });
     closeLabelEditor({ commit: true });
     cardWriteScheduled = false;
+    if (cardWriteRetryTimerId) {
+      window.clearTimeout(cardWriteRetryTimerId);
+      cardWriteRetryTimerId = 0;
+    }
     dieWriteScheduled = false;
     deckWriteScheduled = false;
     chipSetWriteScheduled = false;
@@ -33283,6 +35971,7 @@ async function startRealtimeSession() {
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
     setAuctionDropIndicator(false);
+    setStackPointDropTarget('');
     setHandDropGlow(false);
     deckDropIndicatorVisible = false;
     discardDropIndicatorVisible = false;
@@ -33291,6 +35980,9 @@ async function startRealtimeSession() {
     selectedDiceIds.clear();
     selectedDeckIds.clear();
     selectedMonsGameIds.clear();
+    selectedChipSetIds.clear();
+    selectedTaflGameIds.clear();
+    selectedGoGameIds.clear();
     syncSelectionDeleteButtonUi();
     pendingCardWrites.clear();
     pendingDieWrites.clear();
@@ -33372,6 +36064,7 @@ async function startRealtimeSession() {
     removeMonsBoardElements();
     removeTaflBoardElements();
     removeGoBoardElements();
+    clearSpawnLoadingIndicators();
     closeDiceAddModal();
     closeChipsAddModal();
     closeSpinnerAddModal();
@@ -33396,6 +36089,10 @@ async function startRealtimeSession() {
     }
     window.clearTimeout(deckShuffleFxTimerId);
     deckShuffleFxTimerId = 0;
+    if (hotDeckFrontPreloadTimerId) {
+      window.clearTimeout(hotDeckFrontPreloadTimerId);
+      hotDeckFrontPreloadTimerId = 0;
+    }
     if (drawingsLiftCutoffFlushTimerId) {
       window.clearTimeout(drawingsLiftCutoffFlushTimerId);
       drawingsLiftCutoffFlushTimerId = 0;
@@ -33406,9 +36103,14 @@ async function startRealtimeSession() {
     for (const cardId of cardElements.keys()) {
       clearCardFlipTimer(cardId);
       clearNoteAttachmentFaceSwapTimer(cardId);
+      clearNoteAttachmentPickupSync(cardId);
       cardFaces.delete(cardId);
       frontDisplayPendingByCard.delete(cardId);
     }
+    for (const rafId of noteAttachmentPickupSyncRafByCardId.values()) {
+      window.cancelAnimationFrame(rafId);
+    }
+    noteAttachmentPickupSyncRafByCardId.clear();
     for (const cardElement of cardElements.values()) {
       cardElement.remove();
     }
@@ -33450,6 +36152,7 @@ async function startRealtimeSession() {
     drawingStrokes.clear();
     syncDrawActionButtonsState();
     cards.clear();
+    markSecretAreaRegionsCacheDirty();
     markCardDeckMetricsCacheDirty();
     diceById.clear();
     cardElements.clear();
@@ -33532,24 +36235,54 @@ async function startRealtimeSession() {
       throw new Error('Only the room creator can wipe all drawings.');
     }
 
+    const removableStrokeIds = [];
+    for (const [strokeId, strokeState] of drawingStrokes.entries()) {
+      if (isNoteAttachedDrawingStroke(strokeState)) {
+        continue;
+      }
+      removableStrokeIds.push(strokeId);
+    }
+    if (removableStrokeIds.length === 0) {
+      syncDrawActionButtonsState();
+      syncClearTableButtonState();
+      return;
+    }
+
     drawPointerState = null;
     drawShapePointerState = null;
     drawShapeAnchorState = null;
     syncShapeDrawingAssistVisuals();
-    strokeWriteGeneration += 1;
-    strokeWriteScheduled = false;
-    pendingStrokeWrites.clear();
-    await set(drawingsRef, null);
-    for (const strokeElement of drawingStrokeElements.values()) {
-      strokeElement.remove();
+    const updatesByPath = {};
+    for (const strokeId of removableStrokeIds) {
+      updatesByPath[strokeId] = null;
+      pendingStrokeWrites.delete(strokeId);
+      drawingStrokes.delete(strokeId);
+      removeDrawingStrokeElement(strokeId);
     }
-    drawingStrokeElements.clear();
-    drawingStrokes.clear();
+    await update(drawingsRef, updatesByPath);
     renderAllDrawingStrokes();
     syncClearTableButtonState();
   };
 
   const refreshVisibleCursorState = () => {
+    if (!hasLoadedInitialCardsSnapshot) {
+      for (const dot of dots.values()) {
+        dot.remove();
+      }
+      dots.clear();
+      for (const cardElement of cardElements.values()) {
+        if (cardElement instanceof HTMLElement) {
+          cardElement.style.removeProperty('--secret-area-owner-color');
+        }
+      }
+      if (roomRoster) {
+        roomRoster.textContent = '';
+        roomRoster.classList.add('hidden');
+      }
+      setRealtimeStatus('connected • players: 1');
+      return;
+    }
+
     const visibleEntries = buildVisibleCursorEntries(latestRawCursorsById, clientId);
     latestRoomCursors = Object.fromEntries(
       visibleEntries.map((entry) => [
@@ -33586,6 +36319,7 @@ async function startRealtimeSession() {
       dots.delete(dotId);
     }
 
+    syncSecretAreaOutlineColors();
     renderRoomRoster(latestRoomCursors, clientId);
     renderDeckControls();
     scheduleAuctionBidUiRender();
@@ -33674,6 +36408,8 @@ async function startRealtimeSession() {
       if (isTableResetting) {
         return;
       }
+      const wasInitialCardsSnapshotLoaded = hasLoadedInitialCardsSnapshot;
+      let secretAreaVisibilityChanged = !wasInitialCardsSnapshotLoaded;
       const allCards = snapshot.val() || {};
       const activeCardIds = new Set();
       let cardDeckMetricsChanged = false;
@@ -33681,7 +36417,21 @@ async function startRealtimeSession() {
       for (const [cardId, payload] of Object.entries(allCards)) {
         activeCardIds.add(cardId);
         const previousCard = cards.get(cardId);
-        const nextCard = normalizeCardPayload(payload);
+        const nextCard = normalizeCardPayload(payload, cardId);
+        const previousUpdatedAt = Number(previousCard?.updatedAt) || 0;
+        const nextUpdatedAt = Number(nextCard?.updatedAt) || 0;
+        if (previousCard && previousUpdatedAt > 0) {
+          if (nextUpdatedAt > 0 && nextUpdatedAt < previousUpdatedAt) {
+            continue;
+          }
+          if (nextUpdatedAt === 0) {
+            continue;
+          }
+        }
+        if (didSecretAreaVisibilityFieldsChange(previousCard, nextCard)) {
+          secretAreaVisibilityChanged = true;
+        }
+        warmCardFrontOnDeckExit(previousCard, nextCard);
         if (previousCard?.inDiscard && nextCard.inDeck && !nextCard.inDiscard) {
           setDiscardReturnAnimating(cardId, true);
         }
@@ -33712,6 +36462,10 @@ async function startRealtimeSession() {
         if (activeCardIds.has(cardId)) {
           continue;
         }
+        const removedCard = cards.get(cardId);
+        if (didSecretAreaVisibilityFieldsChange(removedCard, null)) {
+          secretAreaVisibilityChanged = true;
+        }
         if (cardResizeState?.cardId === cardId) {
           cardResizeState = null;
           resizingImageCardId = '';
@@ -33738,8 +36492,11 @@ async function startRealtimeSession() {
         staleCardLockRecoveryAttemptAtById.delete(cardId);
         staleCardLockRecoveryInFlight.delete(cardId);
       }
+      markSecretAreaRegionsCacheDirty();
+      hasLoadedInitialCardsSnapshot = true;
       if (cardDeckMetricsChanged) {
         markCardDeckMetricsCacheDirty();
+        scheduleHotDeckFrontPreload();
       }
       const nextActiveAuctionCardId = getActiveAuctionCardId();
       if (previousActiveAuctionCardId && previousActiveAuctionCardId !== nextActiveAuctionCardId) {
@@ -33747,7 +36504,14 @@ async function startRealtimeSession() {
       }
       previousActiveAuctionCardId = nextActiveAuctionCardId;
       renderAllCards();
-      renderRoomRoster(latestRoomCursors, clientId);
+      if (secretAreaVisibilityChanged) {
+        renderAllDice();
+        renderChipSets();
+        renderMonsBoard();
+        renderTaflBoards();
+        renderGoBoards();
+      }
+      refreshVisibleCursorState();
       scheduleHandReclaimCheck();
       sweepStaleRemoteCardLocks().catch((error) => {
         console.error(error);
@@ -33831,6 +36595,9 @@ async function startRealtimeSession() {
           }
         }
         diceById.delete(dieId);
+      }
+      if (!hasLoadedInitialCardsSnapshot) {
+        return;
       }
       renderAllDice();
       if (dieSelectionChanged) {
@@ -33970,6 +36737,9 @@ async function startRealtimeSession() {
         setDeckShuffleFxActive(false);
       }
 
+      if (!hasLoadedInitialCardsSnapshot) {
+        return;
+      }
       void preloadCoolJpegsFrontImages();
       renderAllCards();
 
@@ -34014,10 +36784,25 @@ async function startRealtimeSession() {
         chipSetsById.delete(existingChipSetId);
         removeChipSetUi(existingChipSetId);
       }
+      let chipSetSelectionChanged = false;
+      for (const selectedChipSetId of Array.from(selectedChipSetIds)) {
+        if (nextChipSetIds.has(selectedChipSetId)) {
+          continue;
+        }
+        if (selectedChipSetIds.delete(selectedChipSetId)) {
+          chipSetSelectionChanged = true;
+        }
+      }
       if (chipSetDragState && !nextChipSetIds.has(chipSetDragState.chipSetId)) {
         chipSetDragState = null;
       }
+      if (!hasLoadedInitialCardsSnapshot) {
+        return;
+      }
       renderChipSets();
+      if (chipSetSelectionChanged) {
+        syncSelectionDeleteButtonUi();
+      }
       syncClearTableButtonState();
     },
     (error) => {
@@ -34105,6 +36890,24 @@ async function startRealtimeSession() {
           monsSelectionChanged = true;
         }
       }
+      let taflSelectionChanged = false;
+      for (const selectedTaflGameId of Array.from(selectedTaflGameIds)) {
+        if (nextTaflIds.has(selectedTaflGameId)) {
+          continue;
+        }
+        if (selectedTaflGameIds.delete(selectedTaflGameId)) {
+          taflSelectionChanged = true;
+        }
+      }
+      let goSelectionChanged = false;
+      for (const selectedGoGameId of Array.from(selectedGoGameIds)) {
+        if (nextGoIds.has(selectedGoGameId)) {
+          continue;
+        }
+        if (selectedGoGameIds.delete(selectedGoGameId)) {
+          goSelectionChanged = true;
+        }
+      }
 
       const optionsMonsGameId = getMonsGameIdFromGameOptionsTarget(activeGameOptionsTarget);
       if (optionsMonsGameId && !nextMonsIds.has(optionsMonsGameId)) {
@@ -34162,11 +36965,14 @@ async function startRealtimeSession() {
         setActiveGoGameId(fallbackGoGameId);
       }
 
+      if (!hasLoadedInitialCardsSnapshot) {
+        return;
+      }
       syncCoverDrawingsGamesLayerState();
       renderMonsBoard();
       renderTaflBoards();
       renderGoBoards();
-      if (monsSelectionChanged) {
+      if (monsSelectionChanged || taflSelectionChanged || goSelectionChanged) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
@@ -34329,7 +37135,7 @@ async function startRealtimeSession() {
   });
 
   window.addEventListener('resize', () => {
-    applyCamera();
+    scheduleApplyCamera();
     scheduleRoomBadgeWidthSync();
     scheduleAuctionBidUiRender();
   });
@@ -34485,22 +37291,30 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     { passive: false }
   );
 
+  const dismissInlineEditorsOnPointerDown = (event) => {
+    const targetElement = event.target instanceof Element ? event.target : null;
+    const activeNoteEditor = noteEditState?.editor instanceof HTMLElement ? noteEditState.editor : null;
+    const pointerInsideActiveNoteEditor = Boolean(
+      activeNoteEditor &&
+      targetElement &&
+      (targetElement === activeNoteEditor || activeNoteEditor.contains(targetElement))
+    );
+    if (noteEditState && !pointerInsideActiveNoteEditor) {
+      closeNoteEditor({ commit: true });
+    }
+    if (labelEditState && !targetElement?.closest('.table-label-editor')) {
+      closeLabelEditor({ commit: true });
+    }
+  };
+
+  window.addEventListener('pointerdown', dismissInlineEditorsOnPointerDown, { capture: true });
+  window.addEventListener('mousedown', dismissInlineEditorsOnPointerDown, { capture: true });
+  window.addEventListener('touchstart', dismissInlineEditorsOnPointerDown, { capture: true, passive: true });
+
   tableRoot.addEventListener('pointerdown', (event) => {
     recoverStuckPointerInteractions(Date.now());
     endedPointerAtById.delete(event.pointerId);
     endedTouchPointerIds.delete(event.pointerId);
-    if (noteEditState) {
-      const targetElement = event.target instanceof Element ? event.target : null;
-      if (!targetElement?.closest('.table-note-editor')) {
-        closeNoteEditor({ commit: true });
-      }
-    }
-    if (labelEditState) {
-      const targetElement = event.target instanceof Element ? event.target : null;
-      if (!targetElement?.closest('.table-label-editor')) {
-        closeLabelEditor({ commit: true });
-      }
-    }
     if (drawModeEnabled) {
       if (shouldIgnorePointerEventInDrawMode(event)) {
         return;
