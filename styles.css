@@ -832,6 +832,13 @@ input[type="color"]::-webkit-color-swatch {
   z-index: 5;
 }
 
+.secret-area-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
 .stack-layer {
   position: absolute;
   inset: 0;
@@ -2652,6 +2659,367 @@ input[type="color"]::-webkit-color-swatch {
   -webkit-backdrop-filter: blur(5px);
 }
 
+.table-die.table-die-arcade {
+  border-radius: calc(14 * var(--arcade-unit, 1px));
+  background: linear-gradient(180deg, rgba(26, 31, 44, 0.92) 0%, rgba(10, 12, 20, 0.95) 100%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+
+.table-die.table-die-arcade .table-die-face {
+  box-sizing: border-box;
+  padding: 4.8% 5.2% 5.2%;
+}
+
+.table-arcade-shell {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: calc(11 * var(--arcade-unit, 1px));
+  border: calc(1.1 * var(--arcade-unit, 1px)) solid rgba(247, 243, 232, 0.24);
+  background: linear-gradient(180deg, rgba(20, 25, 36, 0.95) 0%, rgba(8, 12, 20, 0.97) 100%);
+  box-shadow:
+    0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(4, 7, 12, 0.28) inset,
+    0 calc(10 * var(--arcade-unit, 1px)) calc(18 * var(--arcade-unit, 1px)) rgba(0, 0, 0, 0.3) inset;
+  display: grid;
+  min-height: 0;
+  grid-template-rows: minmax(0, 78%) minmax(0, 22%);
+  gap: 5%;
+  padding: 5.5% 5.6% 6.1%;
+}
+
+.table-arcade-shell.has-owner {
+  grid-template-rows: minmax(0, 78%) minmax(0, 22%);
+  gap: 5%;
+}
+
+.table-arcade-screen {
+  border-radius: calc(8 * var(--arcade-unit, 1px));
+  border: calc(1 * var(--arcade-unit, 1px)) solid rgba(171, 200, 255, 0.34);
+  background: linear-gradient(180deg, rgba(5, 10, 16, 0.95) 0%, rgba(1, 5, 10, 0.98) 100%);
+  box-shadow:
+    0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(3, 6, 10, 0.44) inset,
+    0 calc(8 * var(--arcade-unit, 1px)) calc(14 * var(--arcade-unit, 1px)) rgba(0, 0, 0, 0.36) inset;
+  min-height: 0;
+  display: block;
+}
+
+.table-arcade-screen-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.14em;
+  padding: 8.4% 10.4% 7.5%;
+  box-sizing: border-box;
+  color: rgba(154, 238, 173, 0.92);
+  font-family: "Courier New", Courier, monospace;
+  font-size: calc(28 * var(--arcade-unit, 1px));
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-shadow:
+    0 0 4px rgba(100, 240, 136, 0.2),
+    0 0 10px rgba(18, 48, 24, 0.24);
+}
+
+.table-arcade-screen-inner.is-canvas-screen {
+  padding: 0;
+  gap: 0;
+}
+
+.table-arcade-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: auto;
+}
+
+.table-arcade-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 90ms ease, color 90ms ease;
+}
+
+.table-arcade-line-load {
+  color: rgba(172, 212, 255, 0.86);
+}
+
+.table-arcade-line-spacer {
+  min-height: 0.8em;
+  opacity: 0;
+}
+
+.table-arcade-line-option {
+  color: rgba(154, 238, 173, 0.82);
+}
+
+.table-arcade-line-option.is-selected {
+  color: rgba(198, 248, 212, 0.98);
+}
+
+.table-arcade-line-option.is-selected.is-j-pressed {
+  opacity: 0.54;
+}
+
+.table-arcade-screen-inner.is-info-screen {
+  justify-content: flex-start;
+  gap: calc(11 * var(--arcade-unit, 1px));
+  padding-top: 8.5%;
+}
+
+.table-arcade-screen-inner.is-scores-screen {
+  justify-content: flex-start;
+  gap: calc(8 * var(--arcade-unit, 1px));
+  padding-top: 8.5%;
+}
+
+.table-arcade-info-title {
+  color: rgba(154, 238, 173, 0.88);
+  font-size: calc(22 * var(--arcade-unit, 1px));
+  line-height: 1.34;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 100%;
+  margin-top: calc(30 * var(--arcade-unit, 1px));
+  margin-bottom: calc(30 * var(--arcade-unit, 1px));
+}
+
+.table-arcade-info-subtext {
+  color: rgba(154, 238, 173, 0.88);
+  font-size: calc(22 * var(--arcade-unit, 1px));
+  line-height: 1.34;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  max-width: 100%;
+}
+
+.table-arcade-scores-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4 * var(--arcade-unit, 1px));
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: calc(4 * var(--arcade-unit, 1px));
+}
+
+.table-arcade-score-row {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--arcade-unit, 1px));
+  min-height: calc(24 * var(--arcade-unit, 1px));
+  font-size: calc(17 * var(--arcade-unit, 1px));
+  line-height: 1.2;
+  color: rgba(160, 243, 179, 0.9);
+}
+
+.table-arcade-score-rank {
+  width: calc(24 * var(--arcade-unit, 1px));
+  flex: 0 0 calc(24 * var(--arcade-unit, 1px));
+  text-align: right;
+  color: rgba(172, 214, 255, 0.88);
+}
+
+.table-arcade-score-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-arcade-score-value {
+  flex: 0 0 auto;
+  color: var(--arcade-score-color, rgba(224, 250, 231, 0.95));
+}
+
+.table-arcade-score-empty {
+  font-size: calc(20 * var(--arcade-unit, 1px));
+  color: rgba(170, 214, 255, 0.86);
+  line-height: 1.28;
+}
+
+.table-arcade-score-hint {
+  margin-top: calc(2 * var(--arcade-unit, 1px));
+  font-size: calc(14 * var(--arcade-unit, 1px));
+  color: rgba(174, 214, 255, 0.76);
+  letter-spacing: 0.02em;
+}
+
+.table-arcade-owner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(22% + 2.2%);
+  z-index: 2;
+  max-width: 84%;
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(7 * var(--arcade-unit, 1px));
+  font-family: "Courier New", Courier, monospace;
+  font-size: calc(16 * var(--arcade-unit, 1px));
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(247, 243, 232, 0.9);
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+.table-arcade-owner-dot {
+  width: calc(8 * var(--arcade-unit, 1px));
+  height: calc(8 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  background: var(--arcade-owner-color, #ff7a59);
+  box-shadow: 0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(0, 0, 0, 0.26);
+}
+
+.table-arcade-owner-label {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-arcade-owner-score {
+  min-width: 1.1em;
+  text-align: left;
+  color: rgba(194, 250, 208, 0.96);
+}
+
+.table-arcade-owner-separator {
+  width: calc(5 * var(--arcade-unit, 1px));
+  height: calc(5 * var(--arcade-unit, 1px));
+  margin-inline: calc(3 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  background: rgba(247, 243, 232, 0.78);
+  box-shadow: 0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(0, 0, 0, 0.22);
+}
+
+.table-arcade-controls {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8%;
+}
+
+.table-arcade-stick-block {
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(13 * var(--arcade-unit, 1px));
+}
+
+.table-arcade-stick {
+  --arcade-stick-axis-x: 0;
+  --arcade-stick-axis-y: 0;
+  --arcade-stick-shift-x: calc(var(--arcade-stick-axis-x, 0) * 8.8 * var(--arcade-unit, 1px));
+  --arcade-stick-shift-y: calc(var(--arcade-stick-axis-y, 0) * 7.6 * var(--arcade-unit, 1px));
+  --arcade-stick-stem-shift-x: calc(var(--arcade-stick-axis-x, 0) * 3.8 * var(--arcade-unit, 1px));
+  --arcade-stick-stem-shift-y: calc(var(--arcade-stick-axis-y, 0) * 2.8 * var(--arcade-unit, 1px));
+  position: relative;
+  width: calc(58 * var(--arcade-unit, 1px));
+  height: calc(58 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  border: calc(1 * var(--arcade-unit, 1px)) solid rgba(247, 243, 232, 0.26);
+  background: rgba(247, 243, 232, 0.08);
+  box-shadow: 0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(6, 10, 16, 0.4) inset;
+  transition: border-color 90ms ease, background-color 90ms ease;
+}
+
+.table-arcade-stick::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: calc(5.2 * var(--arcade-unit, 1px));
+  height: calc(25 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  transform: translate(
+    calc(-50% + var(--arcade-stick-stem-shift-x)),
+    calc(-100% + var(--arcade-stick-stem-shift-y))
+  ) rotate(calc(var(--arcade-stick-axis-x, 0) * 15deg));
+  transform-origin: 50% 100%;
+  background: rgba(247, 243, 232, 0.64);
+  transition: transform 85ms ease-out;
+}
+
+.table-arcade-stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 15%;
+  width: calc(18 * var(--arcade-unit, 1px));
+  height: calc(18 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  transform: translate(
+    calc(-50% + var(--arcade-stick-shift-x)),
+    calc(-50% + var(--arcade-stick-shift-y))
+  );
+  background: rgba(247, 243, 232, 0.92);
+  transition: transform 85ms ease-out;
+}
+
+.table-arcade-control-label {
+  color: rgba(247, 243, 232, 0.84);
+  font-family: "Courier New", Courier, monospace;
+  font-size: calc(20 * var(--arcade-unit, 1px));
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.table-arcade-buttons-block {
+  min-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(8 * var(--arcade-unit, 1px));
+}
+
+.table-arcade-button {
+  width: calc(42 * var(--arcade-unit, 1px));
+  height: calc(42 * var(--arcade-unit, 1px));
+  border-radius: 999px;
+  border: calc(1 * var(--arcade-unit, 1px)) solid rgba(247, 243, 232, 0.3);
+  background: rgba(247, 243, 232, 0.1);
+  color: rgba(247, 243, 232, 0.88);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Courier New", Courier, monospace;
+  font-size: calc(20 * var(--arcade-unit, 1px));
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 0 calc(1 * var(--arcade-unit, 1px)) rgba(6, 10, 16, 0.34) inset;
+  transition: opacity 90ms ease, background-color 90ms ease, transform 90ms ease;
+}
+
+.table-arcade-button.is-pressed {
+  opacity: 0.64;
+  background: rgba(247, 243, 232, 0.18);
+  transform: translateY(calc(1 * var(--arcade-unit, 1px)));
+}
+
+.table-die.table-die-arcade.is-arcade-focused {
+  box-shadow:
+    0 0 0 1px rgba(120, 180, 255, 0.72),
+    0 10px 18px rgba(0, 0, 0, 0.42);
+}
+
+.table-die.table-die-arcade.is-arcade-focused .table-arcade-screen {
+  border-color: rgba(140, 196, 255, 0.64);
+}
+
 .table-die.table-die-d6,
 .table-die.table-die-d20 {
   background: transparent;
@@ -4087,6 +4455,7 @@ input[type="color"]::-webkit-color-swatch {
   -webkit-backdrop-filter: none;
   box-shadow: var(--secret-area-shadow);
   overflow: visible;
+  pointer-events: none;
 }
 
 .table-card.is-secret-area-component img {
@@ -4104,7 +4473,13 @@ input[type="color"]::-webkit-color-swatch {
 
 .table-card.is-secret-area-component.is-held-by-self,
 .table-card.is-secret-area-component.is-held-by-other {
+  --card-scale: 1;
   box-shadow: var(--secret-area-shadow);
+}
+
+.table-card.is-secret-area-component.is-resizing,
+.table-card.is-secret-area-component.is-rotating {
+  --card-scale: 1;
 }
 
 .table-card.is-secret-area-component.is-resizable-image:hover,
@@ -4114,6 +4489,13 @@ input[type="color"]::-webkit-color-swatch {
   background: transparent;
   outline: none;
   box-shadow: var(--secret-area-shadow);
+}
+
+.table-card.is-secret-area-component .table-card-lock-control,
+.table-card.is-secret-area-component .table-card-rotate-control,
+.table-card.is-secret-area-component .table-card-resize-handle,
+.table-card.is-secret-area-component .table-card-move-control {
+  pointer-events: auto;
 }
 
 .secret-area-owner-row {
@@ -4398,6 +4780,103 @@ input[type="color"]::-webkit-color-swatch {
 .table-card:is(.is-sticker-component-native, .is-image-component-native):not(.is-component-locked).is-rotating .table-card-rotate-control,
 .table-card:is(.is-sticker-component-native, .is-image-component-native):not(.is-component-locked) .table-card-rotate-control:focus-visible {
   opacity: 0.96;
+}
+
+.table-card-move-control {
+  position: absolute;
+  left: auto;
+  right: -34px;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(14, 22, 18, 0.46);
+  color: rgba(247, 243, 232, 0.32);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: grab;
+  pointer-events: none;
+  touch-action: none;
+  opacity: 0;
+  z-index: 4;
+  transform: translateZ(0);
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.table-card-move-control.is-secret-area-overlay {
+  left: 0;
+  top: 0;
+  right: auto;
+  bottom: auto;
+  z-index: calc(var(--hud-corner-z) + 80);
+  pointer-events: auto;
+  opacity: 0.96;
+}
+
+.table-card-move-control svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+  pointer-events: none;
+}
+
+.table-card-move-control:hover,
+.table-card-move-control:focus-visible {
+  background: rgba(18, 30, 24, 0.62);
+}
+
+.table-card.is-secret-area-component .table-card-lock-control,
+.table-card.is-secret-area-component .table-card-rotate-control,
+.table-card.is-secret-area-component .table-card-resize-handle {
+  pointer-events: auto;
+  opacity: 0;
+}
+
+.table-card.is-secret-area-component .table-card-move-control {
+  left: auto;
+  right: -34px;
+  bottom: 0;
+  opacity: 0.96;
+}
+
+.table-card.is-secret-area-component:hover .table-card-lock-control,
+.table-card.is-secret-area-component:hover .table-card-rotate-control,
+.table-card.is-secret-area-component:hover .table-card-resize-handle,
+.table-card.is-secret-area-component.is-secret-area-hovered .table-card-lock-control,
+.table-card.is-secret-area-component.is-secret-area-hovered .table-card-rotate-control,
+.table-card.is-secret-area-component.is-secret-area-hovered .table-card-resize-handle,
+.table-card.is-secret-area-component.is-resize-hovered .table-card-lock-control,
+.table-card.is-secret-area-component.is-resize-hovered .table-card-rotate-control,
+.table-card.is-secret-area-component.is-resize-hovered .table-card-resize-handle,
+.table-card.is-secret-area-component.is-rotate-hovered .table-card-lock-control,
+.table-card.is-secret-area-component.is-rotate-hovered .table-card-rotate-control,
+.table-card.is-secret-area-component.is-rotate-hovered .table-card-resize-handle,
+.table-card.is-secret-area-component.is-resizing .table-card-lock-control,
+.table-card.is-secret-area-component.is-resizing .table-card-rotate-control,
+.table-card.is-secret-area-component.is-resizing .table-card-resize-handle,
+.table-card.is-secret-area-component.is-rotating .table-card-lock-control,
+.table-card.is-secret-area-component.is-rotating .table-card-rotate-control,
+.table-card.is-secret-area-component.is-rotating .table-card-resize-handle,
+.table-card.is-secret-area-component .table-card-lock-control:focus-visible,
+.table-card.is-secret-area-component .table-card-rotate-control:focus-visible,
+.table-card.is-secret-area-component .table-card-resize-handle:focus-visible,
+.table-card.is-secret-area-component .table-card-lock-control:hover,
+.table-card.is-secret-area-component .table-card-rotate-control:hover,
+.table-card.is-secret-area-component .table-card-resize-handle:hover {
+  opacity: 0.96;
+}
+
+.table-card.is-secret-area-component.is-group-selected .table-card-move-control {
+  color: rgba(196, 230, 255, 0.96);
+  background: rgba(56, 126, 208, 0.28);
+}
+
+.table-card-move-control.is-secret-area-overlay.is-group-selected {
+  color: rgba(196, 230, 255, 0.96);
+  background: rgba(56, 126, 208, 0.28);
 }
 
 .table-card.is-resizable-image .table-card-resize-handle {
@@ -5155,7 +5634,8 @@ input[type="color"]::-webkit-color-swatch {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 2;
+  z-index: 68100;
+  z-index: calc(var(--hud-corner-z) + 100);
   width: 22px;
   height: 22px;
   display: inline-flex;
@@ -5615,6 +6095,27 @@ body.tabletop-delete-cursor-hidden *::after {
   background: rgba(255, 255, 255, 0.98);
 }
 
+.table-shell.light-mode .table-card-move-control {
+  border-color: rgba(34, 29, 23, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(34, 29, 23, 0.48);
+}
+
+.table-shell.light-mode .table-card-move-control:hover,
+.table-shell.light-mode .table-card-move-control:focus-visible {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.table-shell.light-mode .table-card.is-secret-area-component.is-group-selected .table-card-move-control {
+  color: rgba(73, 118, 181, 0.96);
+  background: rgba(109, 173, 240, 0.36);
+}
+
+.table-shell.light-mode .table-card-move-control.is-secret-area-overlay.is-group-selected {
+  color: rgba(73, 118, 181, 0.96);
+  background: rgba(109, 173, 240, 0.36);
+}
+
 .table-shell.light-mode .table-card.is-sticker-component-native.is-group-selected {
   box-shadow: none;
 }
@@ -5893,6 +6394,109 @@ body.tabletop-delete-cursor-hidden *::after {
 
 .table-shell.light-mode .table-die.table-die-spinner {
   background: rgba(255, 255, 255, 0.62);
+}
+
+.table-shell.light-mode .table-die.table-die-arcade {
+  background: linear-gradient(180deg, rgba(233, 236, 244, 0.96) 0%, rgba(211, 217, 231, 0.96) 100%);
+  box-shadow: 0 6px 12px rgba(46, 38, 25, 0.2);
+}
+
+.table-shell.light-mode .table-arcade-shell {
+  border-color: rgba(34, 29, 23, 0.24);
+  background: linear-gradient(180deg, rgba(247, 249, 252, 0.97) 0%, rgba(232, 237, 246, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(34, 29, 23, 0.05) inset,
+    0 8px 14px rgba(46, 38, 25, 0.16) inset;
+}
+
+.table-shell.light-mode .table-arcade-screen {
+  border-color: rgba(34, 29, 23, 0.28);
+  background: linear-gradient(180deg, rgba(24, 30, 36, 0.95) 0%, rgba(10, 14, 18, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(6, 9, 12, 0.46) inset,
+    0 7px 12px rgba(10, 13, 18, 0.34) inset;
+}
+
+.table-shell.light-mode .table-arcade-screen-inner {
+  color: rgba(160, 245, 180, 0.93);
+  text-shadow:
+    0 0 4px rgba(104, 245, 140, 0.22),
+    0 0 8px rgba(15, 54, 24, 0.2);
+}
+
+.table-shell.light-mode .table-arcade-line-load {
+  color: rgba(174, 218, 255, 0.88);
+}
+
+.table-shell.light-mode .table-arcade-line-option.is-selected {
+  color: rgba(206, 250, 217, 0.99);
+}
+
+.table-shell.light-mode .table-arcade-info-title,
+.table-shell.light-mode .table-arcade-info-subtext {
+  color: rgba(160, 245, 180, 0.92);
+}
+
+.table-shell.light-mode .table-arcade-score-row {
+  color: rgba(165, 247, 183, 0.92);
+}
+
+.table-shell.light-mode .table-arcade-score-rank {
+  color: rgba(178, 222, 255, 0.9);
+}
+
+.table-shell.light-mode .table-arcade-score-empty,
+.table-shell.light-mode .table-arcade-score-hint {
+  color: rgba(178, 222, 255, 0.82);
+}
+
+.table-shell.light-mode .table-arcade-owner {
+  color: rgba(34, 29, 23, 0.88);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.32);
+}
+
+.table-shell.light-mode .table-arcade-owner-score {
+  color: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .table-arcade-owner-separator {
+  background: rgba(34, 29, 23, 0.7);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.34);
+}
+
+.table-shell.light-mode .table-arcade-stick {
+  border-color: rgba(34, 29, 23, 0.28);
+  background: rgba(34, 29, 23, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.34) inset;
+}
+
+.table-shell.light-mode .table-arcade-stick::before {
+  background: rgba(34, 29, 23, 0.66);
+}
+
+.table-shell.light-mode .table-arcade-stick-knob {
+  background: rgba(34, 29, 23, 0.9);
+}
+
+.table-shell.light-mode .table-arcade-control-label {
+  color: rgba(34, 29, 23, 0.82);
+}
+
+.table-shell.light-mode .table-arcade-button {
+  border-color: rgba(34, 29, 23, 0.3);
+  background: rgba(34, 29, 23, 0.1);
+  color: rgba(34, 29, 23, 0.86);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.38) inset;
+}
+
+.table-shell.light-mode .table-die.table-die-arcade.is-arcade-focused {
+  box-shadow:
+    0 0 0 1px rgba(98, 151, 228, 0.78),
+    0 10px 18px rgba(46, 38, 25, 0.24);
+}
+
+.table-shell.light-mode .table-die.table-die-arcade.is-arcade-focused .table-arcade-screen {
+  border-color: rgba(98, 151, 228, 0.54);
 }
 
 .table-shell.light-mode .table-die.table-die-spinner .table-spinner-segment {
@@ -8340,6 +8944,56 @@ body.tabletop-delete-cursor-hidden *::after {
 
 .asset-preview-box-go .asset-preview-image {
   filter: saturate(0.98) brightness(0.96);
+}
+
+.asset-preview-box-arcade {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(87, 154, 255, 0.2), rgba(87, 154, 255, 0) 48%),
+    linear-gradient(180deg, rgba(22, 27, 38, 0.95) 0%, rgba(9, 11, 18, 0.95) 100%);
+}
+
+.asset-arcade-tile-icon {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 74%;
+  height: 74%;
+  transform: translate(-50%, -50%);
+  color: rgba(247, 243, 232, 0.9);
+  pointer-events: none;
+}
+
+.asset-arcade-icon-screen {
+  fill: rgba(6, 10, 13, 0.9);
+}
+
+.asset-arcade-icon-marquee,
+.asset-arcade-icon-panel {
+  fill: rgba(247, 243, 232, 0.02);
+}
+
+.asset-arcade-icon-button,
+.asset-arcade-icon-stick {
+  opacity: 0.9;
+}
+
+.table-shell.light-mode .asset-preview-box-arcade {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(74, 132, 228, 0.22), rgba(74, 132, 228, 0) 48%),
+    linear-gradient(180deg, rgba(244, 247, 252, 0.95) 0%, rgba(226, 233, 244, 0.95) 100%);
+}
+
+.table-shell.light-mode .asset-arcade-tile-icon {
+  color: rgba(34, 29, 23, 0.84);
+}
+
+.table-shell.light-mode .asset-arcade-icon-screen {
+  fill: rgba(20, 28, 34, 0.86);
+}
+
+.table-shell.light-mode .asset-arcade-icon-marquee,
+.table-shell.light-mode .asset-arcade-icon-panel {
+  fill: rgba(34, 29, 23, 0.06);
 }
 
 .asset-tafl-preview-pieces {

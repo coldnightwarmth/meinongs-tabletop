@@ -14,6 +14,7 @@ import { firebaseConfig } from './firebase-config.js';
 
 const tableRoot = document.getElementById('tableRoot');
 const playspaceLayer = document.getElementById('playspaceLayer');
+const secretAreaLayer = document.getElementById('secretAreaLayer');
 const gameLayer = document.getElementById('gameLayer');
 const stackLayer = document.getElementById('stackLayer');
 const drawingBackLayer = document.getElementById('drawingBackLayer');
@@ -54,6 +55,7 @@ const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
 const goTile = document.getElementById('goTile');
+const arcadeMachineTile = document.getElementById('arcadeMachineTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const spinnerComponentTile = document.getElementById('spinnerComponentTile');
@@ -258,7 +260,23 @@ const CURSOR_STALE_TIMEOUT_MS = 35000;
 const PRESENCE_STALE_TIMEOUT_MS = 45000;
 const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
 const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
+const DECK_LOCK_FORCE_RECOVERY_MS = 90000;
+const LEGACY_DECK_MIGRATION_RETRY_MS = 30000;
 const CARD_WRITE_RETRY_DELAY_MS = 220;
+const SECRET_AREA_PERSIST_CONFIRM_DELAY_MS = 160;
+const PATCH_FLUSH_INTERVAL_MS = 34;
+const VIEWPORT_CULL_MARGIN_PX = 320;
+const VIEWPORT_CULL_MARGIN_PX_GAMES = 420;
+const LEGACY_DECK_ROOT_FIELDS = Object.freeze([
+  'x',
+  'y',
+  'shuffleTick',
+  'holderClientId',
+  'includeDiscard',
+  'coverDrawings',
+  'kind',
+  'updatedAt'
+]);
 const DECK_KEY = 'cool-jpegs';
 const POKER_DECK_KEY = 'poker-deck';
 const DECK_KIND_COOL = 'cool-jpegs';
@@ -364,7 +382,9 @@ const EMPTY_DECK_CARD_METRICS = Object.freeze({
   topDeckZ: 1,
   topDiscardZ: 1,
   topAuctionZ: 1,
-  topDeckCardId: ''
+  topDeckCardId: '',
+  topDiscardCardId: '',
+  topAuctionCardId: ''
 });
 const COUNTER_MIN_VALUE = -9999;
 const COUNTER_MAX_VALUE = 9999;
@@ -391,6 +411,42 @@ const DIE_SIZE_COUNTER_HEIGHT = 136;
 const DIE_SIZE_TIMER_WIDTH = 296;
 const DIE_SIZE_TIMER_HEIGHT = 204;
 const DIE_SIZE_MARBLE = 90;
+const DIE_SIZE_ARCADE_WIDTH = 664;
+const DIE_SIZE_ARCADE_HEIGHT = 876;
+const ARCADE_MENU_OPTION_LABELS = Object.freeze(['mana garden', '[info]']);
+const ARCADE_SCREEN_MAIN = 'main';
+const ARCADE_SCREEN_INFO = 'info';
+const ARCADE_SCREEN_MANA_MENU = 'mana-menu';
+const ARCADE_SCREEN_MANA_SCORES = 'mana-scores';
+const ARCADE_SCREEN_MANA_PLAY = 'mana-play';
+const ARCADE_INFO_TITLE_TEXT = 'a place to play vidya on your tabletop!';
+const ARCADE_INFO_SUBTEXT = 'more games coming soon...';
+const ARCADE_INFO_MENU_INDEX = Math.max(0, ARCADE_MENU_OPTION_LABELS.indexOf('[info]'));
+const ARCADE_MANA_MENU_OPTION_LABELS = Object.freeze(['play', 'high scores', 'close']);
+const ARCADE_MANA_MENU_PLAY_INDEX = 0;
+const ARCADE_MANA_MENU_HIGH_SCORES_INDEX = 1;
+const ARCADE_MANA_MENU_CLOSE_INDEX = 2;
+const ARCADE_MANA_GRID_SIZE = 11;
+const ARCADE_MANA_CENTER_TILE = Math.floor(ARCADE_MANA_GRID_SIZE / 2);
+const ARCADE_MANA_STEP_MS = 182;
+const ARCADE_MANA_TURN_LEEWAY_MS = 52;
+const ARCADE_MANA_MOTION_TICK_MS = 16;
+const ARCADE_MANA_INPUT_QUEUE_MAX = 6;
+const ARCADE_MANA_VISUAL_SMOOTHNESS_PER_SECOND = 22;
+const ARCADE_MANA_VISUAL_SNAP_DISTANCE_TILES = 1.4;
+const ARCADE_MANA_MIN_SPAWN_MANHATTAN_DISTANCE = 2;
+const ARCADE_MANA_GAME_OVER_DELAY_MS = 1500;
+const ARCADE_MANA_TAIL_MAX_LENGTH = ARCADE_MANA_GRID_SIZE * ARCADE_MANA_GRID_SIZE - 1;
+const ARCADE_MANA_PHASE_DURATION_MS = ARCADE_MANA_STEP_MS + 72;
+const ARCADE_MANA_PHASE_AFTERGLOW_MS = 96;
+const ARCADE_MANA_PHASE_MIN_ALPHA = 0.38;
+const ARCADE_MANA_SQUARE_CLEAR_FLASH_DURATION_MS = 1200;
+const ARCADE_MANA_SQUARE_CLEAR_FLASH_CYCLES = 2;
+const ARCADE_MANA_TYPE_WHITE = 'white';
+const ARCADE_MANA_TYPE_BLACK = 'black';
+const ARCADE_MANA_CANVAS_WIDTH = 420;
+const ARCADE_MANA_CANVAS_HEIGHT = 336;
+const ARCADE_MANA_BOARD_MARGIN = 24;
 const STACK_POINT_SLOT_PADDING = 8;
 const DIE_SIZE_STACK_POINT_WIDTH = CARD_WIDTH + STACK_POINT_SLOT_PADDING * 2;
 const DIE_SIZE_STACK_POINT_HEIGHT = CARD_HEIGHT + STACK_POINT_SLOT_PADDING * 2;
@@ -402,6 +458,10 @@ const CHIP_LABEL_MAX_LENGTH = 16;
 const CHIP_STACK_SPACING = 150;
 const CHIP_STACK_HALF_SIZE = DIE_SIZE_CHIP / 2;
 const CHIP_SPAWN_FADE_DURATION_MS = 170;
+const SECRET_AREA_DEFAULT_WIDTH = CARD_WIDTH * 3;
+const SECRET_AREA_DEFAULT_HEIGHT = CARD_HEIGHT * 1.5;
+const ARCADE_STICK_MIN_AXIS = -1;
+const ARCADE_STICK_MAX_AXIS = 1;
 const CHIP_STACK_DEFAULTS = Object.freeze([
   { value: 1, color: '#ffffff', label: '1' },
   { value: 5, color: '#ff4f4f', label: '5' },
@@ -1259,6 +1319,18 @@ const diceById = new Map();
 const cardElements = new Map();
 const diceElements = new Map();
 const cardFaces = new Map();
+const cardRenderLogicKeyById = new Map();
+const dieRenderLogicKeyById = new Map();
+const cardPersistConfirmTimersById = new Map();
+const deckPersistConfirmTimersById = new Map();
+const activelyDraggedChipSetIds = new Set();
+const arcadeManaCanvasByDieId = new Map();
+const arcadeManaVisualStateByDieId = new Map();
+const arcadeManaPlayBackgroundBySizeKey = new Map();
+const arcadeManaScaledSpriteByKey = new Map();
+const arcadeSpriteImageBySrc = new Map();
+const arcadeBestScoresByPlayerToken = new Map();
+const arcadeBestScoreWriteInFlightByPlayerToken = new Set();
 const cardFlipTimers = new Map();
 const selectedCardIds = new Set();
 const selectedDiceIds = new Set();
@@ -1291,6 +1363,7 @@ let roomBadgeWidthSyncRafId = 0;
 let frontImagePendingLoadCount = 0;
 let elementAssetPendingLoadCount = 0;
 let assetElementLoadObserver = null;
+let chipLabelMeasureContext = null;
 const trackedAssetElementLoads = new WeakMap();
 const trackedAssetLoadContainerCounts = new WeakMap();
 
@@ -1333,6 +1406,8 @@ const lastRenderedGoMoveTickById = new Map();
 const lastRenderedGoCaptureFxByGameId = new Map();
 const goPlacementPulseByGameId = new Map();
 let activeGoGameId = GO_GAME_KEY;
+let activeArcadeDieId = '';
+let arcadeManaMotionIntervalId = 0;
 let monsMoveButton = null;
 let monsOptionsButton = null;
 let monsUndoButton = null;
@@ -1387,6 +1462,7 @@ let handReorderState = null;
 let handDropPreview = null;
 let handHoverLayout = null;
 let hoveredHandCardId = null;
+let hoveredSecretAreaCardId = '';
 let lastHandHoverClientX = Number.NaN;
 let lastHandHoverClientY = Number.NaN;
 let lastRenderedHandTrayWidth = 0;
@@ -1407,6 +1483,8 @@ let deckShuffleFxDeckId = DECK_KEY;
 let deckShuffleDarkenedCardId = '';
 let diceRollAnimationRafId = 0;
 let cameraRenderRafId = 0;
+const cameraRenderStepErrorAt = new Map();
+let arcadeManaRenderRafId = 0;
 let cameraPersistTimerId = 0;
 const spawnLoadingIndicatorsById = new Map();
 let hotDeckFrontPreloadTimerId = 0;
@@ -1435,6 +1513,10 @@ let activeSpinnerAddLabels = [];
 let stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
 let stickerManifestLoaded = false;
 let stickerManifestLoadPromise = null;
+const stickerTilePreloadStatusBySrc = new Map();
+const stickerTilePreloadQueuedSources = new Set();
+const stickerTilePreloadQueue = [];
+let stickerTilePreloadPumpTimerId = 0;
 let activeStickerPackKey = STICKER_PACK_PLAY_THINGS;
 let activeStickerCategoryFiltersByPack = {
   [STICKER_PACK_SWAG]: new Set(getStickerAvailableCategoriesForPack(STICKER_PACK_SWAG)),
@@ -1462,6 +1544,9 @@ let spawnHnefataflBoard = async () => {
 };
 let spawnGoBoard = async () => {
   showStatusMessage('Firebase connection is required before adding go.');
+};
+let spawnArcadeMachine = async () => {
+  showStatusMessage('Firebase connection is required before adding arcade machine.');
 };
 let resetHnefataflGame = async () => {
   showStatusMessage('Firebase connection is required before resetting hnefatafl.');
@@ -1582,6 +1667,7 @@ let shuffleCoolJpegsDeck = async () => {};
 let dealOneCardEach = async () => {};
 let reclaimDiscardToDeck = async () => {};
 let onCardPointerDown = () => {};
+let onSecretAreaMovePointerDown = () => {};
 let onCardResizePointerDown = () => {};
 let onCardRotatePointerDown = () => {};
 let onCardContextMenu = () => {};
@@ -1880,6 +1966,34 @@ function getViewportWorldCenter() {
     x: clamp((centerScreenX - camera.panX) / camera.scale, 0, WORLD_WIDTH),
     y: clamp((centerScreenY - camera.panY) / camera.scale, 0, WORLD_HEIGHT)
   };
+}
+
+function getViewportWorldBounds(extraScreenMarginPx = 0) {
+  const viewportWidth = tableRoot?.clientWidth || window.innerWidth || 0;
+  const viewportHeight = tableRoot?.clientHeight || window.innerHeight || 0;
+  const marginPx = Math.max(0, Number(extraScreenMarginPx) || 0);
+  const effectiveScale = Math.max(0.0001, Number(camera.scale) || 1);
+  const minX = (-camera.panX - marginPx) / effectiveScale;
+  const minY = (-camera.panY - marginPx) / effectiveScale;
+  const maxX = (viewportWidth - camera.panX + marginPx) / effectiveScale;
+  const maxY = (viewportHeight - camera.panY + marginPx) / effectiveScale;
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY
+  };
+}
+
+function isWorldRectLikelyVisible(centerX, centerY, width, height, extraScreenMarginPx = VIEWPORT_CULL_MARGIN_PX) {
+  const bounds = getViewportWorldBounds(extraScreenMarginPx);
+  const halfWidth = Math.max(0, Number(width) || 0) / 2;
+  const halfHeight = Math.max(0, Number(height) || 0) / 2;
+  const left = Number(centerX) - halfWidth;
+  const right = Number(centerX) + halfWidth;
+  const top = Number(centerY) - halfHeight;
+  const bottom = Number(centerY) + halfHeight;
+  return !(right < bounds.minX || left > bounds.maxX || bottom < bounds.minY || top > bounds.maxY);
 }
 
 function clampCameraToViewport() {
@@ -2236,7 +2350,9 @@ function createEmptyDeckCardMetricsEntry() {
     topDeckZ: 1,
     topDiscardZ: 1,
     topAuctionZ: 1,
-    topDeckCardId: ''
+    topDeckCardId: '',
+    topDiscardCardId: '',
+    topAuctionCardId: ''
   };
 }
 
@@ -2301,12 +2417,18 @@ function getCardDeckMetricsCache() {
     if (cardState.inDiscard) {
       metrics.inDiscardIds.push(cardId);
       metrics.inDiscardCount += 1;
-      metrics.topDiscardZ = Math.max(metrics.topDiscardZ, zoneZ);
+      if (zoneZ >= metrics.topDiscardZ) {
+        metrics.topDiscardZ = zoneZ;
+        metrics.topDiscardCardId = cardId;
+      }
     }
     if (cardState.inAuction) {
       metrics.inAuctionIds.push(cardId);
       metrics.inAuctionCount += 1;
-      metrics.topAuctionZ = Math.max(metrics.topAuctionZ, zoneZ);
+      if (zoneZ >= metrics.topAuctionZ) {
+        metrics.topAuctionZ = zoneZ;
+        metrics.topAuctionCardId = cardId;
+      }
     }
   }
   cardDeckMetricsCache = {
@@ -2341,6 +2463,31 @@ function buildDeckCardMetrics() {
   };
 }
 
+function getVisibleStackCardIdsFromMetrics(metricsByDeck) {
+  const visibleIds = new Set();
+  if (!(metricsByDeck instanceof Map)) {
+    return visibleIds;
+  }
+  for (const metrics of metricsByDeck.values()) {
+    if (!metrics || typeof metrics !== 'object') {
+      continue;
+    }
+    const topDeckCardId = String(metrics.topDeckCardId || '').trim();
+    const topDiscardCardId = String(metrics.topDiscardCardId || '').trim();
+    const topAuctionCardId = String(metrics.topAuctionCardId || '').trim();
+    if (topDeckCardId) {
+      visibleIds.add(topDeckCardId);
+    }
+    if (topDiscardCardId) {
+      visibleIds.add(topDiscardCardId);
+    }
+    if (topAuctionCardId) {
+      visibleIds.add(topAuctionCardId);
+    }
+  }
+  return visibleIds;
+}
+
 function getDeckCenterPosition(deckId = activeDeckId) {
   const state = getDeckStateById(deckId);
   if (state) {
@@ -2372,6 +2519,9 @@ function getAuctionCenterPosition(deckId = activeDeckId) {
 }
 
 function normalizeDieType(type) {
+  if (type === 'arcade') {
+    return 'arcade';
+  }
   if (type === 'label') {
     return 'label';
   }
@@ -2410,6 +2560,541 @@ function isStackPointDieState(dieState) {
   return normalizeDieType(dieState?.type) === 'stack-point';
 }
 
+function isArcadeDieState(dieState) {
+  return normalizeDieType(dieState?.type) === 'arcade';
+}
+
+function normalizeArcadeStickAxis(value) {
+  const numeric = Math.round(Number(value) || 0);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return clamp(numeric, ARCADE_STICK_MIN_AXIS, ARCADE_STICK_MAX_AXIS);
+}
+
+function normalizeArcadeScreen(value) {
+  if (
+    value === ARCADE_SCREEN_INFO ||
+    value === ARCADE_SCREEN_MANA_MENU ||
+    value === ARCADE_SCREEN_MANA_SCORES ||
+    value === ARCADE_SCREEN_MANA_PLAY
+  ) {
+    return value;
+  }
+  return ARCADE_SCREEN_MAIN;
+}
+
+function normalizeArcadeManaMenuIndex(value) {
+  const numeric = Math.round(Number(value) || 0);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return clamp(numeric, 0, Math.max(0, ARCADE_MANA_MENU_OPTION_LABELS.length - 1));
+}
+
+function normalizeArcadeGridCoord(value) {
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) {
+    return ARCADE_MANA_CENTER_TILE;
+  }
+  const numeric = Math.round(raw);
+  return clamp(numeric, 0, ARCADE_MANA_GRID_SIZE - 1);
+}
+
+function normalizeArcadeDirectionVector(rawX, rawY) {
+  const x = normalizeArcadeStickAxis(rawX);
+  const y = normalizeArcadeStickAxis(rawY);
+  if (x !== 0 && y !== 0) {
+    return { x, y: 0 };
+  }
+  return { x, y };
+}
+
+function isArcadeDirectionInputKey(actionKey) {
+  return actionKey === 'w' || actionKey === 'a' || actionKey === 's' || actionKey === 'd';
+}
+
+function getArcadeDirectionVectorFromKey(actionKey) {
+  if (actionKey === 'w') {
+    return { x: 0, y: -1 };
+  }
+  if (actionKey === 'a') {
+    return { x: -1, y: 0 };
+  }
+  if (actionKey === 's') {
+    return { x: 0, y: 1 };
+  }
+  if (actionKey === 'd') {
+    return { x: 1, y: 0 };
+  }
+  return { x: 0, y: 0 };
+}
+
+function getArcadeDirectionQueueTokenFromVector(direction) {
+  const normalizedDirection = normalizeArcadeDirectionVector(direction?.x, direction?.y);
+  if (normalizedDirection.x === 0 && normalizedDirection.y === -1) {
+    return 'U';
+  }
+  if (normalizedDirection.x === 1 && normalizedDirection.y === 0) {
+    return 'R';
+  }
+  if (normalizedDirection.x === 0 && normalizedDirection.y === 1) {
+    return 'D';
+  }
+  if (normalizedDirection.x === -1 && normalizedDirection.y === 0) {
+    return 'L';
+  }
+  return '';
+}
+
+function getArcadeDirectionVectorFromQueueToken(token) {
+  const normalizedToken = String(token || '').trim().toUpperCase();
+  if (normalizedToken === 'U') {
+    return { x: 0, y: -1 };
+  }
+  if (normalizedToken === 'R') {
+    return { x: 1, y: 0 };
+  }
+  if (normalizedToken === 'D') {
+    return { x: 0, y: 1 };
+  }
+  if (normalizedToken === 'L') {
+    return { x: -1, y: 0 };
+  }
+  return { x: 0, y: 0 };
+}
+
+function parseArcadeInputQueuePath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const token = String(entry || '').trim().toUpperCase();
+    if (token !== 'U' && token !== 'R' && token !== 'D' && token !== 'L') {
+      continue;
+    }
+    parsed.push(token);
+    if (parsed.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadeInputQueuePath(tokens) {
+  if (!Array.isArray(tokens) || tokens.length === 0) {
+    return '';
+  }
+  const normalizedTokens = [];
+  for (const token of tokens) {
+    const normalizedToken = String(token || '').trim().toUpperCase();
+    if (normalizedToken !== 'U' && normalizedToken !== 'R' && normalizedToken !== 'D' && normalizedToken !== 'L') {
+      continue;
+    }
+    normalizedTokens.push(normalizedToken);
+    if (normalizedTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+      break;
+    }
+  }
+  return normalizedTokens.join(';');
+}
+
+function normalizeArcadeInputQueuePath(value) {
+  return encodeArcadeInputQueuePath(parseArcadeInputQueuePath(value));
+}
+
+function canArcadeMoveToTile(tileX, tileY) {
+  return (
+    tileX >= 0 &&
+    tileX < ARCADE_MANA_GRID_SIZE &&
+    tileY >= 0 &&
+    tileY < ARCADE_MANA_GRID_SIZE
+  );
+}
+
+function normalizeArcadeTimestamp(value) {
+  const numeric = Math.floor(Number(value) || 0);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.max(0, numeric);
+}
+
+function normalizeArcadeManaType(value) {
+  if (value === ARCADE_MANA_TYPE_BLACK || value === 'b' || value === 'black') {
+    return ARCADE_MANA_TYPE_BLACK;
+  }
+  return ARCADE_MANA_TYPE_WHITE;
+}
+
+function parseArcadeManaTailPath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const parts = entry.split(',');
+    if (parts.length < 2) {
+      continue;
+    }
+    const x = normalizeArcadeGridCoord(parts[0]);
+    const y = normalizeArcadeGridCoord(parts[1]);
+    const type = normalizeArcadeManaType(parts[2]);
+    parsed.push({ x, y, type });
+    if (parsed.length >= ARCADE_MANA_TAIL_MAX_LENGTH) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadeManaTailPath(segments) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return '';
+  }
+  const encodedParts = [];
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index];
+    const x = normalizeArcadeGridCoord(segment?.x);
+    const y = normalizeArcadeGridCoord(segment?.y);
+    const type = normalizeArcadeManaType(segment?.type) === ARCADE_MANA_TYPE_BLACK ? 'b' : 'w';
+    encodedParts.push(`${x},${y},${type}`);
+    if (encodedParts.length >= ARCADE_MANA_TAIL_MAX_LENGTH) {
+      break;
+    }
+  }
+  return encodedParts.join(';');
+}
+
+function normalizeArcadeManaTailPath(value) {
+  return encodeArcadeManaTailPath(parseArcadeManaTailPath(value));
+}
+
+function isArcadeReverseDirection(direction, referenceDirection) {
+  const normalizedDirection = normalizeArcadeDirectionVector(direction?.x, direction?.y);
+  const normalizedReference = normalizeArcadeDirectionVector(referenceDirection?.x, referenceDirection?.y);
+  return (
+    (normalizedDirection.x !== 0 || normalizedDirection.y !== 0) &&
+    (normalizedReference.x !== 0 || normalizedReference.y !== 0) &&
+    normalizedDirection.x === -normalizedReference.x &&
+    normalizedDirection.y === -normalizedReference.y
+  );
+}
+
+function getArcadeTileKey(x, y) {
+  return `${normalizeArcadeGridCoord(x)},${normalizeArcadeGridCoord(y)}`;
+}
+
+function isArcadePointOnSquarePerimeter(tileX, tileY, left, top, size) {
+  const right = left + size;
+  const bottom = top + size;
+  if (tileX < left || tileX > right || tileY < top || tileY > bottom) {
+    return false;
+  }
+  return tileX === left || tileX === right || tileY === top || tileY === bottom;
+}
+
+function collectArcadeSquarePerimeterKeys(left, top, size) {
+  const keys = [];
+  const right = left + size;
+  const bottom = top + size;
+  for (let x = left; x <= right; x += 1) {
+    keys.push(getArcadeTileKey(x, top));
+    if (bottom !== top) {
+      keys.push(getArcadeTileKey(x, bottom));
+    }
+  }
+  for (let y = top + 1; y <= bottom - 1; y += 1) {
+    keys.push(getArcadeTileKey(left, y));
+    if (right !== left) {
+      keys.push(getArcadeTileKey(right, y));
+    }
+  }
+  return Array.from(new Set(keys));
+}
+
+function getArcadeSquareTailSegmentsAtIntersection(tileX, tileY, tailSegments) {
+  // Require at least a 3x3 square perimeter (8 tiles). 2x2 loops are ignored.
+  if (!Array.isArray(tailSegments) || tailSegments.length < 8) {
+    return [];
+  }
+  const byKey = new Map();
+  for (const segment of tailSegments) {
+    byKey.set(getArcadeTileKey(segment?.x, segment?.y), {
+      x: normalizeArcadeGridCoord(segment?.x),
+      y: normalizeArcadeGridCoord(segment?.y),
+      type: normalizeArcadeManaType(segment?.type)
+    });
+  }
+  if (!byKey.has(getArcadeTileKey(tileX, tileY))) {
+    return [];
+  }
+  for (let size = ARCADE_MANA_GRID_SIZE - 1; size >= 2; size -= 1) {
+    for (let top = 0; top + size < ARCADE_MANA_GRID_SIZE; top += 1) {
+      for (let left = 0; left + size < ARCADE_MANA_GRID_SIZE; left += 1) {
+        if (!isArcadePointOnSquarePerimeter(tileX, tileY, left, top, size)) {
+          continue;
+        }
+        const perimeterKeys = collectArcadeSquarePerimeterKeys(left, top, size);
+        let validSquare = true;
+        for (const key of perimeterKeys) {
+          if (!byKey.has(key)) {
+            validSquare = false;
+            break;
+          }
+        }
+        if (!validSquare) {
+          continue;
+        }
+        const squareSegments = [];
+        for (const key of perimeterKeys) {
+          const segment = byKey.get(key);
+          if (segment) {
+            squareSegments.push({
+              x: segment.x,
+              y: segment.y,
+              type: segment.type
+            });
+          }
+        }
+        return squareSegments;
+      }
+    }
+  }
+  return [];
+}
+
+function normalizeArcadePlayerToken(value) {
+  return String(value || '').trim().slice(0, 128);
+}
+
+function getArcadeBestScoreForPlayerToken(token) {
+  const normalizedToken = normalizeArcadePlayerToken(token);
+  if (!normalizedToken) {
+    return 0;
+  }
+  const entry = arcadeBestScoresByPlayerToken.get(normalizedToken);
+  return Math.max(0, Math.round(Number(entry?.bestScore) || 0));
+}
+
+function getArcadeHighScoreEntries() {
+  const entries = [];
+  for (const [rawToken, rawEntry] of arcadeBestScoresByPlayerToken.entries()) {
+    const token = normalizeArcadePlayerToken(rawToken);
+    if (!token) {
+      continue;
+    }
+    const bestScore = Math.max(0, Math.round(Number(rawEntry?.bestScore) || 0));
+    if (bestScore <= 0) {
+      continue;
+    }
+    entries.push({
+      token,
+      bestScore,
+      name: String(rawEntry?.name || '').trim().slice(0, 24) || 'anon',
+      color: normalizeHexColor(rawEntry?.color || '#ff7a59'),
+      updatedAt: Math.max(0, Math.floor(Number(rawEntry?.updatedAt) || 0))
+    });
+  }
+  entries.sort((a, b) => {
+    if (b.bestScore !== a.bestScore) {
+      return b.bestScore - a.bestScore;
+    }
+    if (a.updatedAt !== b.updatedAt) {
+      return a.updatedAt - b.updatedAt;
+    }
+    const nameCompare = a.name.localeCompare(b.name);
+    if (nameCompare !== 0) {
+      return nameCompare;
+    }
+    return a.token.localeCompare(b.token);
+  });
+  return entries;
+}
+
+function getArcadeHighScoreSignature() {
+  const entries = getArcadeHighScoreEntries();
+  if (entries.length === 0) {
+    return 'none';
+  }
+  return entries
+    .map((entry) => `${entry.token}:${entry.bestScore}:${entry.updatedAt}:${entry.name}:${entry.color}`)
+    .join('|');
+}
+
+function getRandomArcadeManaType() {
+  return getRandomIntInclusive(0, 1) === 0 ? ARCADE_MANA_TYPE_WHITE : ARCADE_MANA_TYPE_BLACK;
+}
+
+function getArcadeManaSpawnTile(excludedTiles = []) {
+  const blocked = new Set();
+  if (Array.isArray(excludedTiles)) {
+    for (const tile of excludedTiles) {
+      const x = normalizeArcadeGridCoord(tile?.x);
+      const y = normalizeArcadeGridCoord(tile?.y);
+      blocked.add(`${x},${y}`);
+    }
+  }
+  for (let attempt = 0; attempt < 320; attempt += 1) {
+    const x = getRandomIntInclusive(0, ARCADE_MANA_GRID_SIZE - 1);
+    const y = getRandomIntInclusive(0, ARCADE_MANA_GRID_SIZE - 1);
+    if (Math.abs(x - ARCADE_MANA_CENTER_TILE) + Math.abs(y - ARCADE_MANA_CENTER_TILE) < ARCADE_MANA_MIN_SPAWN_MANHATTAN_DISTANCE) {
+      continue;
+    }
+    if (blocked.has(`${x},${y}`)) {
+      continue;
+    }
+    return { x, y };
+  }
+  for (let y = 0; y < ARCADE_MANA_GRID_SIZE; y += 1) {
+    for (let x = 0; x < ARCADE_MANA_GRID_SIZE; x += 1) {
+      if (Math.abs(x - ARCADE_MANA_CENTER_TILE) + Math.abs(y - ARCADE_MANA_CENTER_TILE) < ARCADE_MANA_MIN_SPAWN_MANHATTAN_DISTANCE) {
+        continue;
+      }
+      if (blocked.has(`${x},${y}`)) {
+        continue;
+      }
+      return { x, y };
+    }
+  }
+  return { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE };
+}
+
+function getArcadeManaPlayerRenderPosition(dieState, now = Date.now()) {
+  const tileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+  const tileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+  const moveDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+  const moveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
+  if ((moveDirection.x === 0 && moveDirection.y === 0) || moveStartedAt <= 0) {
+    return {
+      x: tileX,
+      y: tileY
+    };
+  }
+  const progress = clamp((Math.max(0, Number(now) || 0) - moveStartedAt) / ARCADE_MANA_STEP_MS, 0, 1);
+  return {
+    x: tileX + moveDirection.x * progress,
+    y: tileY + moveDirection.y * progress
+  };
+}
+
+function getArcadeManaSmoothedRenderPosition(dieId, dieState, now = Date.now()) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return getArcadeManaPlayerRenderPosition(dieState, now);
+  }
+  const tileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+  const tileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+  const moveDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+  const hasMotion = moveDirection.x !== 0 || moveDirection.y !== 0;
+  const nowMs = Math.max(0, Number(now) || Date.now());
+  let visualState = arcadeManaVisualStateByDieId.get(normalizedDieId);
+  const stateChanged = !visualState ||
+    visualState.tileX !== tileX ||
+    visualState.tileY !== tileY ||
+    visualState.dirX !== moveDirection.x ||
+    visualState.dirY !== moveDirection.y;
+  if (!visualState) {
+    visualState = {
+      tileX,
+      tileY,
+      dirX: moveDirection.x,
+      dirY: moveDirection.y,
+      segmentStartedAt: nowMs,
+      renderX: tileX,
+      renderY: tileY,
+      lastRenderAt: nowMs
+    };
+    arcadeManaVisualStateByDieId.set(normalizedDieId, visualState);
+  } else if (stateChanged) {
+    visualState.tileX = tileX;
+    visualState.tileY = tileY;
+    visualState.dirX = moveDirection.x;
+    visualState.dirY = moveDirection.y;
+    visualState.segmentStartedAt = nowMs;
+  }
+  const segmentProgress = hasMotion
+    ? clamp((nowMs - visualState.segmentStartedAt) / ARCADE_MANA_STEP_MS, 0, 1)
+    : 0;
+  const targetX = tileX + moveDirection.x * segmentProgress;
+  const targetY = tileY + moveDirection.y * segmentProgress;
+  const lastRenderAt = Math.max(0, Number(visualState.lastRenderAt) || nowMs);
+  const deltaSeconds = clamp((nowMs - lastRenderAt) / 1000, 0, 0.1);
+  const blend = clamp(
+    1 - Math.exp(-ARCADE_MANA_VISUAL_SMOOTHNESS_PER_SECOND * deltaSeconds),
+    0.06,
+    1
+  );
+  const distanceToTarget = Math.hypot(targetX - visualState.renderX, targetY - visualState.renderY);
+  if (!Number.isFinite(distanceToTarget) || distanceToTarget > ARCADE_MANA_VISUAL_SNAP_DISTANCE_TILES) {
+    visualState.renderX = targetX;
+    visualState.renderY = targetY;
+  } else {
+    visualState.renderX += (targetX - visualState.renderX) * blend;
+    visualState.renderY += (targetY - visualState.renderY) * blend;
+  }
+  visualState.lastRenderAt = nowMs;
+  return {
+    x: visualState.renderX,
+    y: visualState.renderY
+  };
+}
+
+function getArcadeSpriteImage(src) {
+  const normalizedSrc = String(src || '').trim();
+  if (!normalizedSrc) {
+    return null;
+  }
+  let image = arcadeSpriteImageBySrc.get(normalizedSrc);
+  if (image instanceof HTMLImageElement) {
+    return image;
+  }
+  image = new Image();
+  image.decoding = 'async';
+  image.loading = 'eager';
+  image.src = normalizedSrc;
+  arcadeSpriteImageBySrc.set(normalizedSrc, image);
+  return image;
+}
+
+function getArcadeScaledSpriteCanvas(src, width, height) {
+  const normalizedSrc = String(src || '').trim();
+  const scaledWidth = Math.max(1, Math.round(Number(width) || 0));
+  const scaledHeight = Math.max(1, Math.round(Number(height) || 0));
+  if (!normalizedSrc || !scaledWidth || !scaledHeight) {
+    return null;
+  }
+  const cacheKey = `${normalizedSrc}|${scaledWidth}x${scaledHeight}`;
+  const cached = arcadeManaScaledSpriteByKey.get(cacheKey);
+  if (cached instanceof HTMLCanvasElement) {
+    return cached;
+  }
+  const image = getArcadeSpriteImage(normalizedSrc);
+  if (!(image instanceof HTMLImageElement) || !image.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+    return null;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = scaledWidth;
+  canvas.height = scaledHeight;
+  const ctx = canvas.getContext('2d');
+  if (!(ctx instanceof CanvasRenderingContext2D)) {
+    return null;
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.clearRect(0, 0, scaledWidth, scaledHeight);
+  ctx.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+  ctx.restore();
+  arcadeManaScaledSpriteByKey.set(cacheKey, canvas);
+  return canvas;
+}
+
 function isLabelDieLocked(dieState) {
   return isLabelDieState(dieState) && dieState?.labelLocked === true;
 }
@@ -2438,6 +3123,49 @@ function normalizeChipLabelText(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, CHIP_LABEL_MAX_LENGTH);
+}
+
+function getChipLabelMeasureContext() {
+  if (chipLabelMeasureContext instanceof CanvasRenderingContext2D) {
+    return chipLabelMeasureContext;
+  }
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  if (!(context instanceof CanvasRenderingContext2D)) {
+    return null;
+  }
+  chipLabelMeasureContext = context;
+  return context;
+}
+
+function getChipLabelFittedFontSize(labelText, options = {}) {
+  const normalizedLabel = normalizeChipLabelText(labelText) || '1';
+  const maxWidth = Math.max(1, Number(options.maxWidth) || 40);
+  const minFontSize = Math.max(1, Number(options.minFontSize) || 5.2);
+  const maxFontSize = Math.max(minFontSize, Number(options.maxFontSize) || 20);
+  const context = getChipLabelMeasureContext();
+  if (!(context instanceof CanvasRenderingContext2D)) {
+    const fallbackScale = clamp(5.3 / Math.max(normalizedLabel.length, 1), 0.2, 1);
+    return clamp(maxFontSize * fallbackScale, minFontSize, maxFontSize);
+  }
+  let low = minFontSize;
+  let high = maxFontSize;
+  let best = minFontSize;
+  for (let step = 0; step < 10; step += 1) {
+    const mid = (low + high) / 2;
+    context.font = `700 ${mid}px "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif`;
+    const width = context.measureText(normalizedLabel).width;
+    if (width <= maxWidth) {
+      best = mid;
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  return clamp(best, minFontSize, maxFontSize);
 }
 
 function normalizeChipStackCount(value, fallbackValue = CHIP_SET_MIN_STACKS) {
@@ -2721,6 +3449,7 @@ function getSpinnerNeedleAngle(dieState, now = Date.now()) {
 function getDieSides(type, payload = null) {
   const normalizedType = normalizeDieType(type);
   if (
+    normalizedType === 'arcade' ||
     normalizedType === 'label' ||
     normalizedType === 'media' ||
     normalizedType === 'counter' ||
@@ -2746,6 +3475,9 @@ function getDieSides(type, payload = null) {
 
 function getDieSize(type) {
   const normalizedType = normalizeDieType(type);
+  if (normalizedType === 'arcade') {
+    return Math.max(DIE_SIZE_ARCADE_WIDTH, DIE_SIZE_ARCADE_HEIGHT);
+  }
   if (normalizedType === 'label') {
     return LABEL_MIN_WORLD_WIDTH;
   }
@@ -3015,7 +3747,8 @@ function getLabelTextScale(valueOrState, fallback = LABEL_TEXT_SCALE_DEFAULT) {
 function getLabelFontSizePx(dieState) {
   const textScale = getLabelTextScale(dieState);
   const worldFontSize = LABEL_LINE_WORLD_HEIGHT * textScale * LABEL_FONT_SIZE_FACTOR;
-  return clamp(worldFontSize * camera.scale, 4, 1680);
+  const screenFontSize = clamp(worldFontSize * camera.scale, 0.01, 1680);
+  return snapToDevicePixel(screenFontSize, 0.01);
 }
 
 function measureLabelWorldDimensions(textValue, options = {}) {
@@ -3122,6 +3855,12 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
     typeof typeOrPayload === 'string'
       ? normalizeDieType(typeOrPayload)
       : normalizeDieType(typeOrPayload?.type);
+  if (dieType === 'arcade') {
+    return {
+      width: DIE_SIZE_ARCADE_WIDTH,
+      height: DIE_SIZE_ARCADE_HEIGHT
+    };
+  }
   if (dieType === 'media') {
     return clampMediaDimensions(
       payload?.mediaWidth,
@@ -3232,6 +3971,64 @@ function normalizeDicePayload(payload) {
       : getSpinnerSegmentCenterAngle(payload?.value, spinnerSegments))
     : 0;
   const spinnerSpinTurns = type === 'spinner' ? normalizeSpinnerRollTurns(payload?.spinnerSpinTurns) : 0;
+  const arcadeMenuIndex =
+    type === 'arcade'
+      ? clamp(
+        Math.round(Number(payload?.arcadeMenuIndex) || 0),
+        0,
+        Math.max(0, ARCADE_MENU_OPTION_LABELS.length - 1)
+      )
+      : 0;
+  const arcadeJPressed = type === 'arcade' && payload?.arcadeJPressed === true;
+  const arcadeKPressed = type === 'arcade' && payload?.arcadeKPressed === true;
+  const arcadeScreen = type === 'arcade' ? normalizeArcadeScreen(payload?.arcadeScreen) : ARCADE_SCREEN_MAIN;
+  const arcadeStickX = type === 'arcade' ? normalizeArcadeStickAxis(payload?.arcadeStickX) : 0;
+  const arcadeStickY = type === 'arcade' ? normalizeArcadeStickAxis(payload?.arcadeStickY) : 0;
+  const arcadeManaMenuIndex =
+    type === 'arcade'
+      ? normalizeArcadeManaMenuIndex(payload?.arcadeManaMenuIndex)
+      : 0;
+  const arcadeControllerClientId =
+    type === 'arcade'
+      ? String(payload?.arcadeControllerClientId || '').trim().slice(0, 128)
+      : '';
+  const arcadeControllerPlayerToken =
+    type === 'arcade'
+      ? normalizeArcadePlayerToken(payload?.arcadeControllerPlayerToken)
+      : '';
+  const arcadeControllerName =
+    type === 'arcade'
+      ? String(payload?.arcadeControllerName || '').trim().slice(0, 24)
+      : '';
+  const arcadeControllerColor =
+    type === 'arcade'
+      ? normalizeHexColor(payload?.arcadeControllerColor || '#ff7a59')
+      : '#ff7a59';
+  const arcadeMoveDirection = type === 'arcade'
+    ? normalizeArcadeDirectionVector(payload?.arcadeMgDirX, payload?.arcadeMgDirY)
+    : { x: 0, y: 0 };
+  const arcadeQueuedDirection = type === 'arcade'
+    ? normalizeArcadeDirectionVector(payload?.arcadeMgQueuedDirX, payload?.arcadeMgQueuedDirY)
+    : { x: 0, y: 0 };
+  const arcadeMgTileX = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgTileX) : ARCADE_MANA_CENTER_TILE;
+  const arcadeMgTileY = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgTileY) : ARCADE_MANA_CENTER_TILE;
+  const arcadeMgTailPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgTailPath) : '';
+  const arcadeMgLooseManaPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgLooseManaPath) : '';
+  const arcadeMgClearManaPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgClearManaPath) : '';
+  const arcadeMgManaType = type === 'arcade' ? normalizeArcadeManaType(payload?.arcadeMgManaType) : ARCADE_MANA_TYPE_WHITE;
+  const arcadeMgManaTileX = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgManaTileX) : ARCADE_MANA_CENTER_TILE;
+  const arcadeMgManaTileY = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgManaTileY) : ARCADE_MANA_CENTER_TILE;
+  const arcadeMgGameOver = type === 'arcade' && payload?.arcadeMgGameOver === true;
+  const arcadeMgGameOverAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgGameOverAt) : 0;
+  const arcadeMgSquareClearScore = type === 'arcade'
+    ? Math.max(0, Math.round(Number(payload?.arcadeMgSquareClearScore) || 0))
+    : 0;
+  const arcadeMgPhaseActive = type === 'arcade' && payload?.arcadeMgPhaseActive === true;
+  const arcadeMgPhaseStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgPhaseStartedAt) : 0;
+  const arcadeMgClearManaStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgClearManaStartedAt) : 0;
+  const arcadeMgMoveStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgMoveStartedAt) : 0;
+  const arcadeMgQueuedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgQueuedAt) : 0;
+  const arcadeMgInputQueuePath = type === 'arcade' ? normalizeArcadeInputQueuePath(payload?.arcadeMgInputQueuePath) : '';
   const sides = getDieSides(type, {
     spinnerSegments
   });
@@ -3320,6 +4117,8 @@ function normalizeDicePayload(payload) {
     ? clampCounterValue(nextValue)
     : type === 'timer'
       ? 0
+    : type === 'arcade'
+      ? 1
     : type === 'chip'
       ? 1
     : type === 'stack-point'
@@ -3365,6 +4164,38 @@ function normalizeDicePayload(payload) {
     spinnerHighlightVisible,
     spinnerStartAngle,
     spinnerSpinTurns,
+    arcadeMenuIndex,
+    arcadeJPressed,
+    arcadeKPressed,
+    arcadeScreen,
+    arcadeStickX,
+    arcadeStickY,
+    arcadeManaMenuIndex,
+    arcadeControllerClientId,
+    arcadeControllerPlayerToken,
+    arcadeControllerName,
+    arcadeControllerColor,
+    arcadeMgTileX,
+    arcadeMgTileY,
+    arcadeMgTailPath,
+    arcadeMgLooseManaPath,
+    arcadeMgClearManaPath,
+    arcadeMgManaType,
+    arcadeMgManaTileX,
+    arcadeMgManaTileY,
+    arcadeMgGameOver,
+    arcadeMgGameOverAt,
+    arcadeMgSquareClearScore,
+    arcadeMgPhaseActive,
+    arcadeMgPhaseStartedAt,
+    arcadeMgClearManaStartedAt,
+    arcadeMgDirX: arcadeMoveDirection.x,
+    arcadeMgDirY: arcadeMoveDirection.y,
+    arcadeMgQueuedDirX: arcadeQueuedDirection.x,
+    arcadeMgQueuedDirY: arcadeQueuedDirection.y,
+    arcadeMgMoveStartedAt,
+    arcadeMgQueuedAt,
+    arcadeMgInputQueuePath,
     drawLifted,
     holderClientId: normalizedHolderClientId,
     moving,
@@ -3377,6 +4208,7 @@ function normalizeDicePayload(payload) {
       type === 'marble' ||
       type === 'counter' ||
       type === 'timer' ||
+      type === 'arcade' ||
       type === 'stack-point'
         ? 0
         : Number.isFinite(rollStartedAt)
@@ -3398,6 +4230,7 @@ function isDieRolling(dieState, now = Date.now()) {
     dieType === 'marble' ||
     dieType === 'counter' ||
     dieType === 'timer' ||
+    dieType === 'arcade' ||
     dieType === 'stack-point'
   ) {
     return false;
@@ -3427,6 +4260,7 @@ function getRenderedDieValue(dieState, now = Date.now()) {
   }
   if (
     dieType === 'timer' ||
+    dieType === 'arcade' ||
     dieType === 'label' ||
     dieType === 'media' ||
     dieType === 'marble'
@@ -3557,6 +4391,7 @@ function normalizeDeckPayload(payload, deckId = '') {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextShuffleTick = Number(payload?.shuffleTick);
+  const nextUpdatedAt = Number(payload?.updatedAt);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const includeDiscard = payload?.includeDiscard !== false;
   const coverDrawings = payload?.coverDrawings === true;
@@ -3568,7 +4403,8 @@ function normalizeDeckPayload(payload, deckId = '') {
     holderClientId,
     includeDiscard,
     coverDrawings,
-    kind
+    kind,
+    updatedAt: Number.isFinite(nextUpdatedAt) ? Math.floor(nextUpdatedAt) : 0
   };
 }
 
@@ -5204,15 +6040,41 @@ function warmCardFrontOnDeckExit(previousCardState, nextCardState) {
   }
 }
 
+function collectTopCardIdsByZ(cardIds, limit) {
+  const maxCount = Math.max(0, Math.floor(Number(limit) || 0));
+  if (!Array.isArray(cardIds) || cardIds.length === 0 || maxCount <= 0) {
+    return [];
+  }
+  const topEntries = [];
+  for (const cardId of cardIds) {
+    const z = Number(cards.get(cardId)?.z) || 0;
+    if (!Number.isFinite(z)) {
+      continue;
+    }
+    let insertAt = topEntries.length;
+    while (insertAt > 0 && z > topEntries[insertAt - 1].z) {
+      insertAt -= 1;
+    }
+    if (insertAt >= maxCount) {
+      continue;
+    }
+    topEntries.splice(insertAt, 0, { cardId, z });
+    if (topEntries.length > maxCount) {
+      topEntries.length = maxCount;
+    }
+  }
+  return topEntries.map((entry) => entry.cardId);
+}
+
 function runHotDeckFrontPreload() {
   hotDeckFrontPreloadTimerId = 0;
   if (cards.size === 0) {
     return;
   }
+  const metricsByDeck = getCardDeckMetricsCache().metricsByDeck;
   for (const deckId of getDeckIdsInRoom()) {
-    const topDeckCardIds = getDeckCardIds(deckId)
-      .sort((leftId, rightId) => (Number(cards.get(rightId)?.z) || 0) - (Number(cards.get(leftId)?.z) || 0))
-      .slice(0, HOT_DECK_FRONT_PRELOAD_PER_DECK);
+    const deckMetrics = metricsByDeck.get(deckId);
+    const topDeckCardIds = collectTopCardIdsByZ(deckMetrics?.inDeckIds || [], HOT_DECK_FRONT_PRELOAD_PER_DECK);
     for (const cardId of topDeckCardIds) {
       warmCardFrontVariants(cards.get(cardId)?.frontSrc, LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
     }
@@ -5800,6 +6662,7 @@ function removeChipSetUi(chipSetId) {
   if (!normalizedChipSetId) {
     return;
   }
+  activelyDraggedChipSetIds.delete(normalizedChipSetId);
   const chipUi = chipSetUiById.get(normalizedChipSetId);
   if (!chipUi) {
     return;
@@ -5923,6 +6786,7 @@ function removeAllChipSetUiArtifacts() {
   for (const chipSetId of Array.from(chipSetUiById.keys())) {
     removeChipSetUi(chipSetId);
   }
+  activelyDraggedChipSetIds.clear();
   chipSetUiById.clear();
   chipStackDropIndicatorVisible = false;
   chipStackDropIndicatorChipSetId = '';
@@ -5937,7 +6801,7 @@ function removeAllChipSetUiArtifacts() {
 }
 
 function renderChipSets() {
-  if (!hasLoadedInitialCardsSnapshot) {
+  if (!hasLoadedInitialCardsSnapshot && chipSetsById.size === 0) {
     hideAllChipSetUiElements();
     chipStackDropIndicator?.classList.add('hidden');
     chipStackDropIndicator?.classList.remove('is-visible');
@@ -5987,12 +6851,33 @@ function renderChipSets() {
           chipStackDropIndicatorChipSetId === chipSetId &&
           chipStackDropIndicatorStackIndex === index
       );
-      stackEntry.label.textContent =
+      const stackLabelText =
         normalizeChipLabelText(stackState.label || stackState.value || String(index + 1)) || String(index + 1);
+      stackEntry.label.textContent = stackLabelText;
       const stackLabelColors = getReadableChipLabelColors(stackState.color || '#ffffff');
       stackEntry.label.style.color = stackLabelColors.fill;
       stackEntry.label.style.textShadow = `0 1px 2px ${stackLabelColors.stroke}`;
+      const stackLabelFontSize =
+        getChipLabelFittedFontSize(stackLabelText, {
+          maxWidth: 40,
+          minFontSize: 5.2,
+          maxFontSize: 20
+        }) *
+        (chipScreenSize / 100) *
+        0.58;
+      setElementStyleValue(stackEntry.label, 'fontSize', `${snapToDevicePixel(stackLabelFontSize, 4.5).toFixed(2)}px`);
       stackEntry.countBadge.textContent = String(Math.max(0, Math.round(Number(stackState.count) || 0)));
+      setElementStyleValue(
+        stackEntry.countBadge,
+        'fontSize',
+        `${snapToDevicePixel(chipScreenSize * 0.102, 7).toFixed(2)}px`
+      );
+      setElementStylePx(stackEntry.countBadge, 'minWidth', snapToDevicePixel(chipScreenSize * 0.19, 10));
+      setElementStylePx(stackEntry.countBadge, 'height', snapToDevicePixel(chipScreenSize * 0.17, 9));
+      setElementStylePx(stackEntry.countBadge, 'paddingLeft', snapToDevicePixel(chipScreenSize * 0.045, 2));
+      setElementStylePx(stackEntry.countBadge, 'paddingRight', snapToDevicePixel(chipScreenSize * 0.045, 2));
+      setElementStylePx(stackEntry.countBadge, 'right', -snapToDevicePixel(chipScreenSize * 0.035, 2));
+      setElementStylePx(stackEntry.countBadge, 'bottom', -snapToDevicePixel(chipScreenSize * 0.035, 2));
     }
 
     const setScreenWidth = getChipSetWorldWidth(chipSetState) * camera.scale;
@@ -6001,7 +6886,10 @@ function renderChipSets() {
     setElementStylePx(chipUi.moveButton, 'top', chipCenterScreen.y + chipScreenSize / 2 - controlSize / 2);
     setElementStylePx(chipUi.moveButton, 'width', controlSize);
     setElementStylePx(chipUi.moveButton, 'height', controlSize);
-    chipUi.moveButton.classList.toggle('is-held-by-self', chipSetState.holderClientId === localClientId);
+    const isDraggingChipSetHandle =
+      activelyDraggedChipSetIds.has(chipSetId) &&
+      chipSetState.holderClientId === localClientId;
+    chipUi.moveButton.classList.toggle('is-held-by-self', Boolean(isDraggingChipSetHandle));
     chipUi.moveButton.classList.toggle('is-group-selected', selectedChipSetIds.has(chipSetId));
   }
 
@@ -6044,7 +6932,7 @@ function renderChipSets() {
   }
 }
 
-function renderDeckControls() {
+function renderDeckControls(precomputedMetrics = null) {
   if (!hasLoadedInitialCardsSnapshot) {
     hideAllDeckUiElements();
     deckDropIndicator?.classList.add('hidden');
@@ -6053,7 +6941,11 @@ function renderDeckControls() {
     return;
   }
   ensureDeckDropIndicators();
-  const { deckIds, metricsByDeck } = buildDeckCardMetrics();
+  const deckCardMetrics =
+    precomputedMetrics && precomputedMetrics.metricsByDeck instanceof Map
+      ? precomputedMetrics
+      : buildDeckCardMetrics();
+  const { deckIds, metricsByDeck } = deckCardMetrics;
   const renderedDeckIds = new Set();
   let hasVisibleDeck = false;
   let deckSelectionChanged = false;
@@ -6120,6 +7012,27 @@ function renderDeckControls() {
       continue;
     }
     hasVisibleDeck = true;
+    const deckWorldWidth = supportsAuction
+      ? Math.abs(AUCTION_STACK_OFFSET_X) + CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
+      : CARD_WIDTH + DECK_CONTROL_SIZE * 2.6;
+    const deckWorldHeight = CARD_HEIGHT + DECK_CONTROL_SIZE * 3.2;
+    const deckVisible = isWorldRectLikelyVisible(
+      targetDeckState.x,
+      targetDeckState.y,
+      deckWorldWidth,
+      deckWorldHeight,
+      VIEWPORT_CULL_MARGIN_PX_GAMES
+    );
+    const keepDeckVisible =
+      selectedDeckIds.has(deckId) ||
+      targetDeckState.holderClientId === localClientId ||
+      deckDropIndicatorDeckId === deckId ||
+      discardDropIndicatorDeckId === deckId ||
+      auctionDropIndicatorDeckId === deckId;
+    if (!deckVisible && !keepDeckVisible) {
+      hideDeckUi(deckUi);
+      continue;
+    }
 
     const deckScreen = worldToScreen({ x: targetDeckState.x, y: targetDeckState.y });
     const discardScreen = worldToScreen(getDiscardCenterPosition(deckId));
@@ -9173,11 +10086,7 @@ function renderMonsSpawnGhosts() {
   }
 }
 
-function renderMonsBoard() {
-  if (!hasLoadedInitialCardsSnapshot) {
-    hideMonsBoardElements();
-    return;
-  }
+function renderMonsBoard(options = {}) {
   syncCoverDrawingsGamesLayerState();
   monsGameState = getMonsGameStateById(activeMonsGameId);
   if (!monsGameState || monsGameState.enabled === false) {
@@ -9331,6 +10240,12 @@ function removeTaflBoardUi(taflUi) {
   if (Number.isFinite(taflUi.winAnimationTimeoutId) && taflUi.winAnimationTimeoutId > 0) {
     window.clearTimeout(taflUi.winAnimationTimeoutId);
   }
+  if (taflUi.pieceNodesById instanceof Map) {
+    taflUi.pieceNodesById.clear();
+  }
+  if (taflUi.hintNodesByKey instanceof Map) {
+    taflUi.hintNodesByKey.clear();
+  }
   taflUi.shell?.remove();
   taflUi.moveButton?.remove();
   taflUi.optionsButton?.remove();
@@ -9394,6 +10309,12 @@ function ensureTaflBoardUi(gameId) {
     }
     if (taflUi.defenderClaimsList?.parentElement !== tableRoot) {
       tableRoot?.appendChild(taflUi.defenderClaimsList);
+    }
+    if (!(taflUi.pieceNodesById instanceof Map)) {
+      taflUi.pieceNodesById = new Map();
+    }
+    if (!(taflUi.hintNodesByKey instanceof Map)) {
+      taflUi.hintNodesByKey = new Map();
     }
     return taflUi;
   }
@@ -9694,6 +10615,8 @@ function ensureTaflBoardUi(gameId) {
     hintLayer,
     fxLayer,
     pieceLayer,
+    pieceNodesById: new Map(),
+    hintNodesByKey: new Map(),
     hud,
     attackerButtonWrap,
     defenderButtonWrap,
@@ -10064,8 +10987,10 @@ function renderTaflPiecesForBoard(taflUi, gameState, gameId, boardScreenWidth, b
   if (!(pieceLayer instanceof HTMLElement) || !(hintLayer instanceof HTMLElement)) {
     return;
   }
-  pieceLayer.textContent = '';
-  hintLayer.textContent = '';
+  const pieceNodesById = taflUi?.pieceNodesById instanceof Map ? taflUi.pieceNodesById : new Map();
+  const hintNodesByKey = taflUi?.hintNodesByKey instanceof Map ? taflUi.hintNodesByKey : new Map();
+  taflUi.pieceNodesById = pieceNodesById;
+  taflUi.hintNodesByKey = hintNodesByKey;
   const piecesPayload = gameState?.pieces && typeof gameState.pieces === 'object' ? gameState.pieces : {};
   const pieces = Object.values(piecesPayload).filter((piece) => piece && typeof piece === 'object');
   pieces.sort((left, right) => {
@@ -10100,20 +11025,56 @@ function renderTaflPiecesForBoard(taflUi, gameState, gameId, boardScreenWidth, b
   const tileHeight = gridHeightPx / TAFL_BOARD_SIZE;
   const pieceSize = Math.max(16, Math.min(tileWidth, tileHeight) * 0.74);
 
+  const nextHintKeys = new Set();
   for (const move of validMoves) {
-    const hint = document.createElement('span');
-    hint.className = 'tafl-move-hint';
+    const moveKey = `${Math.round(move.row)}:${Math.round(move.col)}`;
+    nextHintKeys.add(moveKey);
+    let hint = hintNodesByKey.get(moveKey);
+    if (!(hint instanceof HTMLElement)) {
+      hint = document.createElement('span');
+      hint.className = 'tafl-move-hint';
+      hintNodesByKey.set(moveKey, hint);
+    }
+    if (hint.parentElement !== hintLayer) {
+      hintLayer.appendChild(hint);
+    }
     hint.style.left = `${(((gridLeftPx + ((move.col + 0.5) / TAFL_BOARD_SIZE) * gridWidthPx) / boardScreenWidth) * 100).toFixed(4)}%`;
     hint.style.top = `${(((gridTopPx + ((move.row + 0.5) / TAFL_BOARD_SIZE) * gridHeightPx) / boardRenderHeight) * 100).toFixed(4)}%`;
-    hintLayer.appendChild(hint);
+  }
+  for (const [moveKey, hintElement] of Array.from(hintNodesByKey.entries())) {
+    if (nextHintKeys.has(moveKey)) {
+      continue;
+    }
+    hintElement?.remove();
+    hintNodesByKey.delete(moveKey);
   }
 
+  const nextPieceIds = new Set();
   for (const piece of pieces) {
-    const pieceButton = document.createElement('button');
-    pieceButton.type = 'button';
+    const pieceId = String(piece.id || '').trim();
+    if (!pieceId) {
+      continue;
+    }
+    nextPieceIds.add(pieceId);
+    let pieceButton = pieceNodesById.get(pieceId);
+    if (!(pieceButton instanceof HTMLButtonElement)) {
+      pieceButton = document.createElement('button');
+      pieceButton.type = 'button';
+      pieceButton.addEventListener('pointerdown', (event) => {
+        const targetPieceId = String(pieceButton?.dataset?.taflPieceId || '').trim();
+        if (!targetPieceId) {
+          return;
+        }
+        onTaflPiecePointerDown(event, targetPieceId, gameId);
+      });
+      pieceNodesById.set(pieceId, pieceButton);
+    }
+    if (pieceButton.parentElement !== pieceLayer) {
+      pieceLayer.appendChild(pieceButton);
+    }
     pieceButton.className = `tafl-piece tafl-piece-${piece.side || 'attacker'}`;
     pieceButton.setAttribute('aria-label', `${piece.side || 'piece'} piece`);
-    pieceButton.dataset.taflPieceId = String(piece.id || '');
+    pieceButton.dataset.taflPieceId = pieceId;
     pieceButton.dataset.taflGameId = normalizeTaflGameId(gameId);
     pieceButton.style.left = `${(((gridLeftPx + ((piece.col + 0.5) / TAFL_BOARD_SIZE) * gridWidthPx) / boardScreenWidth) * 100).toFixed(4)}%`;
     pieceButton.style.top = `${(((gridTopPx + ((piece.row + 0.5) / TAFL_BOARD_SIZE) * gridHeightPx) / boardRenderHeight) * 100).toFixed(4)}%`;
@@ -10121,17 +11082,25 @@ function renderTaflPiecesForBoard(taflUi, gameState, gameId, boardScreenWidth, b
     pieceButton.style.height = `${pieceSize}px`;
     pieceButton.classList.toggle('is-selected', Boolean(selectedPiece && selectedPiece.id === piece.id));
 
-    const icon = document.createElement('img');
-    icon.src = TAFL_PIECE_ICON_BY_SIDE[piece.side] || TAFL_PIECE_ICON_BY_SIDE.attacker;
-    icon.alt = '';
-    icon.draggable = false;
-    icon.setAttribute('aria-hidden', 'true');
-    pieceButton.appendChild(icon);
-
-    pieceButton.addEventListener('pointerdown', (event) => {
-      onTaflPiecePointerDown(event, piece.id, gameId);
-    });
-    pieceLayer.appendChild(pieceButton);
+    let icon = pieceButton.querySelector('img');
+    if (!(icon instanceof HTMLImageElement)) {
+      icon = document.createElement('img');
+      icon.alt = '';
+      icon.draggable = false;
+      icon.setAttribute('aria-hidden', 'true');
+      pieceButton.appendChild(icon);
+    }
+    const iconSrc = TAFL_PIECE_ICON_BY_SIDE[piece.side] || TAFL_PIECE_ICON_BY_SIDE.attacker;
+    if (icon.getAttribute('src') !== iconSrc) {
+      icon.src = iconSrc;
+    }
+  }
+  for (const [pieceId, pieceElement] of Array.from(pieceNodesById.entries())) {
+    if (nextPieceIds.has(pieceId)) {
+      continue;
+    }
+    pieceElement?.remove();
+    pieceNodesById.delete(pieceId);
   }
 }
 
@@ -10448,17 +11417,7 @@ function syncTaflShellHudThemeStyles(taflUi) {
   }
 }
 
-function renderTaflBoards() {
-  if (!hasLoadedInitialCardsSnapshot) {
-    for (const taflUi of taflBoardElementsById.values()) {
-      taflUi?.shell?.classList.add('hidden');
-      taflUi?.moveButton?.classList.add('hidden');
-      taflUi?.optionsButton?.classList.add('hidden');
-      taflUi?.attackerClaimsList?.classList.add('hidden');
-      taflUi?.defenderClaimsList?.classList.add('hidden');
-    }
-    return;
-  }
+function renderTaflBoards(options = {}) {
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -10489,7 +11448,6 @@ function renderTaflBoards() {
       }
       continue;
     }
-
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
     if (taflUi.shell.classList.contains('is-drag-floating')) {
       taflUi.shell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
@@ -10695,6 +11653,13 @@ function removeGoBoardUi(goUi) {
   lastRenderedGoCaptureFxByGameId.delete(normalizedGameId);
   goPlacementPulseByGameId.delete(normalizedGameId);
   goHoverByGameId.delete(normalizedGameId);
+  if (goUi.stoneNodesByKey instanceof Map) {
+    goUi.stoneNodesByKey.clear();
+  }
+  if (goUi.hoverGhost instanceof HTMLElement) {
+    goUi.hoverGhost.remove();
+  }
+  goUi.hoverGhost = null;
   goUi.shell?.remove();
   goUi.moveButton?.remove();
   goUi.optionsButton?.remove();
@@ -10770,6 +11735,12 @@ function ensureGoBoardUi(gameId, boardSize = GO_BOARD_SIZE_DEFAULT) {
     }
     if (goUi.whiteClaimsList?.parentElement !== tableRoot) {
       tableRoot?.appendChild(goUi.whiteClaimsList);
+    }
+    if (!(goUi.stoneNodesByKey instanceof Map)) {
+      goUi.stoneNodesByKey = new Map();
+    }
+    if (!(goUi.hoverGhost instanceof HTMLElement)) {
+      goUi.hoverGhost = null;
     }
     return goUi;
   }
@@ -11092,6 +12063,8 @@ function ensureGoBoardUi(gameId, boardSize = GO_BOARD_SIZE_DEFAULT) {
     hintLayer,
     fxLayer,
     stoneLayer,
+    stoneNodesByKey: new Map(),
+    hoverGhost: null,
     hud,
     blackClaimButton,
     whiteClaimButton,
@@ -11445,6 +12418,8 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
   ) {
     return;
   }
+  const stoneNodesByKey = goUi?.stoneNodesByKey instanceof Map ? goUi.stoneNodesByKey : new Map();
+  goUi.stoneNodesByKey = stoneNodesByKey;
   const metrics = getGoGridMetrics(boardScreenWidth, boardRenderHeight, boardSize);
   gridLayer.setAttribute('viewBox', `0 0 ${boardScreenWidth} ${boardRenderHeight}`);
   for (let index = 0; index < boardSize; index += 1) {
@@ -11479,8 +12454,6 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
     dot.setAttribute('r', String(starPointRadius));
   }
 
-  stoneLayer.textContent = '';
-  hintLayer.textContent = '';
   const stoneSize = Math.max(7, Math.min(metrics.stepX, metrics.stepY) * 0.9 - 1);
   const stones = normalizeGoStonesPayload(gameState?.stones, boardSize);
   const normalizedGameId = normalizeGoGameId(gameId);
@@ -11501,13 +12474,19 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
     hoverPlacement = analyzeGoPlacementOutcome(stones, hover.row, hover.col, turn, boardSize);
   }
   const capturePreviewKeys = hoverPlacement?.capturedKeysSet instanceof Set ? hoverPlacement.capturedKeysSet : null;
+  const nextStoneKeys = new Set();
   for (const [key, color] of Object.entries(stones)) {
     const position = parseGoBoardKey(key, boardSize);
     const normalizedColor = normalizeGoStoneColor(color);
     if (!position || !normalizedColor) {
       continue;
     }
-    const stone = document.createElement('span');
+    nextStoneKeys.add(key);
+    let stone = stoneNodesByKey.get(key);
+    if (!(stone instanceof HTMLElement)) {
+      stone = document.createElement('span');
+      stoneNodesByKey.set(key, stone);
+    }
     stone.className = `go-stone go-stone-${normalizedColor}`;
     if (capturePreviewKeys?.has(key)) {
       stone.classList.add('is-capture-preview');
@@ -11522,38 +12501,51 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
     setElementStylePx(stone, 'top', y);
     setElementStylePx(stone, 'width', stoneSize);
     setElementStylePx(stone, 'height', stoneSize);
-    stoneLayer.appendChild(stone);
+    if (stone.parentElement !== stoneLayer) {
+      stoneLayer.appendChild(stone);
+    }
+  }
+  for (const [stoneKey, stoneElement] of Array.from(stoneNodesByKey.entries())) {
+    if (nextStoneKeys.has(stoneKey)) {
+      continue;
+    }
+    stoneElement?.remove();
+    stoneNodesByKey.delete(stoneKey);
   }
   if (didApplyPlacementPulse && pulse && pulse.applied !== true) {
     pulse.applied = true;
     goPlacementPulseByGameId.set(normalizedGameId, pulse);
   }
 
+  let hoverGhost = goUi?.hoverGhost instanceof HTMLElement ? goUi.hoverGhost : null;
   if (!hoverPlacement || !hover) {
+    hintLayer.textContent = '';
+    goUi.hoverGhost = null;
     return;
   }
-  const ghost = document.createElement('span');
-  ghost.className = `go-stone go-stone-ghost go-stone-${turn}`;
+  if (!(hoverGhost instanceof HTMLElement)) {
+    hoverGhost = document.createElement('span');
+    goUi.hoverGhost = hoverGhost;
+  }
+  hoverGhost.className = `go-stone go-stone-ghost go-stone-${turn}`;
   const hoverX = metrics.gridLeft + hover.col * metrics.stepX;
   const hoverY = metrics.gridTop + hover.row * metrics.stepY;
-  setElementStylePx(ghost, 'left', hoverX);
-  setElementStylePx(ghost, 'top', hoverY);
-  setElementStylePx(ghost, 'width', stoneSize);
-  setElementStylePx(ghost, 'height', stoneSize);
-  hintLayer.appendChild(ghost);
+  setElementStylePx(hoverGhost, 'left', hoverX);
+  setElementStylePx(hoverGhost, 'top', hoverY);
+  setElementStylePx(hoverGhost, 'width', stoneSize);
+  setElementStylePx(hoverGhost, 'height', stoneSize);
+  for (const child of Array.from(hintLayer.children)) {
+    if (child === hoverGhost) {
+      continue;
+    }
+    child.remove();
+  }
+  if (hoverGhost.parentElement !== hintLayer) {
+    hintLayer.appendChild(hoverGhost);
+  }
 }
 
-function renderGoBoards() {
-  if (!hasLoadedInitialCardsSnapshot) {
-    for (const goUi of goBoardElementsById.values()) {
-      goUi?.shell?.classList.add('hidden');
-      goUi?.moveButton?.classList.add('hidden');
-      goUi?.optionsButton?.classList.add('hidden');
-      goUi?.blackClaimsList?.classList.add('hidden');
-      goUi?.whiteClaimsList?.classList.add('hidden');
-    }
-    return;
-  }
+function renderGoBoards(options = {}) {
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -11585,7 +12577,6 @@ function renderGoBoards() {
       }
       continue;
     }
-
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
     if (goUi.shell.classList.contains('is-drag-floating')) {
       goUi.shell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
@@ -12648,6 +13639,88 @@ function isCardHiddenBySecretAreaForLocalViewer(cardId, cardState) {
   return isWorldPointHiddenBySecretAreaForLocalViewer(worldCenter.x, worldCenter.y, { ignoreCardId: cardId });
 }
 
+function setHoveredSecretAreaCard(cardId) {
+  const nextCardId = String(cardId || '').trim();
+  if (hoveredSecretAreaCardId === nextCardId) {
+    if (nextCardId) {
+      const activeElement = cardElements.get(nextCardId);
+      if (activeElement instanceof HTMLElement && activeElement.classList.contains('is-secret-area-component')) {
+        activeElement.classList.add('is-secret-area-hovered');
+      }
+    }
+    return;
+  }
+  const previousCardId = hoveredSecretAreaCardId;
+  hoveredSecretAreaCardId = nextCardId;
+  if (previousCardId) {
+    const previousElement = cardElements.get(previousCardId);
+    if (previousElement instanceof HTMLElement) {
+      previousElement.classList.remove('is-secret-area-hovered');
+    }
+  }
+  if (nextCardId) {
+    const nextElement = cardElements.get(nextCardId);
+    if (nextElement instanceof HTMLElement && nextElement.classList.contains('is-secret-area-component')) {
+      nextElement.classList.add('is-secret-area-hovered');
+    }
+  }
+}
+
+function getHoveredSecretAreaCardIdAtWorldPoint(worldX, worldY) {
+  const x = Number(worldX);
+  const y = Number(worldY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return '';
+  }
+  let bestCardId = '';
+  let bestZ = Number.NEGATIVE_INFINITY;
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isSecretAreaComponentCard(cardState)) {
+      continue;
+    }
+    if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    const centerX = Number(cardState.x) || WORLD_WIDTH / 2;
+    const centerY = Number(cardState.y) || WORLD_HEIGHT / 2;
+    const cardSize = getCardTableDimensions(cardState);
+    const hovered = isWorldPointInsideSecretAreaRegion(x, y, {
+      cardId,
+      x: centerX,
+      y: centerY,
+      width: cardSize.width,
+      height: cardSize.height,
+      rotationDeg: normalizeStickerRotationDegrees(cardState.componentRotation),
+      ownerPlayerToken: getSecretAreaOwnerPlayerToken(cardState)
+    });
+    if (!hovered) {
+      continue;
+    }
+    const z = Number(cardState.z) || 0;
+    if (!bestCardId || z >= bestZ) {
+      bestCardId = cardId;
+      bestZ = z;
+    }
+  }
+  return bestCardId;
+}
+
+function updateHoveredSecretAreaFromClient(clientX, clientY) {
+  const x = Number(clientX);
+  const y = Number(clientY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    setHoveredSecretAreaCard('');
+    return;
+  }
+  const worldPoint = screenToWorldFromClient(x, y);
+  if (!worldPoint) {
+    setHoveredSecretAreaCard('');
+    return;
+  }
+  const hoveredCardId = getHoveredSecretAreaCardIdAtWorldPoint(worldPoint.x, worldPoint.y);
+  setHoveredSecretAreaCard(hoveredCardId);
+}
+
 function getCardPositionOverflow(cardState) {
   return isStickerComponentCard(cardState) &&
     cardState?.componentCardSized === false &&
@@ -12757,12 +13830,13 @@ function getFaceWhenEnteringHand(cardState) {
 function isResizableImageComponentCard(cardState) {
   const componentType = getCardComponentType(cardState);
   const isResizableComponentType = componentType === 'image' || componentType === 'sticker';
+  const isSecretArea = getCardComponentSubtype(cardState) === SECRET_AREA_COMPONENT_SUBTYPE;
   const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
   return Boolean(
     cardState &&
     isResizableComponentType &&
     !isNoteComponentCard(cardState) &&
-    cardState.componentCardSized === false &&
+    (cardState.componentCardSized === false || isSecretArea) &&
     !isNativeImageComponentLocked(cardState) &&
     !heldByOther &&
     !cardState.inDeck &&
@@ -13138,12 +14212,16 @@ function normalizeCardPayload(payload, cardId = '') {
 
 function removeDieElement(dieId) {
   const die = diceElements.get(dieId);
+  arcadeManaCanvasByDieId.delete(dieId);
+  arcadeManaVisualStateByDieId.delete(dieId);
   if (!die) {
+    dieRenderLogicKeyById.delete(dieId);
     clearMediaPlaybackTrackingForDie(dieId);
     return;
   }
   die.remove();
   diceElements.delete(dieId);
+  dieRenderLogicKeyById.delete(dieId);
   clearMediaPlaybackTrackingForDie(dieId);
 }
 
@@ -13618,6 +14696,375 @@ function renderTimerFaceValue(dieId, dieState, now = Date.now()) {
   }
 }
 
+function getArcadeManaPlayBackground(width, height, displayWidth = width, displayHeight = height) {
+  const normalizedWidth = Math.max(1, Math.round(Number(width) || ARCADE_MANA_CANVAS_WIDTH));
+  const normalizedHeight = Math.max(1, Math.round(Number(height) || ARCADE_MANA_CANVAS_HEIGHT));
+  const normalizedDisplayWidth = Math.max(1, Math.round(Number(displayWidth) || normalizedWidth));
+  const normalizedDisplayHeight = Math.max(1, Math.round(Number(displayHeight) || normalizedHeight));
+  const cacheKey = `${normalizedWidth}x${normalizedHeight}|${normalizedDisplayWidth}x${normalizedDisplayHeight}`;
+  const cached = arcadeManaPlayBackgroundBySizeKey.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const backgroundCanvas = document.createElement('canvas');
+  backgroundCanvas.width = normalizedWidth;
+  backgroundCanvas.height = normalizedHeight;
+  const bgCtx = backgroundCanvas.getContext('2d');
+  if (!(bgCtx instanceof CanvasRenderingContext2D)) {
+    return {
+      canvas: backgroundCanvas,
+      boardLeft: 0,
+      boardTop: 0,
+      boardRight: normalizedWidth,
+      boardBottom: normalizedHeight,
+      boardWidth: normalizedWidth,
+      boardHeight: normalizedHeight,
+      tileWidth: normalizedWidth / ARCADE_MANA_GRID_SIZE,
+      tileHeight: normalizedHeight / ARCADE_MANA_GRID_SIZE
+    };
+  }
+  bgCtx.save();
+  bgCtx.imageSmoothingEnabled = true;
+  bgCtx.imageSmoothingQuality = 'high';
+  bgCtx.clearRect(0, 0, normalizedWidth, normalizedHeight);
+  bgCtx.fillStyle = '#040708';
+  bgCtx.fillRect(0, 0, normalizedWidth, normalizedHeight);
+  bgCtx.fillStyle = 'rgba(78, 115, 98, 0.06)';
+  for (let y = 0; y < normalizedHeight; y += 3) {
+    bgCtx.fillRect(0, y, normalizedWidth, 1);
+  }
+
+  const scaleX = normalizedDisplayWidth / normalizedWidth;
+  const scaleY = normalizedDisplayHeight / normalizedHeight;
+  const visualBoardSize = Math.max(24, Math.min(normalizedDisplayWidth, normalizedDisplayHeight));
+  const boardWidth = visualBoardSize / Math.max(scaleX, 0.0001);
+  const boardHeight = visualBoardSize / Math.max(scaleY, 0.0001);
+  const tileWidth = boardWidth / ARCADE_MANA_GRID_SIZE;
+  const tileHeight = boardHeight / ARCADE_MANA_GRID_SIZE;
+  const boardLeft = Math.floor((normalizedWidth - boardWidth) / 2);
+  const boardTop = Math.floor((normalizedHeight - boardHeight) / 2);
+  const boardRight = boardLeft + boardWidth;
+  const boardBottom = boardTop + boardHeight;
+
+  bgCtx.fillStyle = '#0d1214';
+  bgCtx.fillRect(boardLeft, boardTop, boardWidth, boardHeight);
+  bgCtx.strokeStyle = 'rgba(151, 216, 176, 0.26)';
+  bgCtx.lineWidth = 1;
+  for (let index = 0; index <= ARCADE_MANA_GRID_SIZE; index += 1) {
+    const offset = boardLeft + tileWidth * index;
+    const linePos = Math.round(offset) + 0.5;
+    bgCtx.beginPath();
+    bgCtx.moveTo(linePos, boardTop);
+    bgCtx.lineTo(linePos, boardBottom);
+    bgCtx.stroke();
+
+    const verticalPos = Math.round(boardTop + tileHeight * index) + 0.5;
+    bgCtx.beginPath();
+    bgCtx.moveTo(boardLeft, verticalPos);
+    bgCtx.lineTo(boardRight, verticalPos);
+    bgCtx.stroke();
+  }
+  bgCtx.restore();
+
+  const payload = {
+    canvas: backgroundCanvas,
+    boardLeft,
+    boardTop,
+    boardRight,
+    boardBottom,
+    boardWidth,
+    boardHeight,
+    tileWidth,
+    tileHeight
+  };
+  arcadeManaPlayBackgroundBySizeKey.set(cacheKey, payload);
+  return payload;
+}
+
+function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
+  const entry = arcadeManaCanvasByDieId.get(dieId);
+  if (!entry) {
+    return false;
+  }
+  const { canvas, context } = entry;
+  if (!(canvas instanceof HTMLCanvasElement) || !(context instanceof CanvasRenderingContext2D)) {
+    arcadeManaCanvasByDieId.delete(dieId);
+    arcadeManaVisualStateByDieId.delete(dieId);
+    return false;
+  }
+  const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+  if (screenMode !== ARCADE_SCREEN_MANA_MENU && screenMode !== ARCADE_SCREEN_MANA_PLAY) {
+    arcadeManaCanvasByDieId.delete(dieId);
+    arcadeManaVisualStateByDieId.delete(dieId);
+    return false;
+  }
+
+  if (canvas.width !== ARCADE_MANA_CANVAS_WIDTH || canvas.height !== ARCADE_MANA_CANVAS_HEIGHT) {
+    canvas.width = ARCADE_MANA_CANVAS_WIDTH;
+    canvas.height = ARCADE_MANA_CANVAS_HEIGHT;
+  }
+
+  const ctx = context;
+  const width = canvas.width;
+  const height = canvas.height;
+  const displayWidth = Math.max(1, Math.round(Number(canvas.clientWidth) || width));
+  const displayHeight = Math.max(1, Math.round(Number(canvas.clientHeight) || height));
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.clearRect(0, 0, width, height);
+
+  if (screenMode === ARCADE_SCREEN_MANA_MENU) {
+    // Menu rendering is event-driven (no continuous animation), which keeps text stable.
+    ctx.fillStyle = '#040708';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = 'rgba(78, 115, 98, 0.06)';
+    for (let y = 0; y < height; y += 3) {
+      ctx.fillRect(0, y, width, 1);
+    }
+    const selectedIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+    const pressedOpacity = dieState?.arcadeJPressed === true ? 0.58 : 1;
+    const lineHeight = 34;
+    const startY = Math.floor(height * 0.42);
+
+    ctx.fillStyle = '#a9f3bd';
+    ctx.font = '700 34px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('mana garden', Math.floor(width / 2), Math.floor(height * 0.24));
+
+    for (let index = 0; index < ARCADE_MANA_MENU_OPTION_LABELS.length; index += 1) {
+      const optionText = ARCADE_MANA_MENU_OPTION_LABELS[index];
+      const selected = index === selectedIndex;
+      ctx.globalAlpha = selected ? pressedOpacity : 0.76;
+      ctx.fillStyle = selected ? '#d8ffe3' : '#8fe2aa';
+      ctx.font = '700 28px "Courier New", monospace';
+      ctx.fillText(optionText, Math.floor(width / 2), startY + lineHeight * index);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return true;
+  }
+
+  const playBackground = getArcadeManaPlayBackground(width, height, displayWidth, displayHeight);
+  ctx.drawImage(playBackground.canvas, 0, 0);
+  const boardLeft = playBackground.boardLeft;
+  const boardTop = playBackground.boardTop;
+  const tileWidth = playBackground.tileWidth;
+  const tileHeight = playBackground.tileHeight;
+
+  const localIsController =
+    Boolean(localClientId) &&
+    String(dieState?.arcadeControllerClientId || '').trim() === localClientId;
+  const playerPosition = localIsController
+    ? getArcadeManaPlayerRenderPosition(dieState, now)
+    : getArcadeManaSmoothedRenderPosition(dieId, dieState, now);
+  const tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
+  const looseManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgLooseManaPath);
+  const clearManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgClearManaPath);
+  const phaseActive = dieState?.arcadeMgPhaseActive === true;
+  const phaseStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt);
+  const phaseElapsedMs = phaseStartedAt > 0 ? Math.max(0, now - phaseStartedAt) : Infinity;
+  const phaseProgress = phaseActive && Number.isFinite(phaseElapsedMs)
+    ? clamp(phaseElapsedMs / ARCADE_MANA_PHASE_DURATION_MS, 0, 1)
+    : 0;
+  const phaseVisualActive = phaseActive && phaseProgress < 1;
+  const manaType = normalizeArcadeManaType(dieState?.arcadeMgManaType);
+  const manaTileX = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileX);
+  const manaTileY = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileY);
+  const manaSpriteSrc = manaType === ARCADE_MANA_TYPE_BLACK
+    ? MONS_PIECE_ASSET_BY_TYPE.manaB
+    : MONS_PIECE_ASSET_BY_TYPE.mana;
+  const manaSpriteWidth = Math.max(7, tileWidth * 0.72);
+  const manaSpriteHeight = Math.max(7, tileHeight * 0.72);
+  const manaCenterX = boardLeft + (manaTileX + 0.5) * tileWidth;
+  const manaCenterY = boardTop + (manaTileY + 0.5) * tileHeight;
+  const manaDrawX = manaCenterX - manaSpriteWidth / 2;
+  const manaDrawY = manaCenterY - manaSpriteHeight / 2;
+  const manaScaledSprite = getArcadeScaledSpriteCanvas(manaSpriteSrc, manaSpriteWidth, manaSpriteHeight);
+  if (manaScaledSprite) {
+    ctx.drawImage(manaScaledSprite, manaDrawX, manaDrawY);
+  } else {
+    const manaImage = getArcadeSpriteImage(manaSpriteSrc);
+    if (manaImage && manaImage.complete && manaImage.naturalWidth > 0) {
+      ctx.drawImage(manaImage, manaDrawX, manaDrawY, manaSpriteWidth, manaSpriteHeight);
+    }
+  }
+
+  const drawManaSegments = (segments, options = {}) => {
+    if (!Array.isArray(segments) || segments.length === 0) {
+      return;
+    }
+    const sizeScale = clamp(Number(options?.sizeScale) || 0.66, 0.2, 1.2);
+    const spriteWidth = Math.max(6, tileWidth * sizeScale);
+    const spriteHeight = Math.max(6, tileHeight * sizeScale);
+    const baseAlpha = clamp(Number(options?.alpha) || 1, 0, 1);
+    const flashStartedAt = normalizeArcadeTimestamp(options?.flashStartedAt);
+    const flashing = options?.flashing === true;
+    let flashAlpha = 1;
+    if (flashing && flashStartedAt > 0) {
+      const flashProgress = clamp((now - flashStartedAt) / ARCADE_MANA_SQUARE_CLEAR_FLASH_DURATION_MS, 0, 1);
+      const phase = flashProgress * ARCADE_MANA_SQUARE_CLEAR_FLASH_CYCLES * Math.PI * 2;
+      flashAlpha = 0.25 + 0.75 * ((Math.cos(phase) + 1) * 0.5);
+    }
+    ctx.save();
+    ctx.globalAlpha = baseAlpha * flashAlpha;
+    for (const segment of segments) {
+      const tailCenterX = boardLeft + (segment.x + 0.5) * tileWidth;
+      const tailCenterY = boardTop + (segment.y + 0.5) * tileHeight;
+      const tailDrawX = tailCenterX - spriteWidth / 2;
+      const tailDrawY = tailCenterY - spriteHeight / 2;
+      const tailSpriteSrc = normalizeArcadeManaType(segment.type) === ARCADE_MANA_TYPE_BLACK
+        ? MONS_PIECE_ASSET_BY_TYPE.manaB
+        : MONS_PIECE_ASSET_BY_TYPE.mana;
+      const tailScaledSprite = getArcadeScaledSpriteCanvas(tailSpriteSrc, spriteWidth, spriteHeight);
+      if (tailScaledSprite) {
+        ctx.drawImage(tailScaledSprite, tailDrawX, tailDrawY);
+        continue;
+      }
+      const tailImage = getArcadeSpriteImage(tailSpriteSrc);
+      if (tailImage && tailImage.complete && tailImage.naturalWidth > 0) {
+        ctx.drawImage(tailImage, tailDrawX, tailDrawY, spriteWidth, spriteHeight);
+      }
+    }
+    ctx.restore();
+  };
+
+  drawManaSegments(looseManaSegments, {
+    sizeScale: 0.66,
+    alpha: 0.9
+  });
+  drawManaSegments(tailSegments, {
+    sizeScale: 0.66,
+    alpha: 0.92
+  });
+  drawManaSegments(clearManaSegments, {
+    sizeScale: 0.66,
+    alpha: 1,
+    flashing: true,
+    flashStartedAt: dieState?.arcadeMgClearManaStartedAt
+  });
+
+  const playerCenterX = boardLeft + (playerPosition.x + 0.5) * tileWidth;
+  const playerCenterY = boardTop + (playerPosition.y + 0.5) * tileHeight;
+  const spriteWidth = Math.max(8, tileWidth * 0.9);
+  const spriteHeight = Math.max(8, tileHeight * 0.9);
+  const spriteDrawX = playerCenterX - spriteWidth / 2;
+  const spriteDrawY = playerCenterY - spriteHeight / 2;
+  const playerScaledSprite = getArcadeScaledSpriteCanvas(MONS_PIECE_ASSET_BY_TYPE.drainer, spriteWidth, spriteHeight);
+  const drawPlayerSprite = () => {
+    if (playerScaledSprite) {
+      ctx.drawImage(playerScaledSprite, spriteDrawX, spriteDrawY);
+      return;
+    }
+    const spriteImage = getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.drainer);
+    if (spriteImage && spriteImage.complete && spriteImage.naturalWidth > 0) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(
+        spriteImage,
+        spriteDrawX,
+        spriteDrawY,
+        spriteWidth,
+        spriteHeight
+      );
+      return;
+    }
+    ctx.fillStyle = '#d8ffe3';
+    ctx.fillRect(
+      spriteDrawX,
+      spriteDrawY,
+      spriteWidth,
+      spriteHeight
+    );
+  };
+
+  if (phaseVisualActive) {
+    const spinRadians = phaseProgress * Math.PI * 2;
+    const fadeAmount = 1 - Math.abs(1 - phaseProgress * 2);
+    const alpha = clamp(1 - fadeAmount * (1 - ARCADE_MANA_PHASE_MIN_ALPHA), ARCADE_MANA_PHASE_MIN_ALPHA, 1);
+    ctx.save();
+    ctx.translate(playerCenterX, playerCenterY);
+    ctx.rotate(spinRadians);
+    ctx.globalAlpha *= alpha;
+    const rotatedDrawX = -spriteWidth / 2;
+    const rotatedDrawY = -spriteHeight / 2;
+    if (playerScaledSprite) {
+      ctx.drawImage(playerScaledSprite, rotatedDrawX, rotatedDrawY);
+    } else {
+      const spriteImage = getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.drainer);
+      if (spriteImage && spriteImage.complete && spriteImage.naturalWidth > 0) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(spriteImage, rotatedDrawX, rotatedDrawY, spriteWidth, spriteHeight);
+      } else {
+        ctx.fillStyle = '#d8ffe3';
+        ctx.fillRect(rotatedDrawX, rotatedDrawY, spriteWidth, spriteHeight);
+      }
+    }
+    ctx.restore();
+  } else {
+    drawPlayerSprite();
+  }
+
+  if (dieState?.arcadeMgGameOver === true) {
+    const elapsed = Math.max(0, Number(now) - normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt));
+    const fadeProgress = clamp(elapsed / ARCADE_MANA_GAME_OVER_DELAY_MS, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 0.36 + fadeProgress * 0.42;
+    ctx.fillStyle = '#020304';
+    ctx.fillRect(boardLeft, boardTop, playBackground.boardWidth, playBackground.boardHeight);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#f1ffe8';
+    ctx.font = '700 34px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('game over', Math.floor(width / 2), Math.floor(height / 2));
+    ctx.restore();
+  }
+
+  ctx.restore();
+  return true;
+}
+
+function ensureArcadeManaRenderLoop() {
+  if (arcadeManaRenderRafId) {
+    return;
+  }
+  const step = () => {
+    arcadeManaRenderRafId = 0;
+    if (arcadeManaCanvasByDieId.size === 0) {
+      return;
+    }
+    const now = Date.now();
+    let drewFrame = false;
+    let hasPlayableCanvas = false;
+    for (const [dieId, entry] of Array.from(arcadeManaCanvasByDieId.entries())) {
+      if (!entry?.canvas?.isConnected) {
+        arcadeManaCanvasByDieId.delete(dieId);
+        arcadeManaVisualStateByDieId.delete(dieId);
+        continue;
+      }
+      const dieState = diceById.get(dieId);
+      if (!isArcadeDieState(dieState)) {
+        arcadeManaCanvasByDieId.delete(dieId);
+        arcadeManaVisualStateByDieId.delete(dieId);
+        continue;
+      }
+      const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+      if (screenMode !== ARCADE_SCREEN_MANA_PLAY) {
+        continue;
+      }
+      hasPlayableCanvas = true;
+      drewFrame = drawArcadeManaCanvas(dieId, dieState, now) || drewFrame;
+    }
+    if (drewFrame && hasPlayableCanvas && arcadeManaCanvasByDieId.size > 0) {
+      arcadeManaRenderRafId = window.requestAnimationFrame(step);
+    }
+  };
+  arcadeManaRenderRafId = window.requestAnimationFrame(step);
+}
+
 function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   if (dieType === 'label') {
     return `label|${normalizeLabelText(dieState?.text || '')}`;
@@ -13653,6 +15100,35 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   if (dieType === 'stack-point') {
     return 'stack-point';
   }
+  if (dieType === 'arcade') {
+    const screen = normalizeArcadeScreen(dieState?.arcadeScreen);
+    const menuIndex = clamp(
+      Math.round(Number(dieState?.arcadeMenuIndex) || 0),
+      0,
+      Math.max(0, ARCADE_MENU_OPTION_LABELS.length - 1)
+    );
+    const manaMenuIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    const controllerName = String(dieState?.arcadeControllerName || '').trim().slice(0, 24);
+    const controllerDisplayName = controllerName || (controllerClientId ? 'anon' : '');
+    const controllerColor = normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59');
+    const jPressed = dieState?.arcadeJPressed === true ? 1 : 0;
+    const kPressed = dieState?.arcadeKPressed === true ? 1 : 0;
+    const stickX = normalizeArcadeStickAxis(dieState?.arcadeStickX);
+    const stickY = normalizeArcadeStickAxis(dieState?.arcadeStickY);
+    if (screen === ARCADE_SCREEN_MANA_MENU) {
+      return `arcade|${screen}|${manaMenuIndex}|${jPressed}|${kPressed}|${stickX}|${stickY}`;
+    }
+    if (screen === ARCADE_SCREEN_MANA_SCORES) {
+      return `arcade|${screen}|${getArcadeHighScoreSignature()}`;
+    }
+    if (screen === ARCADE_SCREEN_MANA_PLAY) {
+      // Keep gameplay canvas stable: do not key on transient control input here.
+      // Joystick/button pressed visuals are synced in-place during render.
+      return `arcade|${screen}|${controllerDisplayName}|${controllerColor}`;
+    }
+    return `arcade|${screen}|${menuIndex}|${jPressed}|${kPressed}|${stickX}|${stickY}`;
+  }
   if (dieType === 'marble') {
     return `marble|${normalizeMarbleHue(dieState?.marbleHue)}`;
   }
@@ -13662,12 +15138,58 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   return `d6|${clamp(Math.round(Number(faceValue) || 1), 1, 6)}`;
 }
 
+function syncArcadePlayFaceControls(die, dieState) {
+  if (!(die instanceof HTMLElement)) {
+    return;
+  }
+  if (normalizeDieType(dieState?.type) !== 'arcade') {
+    return;
+  }
+  if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+    return;
+  }
+  const stickVisual = die.querySelector('.table-arcade-stick');
+  if (stickVisual instanceof HTMLElement) {
+    stickVisual.style.setProperty('--arcade-stick-axis-x', String(normalizeArcadeStickAxis(dieState?.arcadeStickX)));
+    stickVisual.style.setProperty('--arcade-stick-axis-y', String(normalizeArcadeStickAxis(dieState?.arcadeStickY)));
+  }
+  const buttonJ = die.querySelector('.table-arcade-button[data-arcade-button="j"]');
+  if (buttonJ instanceof HTMLElement) {
+    buttonJ.classList.toggle('is-pressed', dieState?.arcadeJPressed === true);
+  }
+  const buttonK = die.querySelector('.table-arcade-button[data-arcade-button="k"]');
+  if (buttonK instanceof HTMLElement) {
+    buttonK.classList.toggle('is-pressed', dieState?.arcadeKPressed === true);
+  }
+  const currentScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+  const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+  const personalBest = getArcadeBestScoreForPlayerToken(controllerPlayerToken);
+  const showPersonalBest = personalBest > 0;
+  const ownerScoreCurrent = die.querySelector('.table-arcade-owner-score-current');
+  if (ownerScoreCurrent instanceof HTMLElement) {
+    ownerScoreCurrent.textContent = String(currentScore);
+  }
+  const ownerBestSeparator = die.querySelector('.table-arcade-owner-separator[data-arcade-owner-separator="best"]');
+  if (ownerBestSeparator instanceof HTMLElement) {
+    ownerBestSeparator.classList.toggle('hidden', !showPersonalBest);
+  }
+  const ownerScoreBest = die.querySelector('.table-arcade-owner-score-best');
+  if (ownerScoreBest instanceof HTMLElement) {
+    ownerScoreBest.textContent = String(personalBest);
+    ownerScoreBest.classList.toggle('hidden', !showPersonalBest);
+  }
+}
+
 function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   if (!(die instanceof HTMLElement)) {
     return;
   }
   if (!(face instanceof HTMLElement)) {
     return;
+  }
+  if (dieType !== 'arcade') {
+    arcadeManaCanvasByDieId.delete(dieId);
+    arcadeManaVisualStateByDieId.delete(dieId);
   }
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
@@ -13740,6 +15262,233 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     renderTimerFaceValue(dieId, dieState, Date.now());
     return;
   }
+  if (dieType === 'arcade') {
+    teardownMediaController(dieId);
+    face.classList.remove('table-label-text');
+    const menuIndex = clamp(
+      Math.round(Number(dieState?.arcadeMenuIndex) || 0),
+      0,
+      Math.max(0, ARCADE_MENU_OPTION_LABELS.length - 1)
+    );
+    const manaMenuIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    const controllerName = String(dieState?.arcadeControllerName || '').trim().slice(0, 24);
+    const controllerDisplayName = controllerName || (controllerClientId ? 'anon' : '');
+    const controllerColor = normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59');
+    const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+    const jPressed = dieState?.arcadeJPressed === true;
+    const kPressed = dieState?.arcadeKPressed === true;
+    const stickX = normalizeArcadeStickAxis(dieState?.arcadeStickX);
+    const stickY = normalizeArcadeStickAxis(dieState?.arcadeStickY);
+    face.textContent = '';
+
+    const shell = document.createElement('div');
+    shell.className = 'table-arcade-shell';
+    const showControllerOwner = screenMode === ARCADE_SCREEN_MANA_PLAY && Boolean(controllerDisplayName);
+    shell.classList.toggle('has-owner', showControllerOwner);
+
+    const screen = document.createElement('div');
+    screen.className = 'table-arcade-screen';
+
+    const screenInner = document.createElement('div');
+    screenInner.className = 'table-arcade-screen-inner';
+    screenInner.classList.toggle('is-info-screen', screenMode === ARCADE_SCREEN_INFO);
+    screenInner.classList.toggle('is-scores-screen', screenMode === ARCADE_SCREEN_MANA_SCORES);
+    screenInner.classList.toggle(
+      'is-canvas-screen',
+      screenMode === ARCADE_SCREEN_MANA_MENU || screenMode === ARCADE_SCREEN_MANA_PLAY
+    );
+
+    if (screenMode === ARCADE_SCREEN_MANA_MENU || screenMode === ARCADE_SCREEN_MANA_PLAY) {
+      const canvas = document.createElement('canvas');
+      canvas.className = 'table-arcade-canvas';
+      canvas.width = ARCADE_MANA_CANVAS_WIDTH;
+      canvas.height = ARCADE_MANA_CANVAS_HEIGHT;
+      canvas.setAttribute('aria-hidden', 'true');
+      screenInner.appendChild(canvas);
+      const context = canvas.getContext('2d');
+      if (context) {
+        arcadeManaCanvasByDieId.set(dieId, { canvas, context });
+        drawArcadeManaCanvas(dieId, dieState, Date.now());
+        ensureArcadeManaRenderLoop();
+      } else {
+        arcadeManaCanvasByDieId.delete(dieId);
+        arcadeManaVisualStateByDieId.delete(dieId);
+      }
+    } else if (screenMode === ARCADE_SCREEN_INFO) {
+      arcadeManaCanvasByDieId.delete(dieId);
+      arcadeManaVisualStateByDieId.delete(dieId);
+      const infoLead = document.createElement('div');
+      infoLead.className = 'table-arcade-line table-arcade-line-load';
+      infoLead.textContent = '>info';
+      screenInner.appendChild(infoLead);
+
+      const infoTitle = document.createElement('div');
+      infoTitle.className = 'table-arcade-info-title';
+      infoTitle.textContent = ARCADE_INFO_TITLE_TEXT;
+      screenInner.appendChild(infoTitle);
+
+      const infoSubtext = document.createElement('div');
+      infoSubtext.className = 'table-arcade-info-subtext';
+      infoSubtext.textContent = ARCADE_INFO_SUBTEXT;
+      screenInner.appendChild(infoSubtext);
+    } else if (screenMode === ARCADE_SCREEN_MANA_SCORES) {
+      arcadeManaCanvasByDieId.delete(dieId);
+      arcadeManaVisualStateByDieId.delete(dieId);
+      const scoreLead = document.createElement('div');
+      scoreLead.className = 'table-arcade-line table-arcade-line-load';
+      scoreLead.textContent = '>high scores';
+      screenInner.appendChild(scoreLead);
+
+      const scoreList = document.createElement('div');
+      scoreList.className = 'table-arcade-scores-list';
+      const scoreEntries = getArcadeHighScoreEntries();
+      if (scoreEntries.length === 0) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'table-arcade-score-empty';
+        emptyRow.textContent = 'no scores yet';
+        scoreList.appendChild(emptyRow);
+      } else {
+        for (let index = 0; index < scoreEntries.length; index += 1) {
+          const scoreEntry = scoreEntries[index];
+          const scoreRow = document.createElement('div');
+          scoreRow.className = 'table-arcade-score-row';
+          scoreRow.style.setProperty('--arcade-score-color', scoreEntry.color);
+
+          const rank = document.createElement('span');
+          rank.className = 'table-arcade-score-rank';
+          rank.textContent = `${index + 1}.`;
+          scoreRow.appendChild(rank);
+
+          const name = document.createElement('span');
+          name.className = 'table-arcade-score-name';
+          name.textContent = scoreEntry.name;
+          scoreRow.appendChild(name);
+
+          const value = document.createElement('span');
+          value.className = 'table-arcade-score-value';
+          value.textContent = String(scoreEntry.bestScore);
+          scoreRow.appendChild(value);
+
+          scoreList.appendChild(scoreRow);
+        }
+      }
+      screenInner.appendChild(scoreList);
+
+      const scoreHint = document.createElement('div');
+      scoreHint.className = 'table-arcade-score-hint';
+      scoreHint.textContent = 'press K to return';
+      screenInner.appendChild(scoreHint);
+    } else {
+      arcadeManaCanvasByDieId.delete(dieId);
+      arcadeManaVisualStateByDieId.delete(dieId);
+      const loadLine = document.createElement('div');
+      loadLine.className = 'table-arcade-line table-arcade-line-load';
+      loadLine.textContent = '>load game';
+      screenInner.appendChild(loadLine);
+
+      const spacerLine = document.createElement('div');
+      spacerLine.className = 'table-arcade-line table-arcade-line-spacer';
+      spacerLine.setAttribute('aria-hidden', 'true');
+      spacerLine.textContent = ' ';
+      screenInner.appendChild(spacerLine);
+
+      const options = screenMode === ARCADE_SCREEN_MANA_MENU
+        ? ARCADE_MANA_MENU_OPTION_LABELS
+        : ARCADE_MENU_OPTION_LABELS;
+      const selectedIndex = screenMode === ARCADE_SCREEN_MANA_MENU ? manaMenuIndex : menuIndex;
+      for (let index = 0; index < options.length; index += 1) {
+        const optionLabel = options[index];
+        const optionLine = document.createElement('div');
+        const selected = index === selectedIndex;
+        optionLine.className = 'table-arcade-line table-arcade-line-option';
+        optionLine.classList.toggle('is-selected', selected);
+        optionLine.classList.toggle('is-j-pressed', selected && jPressed);
+        optionLine.textContent = optionLabel;
+        screenInner.appendChild(optionLine);
+      }
+    }
+
+    screen.appendChild(screenInner);
+    shell.appendChild(screen);
+
+    if (showControllerOwner) {
+      const squareClearScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+      const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+      const personalBestScore = getArcadeBestScoreForPlayerToken(controllerPlayerToken);
+      const ownerRow = document.createElement('div');
+      ownerRow.className = 'table-arcade-owner';
+      ownerRow.style.setProperty('--arcade-owner-color', controllerColor);
+      const ownerDot = document.createElement('span');
+      ownerDot.className = 'table-arcade-owner-dot';
+      const ownerLabel = document.createElement('span');
+      ownerLabel.className = 'table-arcade-owner-label';
+      ownerLabel.textContent = controllerDisplayName;
+      const separatorOne = document.createElement('span');
+      separatorOne.className = 'table-arcade-owner-separator';
+      separatorOne.dataset.arcadeOwnerSeparator = 'current';
+      separatorOne.setAttribute('aria-hidden', 'true');
+      const ownerScoreCurrent = document.createElement('span');
+      ownerScoreCurrent.className = 'table-arcade-owner-score table-arcade-owner-score-current';
+      ownerScoreCurrent.textContent = String(squareClearScore);
+      const separatorTwo = document.createElement('span');
+      separatorTwo.className = 'table-arcade-owner-separator';
+      separatorTwo.dataset.arcadeOwnerSeparator = 'best';
+      separatorTwo.setAttribute('aria-hidden', 'true');
+      const ownerScoreBest = document.createElement('span');
+      ownerScoreBest.className = 'table-arcade-owner-score table-arcade-owner-score-best';
+      ownerScoreBest.textContent = String(personalBestScore);
+      const showPersonalBest = personalBestScore > 0;
+      separatorTwo.classList.toggle('hidden', !showPersonalBest);
+      ownerScoreBest.classList.toggle('hidden', !showPersonalBest);
+      ownerRow.appendChild(ownerDot);
+      ownerRow.appendChild(ownerLabel);
+      ownerRow.appendChild(separatorOne);
+      ownerRow.appendChild(ownerScoreCurrent);
+      ownerRow.appendChild(separatorTwo);
+      ownerRow.appendChild(ownerScoreBest);
+      shell.appendChild(ownerRow);
+    }
+
+    const controls = document.createElement('div');
+    controls.className = 'table-arcade-controls';
+
+    const stickBlock = document.createElement('div');
+    stickBlock.className = 'table-arcade-stick-block';
+    const stickVisual = document.createElement('span');
+    stickVisual.className = 'table-arcade-stick';
+    stickVisual.style.setProperty('--arcade-stick-axis-x', String(stickX));
+    stickVisual.style.setProperty('--arcade-stick-axis-y', String(stickY));
+    const stickKnob = document.createElement('span');
+    stickKnob.className = 'table-arcade-stick-knob';
+    stickVisual.appendChild(stickKnob);
+    const stickLabel = document.createElement('span');
+    stickLabel.className = 'table-arcade-control-label';
+    stickLabel.textContent = 'WASD';
+    stickBlock.appendChild(stickVisual);
+    stickBlock.appendChild(stickLabel);
+    controls.appendChild(stickBlock);
+
+    const buttonsBlock = document.createElement('div');
+    buttonsBlock.className = 'table-arcade-buttons-block';
+    const buttonJ = document.createElement('span');
+    buttonJ.className = 'table-arcade-button';
+    buttonJ.dataset.arcadeButton = 'j';
+    buttonJ.classList.toggle('is-pressed', jPressed);
+    buttonJ.textContent = 'J';
+    const buttonK = document.createElement('span');
+    buttonK.className = 'table-arcade-button';
+    buttonK.dataset.arcadeButton = 'k';
+    buttonK.classList.toggle('is-pressed', kPressed);
+    buttonK.textContent = 'K';
+    buttonsBlock.appendChild(buttonJ);
+    buttonsBlock.appendChild(buttonK);
+    controls.appendChild(buttonsBlock);
+
+    shell.appendChild(controls);
+    face.appendChild(shell);
+    return;
+  }
   if (dieType === 'stack-point') {
     teardownMediaController(dieId);
     face.classList.remove('table-label-text');
@@ -13789,6 +15538,11 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       normalizeChipLabelText(dieState?.chipLabel || dieState?.chipValue || '1') ||
       '1';
     const labelColors = getReadableChipLabelColors(chipColor);
+    const chipLabelFontSize = getChipLabelFittedFontSize(chipLabel, {
+      maxWidth: 40,
+      minFontSize: 5.2,
+      maxFontSize: 20
+    });
 
     const shell = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     shell.setAttribute('cx', '50');
@@ -13827,6 +15581,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     text.setAttribute('class', 'table-chip-label');
     text.setAttribute('fill', labelColors.fill);
     text.setAttribute('stroke', labelColors.stroke);
+    text.style.fontSize = `${chipLabelFontSize.toFixed(2)}px`;
     text.textContent = chipLabel;
     svg.appendChild(text);
     return;
@@ -14060,12 +15815,35 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   }
 }
 
-function renderDieElement(dieId) {
+function buildDieRenderLogicKey(dieId, dieState, dieType, dieFaceRenderKey, rolling, timerAnimating) {
+  const dieElement = diceElements.get(dieId);
+  const isLabelEditing = dieElement?.dataset?.labelEditing === '1';
+  return [
+    Number(dieState?.updatedAt) || 0,
+    Number(dieState?.z) || 0,
+    dieState?.holderClientId || '',
+    dieType,
+    dieFaceRenderKey,
+    selectedDiceIds.has(dieId) ? '1' : '0',
+    stackPointDropTargetDieId === dieId ? '1' : '0',
+    resizingLabelDieId === dieId ? '1' : '0',
+    resizingMediaDieId === dieId ? '1' : '0',
+    rotatingLabelDieId === dieId ? '1' : '0',
+    isLabelEditing ? '1' : '0',
+    dieState?.drawLifted === true ? '1' : '0',
+    rolling ? '1' : '0',
+    timerAnimating ? '1' : '0'
+  ].join('|');
+}
+
+function renderDieElement(dieId, options = {}) {
+  const cameraOnly = options?.cameraOnly === true;
   const dieState = diceById.get(dieId);
   if (!dieState) {
     removeDieElement(dieId);
     return false;
   }
+  const dieType = normalizeDieType(dieState.type);
   if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
     if (selectedDiceIds.delete(dieId)) {
       syncSelectionDeleteButtonUi();
@@ -14073,12 +15851,23 @@ function renderDieElement(dieId) {
     removeDieElement(dieId);
     return false;
   }
+  const dimensions = getDieWorldDimensions(dieState);
+  const isVisibleInViewport = isWorldRectLikelyVisible(
+    dieState.x,
+    dieState.y,
+    dimensions.width,
+    dimensions.height,
+    VIEWPORT_CULL_MARGIN_PX
+  );
+  const keepMountedWhenOffscreen = dieType === 'media';
+  if (!isVisibleInViewport && !keepMountedWhenOffscreen && !dieState.holderClientId && !selectedDiceIds.has(dieId)) {
+    removeDieElement(dieId);
+    return false;
+  }
   const die = ensureDieElement(dieId);
   if (!die) {
     return false;
   }
-  const dieType = normalizeDieType(dieState.type);
-  const dimensions = getDieWorldDimensions(dieState);
   const screen = worldToScreen({ x: dieState.x, y: dieState.y });
   const screenWidth = snapToDevicePixel(dimensions.width * camera.scale, 2);
   const screenHeight = snapToDevicePixel(dimensions.height * camera.scale, 2);
@@ -14086,6 +15875,15 @@ function renderDieElement(dieId) {
   setElementStylePx(die, 'top', screen.y);
   setElementStylePx(die, 'width', screenWidth);
   setElementStylePx(die, 'height', screenHeight);
+  if (dieType === 'arcade') {
+    const unitPx = Math.max(
+      0.001,
+      Math.min(screenWidth / DIE_SIZE_ARCADE_WIDTH, screenHeight / DIE_SIZE_ARCADE_HEIGHT)
+    );
+    die.style.setProperty('--arcade-unit', `${unitPx.toFixed(4)}px`);
+  } else {
+    die.style.removeProperty('--arcade-unit');
+  }
 
   const isHeld = Boolean(dieState.holderClientId);
   const heldBySelf = Boolean(localClientId) && dieState.holderClientId === localClientId;
@@ -14120,8 +15918,34 @@ function renderDieElement(dieId) {
   const isSpinner = dieType === 'spinner';
   const isChip = dieType === 'chip';
   const isStackPoint = dieType === 'stack-point';
+  const isArcade = dieType === 'arcade';
   const timerSplitCount = isTimer ? normalizeTimerSplits(dieState?.timerSplits).length : 0;
   const timerHasVisibleSplits = isTimer && (dieState?.timerSplitsVisible === true || timerSplitCount > 0);
+  const timerAnimating = isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) < TIMER_MAX_ELAPSED_MS;
+  const dieLogicRenderKey = buildDieRenderLogicKey(
+    dieId,
+    dieState,
+    dieType,
+    dieFaceRenderKey,
+    rolling,
+    timerAnimating
+  );
+  if (cameraOnly && !rolling && !timerAnimating && dieRenderLogicKeyById.get(dieId) === dieLogicRenderKey) {
+    // Keep label text scale synced during camera-only renders (zoom/pan),
+    // even when no logical die state changed.
+    if (isLabel) {
+      const face = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
+      if (face instanceof HTMLElement) {
+        const fontPx = getLabelFontSizePx(dieState);
+        face.style.fontSize = `${fontPx.toFixed(2)}px`;
+        const activeEditor = face.querySelector('.table-label-editor');
+        if (activeEditor instanceof HTMLTextAreaElement) {
+          activeEditor.style.fontSize = `${fontPx.toFixed(2)}px`;
+        }
+      }
+    }
+    return false;
+  }
   const activeLabelEditor = isLabel ? die.querySelector('.table-label-editor') : null;
   const hasActiveLabelEditor = activeLabelEditor instanceof HTMLTextAreaElement;
   if (isLabel && die.dataset.labelEditing === '1' && !hasActiveLabelEditor) {
@@ -14183,6 +16007,7 @@ function renderDieElement(dieId) {
   die.classList.toggle('table-die-coin', dieType === 'coin');
   die.classList.toggle('table-die-chip', isChip);
   die.classList.toggle('table-die-stack-point', isStackPoint);
+  die.classList.toggle('table-die-arcade', isArcade);
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('table-die-media', isMedia);
@@ -14233,6 +16058,7 @@ function renderDieElement(dieId) {
   die.classList.toggle('is-held-by-self', heldBySelf);
   die.classList.toggle('is-held-by-other', heldByOther);
   die.classList.toggle('is-group-selected', selectedDiceIds.has(dieId));
+  die.classList.toggle('is-arcade-focused', isArcade && activeArcadeDieId === dieId);
   die.classList.toggle('is-rolling', rolling);
   die.classList.toggle('is-resizable-label', canResizeLabel);
   die.classList.toggle('is-resizing-label', isResizingLabel);
@@ -14279,6 +16105,8 @@ function renderDieElement(dieId) {
     die.setAttribute('aria-label', 'spinner');
   } else if (dieType === 'stack-point') {
     die.setAttribute('aria-label', 'stack point');
+  } else if (dieType === 'arcade') {
+    die.setAttribute('aria-label', 'arcade machine');
   } else if (dieType === 'marble') {
     die.setAttribute('aria-label', 'marble');
   } else {
@@ -14321,6 +16149,9 @@ function renderDieElement(dieId) {
   if (die.dataset.faceRenderKey !== dieFaceRenderKey || (isLabel && hasActiveLabelEditor)) {
     renderDieFace(dieId, die, dieFace, dieType, renderedDieValue, dieState);
     die.dataset.faceRenderKey = dieFaceRenderKey;
+  }
+  if (isArcade) {
+    syncArcadePlayFaceControls(die, dieState);
   }
   if (isTimer) {
     renderTimerFaceValue(dieId, dieState, now);
@@ -14391,16 +16222,17 @@ function renderDieElement(dieId) {
     patchLocalDie(dieId, stopPatch);
     queueDiePatch(dieId, stopPatch);
   }
-  const timerAnimating = isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) < TIMER_MAX_ELAPSED_MS;
+  dieRenderLogicKeyById.set(dieId, dieLogicRenderKey);
   return rolling || timerAnimating;
 }
 
-function renderAllDice() {
-  if (!hasLoadedInitialCardsSnapshot) {
-    for (const dieId of Array.from(diceElements.keys())) {
-      removeDieElement(dieId);
+function renderAllDice(options = {}) {
+  const cameraOnly = options?.cameraOnly === true;
+  if (activeArcadeDieId) {
+    const activeArcadeState = diceById.get(activeArcadeDieId);
+    if (normalizeDieType(activeArcadeState?.type) !== 'arcade') {
+      activeArcadeDieId = '';
     }
-    return;
   }
   if (resizingLabelDieId && !diceById.has(resizingLabelDieId)) {
     resizingLabelDieId = '';
@@ -14413,8 +16245,13 @@ function renderAllDice() {
   }
   let hasRolling = false;
   for (const dieId of diceById.keys()) {
-    if (renderDieElement(dieId)) {
-      hasRolling = true;
+    try {
+      if (renderDieElement(dieId, options)) {
+        hasRolling = true;
+      }
+    } catch (error) {
+      console.error('Failed to render die:', dieId, error);
+      removeDieElement(dieId);
     }
   }
   for (const dieId of Array.from(diceElements.keys())) {
@@ -14428,6 +16265,9 @@ function renderAllDice() {
       diceRollAnimationRafId = 0;
       renderAllDice();
     });
+  }
+  if (!hasRolling && cameraOnly) {
+    return;
   }
 }
 
@@ -14652,6 +16492,23 @@ function ensureCardElement(cardId) {
     });
     card.appendChild(rotateControl);
     card._cardRotateControl = rotateControl;
+
+    const moveControl = document.createElement('button');
+    moveControl.type = 'button';
+    moveControl.className = 'table-card-move-control hidden';
+    moveControl.setAttribute('aria-label', 'move secret area');
+    moveControl.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    moveControl.addEventListener('pointerdown', (event) => {
+      onSecretAreaMovePointerDown(event, cardId);
+    });
+    moveControl.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    shieldPointerEvents(moveControl, { allowRightMousePassthrough: true });
+    card.appendChild(moveControl);
+    card._cardMoveControl = moveControl;
 
     card.addEventListener('pointerdown', (event) => {
       onCardPointerDown(event, cardId);
@@ -15100,8 +16957,18 @@ function getHandNoteDrawingLayer(cardId) {
 function removeTableCardElement(cardId) {
   const tableCard = cardElements.get(cardId);
   if (tableCard) {
+    const moveControl =
+      tableCard._cardMoveControl instanceof HTMLElement
+        ? tableCard._cardMoveControl
+        : tableCard.querySelector('.table-card-move-control');
+    if (moveControl instanceof HTMLElement) {
+      moveControl.remove();
+    }
     tableCard.remove();
     cardElements.delete(cardId);
+  }
+  if (hoveredSecretAreaCardId === cardId) {
+    hoveredSecretAreaCardId = '';
   }
   clearCardFlipTimer(cardId);
   clearNoteAttachmentFaceState(cardId);
@@ -15109,6 +16976,7 @@ function removeTableCardElement(cardId) {
   cardFaces.delete(cardId);
   frontDisplayPendingByCard.delete(cardId);
   noteAttachmentRenderKeyByCardId.delete(cardId);
+  cardRenderLogicKeyById.delete(cardId);
 }
 
 function renderLocalHandCards() {
@@ -15126,7 +16994,7 @@ function renderLocalHandCards() {
 
   const sortedLocalHandIds = [];
   for (const [cardId, cardState] of cards.entries()) {
-    if (getCardHandOwnerId(cardState) === localPlayerToken) {
+    if (isCardOwnedByLocalHandOwner(getCardHandOwnerId(cardState))) {
       sortedLocalHandIds.push(cardId);
     }
   }
@@ -15404,7 +17272,34 @@ function animateCardFlip(cardId, card, image, nextSrc) {
   cardFlipTimers.set(cardId, { swapTimer, endTimer });
 }
 
-function renderCardElement(cardId) {
+function buildCardRenderLogicKey(cardId, cardState) {
+  const activeNoteEditState = getActiveNoteEditState();
+  const activeNoteEditToken =
+    activeNoteEditState && activeNoteEditState.cardId === cardId
+      ? `edit:${activeNoteEditState.face === 'back' ? 'b' : 'f'}`
+      : '';
+  return [
+    Number(cardState?.updatedAt) || 0,
+    Number(cardState?.z) || 0,
+    cardState?.face === 'back' ? 'b' : 'f',
+    cardState?.holderClientId || '',
+    getCardHandOwnerId(cardState) || '',
+    cardState?.inDeck ? '1' : '0',
+    cardState?.inDiscard ? '1' : '0',
+    cardState?.inAuction ? '1' : '0',
+    normalizeDeckId(cardState?.deckId),
+    selectedCardIds.has(cardId) ? '1' : '0',
+    handDropPreview?.cardId === cardId ? '1' : '0',
+    discardReturnAnimatingCardIds.has(cardId) ? '1' : '0',
+    resizingImageCardId === cardId ? '1' : '0',
+    rotatingStickerCardId === cardId ? '1' : '0',
+    cardState?.drawLifted === true ? '1' : '0',
+    activeNoteEditToken
+  ].join('|');
+}
+
+function renderCardElement(cardId, options = {}) {
+  const cameraOnly = options?.cameraOnly === true;
   const cardState = cards.get(cardId);
   if (!cardState) {
     removeHandCardElement(cardId);
@@ -15420,7 +17315,7 @@ function renderCardElement(cardId) {
       syncSelectionDeleteButtonUi();
     }
     removeTableCardElement(cardId);
-    if (handOwnerClientId !== localPlayerToken) {
+    if (!isCardOwnedByLocalHandOwner(handOwnerClientId)) {
       removeHandCardElement(cardId);
     }
     noteAttachmentRenderKeyByCardId.delete(cardId);
@@ -15440,28 +17335,32 @@ function renderCardElement(cardId) {
 
   removeHandCardElement(cardId);
 
-  const card = ensureCardElement(cardId);
-  if (!card) {
-    return;
-  }
-  const wasHeldBySelf = card.classList.contains('is-held-by-self');
-
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
   const isCoolStackCard = isCoolJpegsStackCard(cardState);
+  const isSelected = selectedCardIds.has(cardId);
+  const isHeld = Boolean(cardState.holderClientId);
   const isNoteComponent = isNoteComponentCard(cardState);
-  const shouldAlwaysCoverDrawings = !isCoolStackCard && !isNoteComponent && cardDeckState?.coverDrawings === true;
-  const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
   const baseCardSize = getCardTableDimensions(cardState);
   const cardWorldX = cardState.inDeck && cardDeckState ? cardDeckState.x : discardCenter ? discardCenter.x : auctionCenter ? auctionCenter.x : cardState.x;
   const cardWorldY = cardState.inDeck && cardDeckState ? cardDeckState.y : discardCenter ? discardCenter.y : auctionCenter ? auctionCenter.y : cardState.y;
+  const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
+  const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
+  const cardWorldWidth = cardState.inAuction ? auctionCardWorldWidth : baseCardSize.width;
+  const cardWorldHeight = cardState.inAuction ? auctionCardWorldHeight : baseCardSize.height;
+  const card = ensureCardElement(cardId);
+  if (!card) {
+    return;
+  }
+  const wasHeldBySelf = card.classList.contains('is-held-by-self');
+  const shouldAlwaysCoverDrawings = !isCoolStackCard && !isNoteComponent && cardDeckState?.coverDrawings === true;
+  const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
+  const isSecretAreaComponent = isSecretAreaComponentCard(cardState);
   const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
   setElementStylePx(card, 'left', screen.x);
   setElementStylePx(card, 'top', screen.y);
-  const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
-  const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
   const cardScreenWidth = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldWidth * camera.scale)
     : snapToDevicePixel(baseCardSize.width * camera.scale);
@@ -15472,7 +17371,6 @@ function renderCardElement(cardId) {
   setElementStylePx(card, 'height', cardScreenHeight);
   const heldBySelf = Boolean(localClientId) && cardState.holderClientId === localClientId;
   const heldByOther = Boolean(cardState.holderClientId) && cardState.holderClientId !== localClientId;
-  const isHeld = Boolean(cardState.holderClientId);
   if (selectedCardIds.has(cardId) && cardState.holderClientId !== localClientId) {
     selectedCardIds.delete(cardId);
     syncSelectionDeleteButtonUi();
@@ -15484,7 +17382,9 @@ function renderCardElement(cardId) {
     }
   } else {
     let tableCardLayer = cardLayer;
-    if (isCoolStackCard && stackLayer) {
+    if (isSecretAreaComponent && secretAreaLayer) {
+      tableCardLayer = secretAreaLayer;
+    } else if (isCoolStackCard && stackLayer) {
       tableCardLayer = stackLayer;
     } else if (shouldAlwaysCoverDrawings && coverCardLayer) {
       tableCardLayer = coverCardLayer;
@@ -15500,6 +17400,35 @@ function renderCardElement(cardId) {
   const baseZ = clamp(rawBaseZ, 1, DECK_UI_Z_INDEX - 1);
   const renderZ = isHeld && !isCoolStackCard ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
   setElementStyleValue(card, 'zIndex', String(renderZ));
+  const moveControl =
+    card._cardMoveControl instanceof HTMLElement ? card._cardMoveControl : card.querySelector('.table-card-move-control');
+  if (moveControl instanceof HTMLElement) {
+    const useSecretAreaOverlayControl = isSecretAreaComponent && Boolean(tableRoot);
+    moveControl.classList.toggle('hidden', !isSecretAreaComponent);
+    moveControl.classList.toggle('is-secret-area-overlay', useSecretAreaOverlayControl);
+    moveControl.classList.toggle('is-group-selected', isSecretAreaComponent && selectedCardIds.has(cardId));
+    if (useSecretAreaOverlayControl) {
+      if (moveControl.parentElement !== tableRoot) {
+        tableRoot.appendChild(moveControl);
+      }
+      const secretMoveControlSize = 26;
+      setElementStylePx(moveControl, 'left', screen.x + cardScreenWidth / 2 + 8);
+      setElementStylePx(moveControl, 'top', screen.y + cardScreenHeight / 2 - secretMoveControlSize);
+      moveControl.style.removeProperty('right');
+      moveControl.style.removeProperty('bottom');
+    } else {
+      if (moveControl.parentElement !== card) {
+        card.appendChild(moveControl);
+      }
+      moveControl.classList.remove('is-group-selected');
+      moveControl.style.removeProperty('left');
+      moveControl.style.removeProperty('top');
+    }
+  }
+  const logicRenderKey = buildCardRenderLogicKey(cardId, cardState);
+  if (cameraOnly && cardRenderLogicKeyById.get(cardId) === logicRenderKey) {
+    return;
+  }
   card.classList.toggle('is-hand-preview-hidden', handDropPreview?.cardId === cardId);
   card.classList.toggle('is-held-by-self', heldBySelf);
   card.classList.toggle('is-held-by-other', heldByOther);
@@ -15511,7 +17440,6 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-cover-drawings', !isHeld && !isCoolStackCard && shouldAlwaysCoverDrawings);
   const isImageComponent = isImageComponentCard(cardState);
   const isStickerComponent = isStickerComponentCard(cardState);
-  const isSecretAreaComponent = isSecretAreaComponentCard(cardState);
   const isComponentLocked = isNativeImageComponentLocked(cardState);
   const isStickerLocked = isStickerComponent && isComponentLocked;
   const noteCardFace = cardState.face === 'back' ? 'back' : 'front';
@@ -15544,6 +17472,7 @@ function renderCardElement(cardId) {
   card.classList.toggle('is-resizable-image', isResizableImage);
   card.classList.toggle('is-resizing', isResizingThisCard);
   card.classList.toggle('is-rotating', isRotatingThisCard);
+  card.classList.toggle('is-secret-area-hovered', isSecretAreaComponent && hoveredSecretAreaCardId === cardId);
   if (isNoteComponent) {
     if (wasHeldBySelf !== heldBySelf) {
       scheduleNoteAttachmentPickupSync(cardId);
@@ -15589,7 +17518,6 @@ function renderCardElement(cardId) {
     rotateControl.classList.toggle('hidden', !canShowImageRotateControl);
     rotateControl.setAttribute('aria-label', 'rotate image');
   }
-
   const image = card._cardImage instanceof HTMLImageElement ? card._cardImage : card.querySelector('img');
   if (image) {
     if (isStickerComponentNativeMode) {
@@ -15787,6 +17715,7 @@ function renderCardElement(cardId) {
     clearNoteAttachmentFaceState(cardId);
     noteAttachmentRenderKeyByCardId.delete(cardId);
   }
+  cardRenderLogicKeyById.set(cardId, logicRenderKey);
 }
 
 function renderAllCards() {
@@ -15796,7 +17725,14 @@ function renderAllCards() {
   setLocalHandCountLabel();
 }
 
-function renderTableCardsAndDeckControls() {
+function renderTableCardsAndDeckControls(options = {}) {
+  const cameraOnly = options?.cameraOnly === true;
+  const changedCardIds = options?.changedCardIds instanceof Set ? options.changedCardIds : null;
+  const deckMetrics =
+    options?.deckMetrics && options.deckMetrics.metricsByDeck instanceof Map
+      ? options.deckMetrics
+      : buildDeckCardMetrics();
+  const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(deckMetrics.metricsByDeck);
   syncCoverDrawingsGamesLayerState();
   if (resizingImageCardId && !cards.has(resizingImageCardId)) {
     resizingImageCardId = '';
@@ -15804,10 +17740,32 @@ function renderTableCardsAndDeckControls() {
   if (rotatingStickerCardId && !cards.has(rotatingStickerCardId)) {
     rotatingStickerCardId = '';
   }
-  for (const cardId of cards.keys()) {
-    renderCardElement(cardId);
+  let targetCardIds;
+  if (cameraOnly || !changedCardIds) {
+    targetCardIds = cards.keys();
+  } else {
+    const nextTargetIds = new Set(changedCardIds);
+    for (const visibleStackCardId of visibleStackCardIds) {
+      nextTargetIds.add(visibleStackCardId);
+    }
+    for (const renderedCardId of cardElements.keys()) {
+      nextTargetIds.add(renderedCardId);
+    }
+    targetCardIds = nextTargetIds.values();
   }
-  renderDeckControls();
+  for (const cardId of targetCardIds) {
+    renderCardElement(cardId, {
+      cameraOnly,
+      visibleStackCardIds
+    });
+  }
+  for (const cardId of Array.from(cardElements.keys())) {
+    if (cards.has(cardId)) {
+      continue;
+    }
+    removeTableCardElement(cardId);
+  }
+  renderDeckControls(deckMetrics);
 }
 
 function getGridCellSizeForScale(scale) {
@@ -16419,6 +18377,23 @@ function renderAllDrawingStrokes() {
   syncDrawActionButtonsState();
 }
 
+function runCameraRenderStep(stepName, stepFn) {
+  if (typeof stepFn !== 'function') {
+    return;
+  }
+  try {
+    stepFn();
+    cameraRenderStepErrorAt.delete(stepName);
+  } catch (error) {
+    const now = Date.now();
+    const lastLoggedAt = Number(cameraRenderStepErrorAt.get(stepName) || 0);
+    if (!lastLoggedAt || now - lastLoggedAt >= 1500) {
+      console.error(`[camera] render step failed: ${stepName}`, error);
+      cameraRenderStepErrorAt.set(stepName, now);
+    }
+  }
+}
+
 function applyCamera() {
   if (cameraRenderRafId) {
     window.cancelAnimationFrame(cameraRenderRafId);
@@ -16450,28 +18425,31 @@ function applyCamera() {
   if (drawingBackLayer) {
     setElementStyleValue(drawingBackLayer, 'transform', cameraTransform);
   }
-  renderAllDice();
+  // Keep board shells synced with camera even if a component renderer errors.
+  runCameraRenderStep('mons-board', () => renderMonsBoard({ cameraOnly: true }));
+  runCameraRenderStep('tafl-boards', () => renderTaflBoards({ cameraOnly: true }));
+  runCameraRenderStep('go-boards', () => renderGoBoards({ cameraOnly: true }));
+  runCameraRenderStep('dice', () => renderAllDice({ cameraOnly: true }));
   renderChipSets();
-  renderTableCardsAndDeckControls();
+  runCameraRenderStep('cards-and-decks', () => renderTableCardsAndDeckControls({ cameraOnly: true }));
   const viewportWidth = tableRoot?.clientWidth || window.innerWidth || 0;
   if (viewportWidth !== lastRenderedHandTrayWidth) {
-    renderLocalHandCards();
-    setLocalHandCountLabel();
+    runCameraRenderStep('hand-cards', () => renderLocalHandCards());
+    runCameraRenderStep('hand-count', () => setLocalHandCountLabel());
   }
-  renderMonsBoard();
-  renderTaflBoards();
-  renderGoBoards();
   if (selectionBoxElement && !selectionBoxElement.classList.contains('hidden')) {
     const startWorldX = Number(selectionBoxElement.dataset.startWorldX || 0);
     const startWorldY = Number(selectionBoxElement.dataset.startWorldY || 0);
     const endWorldX = Number(selectionBoxElement.dataset.endWorldX || 0);
     const endWorldY = Number(selectionBoxElement.dataset.endWorldY || 0);
-    renderSelectionBox({ x: startWorldX, y: startWorldY }, { x: endWorldX, y: endWorldY });
+    runCameraRenderStep('selection-box', () =>
+      renderSelectionBox({ x: startWorldX, y: startWorldY }, { x: endWorldX, y: endWorldY })
+    );
   }
-  renderSpawnLoadingIndicators();
-  renderAllDots();
-  syncMarbleFlickArrow();
-  scheduleCameraViewPersist();
+  runCameraRenderStep('spawn-loading-indicators', () => renderSpawnLoadingIndicators());
+  runCameraRenderStep('cursor-dots', () => renderAllDots());
+  runCameraRenderStep('marble-flick-arrow', () => syncMarbleFlickArrow());
+  runCameraRenderStep('persist-camera', () => scheduleCameraViewPersist());
 }
 
 function scheduleApplyCamera() {
@@ -17199,6 +19177,7 @@ async function loadStickerManifestIfNeeded() {
       if (isStickerAddModalOpen()) {
         setActiveStickerPack(activeStickerPackKey);
       }
+      warmStickerTileShufflePreviewCache();
       stickerManifestLoadPromise = null;
     }
   })();
@@ -18306,6 +20285,14 @@ goTile?.addEventListener('click', () => {
   });
 });
 
+arcadeMachineTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnArcadeMachine().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
 diceComponentTile?.addEventListener('click', () => {
   openDiceAddModal();
 });
@@ -19090,6 +21077,8 @@ function ensureStickerTileIconLayers(tile) {
     frontIcon.dataset.stickerActive = '1';
     backIcon.dataset.stickerActive = '0';
   }
+  frontIcon.dataset.ignoreAssetLoadTracking = '1';
+  backIcon.dataset.ignoreAssetLoadTracking = '1';
   return { frontIcon, backIcon };
 }
 
@@ -19123,6 +21112,10 @@ function setStickerTileIconSrc(tile, nextSrc, options = {}) {
     return;
   }
   const inactiveIcon = activeIcon === iconPair.frontIcon ? iconPair.backIcon : iconPair.frontIcon;
+  activeIcon.loading = 'eager';
+  inactiveIcon.loading = 'eager';
+  activeIcon.decoding = 'async';
+  inactiveIcon.decoding = 'async';
   const currentVisibleSrc = String(
     tile.dataset.stickerCurrentSrc || activeIcon.getAttribute('src') || ''
   ).trim();
@@ -19146,6 +21139,9 @@ function setStickerTileIconSrc(tile, nextSrc, options = {}) {
   if (currentVisibleSrc === normalizedSrc) {
     delete tile.dataset.stickerPendingSrc;
     return;
+  }
+  if (!isStickerTilePreviewLoaded(normalizedSrc)) {
+    queueStickerTilePreviewPreloadSources([normalizedSrc]);
   }
   if (tile.dataset.stickerShuffleAnimating === '1') {
     tile.dataset.stickerPendingSrc = normalizedSrc;
@@ -19203,6 +21199,101 @@ function resetStickerTileIconToDefault(tile = stickerComponentTile) {
   setStickerTileIconSrc(tile, defaultSrc, { animate: false });
 }
 
+function getStickerTilePreviewSrcFromItem(item) {
+  if (!item || typeof item !== 'object') {
+    return '';
+  }
+  const previewSrc = String(item.previewSrc || '').trim();
+  if (previewSrc) {
+    return previewSrc;
+  }
+  return String(item.src || '').trim();
+}
+
+function isStickerTilePreviewLoaded(src) {
+  const normalizedSrc = String(src || '').trim();
+  if (!normalizedSrc) {
+    return false;
+  }
+  return stickerTilePreloadStatusBySrc.get(normalizedSrc) === 'loaded';
+}
+
+function scheduleStickerTilePreloadPump() {
+  if (stickerTilePreloadPumpTimerId || stickerTilePreloadQueue.length === 0) {
+    return;
+  }
+  const runPump = () => {
+    stickerTilePreloadPumpTimerId = 0;
+    let processed = 0;
+    while (stickerTilePreloadQueue.length > 0 && processed < 10) {
+      const nextSrc = String(stickerTilePreloadQueue.shift() || '').trim();
+      if (!nextSrc) {
+        continue;
+      }
+      stickerTilePreloadQueuedSources.delete(nextSrc);
+      if (stickerTilePreloadStatusBySrc.get(nextSrc) === 'loaded') {
+        continue;
+      }
+      if (stickerTilePreloadStatusBySrc.get(nextSrc) === 'loading') {
+        continue;
+      }
+      stickerTilePreloadStatusBySrc.set(nextSrc, 'loading');
+      const preloadImage = new Image();
+      preloadImage.decoding = 'async';
+      preloadImage.loading = 'eager';
+      const settle = (loaded) => {
+        stickerTilePreloadStatusBySrc.set(nextSrc, loaded ? 'loaded' : 'error');
+      };
+      preloadImage.addEventListener('load', () => settle(true), { once: true });
+      preloadImage.addEventListener('error', () => settle(false), { once: true });
+      preloadImage.src = nextSrc;
+      if (preloadImage.complete && (preloadImage.naturalWidth > 0 || preloadImage.naturalHeight > 0)) {
+        settle(true);
+      }
+      processed += 1;
+    }
+    if (stickerTilePreloadQueue.length > 0) {
+      scheduleStickerTilePreloadPump();
+    }
+  };
+  stickerTilePreloadPumpTimerId = window.setTimeout(runPump, 0);
+}
+
+function queueStickerTilePreviewPreloadSources(sources) {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return;
+  }
+  for (const rawSrc of sources) {
+    const src = String(rawSrc || '').trim();
+    if (!src) {
+      continue;
+    }
+    const status = stickerTilePreloadStatusBySrc.get(src);
+    if (status === 'loaded' || status === 'loading' || stickerTilePreloadQueuedSources.has(src)) {
+      continue;
+    }
+    stickerTilePreloadQueuedSources.add(src);
+    stickerTilePreloadQueue.push(src);
+  }
+  scheduleStickerTilePreloadPump();
+}
+
+function warmStickerTileShufflePreviewCache() {
+  const buckets = getStickerTileShuffleBuckets();
+  const allSources = [];
+  for (const bucket of buckets) {
+    if (!Array.isArray(bucket)) {
+      continue;
+    }
+    for (const src of bucket) {
+      if (src) {
+        allSources.push(src);
+      }
+    }
+  }
+  queueStickerTilePreviewPreloadSources(allSources);
+}
+
 function getStickerTileShuffleBuckets() {
   const packOrder = [STICKER_PACK_PLAY_THINGS, STICKER_PACK_SWAG, STICKER_PACK_EMOJI];
   return packOrder.map((packKey) => {
@@ -19210,7 +21301,7 @@ function getStickerTileShuffleBuckets() {
     const seen = new Set();
     const sources = [];
     for (const item of entry.all || []) {
-      const src = String(item?.src || '').trim();
+      const src = getStickerTilePreviewSrcFromItem(item);
       if (!src || seen.has(src)) {
         continue;
       }
@@ -19228,6 +21319,21 @@ function pickRandomStickerTileShuffleSrc(currentSrc = '') {
   if (nonEmptyBuckets.length === 0) {
     return '';
   }
+  const pickFromBucket = (bucket, excludeSrc = '') => {
+    if (!Array.isArray(bucket) || bucket.length === 0) {
+      return '';
+    }
+    const normalizedExclude = String(excludeSrc || '').trim();
+    const loadedCandidates = bucket.filter((src) => isStickerTilePreviewLoaded(src) && src !== normalizedExclude);
+    if (loadedCandidates.length > 0) {
+      return loadedCandidates[Math.floor(Math.random() * loadedCandidates.length)];
+    }
+    const allCandidates = bucket.filter((src) => src && src !== normalizedExclude);
+    if (allCandidates.length > 0) {
+      return allCandidates[Math.floor(Math.random() * allCandidates.length)];
+    }
+    return '';
+  };
   const selectedBucket =
     buckets.length === 3 && buckets.every((bucket) => bucket.length > 0)
       ? buckets[Math.floor(Math.random() * 3)]
@@ -19235,22 +21341,20 @@ function pickRandomStickerTileShuffleSrc(currentSrc = '') {
   if (selectedBucket.length === 0) {
     return '';
   }
-  let nextSrc = selectedBucket[Math.floor(Math.random() * selectedBucket.length)];
-  if (selectedBucket.length > 1 && nextSrc === normalizedCurrentSrc) {
-    let guard = 0;
-    while (nextSrc === normalizedCurrentSrc && guard < 10) {
-      nextSrc = selectedBucket[Math.floor(Math.random() * selectedBucket.length)];
-      guard += 1;
-    }
-  }
+  let nextSrc = pickFromBucket(selectedBucket, normalizedCurrentSrc);
   if (nextSrc === normalizedCurrentSrc) {
     const alternateBuckets = nonEmptyBuckets.filter((bucket) => bucket.some((src) => src !== normalizedCurrentSrc));
     if (alternateBuckets.length > 0) {
       const altBucket = alternateBuckets[Math.floor(Math.random() * alternateBuckets.length)];
-      const filteredSources = altBucket.filter((src) => src !== normalizedCurrentSrc);
-      if (filteredSources.length > 0) {
-        nextSrc = filteredSources[Math.floor(Math.random() * filteredSources.length)];
-      }
+      nextSrc = pickFromBucket(altBucket, normalizedCurrentSrc);
+    }
+  }
+  if (!nextSrc || nextSrc === normalizedCurrentSrc) {
+    const globalLoadedCandidates = nonEmptyBuckets
+      .flat()
+      .filter((src) => src && src !== normalizedCurrentSrc && isStickerTilePreviewLoaded(src));
+    if (globalLoadedCandidates.length > 0) {
+      nextSrc = globalLoadedCandidates[Math.floor(Math.random() * globalLoadedCandidates.length)];
     }
   }
   return String(nextSrc || '').trim();
@@ -19279,6 +21383,7 @@ function initializeStickerTileIconShuffle(tile) {
   const shuffleIntervalMs = 420;
 
   setStickerTileIconSrc(tile, defaultSrc, { animate: false });
+  warmStickerTileShufflePreviewCache();
   tile.addEventListener('pointermove', (event) => {
     if (Number.isFinite(lastPointerX) && Number.isFinite(lastPointerY)) {
       accumulatedDistance += Math.hypot(event.clientX - lastPointerX, event.clientY - lastPointerY);
@@ -19306,6 +21411,9 @@ function initializeStickerTileIconShuffle(tile) {
     lastPointerX = Number.NaN;
     lastPointerY = Number.NaN;
     accumulatedDistance = 0;
+  });
+  tile.addEventListener('pointerenter', () => {
+    warmStickerTileShufflePreviewCache();
   });
 }
 
@@ -19351,6 +21459,7 @@ initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(hnefataflTile);
 initializeTileTilt(goTile);
+initializeTileTilt(arcadeMachineTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(spinnerComponentTile);
@@ -19661,8 +21770,22 @@ function getTrackableAssetElementSrc(element) {
   return '';
 }
 
+function isStickerTileIconAssetElement(element) {
+  if (!(element instanceof HTMLImageElement)) {
+    return false;
+  }
+  if (!element.classList.contains('asset-component-icon-sticker')) {
+    return false;
+  }
+  return Boolean(element.closest('#stickerComponentTile'));
+}
+
 function trackAssetElementLoadIfNeeded(element) {
   if (!(element instanceof HTMLImageElement || element instanceof HTMLIFrameElement)) {
+    return;
+  }
+  if (isStickerTileIconAssetElement(element)) {
+    clearTrackedAssetElementLoad(element);
     return;
   }
 
@@ -20029,6 +22152,9 @@ function shieldPointerEvents(element, options = {}) {
       return;
     }
     if (options.allowMiddleMousePan && event.pointerType === 'mouse' && event.button === 1) {
+      return;
+    }
+    if (options.allowRightMousePassthrough && event.pointerType === 'mouse' && event.button === 2) {
       return;
     }
     event.stopPropagation();
@@ -20458,6 +22584,7 @@ async function startRealtimeSession() {
   const decksRef = ref(db, `${roomPath}/decks`);
   const chipSetsRef = ref(db, `${roomPath}/chipSets`);
   const gamesRef = ref(db, `${roomPath}/games`);
+  const arcadeScoresRef = ref(db, `${roomPath}/arcadeScores`);
   const roomMetaRef = ref(db, `${roomPath}/meta`);
   const roomPresenceRef = ref(db, `${roomPath}/presence`);
   const connectedRef = ref(db, '.info/connected');
@@ -20498,6 +22625,64 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     return Boolean(result?.committed);
+  };
+
+  const recordArcadeBestScoreForPlayer = async (playerToken, playerName, playerColor, scoreValue) => {
+    const normalizedToken = normalizeArcadePlayerToken(playerToken);
+    const normalizedScore = Math.max(0, Math.round(Number(scoreValue) || 0));
+    if (!normalizedToken || normalizedScore <= 0) {
+      return false;
+    }
+    const existingBest = getArcadeBestScoreForPlayerToken(normalizedToken);
+    if (normalizedScore <= existingBest) {
+      return false;
+    }
+    if (arcadeBestScoreWriteInFlightByPlayerToken.has(normalizedToken)) {
+      return false;
+    }
+    arcadeBestScoreWriteInFlightByPlayerToken.add(normalizedToken);
+    try {
+      const normalizedName = String(playerName || '').trim().slice(0, 24) || 'anon';
+      const normalizedColor = normalizeHexColor(playerColor || '#ff7a59');
+      const playerScoreRef = ref(db, `${roomPath}/arcadeScores/${normalizedToken}`);
+      const result = await runTransaction(
+        playerScoreRef,
+        (current) => {
+          const base = current && typeof current === 'object' ? { ...current } : {};
+          const previousBest = Math.max(0, Math.round(Number(base.bestScore) || 0));
+          const nextBest = Math.max(previousBest, normalizedScore);
+          if (nextBest <= 0) {
+            return base;
+          }
+          return {
+            ...base,
+            bestScore: nextBest,
+            name: normalizedName,
+            color: normalizedColor,
+            updatedAt: Date.now()
+          };
+        },
+        { applyLocally: false }
+      );
+      if (result?.committed) {
+        const payload = result.snapshot?.val();
+        const nextBest = Math.max(0, Math.round(Number(payload?.bestScore) || normalizedScore));
+        if (nextBest > 0) {
+          arcadeBestScoresByPlayerToken.set(normalizedToken, {
+            bestScore: nextBest,
+            name: String(payload?.name || normalizedName).trim().slice(0, 24) || 'anon',
+            color: normalizeHexColor(payload?.color || normalizedColor),
+            updatedAt: Math.max(0, Math.floor(Number(payload?.updatedAt) || Date.now()))
+          });
+        }
+      }
+      return Boolean(result?.committed);
+    } catch (error) {
+      console.error(error);
+      return false;
+    } finally {
+      arcadeBestScoreWriteInFlightByPlayerToken.delete(normalizedToken);
+    }
   };
 
   function buildPayload(position = localPosition) {
@@ -20645,8 +22830,11 @@ async function startRealtimeSession() {
   let cardWriteScheduled = false;
   const pendingCardWrites = new Map();
   let cardWriteRetryTimerId = 0;
+  let lastCardWriteFlushAt = 0;
   let dieWriteScheduled = false;
   const pendingDieWrites = new Map();
+  let dieWriteRetryTimerId = 0;
+  let lastDieWriteFlushAt = 0;
   let cardWriteGeneration = 0;
   let dieWriteGeneration = 0;
   let cardDragState = null;
@@ -20677,6 +22865,9 @@ async function startRealtimeSession() {
   let handReclaimIntervalId = 0;
   let cursorHeartbeatIntervalId = 0;
   let localLockWatchdogIntervalId = 0;
+  let hasLegacyDeckRootFormat = false;
+  let legacyDeckMigrationInFlight = false;
+  let lastLegacyDeckMigrationAttemptAt = 0;
   const endedTouchPointerIds = new Set();
   const endedPointerAtById = new Map();
   const pointerPressSerialById = new Map();
@@ -20720,9 +22911,101 @@ async function startRealtimeSession() {
   const staleCardLockRecoveryInFlight = new Set();
   const staleDieLockRecoveryAttemptAtById = new Map();
   const staleDieLockRecoveryInFlight = new Set();
+  const staleDeckLockRecoveryAttemptAtById = new Map();
+  const staleDeckLockRecoveryInFlight = new Set();
   let staleCardLockSweepInProgress = false;
   let staleDieLockSweepInProgress = false;
   let hasSignaledSessionLeave = false;
+
+  function runStateRenderSafely(stepName, renderFn) {
+    if (typeof renderFn !== 'function') {
+      return;
+    }
+    try {
+      renderFn();
+    } catch (error) {
+      console.error(`[state-render] ${stepName}`, error);
+    }
+  }
+
+  function isLegacyDeckRootPayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return false;
+    }
+    return (
+      Number.isFinite(Number(payload.x)) ||
+      Number.isFinite(Number(payload.y))
+    );
+  }
+
+  function shouldUseLegacyDeckRootPath(deckId = activeDeckId) {
+    return hasLegacyDeckRootFormat && normalizeDeckId(deckId) === DECK_KEY;
+  }
+
+  function getDeckNodeRef(deckId = activeDeckId) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (shouldUseLegacyDeckRootPath(normalizedDeckId)) {
+      return decksRef;
+    }
+    return ref(db, `${roomPath}/decks/${normalizedDeckId}`);
+  }
+
+  function getDeckHolderRef(deckId = activeDeckId) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (shouldUseLegacyDeckRootPath(normalizedDeckId)) {
+      return ref(db, `${roomPath}/decks/holderClientId`);
+    }
+    return ref(db, `${roomPath}/decks/${normalizedDeckId}/holderClientId`);
+  }
+
+  function buildMigratedDeckPayloadFromLegacyRoot(legacyRootPayload) {
+    if (!isLegacyDeckRootPayload(legacyRootPayload)) {
+      return null;
+    }
+    const migrated = {};
+    const explicitPrimaryDeckPayload =
+      legacyRootPayload[DECK_KEY] && typeof legacyRootPayload[DECK_KEY] === 'object'
+        ? legacyRootPayload[DECK_KEY]
+        : legacyRootPayload;
+    migrated[DECK_KEY] = normalizeDeckPayload(explicitPrimaryDeckPayload, DECK_KEY);
+    for (const [rawDeckId, rawDeckPayload] of Object.entries(legacyRootPayload)) {
+      if (rawDeckId === DECK_KEY || LEGACY_DECK_ROOT_FIELDS.includes(rawDeckId)) {
+        continue;
+      }
+      if (!rawDeckPayload || typeof rawDeckPayload !== 'object') {
+        continue;
+      }
+      const normalizedDeckId = normalizeDeckId(rawDeckId);
+      migrated[normalizedDeckId] = normalizeDeckPayload(rawDeckPayload, normalizedDeckId);
+    }
+    return migrated;
+  }
+
+  function scheduleLegacyDeckRootMigration(legacyRootPayload) {
+    if (!isLegacyDeckRootPayload(legacyRootPayload)) {
+      return;
+    }
+    if (legacyDeckMigrationInFlight) {
+      return;
+    }
+    const now = Date.now();
+    if (now - lastLegacyDeckMigrationAttemptAt < LEGACY_DECK_MIGRATION_RETRY_MS) {
+      return;
+    }
+    const migratedPayload = buildMigratedDeckPayloadFromLegacyRoot(legacyRootPayload);
+    if (!migratedPayload || Object.keys(migratedPayload).length === 0) {
+      return;
+    }
+    legacyDeckMigrationInFlight = true;
+    lastLegacyDeckMigrationAttemptAt = now;
+    set(decksRef, migratedPayload)
+      .catch((error) => {
+        console.error('[deck-migration] failed to migrate legacy deck root payload', error);
+      })
+      .finally(() => {
+        legacyDeckMigrationInFlight = false;
+      });
+  }
 
   function getMonsGameRef(gameId = activeMonsGameId) {
     const normalizedGameId = normalizeMonsGameId(gameId);
@@ -22844,6 +25127,94 @@ function closeNoteEditor(options = {}) {
     return Boolean(latestDie) && !latestDie.holderClientId;
   }
 
+  async function tryRecoverStaleDeckLock(deckId, expectedHolderClientId = '') {
+    const targetDeckId = normalizeDeckId(deckId);
+    if (!targetDeckId) {
+      return false;
+    }
+    if (!hasLoadedPresenceSnapshot && !hasLoadedCursorSnapshot) {
+      return false;
+    }
+
+    const currentDeck = getDeckStateById(targetDeckId);
+    if (!currentDeck) {
+      return false;
+    }
+
+    const currentHolder = typeof currentDeck.holderClientId === 'string' ? currentDeck.holderClientId : '';
+    const expectedHolder = String(expectedHolderClientId || '').trim();
+    const lockHolder = currentHolder || expectedHolder;
+    if (!lockHolder || lockHolder === clientId) {
+      return true;
+    }
+
+    const now = Date.now();
+    const deckUpdatedAt = Number(currentDeck.updatedAt) || 0;
+    const lockAgeMs = deckUpdatedAt > 0 ? now - deckUpdatedAt : 0;
+    const shouldForceRecoveryByAge =
+      deckUpdatedAt <= 0 ||
+      (Number.isFinite(lockAgeMs) && lockAgeMs >= DECK_LOCK_FORCE_RECOVERY_MS);
+
+    if (!shouldForceRecoveryByAge && isClientSessionLikelyActive(lockHolder, now)) {
+      return false;
+    }
+
+    const lastAttemptAt = staleDeckLockRecoveryAttemptAtById.get(targetDeckId) || 0;
+    if (now - lastAttemptAt < CARD_STALE_LOCK_RECOVERY_RETRY_MS) {
+      return false;
+    }
+    if (staleDeckLockRecoveryInFlight.has(targetDeckId)) {
+      return false;
+    }
+
+    staleDeckLockRecoveryAttemptAtById.set(targetDeckId, now);
+    staleDeckLockRecoveryInFlight.add(targetDeckId);
+    try {
+      const deckRef = getDeckNodeRef(targetDeckId);
+      const result = await runTransaction(
+        deckRef,
+        (snapshotDeck) => {
+          if (!snapshotDeck || typeof snapshotDeck !== 'object') {
+            return;
+          }
+          const snapshotHolder =
+            typeof snapshotDeck.holderClientId === 'string' && snapshotDeck.holderClientId
+              ? snapshotDeck.holderClientId
+              : '';
+          if (!snapshotHolder || snapshotHolder === clientId) {
+            return snapshotDeck;
+          }
+          if (snapshotHolder !== lockHolder) {
+            return;
+          }
+          return {
+            ...snapshotDeck,
+            holderClientId: null,
+            updatedAt: Date.now()
+          };
+        },
+        { applyLocally: false }
+      );
+      if (result.committed) {
+        const nextHolder =
+          typeof result.snapshot.val()?.holderClientId === 'string' && result.snapshot.val()?.holderClientId
+            ? result.snapshot.val().holderClientId
+            : '';
+        if (!nextHolder) {
+          patchLocalDeck({ holderClientId: null }, targetDeckId);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      staleDeckLockRecoveryInFlight.delete(targetDeckId);
+    }
+
+    const latestDeck = getDeckStateById(targetDeckId);
+    return Boolean(latestDeck) && !latestDeck.holderClientId;
+  }
+
   async function sweepStaleRemoteCardLocks() {
     if (staleCardLockSweepInProgress || hasActiveCardInteraction()) {
       return;
@@ -23221,7 +25592,7 @@ function closeNoteEditor(options = {}) {
   function getLocalHandIdsSortedByZ() {
     const localHandIds = [];
     for (const [cardId, cardState] of cards.entries()) {
-      if (getCardHandOwnerId(cardState) === localPlayerToken) {
+      if (isCardOwnedByLocalHandOwner(getCardHandOwnerId(cardState))) {
         localHandIds.push(cardId);
       }
     }
@@ -23553,29 +25924,51 @@ function closeNoteEditor(options = {}) {
     if (pendingCardWrites.size === 0) {
       return;
     }
-    for (const [pendingCardId, pendingPatch] of pendingCardWrites.entries()) {
-      pendingCardWrites.delete(pendingCardId);
-      update(ref(db, `${roomPath}/cards/${pendingCardId}`), {
-        ...pendingPatch,
-        updatedAt: serverTimestamp()
-      }).catch((error) => {
-        console.error(error);
-        setRealtimeStatus('firebase: write blocked');
-        if (isTableResetting || scheduledGeneration !== cardWriteGeneration) {
-          return;
+    const pendingEntries = Array.from(pendingCardWrites.entries());
+    pendingCardWrites.clear();
+    const updatesByPath = {};
+    const updatedAtStamp = serverTimestamp();
+    for (const [pendingCardId, pendingPatch] of pendingEntries) {
+      if (!pendingCardId || !pendingPatch || typeof pendingPatch !== 'object') {
+        continue;
+      }
+      for (const [patchKey, patchValue] of Object.entries(pendingPatch)) {
+        if (typeof patchValue === 'undefined') {
+          continue;
+        }
+        updatesByPath[`${pendingCardId}/${patchKey}`] = patchValue;
+      }
+      updatesByPath[`${pendingCardId}/updatedAt`] = updatedAtStamp;
+    }
+    if (Object.keys(updatesByPath).length === 0) {
+      return;
+    }
+    lastCardWriteFlushAt = Date.now();
+    update(cardsRef, updatesByPath).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+      if (isTableResetting || scheduledGeneration !== cardWriteGeneration) {
+        return;
+      }
+      for (const [pendingCardId, pendingPatch] of pendingEntries) {
+        if (!pendingCardId || !pendingPatch || typeof pendingPatch !== 'object') {
+          continue;
         }
         const nextQueuedPatch = pendingCardWrites.get(pendingCardId) || {};
         pendingCardWrites.set(pendingCardId, { ...pendingPatch, ...nextQueuedPatch });
-        scheduleCardPatchFlush(CARD_WRITE_RETRY_DELAY_MS);
-      });
-    }
+      }
+      scheduleCardPatchFlush(CARD_WRITE_RETRY_DELAY_MS);
+    });
   }
 
-  function scheduleCardPatchFlush(delayMs = 0) {
+  function scheduleCardPatchFlush(delayMs = PATCH_FLUSH_INTERVAL_MS) {
     if (isTableResetting || pendingCardWrites.size === 0) {
       return;
     }
-    if (delayMs > 0) {
+    const requestedDelay = Math.max(0, Number(delayMs) || 0);
+    const throttleDelay = Math.max(0, PATCH_FLUSH_INTERVAL_MS - (Date.now() - lastCardWriteFlushAt));
+    const effectiveDelay = Math.max(requestedDelay, throttleDelay);
+    if (effectiveDelay > 0) {
       if (cardWriteRetryTimerId || cardWriteScheduled) {
         return;
       }
@@ -23590,7 +25983,7 @@ function closeNoteEditor(options = {}) {
           cardWriteScheduled = false;
           flushQueuedCardPatches(scheduledGeneration);
         });
-      }, Math.max(0, Number(delayMs) || 0));
+      }, effectiveDelay);
       return;
     }
     if (cardWriteRetryTimerId) {
@@ -23624,6 +26017,213 @@ function closeNoteEditor(options = {}) {
     scheduleCardPatchFlush();
   }
 
+  function buildImmediateCardPersistPatch(cardId) {
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId) {
+      return null;
+    }
+    const currentCard = cards.get(normalizedCardId);
+    if (!currentCard || typeof currentCard !== 'object') {
+      return null;
+    }
+    const cardSize = getCardTableDimensions(currentCard);
+    const cardBounds = getCardPositionBounds(currentCard, cardSize.width, cardSize.height);
+    const nextX = clamp(
+      Number(currentCard.x) || WORLD_WIDTH / 2,
+      cardBounds.minX,
+      cardBounds.maxX
+    );
+    const nextY = clamp(
+      Number(currentCard.y) || WORLD_HEIGHT / 2,
+      cardBounds.minY,
+      cardBounds.maxY
+    );
+    const nextPatch = {
+      x: nextX,
+      y: nextY,
+      z: Number.isFinite(Number(currentCard.z)) ? Number(currentCard.z) : 1,
+      face: currentCard.face === 'front' ? 'front' : 'back',
+      deckId: getCardDeckId(currentCard),
+      inDeck: Boolean(currentCard.inDeck),
+      inDiscard: Boolean(currentCard.inDiscard),
+      inAuction: Boolean(currentCard.inAuction),
+      holderClientId:
+        typeof currentCard.holderClientId === 'string' && currentCard.holderClientId
+          ? currentCard.holderClientId
+          : null,
+      handOwnerClientId:
+        typeof currentCard.handOwnerClientId === 'string' && currentCard.handOwnerClientId
+          ? currentCard.handOwnerClientId
+          : null,
+      handOwnerPlayerToken: getCardHandOwnerId(currentCard) || null
+    };
+    if (isVisualImageComponentCard(currentCard)) {
+      const componentType = getCardComponentType(currentCard);
+      const componentSubtype = getCardComponentSubtype(currentCard);
+      if (componentType) {
+        nextPatch.componentType = componentType;
+      }
+      if (componentSubtype) {
+        nextPatch.componentSubtype = componentSubtype;
+      }
+      nextPatch.componentCardSized = currentCard.componentCardSized !== false;
+      nextPatch.componentWidth = Math.max(1, Number(currentCard.componentWidth) || cardSize.width);
+      nextPatch.componentHeight = Math.max(1, Number(currentCard.componentHeight) || cardSize.height);
+      nextPatch.componentRotation =
+        currentCard.componentCardSized === false
+          ? normalizeStickerRotationDegrees(currentCard.componentRotation)
+          : 0;
+      if (isSecretAreaComponentCard(currentCard)) {
+        nextPatch.componentCardSized = false;
+      }
+    }
+    return nextPatch;
+  }
+
+  function persistCardStateImmediately(cardId) {
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId) {
+      return;
+    }
+    const nextPatch = buildImmediateCardPersistPatch(normalizedCardId);
+    if (!nextPatch) {
+      return;
+    }
+
+    const queuedPatch = pendingCardWrites.get(normalizedCardId) || {};
+    pendingCardWrites.set(normalizedCardId, { ...queuedPatch, ...nextPatch });
+    scheduleCardPatchFlush(0);
+
+    const writeCardPatch = () => {
+      const latestPatch = buildImmediateCardPersistPatch(normalizedCardId);
+      if (!latestPatch) {
+        return;
+      }
+      const updatesByPath = {};
+      for (const [patchKey, patchValue] of Object.entries(latestPatch)) {
+        if (typeof patchValue === 'undefined') {
+          continue;
+        }
+        updatesByPath[`${normalizedCardId}/${patchKey}`] = patchValue;
+      }
+      updatesByPath[`${normalizedCardId}/updatedAt`] = serverTimestamp();
+      update(cardsRef, updatesByPath).catch((error) => {
+        console.error(error);
+      });
+    };
+
+    const existingTimer = cardPersistConfirmTimersById.get(normalizedCardId);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+      cardPersistConfirmTimersById.delete(normalizedCardId);
+    }
+
+    writeCardPatch();
+    const confirmTimer = window.setTimeout(() => {
+      cardPersistConfirmTimersById.delete(normalizedCardId);
+      writeCardPatch();
+    }, SECRET_AREA_PERSIST_CONFIRM_DELAY_MS);
+    cardPersistConfirmTimersById.set(normalizedCardId, confirmTimer);
+  }
+
+  function persistSecretAreaCardStateImmediately(cardId) {
+    const cardState = cards.get(String(cardId || '').trim());
+    if (!isSecretAreaComponentCard(cardState)) {
+      return;
+    }
+    persistCardStateImmediately(cardId);
+  }
+
+  function persistSecretAreaCardsImmediately(cardIds) {
+    if (!Array.isArray(cardIds) || cardIds.length === 0) {
+      return;
+    }
+    for (const cardId of cardIds) {
+      persistCardStateImmediately(cardId);
+    }
+  }
+
+  function flushQueuedDiePatches(scheduledGeneration) {
+    if (scheduledGeneration !== dieWriteGeneration) {
+      return;
+    }
+    if (pendingDieWrites.size === 0) {
+      return;
+    }
+    const pendingEntries = Array.from(pendingDieWrites.entries());
+    pendingDieWrites.clear();
+    const updatesByPath = {};
+    const updatedAtStamp = serverTimestamp();
+    for (const [pendingDieId, pendingPatch] of pendingEntries) {
+      if (!pendingDieId || !pendingPatch || typeof pendingPatch !== 'object') {
+        continue;
+      }
+      for (const [patchKey, patchValue] of Object.entries(pendingPatch)) {
+        updatesByPath[`${pendingDieId}/${patchKey}`] = patchValue;
+      }
+      updatesByPath[`${pendingDieId}/updatedAt`] = updatedAtStamp;
+    }
+    if (Object.keys(updatesByPath).length === 0) {
+      return;
+    }
+    lastDieWriteFlushAt = Date.now();
+    update(diceRef, updatesByPath).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+      if (isTableResetting || scheduledGeneration !== dieWriteGeneration) {
+        return;
+      }
+      for (const [pendingDieId, pendingPatch] of pendingEntries) {
+        if (!pendingDieId || !pendingPatch || typeof pendingPatch !== 'object') {
+          continue;
+        }
+        const nextQueuedPatch = pendingDieWrites.get(pendingDieId) || {};
+        pendingDieWrites.set(pendingDieId, { ...pendingPatch, ...nextQueuedPatch });
+      }
+      scheduleDiePatchFlush(CARD_WRITE_RETRY_DELAY_MS);
+    });
+  }
+
+  function scheduleDiePatchFlush(delayMs = PATCH_FLUSH_INTERVAL_MS) {
+    if (isTableResetting || pendingDieWrites.size === 0) {
+      return;
+    }
+    const requestedDelay = Math.max(0, Number(delayMs) || 0);
+    const throttleDelay = Math.max(0, PATCH_FLUSH_INTERVAL_MS - (Date.now() - lastDieWriteFlushAt));
+    const effectiveDelay = Math.max(requestedDelay, throttleDelay);
+    if (effectiveDelay > 0) {
+      if (dieWriteRetryTimerId || dieWriteScheduled) {
+        return;
+      }
+      dieWriteRetryTimerId = window.setTimeout(() => {
+        dieWriteRetryTimerId = 0;
+        if (dieWriteScheduled || pendingDieWrites.size === 0) {
+          return;
+        }
+        dieWriteScheduled = true;
+        const scheduledGeneration = dieWriteGeneration;
+        window.requestAnimationFrame(() => {
+          dieWriteScheduled = false;
+          flushQueuedDiePatches(scheduledGeneration);
+        });
+      }, effectiveDelay);
+      return;
+    }
+    if (dieWriteRetryTimerId) {
+      window.clearTimeout(dieWriteRetryTimerId);
+      dieWriteRetryTimerId = 0;
+    }
+    if (dieWriteScheduled) {
+      return;
+    }
+    dieWriteScheduled = true;
+    const scheduledGeneration = dieWriteGeneration;
+    window.requestAnimationFrame(() => {
+      dieWriteScheduled = false;
+      flushQueuedDiePatches(scheduledGeneration);
+    });
+  }
+
   function queueDiePatch(dieId, patch) {
     if (isTableResetting || !dieId || !patch || typeof patch !== 'object') {
       return;
@@ -23637,28 +26237,7 @@ function closeNoteEditor(options = {}) {
     }
     const queuedPatch = pendingDieWrites.get(dieId) || {};
     pendingDieWrites.set(dieId, { ...queuedPatch, ...nextPatch });
-    if (dieWriteScheduled) {
-      return;
-    }
-
-    dieWriteScheduled = true;
-    const scheduledGeneration = dieWriteGeneration;
-    window.requestAnimationFrame(() => {
-      dieWriteScheduled = false;
-      if (scheduledGeneration !== dieWriteGeneration) {
-        return;
-      }
-      for (const [pendingDieId, pendingPatch] of pendingDieWrites.entries()) {
-        pendingDieWrites.delete(pendingDieId);
-        update(ref(db, `${roomPath}/dice/${pendingDieId}`), {
-          ...pendingPatch,
-          updatedAt: serverTimestamp()
-        }).catch((error) => {
-          console.error(error);
-          setRealtimeStatus('firebase: write blocked');
-        });
-      }
-    });
+    scheduleDiePatchFlush();
   }
 
   function queueDeckPatch(patch, deckId = activeDeckId) {
@@ -23692,8 +26271,15 @@ function closeNoteEditor(options = {}) {
         if (!deckPatch || typeof deckPatch !== 'object' || Object.keys(deckPatch).length === 0) {
           continue;
         }
-        update(ref(db, `${roomPath}/decks/${pendingDeckId}`), {
-          ...deckPatch,
+        const sanitizedDeckPatch = {};
+        for (const [patchKey, patchValue] of Object.entries(deckPatch)) {
+          if (typeof patchValue === 'undefined') {
+            continue;
+          }
+          sanitizedDeckPatch[patchKey] = patchValue;
+        }
+        update(getDeckNodeRef(pendingDeckId), {
+          ...sanitizedDeckPatch,
           updatedAt: serverTimestamp()
         }).catch((error) => {
           console.error(error);
@@ -23701,6 +26287,78 @@ function closeNoteEditor(options = {}) {
         });
       }
     });
+  }
+
+  function buildImmediateDeckPersistPatch(deckId = activeDeckId) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return null;
+    }
+    const currentDeck = getDeckStateById(normalizedDeckId);
+    if (!currentDeck || typeof currentDeck !== 'object') {
+      return null;
+    }
+    return {
+      x: Number.isFinite(Number(currentDeck.x))
+        ? clamp(Number(currentDeck.x), CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2)
+        : WORLD_WIDTH / 2,
+      y: Number.isFinite(Number(currentDeck.y))
+        ? clamp(Number(currentDeck.y), CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2)
+        : WORLD_HEIGHT / 2,
+      shuffleTick: Number.isFinite(Number(currentDeck.shuffleTick)) ? Number(currentDeck.shuffleTick) : 0,
+      holderClientId:
+        typeof currentDeck.holderClientId === 'string' && currentDeck.holderClientId
+          ? currentDeck.holderClientId
+          : null,
+      includeDiscard: currentDeck.includeDiscard !== false,
+      coverDrawings: currentDeck.coverDrawings === true,
+      kind: normalizeDeckKind(currentDeck.kind, normalizedDeckId)
+    };
+  }
+
+  function persistDeckStateImmediately(deckId = activeDeckId) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return;
+    }
+    const nextPatch = buildImmediateDeckPersistPatch(normalizedDeckId);
+    if (!nextPatch) {
+      return;
+    }
+    queueDeckPatch(nextPatch, normalizedDeckId);
+
+    const writeDeckPatch = () => {
+      const latestPatch = buildImmediateDeckPersistPatch(normalizedDeckId);
+      if (!latestPatch) {
+        return;
+      }
+      const sanitizedPatch = {};
+      for (const [patchKey, patchValue] of Object.entries(latestPatch)) {
+        if (typeof patchValue === 'undefined') {
+          continue;
+        }
+        sanitizedPatch[patchKey] = patchValue;
+      }
+      update(getDeckNodeRef(normalizedDeckId), {
+        ...sanitizedPatch,
+        updatedAt: serverTimestamp()
+      }).catch((error) => {
+        console.error(error);
+      });
+    };
+
+    const existingTimer = deckPersistConfirmTimersById.get(normalizedDeckId);
+    if (existingTimer) {
+      window.clearTimeout(existingTimer);
+      deckPersistConfirmTimersById.delete(normalizedDeckId);
+    }
+
+    writeDeckPatch();
+    const confirmTimer = window.setTimeout(() => {
+      deckPersistConfirmTimersById.delete(normalizedDeckId);
+      writeDeckPatch();
+    }, SECRET_AREA_PERSIST_CONFIRM_DELAY_MS);
+    deckPersistConfirmTimersById.set(normalizedDeckId, confirmTimer);
   }
 
   function queueChipSetPatch(patch, chipSetId) {
@@ -24527,7 +27185,7 @@ function closeNoteEditor(options = {}) {
             coverDrawings: false
           };
           patchLocalDeck(nextDeck, targetDeckId);
-          await update(ref(db, `${roomPath}/decks/${targetDeckId}`), {
+          await update(getDeckNodeRef(targetDeckId), {
             ...nextDeck,
             updatedAt: serverTimestamp()
           });
@@ -24591,7 +27249,7 @@ function closeNoteEditor(options = {}) {
         : patch;
     const nextState = normalizeDicePayload({ ...existingDie, ...nextPatch });
     diceById.set(dieId, nextState);
-    renderDieElement(dieId);
+    runStateRenderSafely('patchLocalDie', () => renderDieElement(dieId));
   }
 
   function patchLocalCard(cardId, patch) {
@@ -24617,15 +27275,16 @@ function closeNoteEditor(options = {}) {
     if (didCardDeckMetricsFieldsChange(existingCard, nextCard)) {
       markCardDeckMetricsCacheDirty();
     }
-    renderCardElement(cardId);
-    renderStackPointCountBadges();
+    const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
+    runStateRenderSafely('patchLocalCard:card', () => renderCardElement(cardId, { visibleStackCardIds }));
+    runStateRenderSafely('patchLocalCard:stackPointCounts', () => renderStackPointCountBadges());
     if (secretAreaVisibilityChanged) {
-      renderDeckControls();
-      renderAllDice();
-      renderChipSets();
-      renderMonsBoard();
-      renderTaflBoards();
-      renderGoBoards();
+      runStateRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
+      runStateRenderSafely('patchLocalCard:dice', () => renderAllDice());
+      runStateRenderSafely('patchLocalCard:chipSets', () => renderChipSets());
+      runStateRenderSafely('patchLocalCard:mons', () => renderMonsBoard());
+      runStateRenderSafely('patchLocalCard:tafl', () => renderTaflBoards());
+      runStateRenderSafely('patchLocalCard:go', () => renderGoBoards());
     }
   }
 
@@ -24638,7 +27297,7 @@ function closeNoteEditor(options = {}) {
       deckState = nextDeck;
     }
     syncCoverDrawingsGamesLayerState();
-    renderAllCards();
+    runStateRenderSafely('patchLocalDeck', () => renderAllCards());
   }
 
   function patchLocalChipSet(patch, chipSetId) {
@@ -24649,7 +27308,7 @@ function closeNoteEditor(options = {}) {
     const baseChipSet = chipSetsById.get(normalizedChipSetId) || normalizeChipSetPayload({});
     const nextChipSet = normalizeChipSetPayload({ ...baseChipSet, ...patch });
     chipSetsById.set(normalizedChipSetId, nextChipSet);
-    renderChipSets();
+    runStateRenderSafely('patchLocalChipSet', () => renderChipSets());
     syncClearTableButtonState();
   }
 
@@ -24662,7 +27321,7 @@ function closeNoteEditor(options = {}) {
       monsGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    renderMonsBoard();
+    runStateRenderSafely('patchLocalMonsGame', () => renderMonsBoard());
   }
 
   function patchLocalTaflGame(patch, gameId = activeTaflGameId) {
@@ -24674,7 +27333,7 @@ function closeNoteEditor(options = {}) {
       taflGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    renderTaflBoards();
+    runStateRenderSafely('patchLocalTaflGame', () => renderTaflBoards());
   }
 
   function patchLocalGoGame(patch, gameId = activeGoGameId) {
@@ -24686,7 +27345,7 @@ function closeNoteEditor(options = {}) {
       goGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    renderGoBoards();
+    runStateRenderSafely('patchLocalGoGame', () => renderGoBoards());
   }
 
   function getTopCardZ() {
@@ -25563,9 +28222,29 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       const bottom = centerY + halfHeight;
       return !(right < minX || left > maxX || bottom < minY || top > maxY);
     };
+    let bypassSecretAreaOcclusion = false;
+    for (const [, cardState] of cards.entries()) {
+      if (!isSecretAreaComponentCard(cardState)) {
+        continue;
+      }
+      if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+        continue;
+      }
+      const secretAreaDimensions = getCardTableDimensions(cardState);
+      const secretAreaWidth = Math.max(1, Number(secretAreaDimensions?.width) || CARD_WIDTH);
+      const secretAreaHeight = Math.max(1, Number(secretAreaDimensions?.height) || CARD_HEIGHT);
+      if (!overlapsSelectionRect(cardState.x, cardState.y, secretAreaWidth, secretAreaHeight)) {
+        continue;
+      }
+      const ownerToken = getSecretAreaOwnerPlayerToken(cardState);
+      if (!ownerToken || !localPlayerToken || ownerToken === localPlayerToken) {
+        bypassSecretAreaOcclusion = true;
+        break;
+      }
+    }
 
     for (const [cardId, cardState] of cards.entries()) {
-      if (isCardHiddenBySecretAreaForLocalViewer(cardId, cardState)) {
+      if (!bypassSecretAreaOcclusion && isCardHiddenBySecretAreaForLocalViewer(cardId, cardState)) {
         continue;
       }
       if (cardState.inDeck) {
@@ -25586,7 +28265,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (cardState.holderClientId && cardState.holderClientId !== clientId) {
         continue;
       }
-      if (cardState.x >= minX && cardState.x <= maxX && cardState.y >= minY && cardState.y <= maxY) {
+      const cardDimensions = getCardTableDimensions(cardState);
+      const cardWidth = Math.max(1, Number(cardDimensions?.width) || CARD_WIDTH);
+      const cardHeight = Math.max(1, Number(cardDimensions?.height) || CARD_HEIGHT);
+      if (overlapsSelectionRect(cardState.x, cardState.y, cardWidth, cardHeight)) {
         cardCandidates.push(cardId);
       }
     }
@@ -25595,7 +28277,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!dieState) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
         continue;
       }
       if (isLabelDieLocked(dieState)) {
@@ -25616,7 +28298,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!deckState) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(deckState.x, deckState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(deckState.x, deckState.y)) {
         continue;
       }
       if (deckState.holderClientId && deckState.holderClientId !== clientId) {
@@ -25632,7 +28314,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
         continue;
       }
       if (gameState.holderClientId && gameState.holderClientId !== clientId) {
@@ -25648,7 +28330,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!chipSetState) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(chipSetState.x, chipSetState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(chipSetState.x, chipSetState.y)) {
         continue;
       }
       if (chipSetState.holderClientId && chipSetState.holderClientId !== clientId) {
@@ -25664,7 +28346,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
         continue;
       }
       if (gameState.holderClientId && gameState.holderClientId !== clientId) {
@@ -25680,7 +28362,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!gameState || gameState.enabled === false) {
         continue;
       }
-      if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
         continue;
       }
       if (gameState.holderClientId && gameState.holderClientId !== clientId) {
@@ -26502,6 +29184,79 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     return true;
   }
 
+  function finalizeMovedNonCardGroupObjects(groupState) {
+    if (!groupState) {
+      return;
+    }
+    for (const deckId of groupState.baseDeckPositions.keys()) {
+      const deckState = getDeckStateById(deckId);
+      if (!deckState || deckState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalDeck({ holderClientId: null }, deckId);
+      queueDeckPatch({ holderClientId: null }, deckId);
+      persistDeckStateImmediately(deckId);
+      releaseDeckLock(deckId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const dieId of groupState.baseDiePositions.keys()) {
+      const dieState = diceById.get(dieId);
+      if (!dieState || dieState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalDie(dieId, { holderClientId: null });
+      queueDiePatch(dieId, { holderClientId: null });
+      releaseDieLock(dieId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const chipSetId of groupState.baseChipSetPositions.keys()) {
+      const chipSetState = chipSetsById.get(chipSetId);
+      if (!chipSetState || chipSetState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalChipSet({ holderClientId: null }, chipSetId);
+      queueChipSetPatch({ holderClientId: null }, chipSetId);
+      releaseChipSetLock(chipSetId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const gameId of groupState.baseMonsPositions.keys()) {
+      const gameState = getMonsGameStateById(gameId);
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalMonsGame({ holderClientId: null }, gameId);
+      queueMonsPatch({ holderClientId: null }, gameId);
+      releaseMonsBoardLock(gameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const gameId of groupState.baseTaflPositions.keys()) {
+      const gameState = getTaflGameStateById(gameId);
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalTaflGame({ holderClientId: null }, gameId);
+      queueMonsPatch({ holderClientId: null }, gameId);
+      releaseMonsBoardLock(gameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const gameId of groupState.baseGoPositions.keys()) {
+      const gameState = getGoGameStateById(gameId);
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalGoGame({ holderClientId: null }, gameId);
+      queueMonsPatch({ holderClientId: null }, gameId);
+      releaseMonsBoardLock(gameId).catch((error) => {
+        console.error(error);
+      });
+    }
+  }
+
   function handleGroupDragEnd(event) {
     if (!groupDragState || event.pointerId !== groupDragState.pointerId) {
       return false;
@@ -26578,6 +29333,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           };
           patchLocalCard(cardId, releasePatch);
           queueCardPatch(cardId, releasePatch);
+          persistCardStateImmediately(cardId);
           releaseCardLock(cardId).catch((error) => {
             console.error(error);
           });
@@ -26587,6 +29343,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         nextHandZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
@@ -26596,6 +29353,94 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
 
     if (finishedGroupDrag.anchorType !== 'card') {
+      for (const cardId of finishedGroupDrag.basePositions.keys()) {
+        const currentCard = cards.get(cardId);
+        if (!currentCard || currentCard.holderClientId !== clientId) {
+          continue;
+        }
+        const releasePatch = {
+          holderClientId: null,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null
+        };
+        patchLocalCard(cardId, releasePatch);
+        queueCardPatch(cardId, releasePatch);
+        persistCardStateImmediately(cardId);
+        releaseCardLock(cardId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const deckId of finishedGroupDrag.baseDeckPositions.keys()) {
+        const deckState = getDeckStateById(deckId);
+        if (!deckState || deckState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalDeck({ holderClientId: null }, deckId);
+        queueDeckPatch({ holderClientId: null }, deckId);
+        persistDeckStateImmediately(deckId);
+        releaseDeckLock(deckId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const dieId of finishedGroupDrag.baseDiePositions.keys()) {
+        const dieState = diceById.get(dieId);
+        if (!dieState || dieState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalDie(dieId, { holderClientId: null });
+        queueDiePatch(dieId, { holderClientId: null });
+        releaseDieLock(dieId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const chipSetId of finishedGroupDrag.baseChipSetPositions.keys()) {
+        const chipSetState = chipSetsById.get(chipSetId);
+        if (!chipSetState || chipSetState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalChipSet({ holderClientId: null }, chipSetId);
+        queueChipSetPatch({ holderClientId: null }, chipSetId);
+        releaseChipSetLock(chipSetId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const gameId of finishedGroupDrag.baseMonsPositions.keys()) {
+        const gameState = getMonsGameStateById(gameId);
+        if (!gameState || gameState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalMonsGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const gameId of finishedGroupDrag.baseTaflPositions.keys()) {
+        const gameState = getTaflGameStateById(gameId);
+        if (!gameState || gameState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalTaflGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      }
+      for (const gameId of finishedGroupDrag.baseGoPositions.keys()) {
+        const gameState = getGoGameStateById(gameId);
+        if (!gameState || gameState.holderClientId !== clientId) {
+          continue;
+        }
+        patchLocalGoGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      }
+      finalizeMovedNonCardGroupObjects(finishedGroupDrag);
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -26618,6 +29463,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         };
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
@@ -26667,11 +29513,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         nextAuctionZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
       }
       releaseNonDeckSelectedCards();
+      finalizeMovedNonCardGroupObjects(finishedGroupDrag);
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -26688,11 +29536,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         nextDiscardZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
       }
       releaseNonDeckSelectedCards();
+      finalizeMovedNonCardGroupObjects(finishedGroupDrag);
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -26700,6 +29550,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (shouldStackOnDeck && deckTargetDeckId) {
       const targetDeckState = getDeckStateById(deckTargetDeckId);
       if (!targetDeckState) {
+        finalizeMovedNonCardGroupObjects(finishedGroupDrag);
         schedulePublishFromClient(event.clientX, event.clientY);
         return true;
       }
@@ -26722,11 +29573,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         nextDeckZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
       }
       releaseNonDeckSelectedCards();
+      finalizeMovedNonCardGroupObjects(finishedGroupDrag);
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
@@ -26734,6 +29587,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (shouldStackOnStackPoint && stackPointTargetDieId) {
       const targetStackPointState = diceById.get(stackPointTargetDieId);
       if (!isStackPointDieState(targetStackPointState)) {
+        finalizeMovedNonCardGroupObjects(finishedGroupDrag);
         schedulePublishFromClient(event.clientX, event.clientY);
         return true;
       }
@@ -26756,32 +29610,51 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         nextStackZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
+        persistCardStateImmediately(cardId);
         releaseCardLock(cardId).catch((error) => {
           console.error(error);
         });
       }
       releaseNonDeckSelectedCards();
+      finalizeMovedNonCardGroupObjects(finishedGroupDrag);
       schedulePublishFromClient(event.clientX, event.clientY);
       return true;
     }
 
+    persistSecretAreaCardsImmediately(selectedIds);
+    finalizeMovedNonCardGroupObjects(finishedGroupDrag);
     schedulePublishFromClient(event.clientX, event.clientY);
     return true;
   }
 
   async function acquireDeckLock(deckId = activeDeckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    const holderRef = ref(db, `${roomPath}/decks/${normalizedDeckId}/holderClientId`);
-    const result = await runTransaction(
-      holderRef,
-      (currentHolder) => {
-        if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
-          return;
-        }
-        return clientId;
-      },
-      { applyLocally: false }
-    );
+    const holderRef = getDeckHolderRef(normalizedDeckId);
+    const lockReducer = (currentHolder) => {
+      if (typeof currentHolder === 'string' && currentHolder && currentHolder !== clientId) {
+        return;
+      }
+      return clientId;
+    };
+
+    let result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
+    if (result.committed && result.snapshot.val() === clientId) {
+      onDisconnect(holderRef).set(null);
+      return true;
+    }
+
+    const blockingHolder =
+      typeof result.snapshot?.val() === 'string' && result.snapshot.val() ? result.snapshot.val() : '';
+    if (!blockingHolder || blockingHolder === clientId) {
+      return false;
+    }
+
+    const recovered = await tryRecoverStaleDeckLock(normalizedDeckId, blockingHolder);
+    if (!recovered) {
+      return false;
+    }
+
+    result = await runTransaction(holderRef, lockReducer, { applyLocally: false });
     if (!result.committed || result.snapshot.val() !== clientId) {
       return false;
     }
@@ -26791,7 +29664,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   async function releaseDeckLock(deckId = activeDeckId) {
     const normalizedDeckId = normalizeDeckId(deckId);
-    const holderRef = ref(db, `${roomPath}/decks/${normalizedDeckId}/holderClientId`);
+    const holderRef = getDeckHolderRef(normalizedDeckId);
     await runTransaction(
       holderRef,
       (currentHolder) => {
@@ -28419,19 +31292,40 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
         const nextPieces = { ...normalized.pieces };
         const nextScores = { ...normalized.scores };
-        const gainedScore = getMonsScoreGainForType(pushedPiece.type);
-        const didScorePushedPiece = gainedScore > 0 && isMonsCornerTile(chosenOption.row, chosenOption.col);
-        if (didScorePushedPiece) {
-          const scoringSide = spiritPiece.side === 'black' ? 'black' : 'white';
-          nextScores[scoringSide] = Math.max(0, Number(nextScores[scoringSide]) || 0) + gainedScore;
-          delete nextPieces[pushedPiece.id];
+        const pushedBaseType = getMonsPieceBaseType(pushedPiece);
+        const pushedToCornerPool = isMonsCornerTile(chosenOption.row, chosenOption.col);
+        let scoredPieceType = '';
+        let didScorePushedPiece = false;
+        let nextPushedPiece = {
+          ...pushedPiece,
+          row: chosenOption.row,
+          col: chosenOption.col,
+          faintedByAttack: false
+        };
+
+        if (pushedToCornerPool && pushedBaseType === 'drainer') {
+          const carriedManaType = getMonsDrainerCarriedManaType(nextPushedPiece);
+          const gainedCarryScore = getMonsDrainerCarryScoreGain(nextPushedPiece, carriedManaType);
+          if (gainedCarryScore > 0) {
+            const scoringSide = nextPushedPiece.side === 'black' ? 'black' : 'white';
+            nextScores[scoringSide] = Math.max(0, Number(nextScores[scoringSide]) || 0) + gainedCarryScore;
+            scoredPieceType = carriedManaType;
+            nextPushedPiece = clearMonsDrainerCarry(nextPushedPiece);
+            didScorePushedPiece = true;
+          }
+          nextPieces[pushedPiece.id] = nextPushedPiece;
         } else {
-          nextPieces[pushedPiece.id] = {
-            ...pushedPiece,
-            row: chosenOption.row,
-            col: chosenOption.col,
-            faintedByAttack: false
-          };
+          const gainedScore = getMonsScoreGainForType(pushedPiece.type);
+          const didScoreLooseMana = gainedScore > 0 && pushedToCornerPool;
+          if (didScoreLooseMana) {
+            const scoringSide = spiritPiece.side === 'black' ? 'black' : 'white';
+            nextScores[scoringSide] = Math.max(0, Number(nextScores[scoringSide]) || 0) + gainedScore;
+            scoredPieceType = pushedPiece.type;
+            didScorePushedPiece = true;
+            delete nextPieces[pushedPiece.id];
+          } else {
+            nextPieces[pushedPiece.id] = nextPushedPiece;
+          }
         }
 
         return {
@@ -28452,7 +31346,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             fromCol: pushedPiece.col,
             toRow: chosenOption.row,
             toCol: chosenOption.col,
-            scoredPieceType: didScorePushedPiece ? pushedPiece.type : null
+            scoredPieceType: didScorePushedPiece ? scoredPieceType : null
           },
           undoHistory: appendMonsUndoHistoryEntry(normalized.undoHistory, undoEntry),
           updatedAt: Date.now()
@@ -28857,6 +31751,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         normalized.type === 'marble' ||
         normalized.type === 'counter' ||
         normalized.type === 'timer' ||
+        normalized.type === 'arcade' ||
         normalized.type === 'stack-point'
       ) {
         continue;
@@ -28903,6 +31798,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (normalizeDieType(anchorDieState?.type) === 'timer') {
       return;
     }
+    if (normalizeDieType(anchorDieState?.type) === 'arcade') {
+      return;
+    }
     if (normalizeDieType(anchorDieState?.type) === 'stack-point') {
       return;
     }
@@ -28914,6 +31812,1030 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     await rollDice(targetDieIds);
+  }
+
+  const heldArcadeDirectionKeys = new Set();
+
+  function getArcadeStickVectorFromHeldKeys() {
+    let x = 0;
+    let y = 0;
+    if (heldArcadeDirectionKeys.has('a')) {
+      x -= 1;
+    }
+    if (heldArcadeDirectionKeys.has('d')) {
+      x += 1;
+    }
+    if (heldArcadeDirectionKeys.has('w')) {
+      y -= 1;
+    }
+    if (heldArcadeDirectionKeys.has('s')) {
+      y += 1;
+    }
+    return {
+      x: clamp(x, ARCADE_STICK_MIN_AXIS, ARCADE_STICK_MAX_AXIS),
+      y: clamp(y, ARCADE_STICK_MIN_AXIS, ARCADE_STICK_MAX_AXIS)
+    };
+  }
+
+  function syncArcadeStickDirection(force = false) {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (!canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) === ARCADE_SCREEN_MANA_PLAY && dieState?.arcadeMgGameOver === true) {
+      return false;
+    }
+    const nextVector = getArcadeStickVectorFromHeldKeys();
+    const currentX = normalizeArcadeStickAxis(dieState?.arcadeStickX);
+    const currentY = normalizeArcadeStickAxis(dieState?.arcadeStickY);
+    if (!force && currentX === nextVector.x && currentY === nextVector.y) {
+      return false;
+    }
+    const patch = {
+      arcadeStickX: nextVector.x,
+      arcadeStickY: nextVector.y
+    };
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function setActiveArcadeDieFocus(dieId = '') {
+    const normalizedDieId = String(dieId || '').trim();
+    const nextDieId = normalizedDieId && isArcadeDieState(diceById.get(normalizedDieId))
+      ? normalizedDieId
+      : '';
+    if (activeArcadeDieId === nextDieId) {
+      return;
+    }
+    const previousDieId = activeArcadeDieId;
+    if (previousDieId) {
+      const previousState = diceById.get(previousDieId);
+      if (
+        isArcadeDieState(previousState) &&
+        (
+          previousState.arcadeJPressed === true ||
+          previousState.arcadeKPressed === true ||
+          normalizeArcadeStickAxis(previousState.arcadeStickX) !== 0 ||
+          normalizeArcadeStickAxis(previousState.arcadeStickY) !== 0
+        )
+      ) {
+        const resetPatch = {};
+        if (previousState.arcadeJPressed === true) {
+          resetPatch.arcadeJPressed = false;
+        }
+        if (previousState.arcadeKPressed === true) {
+          resetPatch.arcadeKPressed = false;
+        }
+        if (normalizeArcadeStickAxis(previousState.arcadeStickX) !== 0) {
+          resetPatch.arcadeStickX = 0;
+        }
+        if (normalizeArcadeStickAxis(previousState.arcadeStickY) !== 0) {
+          resetPatch.arcadeStickY = 0;
+        }
+        patchLocalDie(previousDieId, resetPatch);
+        queueDiePatch(previousDieId, resetPatch);
+      }
+    }
+    heldArcadeDirectionKeys.clear();
+    activeArcadeDieId = nextDieId;
+    if (previousDieId) {
+      renderDieElement(previousDieId);
+    }
+    if (nextDieId) {
+      renderDieElement(nextDieId);
+    }
+  }
+
+  function isKeyboardEditingElement(element) {
+    if (!(element instanceof Element)) {
+      return false;
+    }
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
+      return true;
+    }
+    if (element.isContentEditable) {
+      return true;
+    }
+    return Boolean(element.closest('[contenteditable="true"], .table-label-editor, .note-editor, .note-editable, .table-note-editable'));
+  }
+
+  function isAnyBlockingModalOpenForArcadeInput() {
+    return (
+      isDiceAddModalOpen() ||
+      isChipsAddModalOpen() ||
+      isSpinnerAddModalOpen() ||
+      isImageAddModalOpen() ||
+      isStickerAddModalOpen() ||
+      isMediaAddModalOpen() ||
+      isMonsItemChoiceModalOpen() ||
+      isRoomSettingsModalOpen() ||
+      (assetMenuModal && !assetMenuModal.classList.contains('hidden')) ||
+      (gameOptionsModal && !gameOptionsModal.classList.contains('hidden')) ||
+      (clearTableWarningModal && !clearTableWarningModal.classList.contains('hidden')) ||
+      (drawClearWarningModal && !drawClearWarningModal.classList.contains('hidden')) ||
+      (goBoardResizeWarningModal && !goBoardResizeWarningModal.classList.contains('hidden')) ||
+      (instanceWarningModal && !instanceWarningModal.classList.contains('hidden'))
+    );
+  }
+
+  function getArcadeActionKey(event) {
+    const key = String(event?.key || '').toLowerCase();
+    const code = String(event?.code || '');
+    if (key === 'w' || code === 'KeyW') {
+      return 'w';
+    }
+    if (key === 'a' || code === 'KeyA') {
+      return 'a';
+    }
+    if (key === 's' || code === 'KeyS') {
+      return 's';
+    }
+    if (key === 'd' || code === 'KeyD') {
+      return 'd';
+    }
+    if (key === 'j' || code === 'KeyJ') {
+      return 'j';
+    }
+    if (key === 'k' || code === 'KeyK') {
+      return 'k';
+    }
+    return '';
+  }
+
+  function getActiveArcadeState() {
+    if (!activeArcadeDieId) {
+      return null;
+    }
+    const dieState = diceById.get(activeArcadeDieId);
+    if (!isArcadeDieState(dieState)) {
+      setActiveArcadeDieFocus('');
+      return null;
+    }
+    return {
+      dieId: activeArcadeDieId,
+      dieState
+    };
+  }
+
+  function isArcadePlayControlledByOtherClient(dieState) {
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    if (!controllerClientId) {
+      return false;
+    }
+    return !localClientId || controllerClientId !== localClientId;
+  }
+
+  function canLocalClientControlArcadePlay(dieState) {
+    return !isArcadePlayControlledByOtherClient(dieState);
+  }
+
+  function stepArcadeMenuSelection(direction = 1) {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+    let optionCount = 0;
+    let currentIndex = 0;
+    let fieldName = '';
+    if (screenMode === ARCADE_SCREEN_MAIN) {
+      optionCount = Math.max(1, ARCADE_MENU_OPTION_LABELS.length);
+      currentIndex = clamp(Math.round(Number(dieState.arcadeMenuIndex) || 0), 0, optionCount - 1);
+      fieldName = 'arcadeMenuIndex';
+    } else if (screenMode === ARCADE_SCREEN_MANA_MENU) {
+      optionCount = Math.max(1, ARCADE_MANA_MENU_OPTION_LABELS.length);
+      currentIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+      fieldName = 'arcadeManaMenuIndex';
+    } else {
+      return false;
+    }
+    let nextIndex = currentIndex + (direction < 0 ? -1 : 1);
+    if (nextIndex < 0) {
+      nextIndex = optionCount - 1;
+    } else if (nextIndex >= optionCount) {
+      nextIndex = 0;
+    }
+    const patch = {};
+    if (nextIndex !== currentIndex) {
+      patch[fieldName] = nextIndex;
+    }
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function activateArcadeMenuSelection() {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+    const patch = {};
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (screenMode === ARCADE_SCREEN_MAIN) {
+      const currentIndex = clamp(
+        Math.round(Number(dieState?.arcadeMenuIndex) || 0),
+        0,
+        Math.max(0, ARCADE_MENU_OPTION_LABELS.length - 1)
+      );
+      if (currentIndex === ARCADE_INFO_MENU_INDEX) {
+        patch.arcadeScreen = ARCADE_SCREEN_INFO;
+      } else {
+        patch.arcadeScreen = ARCADE_SCREEN_MANA_MENU;
+        patch.arcadeManaMenuIndex = ARCADE_MANA_MENU_PLAY_INDEX;
+      }
+    } else if (screenMode === ARCADE_SCREEN_MANA_MENU) {
+      const selectedManaIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+      if (selectedManaIndex === ARCADE_MANA_MENU_PLAY_INDEX) {
+        const now = Date.now();
+        const controllerName = String(playerState?.name || '').trim().slice(0, 24) || 'anon';
+        const spawnTile = getArcadeManaSpawnTile([
+          { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE }
+        ]);
+        patch.arcadeScreen = ARCADE_SCREEN_MANA_PLAY;
+        patch.arcadeControllerClientId = localClientId || '';
+        patch.arcadeControllerPlayerToken = normalizeArcadePlayerToken(localPlayerToken);
+        patch.arcadeControllerName = controllerName;
+        patch.arcadeControllerColor = normalizeHexColor(playerState?.color || '#ff7a59');
+        patch.arcadeMgTileX = ARCADE_MANA_CENTER_TILE;
+        patch.arcadeMgTileY = ARCADE_MANA_CENTER_TILE;
+        patch.arcadeMgTailPath = '';
+        patch.arcadeMgLooseManaPath = '';
+        patch.arcadeMgClearManaPath = '';
+        patch.arcadeMgManaType = getRandomArcadeManaType();
+        patch.arcadeMgManaTileX = spawnTile.x;
+        patch.arcadeMgManaTileY = spawnTile.y;
+        patch.arcadeMgGameOver = false;
+        patch.arcadeMgGameOverAt = 0;
+        patch.arcadeMgSquareClearScore = 0;
+        patch.arcadeMgPhaseActive = false;
+        patch.arcadeMgPhaseStartedAt = 0;
+        patch.arcadeMgClearManaStartedAt = 0;
+        patch.arcadeMgDirX = 0;
+        patch.arcadeMgDirY = 0;
+        patch.arcadeMgQueuedDirX = 0;
+        patch.arcadeMgQueuedDirY = 0;
+        patch.arcadeMgMoveStartedAt = 0;
+        patch.arcadeMgQueuedAt = now;
+        patch.arcadeMgInputQueuePath = '';
+      } else if (selectedManaIndex === ARCADE_MANA_MENU_HIGH_SCORES_INDEX) {
+        patch.arcadeScreen = ARCADE_SCREEN_MANA_SCORES;
+      } else {
+        patch.arcadeScreen = ARCADE_SCREEN_MAIN;
+      }
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function triggerArcadeManaPhaseAbility() {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (!canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    if (dieState?.arcadeMgGameOver === true) {
+      return false;
+    }
+    const now = Date.now();
+    const phaseStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt);
+    if (
+      phaseStartedAt > 0 &&
+      now - phaseStartedAt < ARCADE_MANA_PHASE_DURATION_MS + ARCADE_MANA_PHASE_AFTERGLOW_MS
+    ) {
+      return false;
+    }
+    const patch = {
+      arcadeMgPhaseActive: true,
+      arcadeMgPhaseStartedAt: now
+    };
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function queueArcadeManaDirectionInput(actionKey) {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (!canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    if (dieState?.arcadeMgGameOver === true) {
+      return false;
+    }
+    const direction = getArcadeDirectionVectorFromKey(actionKey);
+    if (direction.x === 0 && direction.y === 0) {
+      return false;
+    }
+    const now = Date.now();
+    const currentTileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+    const currentTileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+    const currentDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+    const currentQueuedDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY);
+    const currentMoveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
+    const queuedInputTokens = parseArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath);
+    const hasTailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath).length > 0;
+    const isDirectReverseInput = hasTailSegments && isArcadeReverseDirection(direction, currentDirection);
+    if (isDirectReverseInput) {
+      return false;
+    }
+    const incomingDirectionToken = getArcadeDirectionQueueTokenFromVector(direction);
+    if (!incomingDirectionToken) {
+      return false;
+    }
+    const moving = (currentDirection.x !== 0 || currentDirection.y !== 0) && currentMoveStartedAt > 0;
+    const patch = {};
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (moving) {
+      if (currentQueuedDirection.x === 0 && currentQueuedDirection.y === 0) {
+        patch.arcadeMgQueuedDirX = direction.x;
+        patch.arcadeMgQueuedDirY = direction.y;
+        patch.arcadeMgQueuedAt = now;
+      } else if (currentQueuedDirection.x !== direction.x || currentQueuedDirection.y !== direction.y) {
+        const queuedDirectionToken = getArcadeDirectionQueueTokenFromVector(currentQueuedDirection);
+        const lastQueuedToken = queuedInputTokens.length > 0
+          ? queuedInputTokens[queuedInputTokens.length - 1]
+          : queuedDirectionToken;
+        if (queuedInputTokens.length < ARCADE_MANA_INPUT_QUEUE_MAX && incomingDirectionToken !== lastQueuedToken) {
+          queuedInputTokens.push(incomingDirectionToken);
+          patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(queuedInputTokens);
+        }
+      }
+    } else if (canArcadeMoveToTile(currentTileX + direction.x, currentTileY + direction.y)) {
+      if (currentDirection.x !== direction.x || currentDirection.y !== direction.y || currentMoveStartedAt <= 0) {
+        patch.arcadeMgDirX = direction.x;
+        patch.arcadeMgDirY = direction.y;
+        patch.arcadeMgMoveStartedAt = now;
+      }
+      if (currentQueuedDirection.x !== 0 || currentQueuedDirection.y !== 0) {
+        patch.arcadeMgQueuedDirX = 0;
+        patch.arcadeMgQueuedDirY = 0;
+      }
+      if (queuedInputTokens.length > 0) {
+        patch.arcadeMgInputQueuePath = '';
+      }
+      patch.arcadeMgQueuedAt = now;
+    } else {
+      const lastQueuedToken = queuedInputTokens[queuedInputTokens.length - 1] || '';
+      if (queuedInputTokens.length < ARCADE_MANA_INPUT_QUEUE_MAX && incomingDirectionToken !== lastQueuedToken) {
+        queuedInputTokens.push(incomingDirectionToken);
+        patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(queuedInputTokens);
+      }
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function returnArcadeToMainScreen() {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    const screenMode = normalizeArcadeScreen(dieState?.arcadeScreen);
+    if (screenMode === ARCADE_SCREEN_MANA_PLAY && !canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    const patch = {};
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (screenMode === ARCADE_SCREEN_INFO || screenMode === ARCADE_SCREEN_MANA_MENU) {
+      patch.arcadeScreen = ARCADE_SCREEN_MAIN;
+    } else if (screenMode === ARCADE_SCREEN_MANA_SCORES) {
+      patch.arcadeScreen = ARCADE_SCREEN_MANA_MENU;
+    } else if (screenMode === ARCADE_SCREEN_MANA_PLAY) {
+      patch.arcadeScreen = ARCADE_SCREEN_MANA_MENU;
+      patch.arcadeControllerClientId = '';
+      patch.arcadeControllerPlayerToken = '';
+      patch.arcadeControllerName = '';
+      patch.arcadeControllerColor = '#ff7a59';
+      patch.arcadeMgTailPath = '';
+      patch.arcadeMgLooseManaPath = '';
+      patch.arcadeMgClearManaPath = '';
+      patch.arcadeMgGameOver = false;
+      patch.arcadeMgGameOverAt = 0;
+      patch.arcadeMgSquareClearScore = 0;
+      patch.arcadeMgPhaseActive = false;
+      patch.arcadeMgPhaseStartedAt = 0;
+      patch.arcadeMgClearManaStartedAt = 0;
+      patch.arcadeMgDirX = 0;
+      patch.arcadeMgDirY = 0;
+      patch.arcadeMgQueuedDirX = 0;
+      patch.arcadeMgQueuedDirY = 0;
+      patch.arcadeMgMoveStartedAt = 0;
+      patch.arcadeMgQueuedAt = Date.now();
+      patch.arcadeMgInputQueuePath = '';
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function setArcadeButtonPressed(buttonKey, pressed) {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (!canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    const targetField = buttonKey === 'k' ? 'arcadeKPressed' : 'arcadeJPressed';
+    if (Boolean(dieState[targetField]) === Boolean(pressed)) {
+      return false;
+    }
+    const patch = {
+      [targetField]: Boolean(pressed)
+    };
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function handleArcadeKeyboardDown(event) {
+    const actionKey = getArcadeActionKey(event);
+    if (!actionKey) {
+      return;
+    }
+    if (drawModeEnabled || deleteModeEnabled || isAnyBlockingModalOpenForArcadeInput()) {
+      return;
+    }
+    if (isKeyboardEditingElement(document.activeElement)) {
+      return;
+    }
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return;
+    }
+    if (!canLocalClientControlArcadePlay(activeArcade.dieState)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (actionKey === 'w' || actionKey === 'a' || actionKey === 's' || actionKey === 'd') {
+      if (!event.repeat || !heldArcadeDirectionKeys.has(actionKey)) {
+        heldArcadeDirectionKeys.add(actionKey);
+        syncArcadeStickDirection();
+      }
+      const screenMode = normalizeArcadeScreen(activeArcade?.dieState?.arcadeScreen);
+      if (screenMode === ARCADE_SCREEN_MANA_PLAY) {
+        if (!event.repeat) {
+          queueArcadeManaDirectionInput(actionKey);
+        }
+      } else if (actionKey === 'w' && !event.repeat) {
+        stepArcadeMenuSelection(-1);
+      } else if (actionKey === 's' && !event.repeat) {
+        stepArcadeMenuSelection(1);
+      }
+      return;
+    }
+    if (actionKey === 'j') {
+      if (!event.repeat) {
+        const screenMode = normalizeArcadeScreen(activeArcade?.dieState?.arcadeScreen);
+        if (screenMode === ARCADE_SCREEN_MANA_PLAY) {
+          triggerArcadeManaPhaseAbility();
+        } else {
+          activateArcadeMenuSelection();
+        }
+      }
+      setArcadeButtonPressed('j', true);
+      return;
+    }
+    if (actionKey === 'k') {
+      if (!event.repeat) {
+        returnArcadeToMainScreen();
+      }
+      setArcadeButtonPressed('k', true);
+    }
+  }
+
+  function handleArcadeKeyboardUp(event) {
+    const actionKey = getArcadeActionKey(event);
+    if (!actionKey) {
+      return;
+    }
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return;
+    }
+    if (!canLocalClientControlArcadePlay(activeArcade.dieState)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (actionKey === 'w' || actionKey === 'a' || actionKey === 's' || actionKey === 'd') {
+      if (heldArcadeDirectionKeys.delete(actionKey)) {
+        syncArcadeStickDirection();
+      }
+      return;
+    }
+    if (actionKey === 'j' || actionKey === 'k') {
+      setArcadeButtonPressed(actionKey, false);
+    }
+  }
+
+  function releaseArcadeHeldButtons() {
+    heldArcadeDirectionKeys.clear();
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return;
+    }
+    const { dieId, dieState } = activeArcade;
+    const patch = {};
+    if (dieState.arcadeJPressed === true) {
+      patch.arcadeJPressed = false;
+    }
+    if (dieState.arcadeKPressed === true) {
+      patch.arcadeKPressed = false;
+    }
+    if (normalizeArcadeStickAxis(dieState.arcadeStickX) !== 0) {
+      patch.arcadeStickX = 0;
+    }
+    if (normalizeArcadeStickAxis(dieState.arcadeStickY) !== 0) {
+      patch.arcadeStickY = 0;
+    }
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+  }
+
+  function advanceArcadeManaMotionForDie(dieId, dieState, now = Date.now()) {
+    if (!isArcadeDieState(dieState)) {
+      return false;
+    }
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (!localClientId) {
+      return false;
+    }
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    if (controllerClientId !== localClientId) {
+      return false;
+    }
+
+    let tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
+    let looseManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgLooseManaPath);
+    let clearingManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgClearManaPath);
+    let manaType = normalizeArcadeManaType(dieState?.arcadeMgManaType);
+    let manaTileX = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileX);
+    let manaTileY = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileY);
+    let gameOver = dieState?.arcadeMgGameOver === true;
+    let gameOverAt = normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt);
+    let squareClearScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+    let phaseActive = dieState?.arcadeMgPhaseActive === true;
+    let phaseStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt);
+    let clearManaStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgClearManaStartedAt);
+    let changed = false;
+    const phaseElapsedMs = phaseStartedAt > 0 ? Math.max(0, now - phaseStartedAt) : Infinity;
+    let phaseInvulnerable =
+      phaseStartedAt > 0 &&
+      phaseElapsedMs < ARCADE_MANA_PHASE_DURATION_MS + ARCADE_MANA_PHASE_AFTERGLOW_MS;
+
+    if (phaseActive) {
+      if (phaseStartedAt <= 0) {
+        phaseStartedAt = now;
+        changed = true;
+        phaseInvulnerable = true;
+      } else if (now - phaseStartedAt >= ARCADE_MANA_PHASE_DURATION_MS) {
+        phaseActive = false;
+        changed = true;
+      }
+    } else if (
+      phaseStartedAt > 0 &&
+      now - phaseStartedAt >= ARCADE_MANA_PHASE_DURATION_MS + ARCADE_MANA_PHASE_AFTERGLOW_MS
+    ) {
+      phaseStartedAt = 0;
+      changed = true;
+      phaseInvulnerable = false;
+    }
+
+    if (clearingManaSegments.length > 0) {
+      if (clearManaStartedAt <= 0) {
+        clearManaStartedAt = now;
+        changed = true;
+      } else if (now - clearManaStartedAt >= ARCADE_MANA_SQUARE_CLEAR_FLASH_DURATION_MS) {
+        clearingManaSegments = [];
+        clearManaStartedAt = 0;
+        changed = true;
+      }
+    } else if (clearManaStartedAt !== 0) {
+      clearManaStartedAt = 0;
+      changed = true;
+    }
+
+    if (gameOver) {
+      if (gameOverAt <= 0) {
+        gameOverAt = now;
+      }
+      if (now - gameOverAt >= ARCADE_MANA_GAME_OVER_DELAY_MS) {
+        const resetSpawnTile = getArcadeManaSpawnTile([
+          { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE }
+        ]);
+        const resetPatch = {
+          arcadeScreen: ARCADE_SCREEN_MANA_MENU,
+          arcadeControllerClientId: '',
+          arcadeControllerPlayerToken: '',
+          arcadeControllerName: '',
+          arcadeControllerColor: '#ff7a59',
+          arcadeMgTileX: ARCADE_MANA_CENTER_TILE,
+          arcadeMgTileY: ARCADE_MANA_CENTER_TILE,
+          arcadeMgTailPath: '',
+          arcadeMgLooseManaPath: '',
+          arcadeMgClearManaPath: '',
+          arcadeMgManaType: getRandomArcadeManaType(),
+          arcadeMgManaTileX: resetSpawnTile.x,
+          arcadeMgManaTileY: resetSpawnTile.y,
+          arcadeMgGameOver: false,
+          arcadeMgGameOverAt: 0,
+          arcadeMgSquareClearScore: 0,
+          arcadeMgPhaseActive: false,
+          arcadeMgPhaseStartedAt: 0,
+          arcadeMgClearManaStartedAt: 0,
+          arcadeMgDirX: 0,
+          arcadeMgDirY: 0,
+          arcadeMgQueuedDirX: 0,
+          arcadeMgQueuedDirY: 0,
+          arcadeMgMoveStartedAt: 0,
+          arcadeMgQueuedAt: now,
+          arcadeMgInputQueuePath: ''
+        };
+        patchLocalDie(dieId, resetPatch);
+        queueDiePatch(dieId, resetPatch);
+        return true;
+      }
+      const holdPatch = {};
+      if (gameOverAt !== normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt)) {
+        holdPatch.arcadeMgGameOverAt = gameOverAt;
+      }
+      if (normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).x !== 0 ||
+          normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).y !== 0) {
+        holdPatch.arcadeMgDirX = 0;
+        holdPatch.arcadeMgDirY = 0;
+      }
+      if (normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY).x !== 0 ||
+          normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY).y !== 0) {
+        holdPatch.arcadeMgQueuedDirX = 0;
+        holdPatch.arcadeMgQueuedDirY = 0;
+      }
+      if (normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt) !== 0) {
+        holdPatch.arcadeMgMoveStartedAt = 0;
+      }
+      if (normalizeArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath)) {
+        holdPatch.arcadeMgInputQueuePath = '';
+      }
+      if (dieState?.arcadeMgPhaseActive === true || normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt) !== 0) {
+        holdPatch.arcadeMgPhaseActive = false;
+        holdPatch.arcadeMgPhaseStartedAt = 0;
+      }
+      if (Object.keys(holdPatch).length > 0) {
+        patchLocalDie(dieId, holdPatch);
+        queueDiePatch(dieId, holdPatch);
+        return true;
+      }
+      return false;
+    }
+
+    let tileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+    let tileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+    let moveDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+    let queuedDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY);
+    let moveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
+    let queuedAt = normalizeArcadeTimestamp(dieState?.arcadeMgQueuedAt);
+    let inputQueueTokens = parseArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath);
+
+    const promoteInputQueueDirection = (timestamp = now) => {
+      if (queuedDirection.x !== 0 || queuedDirection.y !== 0) {
+        return false;
+      }
+      while (inputQueueTokens.length > 0) {
+        const nextToken = inputQueueTokens.shift();
+        const nextDirection = getArcadeDirectionVectorFromQueueToken(nextToken);
+        if (nextDirection.x === 0 && nextDirection.y === 0) {
+          continue;
+        }
+        queuedDirection = { x: nextDirection.x, y: nextDirection.y };
+        queuedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+        changed = true;
+        return true;
+      }
+      return false;
+    };
+
+    if ((moveDirection.x !== 0 || moveDirection.y !== 0) && moveStartedAt <= 0) {
+      moveStartedAt = now;
+      changed = true;
+    }
+
+    promoteInputQueueDirection(now);
+
+    if (moveDirection.x === 0 && moveDirection.y === 0) {
+      if (queuedDirection.x !== 0 || queuedDirection.y !== 0) {
+        const queuedNextTileX = tileX + queuedDirection.x;
+        const queuedNextTileY = tileY + queuedDirection.y;
+        if (canArcadeMoveToTile(queuedNextTileX, queuedNextTileY)) {
+          moveDirection = { x: queuedDirection.x, y: queuedDirection.y };
+          queuedDirection = { x: 0, y: 0 };
+          moveStartedAt = now;
+          queuedAt = 0;
+          changed = true;
+        } else {
+          queuedDirection = { x: 0, y: 0 };
+          queuedAt = 0;
+          changed = true;
+        }
+      }
+    }
+
+    let safety = 0;
+    while (
+      (moveDirection.x !== 0 || moveDirection.y !== 0) &&
+      moveStartedAt > 0 &&
+      now - moveStartedAt >= ARCADE_MANA_STEP_MS &&
+      safety < 24
+    ) {
+      const boundaryAt = moveStartedAt + ARCADE_MANA_STEP_MS;
+      const previousTileX = tileX;
+      const previousTileY = tileY;
+      const arrivedTileX = tileX + moveDirection.x;
+      const arrivedTileY = tileY + moveDirection.y;
+      if (!canArcadeMoveToTile(arrivedTileX, arrivedTileY)) {
+        moveDirection = { x: 0, y: 0 };
+        queuedDirection = { x: 0, y: 0 };
+        moveStartedAt = 0;
+        queuedAt = 0;
+        changed = true;
+        break;
+      }
+      const growSource = tailSegments.length > 0
+        ? { x: tailSegments[tailSegments.length - 1].x, y: tailSegments[tailSegments.length - 1].y }
+        : { x: previousTileX, y: previousTileY };
+      if (tailSegments.length > 0) {
+        for (let index = tailSegments.length - 1; index > 0; index -= 1) {
+          tailSegments[index].x = tailSegments[index - 1].x;
+          tailSegments[index].y = tailSegments[index - 1].y;
+        }
+        tailSegments[0].x = previousTileX;
+        tailSegments[0].y = previousTileY;
+      }
+      tileX = arrivedTileX;
+      tileY = arrivedTileY;
+      changed = true;
+
+      let pickedLooseMana = false;
+      for (let index = looseManaSegments.length - 1; index >= 0; index -= 1) {
+        const looseSegment = looseManaSegments[index];
+        if (looseSegment.x !== tileX || looseSegment.y !== tileY) {
+          continue;
+        }
+        looseManaSegments.splice(index, 1);
+        if (tailSegments.length < ARCADE_MANA_TAIL_MAX_LENGTH) {
+          tailSegments.push({
+            x: growSource.x,
+            y: growSource.y,
+            type: normalizeArcadeManaType(looseSegment.type)
+          });
+        }
+        pickedLooseMana = true;
+      }
+      if (pickedLooseMana) {
+        changed = true;
+      }
+
+      if (tileX === manaTileX && tileY === manaTileY) {
+        if (tailSegments.length < ARCADE_MANA_TAIL_MAX_LENGTH) {
+          tailSegments.push({
+            x: growSource.x,
+            y: growSource.y,
+            type: normalizeArcadeManaType(manaType)
+          });
+        }
+        const nextSpawnTile = getArcadeManaSpawnTile([
+          { x: tileX, y: tileY },
+          ...tailSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+          ...looseManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+          ...clearingManaSegments.map((segment) => ({ x: segment.x, y: segment.y }))
+        ]);
+        manaTileX = nextSpawnTile.x;
+        manaTileY = nextSpawnTile.y;
+        manaType = getRandomArcadeManaType();
+      }
+
+      const hitTail = tailSegments.some((segment) => segment.x === tileX && segment.y === tileY);
+      if (hitTail) {
+        if (phaseInvulnerable) {
+          const squareSegments = getArcadeSquareTailSegmentsAtIntersection(tileX, tileY, tailSegments);
+          if (squareSegments.length > 0) {
+            const squareKeys = new Set(squareSegments.map((segment) => getArcadeTileKey(segment.x, segment.y)));
+            const droppedLooseSegments = [];
+            for (const segment of tailSegments) {
+              const key = getArcadeTileKey(segment.x, segment.y);
+              if (squareKeys.has(key)) {
+                continue;
+              }
+              droppedLooseSegments.push({
+                x: normalizeArcadeGridCoord(segment.x),
+                y: normalizeArcadeGridCoord(segment.y),
+                type: normalizeArcadeManaType(segment.type)
+              });
+            }
+            tailSegments = [];
+            looseManaSegments.push(...droppedLooseSegments);
+            clearingManaSegments = squareSegments.map((segment) => ({
+              x: normalizeArcadeGridCoord(segment.x),
+              y: normalizeArcadeGridCoord(segment.y),
+              type: normalizeArcadeManaType(segment.type)
+            }));
+            squareClearScore += squareSegments.length;
+            clearManaStartedAt = now;
+            changed = true;
+          }
+        } else {
+          gameOver = true;
+          gameOverAt = now;
+          moveDirection = { x: 0, y: 0 };
+          queuedDirection = { x: 0, y: 0 };
+          moveStartedAt = 0;
+          queuedAt = now;
+          changed = true;
+          if (squareClearScore > 0) {
+            const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+            if (controllerPlayerToken) {
+              void recordArcadeBestScoreForPlayer(
+                controllerPlayerToken,
+                String(dieState?.arcadeControllerName || '').trim().slice(0, 24),
+                normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59'),
+                squareClearScore
+              );
+            }
+          }
+          break;
+        }
+      }
+
+      let nextDirection = { x: moveDirection.x, y: moveDirection.y };
+      let queueConsumed = false;
+      promoteInputQueueDirection(boundaryAt);
+      if (queuedDirection.x !== 0 || queuedDirection.y !== 0) {
+        const reverseTurnBlocked = tailSegments.length > 0 && isArcadeReverseDirection(queuedDirection, moveDirection);
+        if (reverseTurnBlocked) {
+          queueConsumed = true;
+        }
+        const turnInLeewayWindow = queuedAt <= boundaryAt + ARCADE_MANA_TURN_LEEWAY_MS || queuedAt === 0;
+        if (!reverseTurnBlocked && turnInLeewayWindow) {
+          if (canArcadeMoveToTile(tileX + queuedDirection.x, tileY + queuedDirection.y)) {
+            nextDirection = { x: queuedDirection.x, y: queuedDirection.y };
+          }
+          queueConsumed = true;
+        }
+      }
+      if (queueConsumed) {
+        queuedDirection = { x: 0, y: 0 };
+        queuedAt = 0;
+        promoteInputQueueDirection(boundaryAt);
+      }
+
+      if (!canArcadeMoveToTile(tileX + nextDirection.x, tileY + nextDirection.y)) {
+        nextDirection = { x: 0, y: 0 };
+      }
+      if (nextDirection.x === 0 && nextDirection.y === 0) {
+        moveDirection = { x: 0, y: 0 };
+        moveStartedAt = 0;
+      } else {
+        moveDirection = nextDirection;
+        moveStartedAt = boundaryAt;
+      }
+      safety += 1;
+    }
+
+    const tailPath = encodeArcadeManaTailPath(tailSegments);
+    const looseManaPath = encodeArcadeManaTailPath(looseManaSegments);
+    const clearManaPath = encodeArcadeManaTailPath(clearingManaSegments);
+    const inputQueuePath = encodeArcadeInputQueuePath(inputQueueTokens);
+    const patch = {};
+    if (tileX !== normalizeArcadeGridCoord(dieState?.arcadeMgTileX)) {
+      patch.arcadeMgTileX = tileX;
+    }
+    if (tileY !== normalizeArcadeGridCoord(dieState?.arcadeMgTileY)) {
+      patch.arcadeMgTileY = tileY;
+    }
+    if (tailPath !== normalizeArcadeManaTailPath(dieState?.arcadeMgTailPath)) {
+      patch.arcadeMgTailPath = tailPath;
+    }
+    if (looseManaPath !== normalizeArcadeManaTailPath(dieState?.arcadeMgLooseManaPath)) {
+      patch.arcadeMgLooseManaPath = looseManaPath;
+    }
+    if (clearManaPath !== normalizeArcadeManaTailPath(dieState?.arcadeMgClearManaPath)) {
+      patch.arcadeMgClearManaPath = clearManaPath;
+    }
+    if (manaType !== normalizeArcadeManaType(dieState?.arcadeMgManaType)) {
+      patch.arcadeMgManaType = manaType;
+    }
+    if (manaTileX !== normalizeArcadeGridCoord(dieState?.arcadeMgManaTileX)) {
+      patch.arcadeMgManaTileX = manaTileX;
+    }
+    if (manaTileY !== normalizeArcadeGridCoord(dieState?.arcadeMgManaTileY)) {
+      patch.arcadeMgManaTileY = manaTileY;
+    }
+    if (gameOver !== (dieState?.arcadeMgGameOver === true)) {
+      patch.arcadeMgGameOver = gameOver;
+    }
+    if (gameOverAt !== normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt)) {
+      patch.arcadeMgGameOverAt = gameOverAt;
+    }
+    if (squareClearScore !== Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0))) {
+      patch.arcadeMgSquareClearScore = squareClearScore;
+    }
+    if (phaseActive !== (dieState?.arcadeMgPhaseActive === true)) {
+      patch.arcadeMgPhaseActive = phaseActive;
+    }
+    if (phaseStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt)) {
+      patch.arcadeMgPhaseStartedAt = phaseStartedAt;
+    }
+    if (clearManaStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgClearManaStartedAt)) {
+      patch.arcadeMgClearManaStartedAt = clearManaStartedAt;
+    }
+    const originalDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+    if (moveDirection.x !== originalDirection.x || moveDirection.y !== originalDirection.y) {
+      patch.arcadeMgDirX = moveDirection.x;
+      patch.arcadeMgDirY = moveDirection.y;
+    }
+    const originalQueuedDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY);
+    if (queuedDirection.x !== originalQueuedDirection.x || queuedDirection.y !== originalQueuedDirection.y) {
+      patch.arcadeMgQueuedDirX = queuedDirection.x;
+      patch.arcadeMgQueuedDirY = queuedDirection.y;
+    }
+    if (moveStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt)) {
+      patch.arcadeMgMoveStartedAt = moveStartedAt;
+    }
+    if (queuedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgQueuedAt)) {
+      patch.arcadeMgQueuedAt = queuedAt;
+    }
+    if (inputQueuePath !== normalizeArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath)) {
+      patch.arcadeMgInputQueuePath = inputQueuePath;
+    }
+    if (!changed && Object.keys(patch).length === 0) {
+      return false;
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function runArcadeManaMotionTick(now = Date.now()) {
+    const timestamp = Math.max(0, Math.floor(Number(now) || Date.now()));
+    for (const [dieId, dieState] of diceById.entries()) {
+      advanceArcadeManaMotionForDie(dieId, dieState, timestamp);
+    }
   }
 
   function ensureMarbleFlickArrowElement() {
@@ -28994,9 +32916,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       normalizedType === 'spinner' ||
       normalizedType === 'counter' ||
       normalizedType === 'timer' ||
+      normalizedType === 'arcade' ||
       normalizedType === 'media'
     );
-  }
+}
 
   function canMarbleTriggerCollisionEffectForDieType(type) {
     const normalizedType = normalizeDieType(type);
@@ -29648,8 +33571,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   }
 
   async function beginMarbleFlickGesture(event, dieId) {
+    if (marbleFlickState) {
+      const sameGesture =
+        marbleFlickState.pointerId === event.pointerId &&
+        marbleFlickState.dieId === String(dieId || '').trim();
+      if (sameGesture) {
+        marbleFlickState.cursorClientX = event.clientX;
+        marbleFlickState.cursorClientY = event.clientY;
+        scheduleMarbleFlickSafetyTimer(event.pointerId);
+        syncMarbleFlickArrow();
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return true;
+      }
+      cancelMarbleFlickGesture({ releaseLock: false, resetState: false });
+    }
     if (
-      marbleFlickState ||
       dieDragState ||
       labelResizeState ||
       labelRotateState ||
@@ -29665,9 +33601,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!isMarbleDieState(targetDie)) {
       return false;
     }
-    settleMarbleIfNearlyStill(dieId, targetDie, MARBLE_RESTART_BLOCK_SPEED);
     let refreshedTargetDie = diceById.get(dieId) || targetDie;
-    const targetHolderClientId =
+    let targetHolderClientId =
       typeof refreshedTargetDie?.holderClientId === 'string' && refreshedTargetDie.holderClientId
         ? refreshedTargetDie.holderClientId
         : '';
@@ -29677,55 +33612,19 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         return false;
       }
       refreshedTargetDie = diceById.get(dieId) || refreshedTargetDie;
-    }
-    const hasLocalMotionEntry = marbleMotionByDieId.has(dieId);
-    const targetSpeed = getMarbleSpeed(refreshedTargetDie);
-    const targetAppearsMoving =
-      refreshedTargetDie.moving === true ||
-      hasLocalMotionEntry ||
-      targetSpeed > MARBLE_FORCE_STOP_SPEED;
-    if (targetAppearsMoving) {
-      const forceStopPatch = {
-        moving: false,
-        velocityX: 0,
-        velocityY: 0,
-        holderClientId: null
-      };
-      patchLocalDie(dieId, forceStopPatch);
-      queueDiePatch(dieId, forceStopPatch);
-      marbleMotionByDieId.delete(dieId);
-      marbleActiveCollisionContactsByDieId.delete(dieId);
-      if (targetHolderClientId === clientId) {
-        releaseDieLock(dieId).catch((error) => {
-          console.error(error);
-        });
-      }
-    }
-    refreshedTargetDie = diceById.get(dieId) || refreshedTargetDie;
-    if (!isMarbleEffectivelyMoving(refreshedTargetDie) && marbleMotionByDieId.has(dieId)) {
-      marbleMotionByDieId.delete(dieId);
-    }
-    if (isMarbleEffectivelyMoving(refreshedTargetDie) || marbleMotionByDieId.has(dieId)) {
-      return false;
+      targetHolderClientId =
+        typeof refreshedTargetDie?.holderClientId === 'string' && refreshedTargetDie.holderClientId
+          ? refreshedTargetDie.holderClientId
+          : '';
     }
     const lockState = diceById.get(dieId) || refreshedTargetDie;
     if (!isMarbleDieState(lockState)) {
       return false;
     }
     if (lockState.holderClientId && lockState.holderClientId !== clientId) {
-      const holderSpeed = getMarbleSpeed(lockState);
-      const holderHasActiveMotion = lockState.moving === true && holderSpeed > MARBLE_RESTART_BLOCK_SPEED;
-      if (holderHasActiveMotion) {
-        return false;
-      }
-      const reclaimPatch = {
-        moving: false,
-        velocityX: 0,
-        velocityY: 0,
-        holderClientId: null
-      };
-      patchLocalDie(dieId, reclaimPatch);
-      queueDiePatch(dieId, reclaimPatch);
+      return false;
+    }
+    if (marbleMotionByDieId.has(dieId) && !isMarbleEffectivelyMoving(lockState) && getMarbleSpeed(lockState) <= MARBLE_FORCE_STOP_SPEED) {
       marbleMotionByDieId.delete(dieId);
       marbleActiveCollisionContactsByDieId.delete(dieId);
     }
@@ -29845,6 +33744,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       marbleActiveCollisionContactsByDieId.delete(dieId);
       return;
     }
+    const isActiveFlickTarget = marbleFlickState?.dieId === dieId;
+    if (isActiveFlickTarget) {
+      const holderClientId = typeof dieState.holderClientId === 'string' ? dieState.holderClientId : '';
+      if (holderClientId && holderClientId !== clientId) {
+        cancelMarbleFlickGesture();
+        return;
+      }
+      // Keep in-progress local flick aiming stable even while other marbles stream updates.
+      if (dieState.moving !== true || holderClientId !== clientId || getMarbleSpeed(dieState) <= MARBLE_FORCE_STOP_SPEED) {
+        marbleMotionByDieId.delete(dieId);
+        marbleActiveCollisionContactsByDieId.delete(dieId);
+      }
+      return;
+    }
     const incomingSpeed = getMarbleSpeed(dieState);
     if (
       dieState.moving === true &&
@@ -29911,6 +33824,56 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     });
   }
 
+  function mergeIncomingArcadeStateWithActiveLocalControl(dieId, previousDieState, incomingDieState) {
+    if (!isArcadeDieState(previousDieState) || !isArcadeDieState(incomingDieState)) {
+      return incomingDieState;
+    }
+    if (!localClientId) {
+      return incomingDieState;
+    }
+    const previousScreen = normalizeArcadeScreen(previousDieState?.arcadeScreen);
+    const incomingScreen = normalizeArcadeScreen(incomingDieState?.arcadeScreen);
+    if (previousScreen !== ARCADE_SCREEN_MANA_PLAY || incomingScreen !== ARCADE_SCREEN_MANA_PLAY) {
+      return incomingDieState;
+    }
+    const previousControllerClientId = String(previousDieState?.arcadeControllerClientId || '').trim();
+    const incomingControllerClientId = String(incomingDieState?.arcadeControllerClientId || '').trim();
+    if (previousControllerClientId !== localClientId) {
+      return incomingDieState;
+    }
+    if (incomingControllerClientId && incomingControllerClientId !== localClientId) {
+      return incomingDieState;
+    }
+    return normalizeDicePayload({
+      ...incomingDieState,
+      arcadeControllerClientId: localClientId,
+      arcadeControllerPlayerToken: normalizeArcadePlayerToken(previousDieState?.arcadeControllerPlayerToken),
+      arcadeControllerName: String(previousDieState?.arcadeControllerName || '').trim().slice(0, 24),
+      arcadeControllerColor: normalizeHexColor(previousDieState?.arcadeControllerColor || '#ff7a59'),
+      arcadeMgTileX: previousDieState.arcadeMgTileX,
+      arcadeMgTileY: previousDieState.arcadeMgTileY,
+      arcadeMgDirX: previousDieState.arcadeMgDirX,
+      arcadeMgDirY: previousDieState.arcadeMgDirY,
+      arcadeMgQueuedDirX: previousDieState.arcadeMgQueuedDirX,
+      arcadeMgQueuedDirY: previousDieState.arcadeMgQueuedDirY,
+      arcadeMgMoveStartedAt: previousDieState.arcadeMgMoveStartedAt,
+      arcadeMgQueuedAt: previousDieState.arcadeMgQueuedAt,
+      arcadeMgInputQueuePath: previousDieState.arcadeMgInputQueuePath,
+      arcadeMgTailPath: previousDieState.arcadeMgTailPath,
+      arcadeMgLooseManaPath: previousDieState.arcadeMgLooseManaPath,
+      arcadeMgClearManaPath: previousDieState.arcadeMgClearManaPath,
+      arcadeMgManaType: previousDieState.arcadeMgManaType,
+      arcadeMgManaTileX: previousDieState.arcadeMgManaTileX,
+      arcadeMgManaTileY: previousDieState.arcadeMgManaTileY,
+      arcadeMgGameOver: previousDieState.arcadeMgGameOver,
+      arcadeMgGameOverAt: previousDieState.arcadeMgGameOverAt,
+      arcadeMgSquareClearScore: previousDieState.arcadeMgSquareClearScore,
+      arcadeMgPhaseActive: previousDieState.arcadeMgPhaseActive,
+      arcadeMgPhaseStartedAt: previousDieState.arcadeMgPhaseStartedAt,
+      arcadeMgClearManaStartedAt: previousDieState.arcadeMgClearManaStartedAt
+    });
+  }
+
   const activePointers = new Set();
   const touchPointers = new Map();
   let mousePanState = null;
@@ -29943,14 +33906,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   }
 
   function ensureLocalDeleteCursor() {
-    if (localDeleteCursor || !cursorLayer) {
+    const host = tableRoot || cursorLayer;
+    if (localDeleteCursor || !host) {
       return localDeleteCursor;
     }
     const cursor = document.createElement('div');
     cursor.className = 'local-delete-cursor hidden';
     cursor.setAttribute('aria-hidden', 'true');
     cursor.textContent = '🗡️';
-    cursorLayer.appendChild(cursor);
+    host.appendChild(cursor);
     localDeleteCursor = cursor;
     return localDeleteCursor;
   }
@@ -31418,10 +35382,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
-    const latestCard = cards.get(cardId) || existingCard;
+    let latestCard = cards.get(cardId) || existingCard;
     if (!isResizableImageComponentCard(latestCard)) {
       await releaseCardLock(cardId);
       return;
+    }
+    const latestSubtype = getCardComponentSubtype(latestCard);
+    if (latestSubtype === SECRET_AREA_COMPONENT_SUBTYPE && latestCard.componentCardSized !== false) {
+      const resizeEnablePatch = {
+        componentCardSized: false,
+        componentWidth: Math.max(1, Number(latestCard.componentWidth) || CARD_WIDTH),
+        componentHeight: Math.max(1, Number(latestCard.componentHeight) || CARD_HEIGHT),
+        holderClientId: clientId,
+        inDeck: false,
+        inDiscard: false,
+        inAuction: false
+      };
+      patchLocalCard(cardId, resizeEnablePatch);
+      queueCardPatch(cardId, resizeEnablePatch);
+      latestCard = {
+        ...latestCard,
+        ...resizeEnablePatch
+      };
     }
 
     const size = getCardTableDimensions(latestCard);
@@ -31572,11 +35554,27 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     renderCardElement(finishedResize.cardId);
     cardElements.get(finishedResize.cardId)?.classList.remove('is-resize-hovered');
 
+    const latestCard = cards.get(finishedResize.cardId);
     const releasePatch = {
-      holderClientId: null
+      holderClientId: null,
+      ...(latestCard
+        ? {
+            x: Number(latestCard.x) || 0,
+            y: Number(latestCard.y) || 0,
+            componentWidth: Math.max(1, Number(latestCard.componentWidth) || CARD_WIDTH),
+            componentHeight: Math.max(1, Number(latestCard.componentHeight) || CARD_HEIGHT),
+            componentRotation: normalizeStickerRotationDegrees(latestCard.componentRotation),
+            inDeck: false,
+            inDiscard: false,
+            inAuction: false,
+            handOwnerClientId: null,
+            handOwnerPlayerToken: null
+          }
+        : {})
     };
     patchLocalCard(finishedResize.cardId, releasePatch);
     queueCardPatch(finishedResize.cardId, releasePatch);
+    persistCardStateImmediately(finishedResize.cardId);
     releaseCardLock(finishedResize.cardId).catch((error) => {
       console.error(error);
     });
@@ -31584,7 +35582,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
-  async function handleCardPointerDown(event, cardId) {
+  async function handleCardPointerDown(event, cardId, options = {}) {
     if (drawModeEnabled) {
       return;
     }
@@ -31616,6 +35614,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     const existingCard = cards.get(cardId);
     if (!existingCard) {
+      return;
+    }
+    const allowSecretAreaDrag = options?.allowSecretAreaDrag === true;
+    if (isSecretAreaComponentCard(existingCard) && !allowSecretAreaDrag) {
       return;
     }
     if (isNoteCardEditing(cardId)) {
@@ -31957,6 +35959,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             };
         patchLocalCard(finishedState.cardId, releasePatch);
         queueCardPatch(finishedState.cardId, releasePatch);
+        persistCardStateImmediately(finishedState.cardId);
       }
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
@@ -32203,6 +36206,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     patchLocalCard(finishedDrag.cardId, finalPatch);
     queueCardPatch(finishedDrag.cardId, finalPatch);
+    persistCardStateImmediately(finishedDrag.cardId);
     releaseCardLock(finishedDrag.cardId).catch((error) => {
       console.error(error);
     });
@@ -32234,6 +36238,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   onCardPointerDown = (event, cardId) => {
     handleCardPointerDown(event, cardId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onSecretAreaMovePointerDown = (event, cardId) => {
+    handleCardPointerDown(event, cardId, { allowSecretAreaDrag: true }).catch((error) => {
       console.error(error);
     });
   };
@@ -32405,6 +36414,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     let targetDieState = diceById.get(dieId);
+    const targetDieType = normalizeDieType(targetDieState?.type);
+    if (targetDieType === 'arcade') {
+      setActiveArcadeDieFocus(dieId);
+    } else if (activeArcadeDieId && activeArcadeDieId !== dieId) {
+      setActiveArcadeDieFocus('');
+    }
     const isTargetMarble = isMarbleDieState(targetDieState);
     const isPrimaryMarbleFlick = event.button === 0 && isTargetMarble;
     const isMouseSecondaryMarbleDrag = event.pointerType === 'mouse' && event.button === 2 && isTargetMarble;
@@ -33098,6 +37113,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       startX: normalized.x,
       startY: normalized.y
     };
+    activelyDraggedChipSetIds.add(targetChipSetId);
     patchLocalChipSet({ holderClientId: clientId }, targetChipSetId);
     queueChipSetPatch({ holderClientId: clientId }, targetChipSetId);
     safeSetPointerCapture(event.currentTarget, event.pointerId);
@@ -33145,6 +37161,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
     const targetChipSetId = String(chipSetDragState.chipSetId || '').trim();
     chipSetDragState = null;
+    if (targetChipSetId) {
+      activelyDraggedChipSetIds.delete(targetChipSetId);
+    }
     if (!targetChipSetId) {
       return;
     }
@@ -33282,6 +37301,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     deckDragState = null;
     patchLocalDeck({ holderClientId: null }, targetDeckId);
     queueDeckPatch({ holderClientId: null }, targetDeckId);
+    persistDeckStateImmediately(targetDeckId);
     releaseDeckLock(targetDeckId).catch((error) => {
       console.error(error);
     });
@@ -33290,41 +37310,49 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   async function handleDeckShuffle(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
-    const targetDeckState = getDeckStateById(targetDeckId);
-    if (targetDeckState?.holderClientId && targetDeckState.holderClientId !== clientId) {
+    const acquired = await acquireDeckLock(targetDeckId);
+    if (!acquired) {
       return;
     }
-    const deckCardIds = getDeckCardIds(targetDeckId);
-    if (deckCardIds.length < 2) {
-      return;
-    }
+    patchLocalDeck({ holderClientId: clientId }, targetDeckId);
+    try {
+      const deckCardIds = getDeckCardIds(targetDeckId);
+      if (deckCardIds.length < 2) {
+        return;
+      }
 
-    for (let index = deckCardIds.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
-      const temp = deckCardIds[index];
-      deckCardIds[index] = deckCardIds[swapIndex];
-      deckCardIds[swapIndex] = temp;
-    }
+      for (let index = deckCardIds.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        const temp = deckCardIds[index];
+        deckCardIds[index] = deckCardIds[swapIndex];
+        deckCardIds[swapIndex] = temp;
+      }
 
-    const updatesByPath = {};
-    for (let index = 0; index < deckCardIds.length; index += 1) {
-      const cardId = deckCardIds[index];
-      const nextZ = index + 1;
-      patchLocalCard(cardId, { z: nextZ, deckId: targetDeckId });
-      updatesByPath[`${cardId}/z`] = nextZ;
-      updatesByPath[`${cardId}/deckId`] = targetDeckId;
-      updatesByPath[`${cardId}/updatedAt`] = serverTimestamp();
+      const updatesByPath = {};
+      const updatedAtStamp = Date.now();
+      for (let index = 0; index < deckCardIds.length; index += 1) {
+        const cardId = deckCardIds[index];
+        const nextZ = index + 1;
+        patchLocalCard(cardId, { z: nextZ, deckId: targetDeckId, updatedAt: updatedAtStamp + index });
+        updatesByPath[`${cardId}/z`] = nextZ;
+        updatesByPath[`${cardId}/deckId`] = targetDeckId;
+        updatesByPath[`${cardId}/updatedAt`] = serverTimestamp();
+      }
+      await update(cardsRef, updatesByPath);
+      const currentShuffleTick = Number(getDeckStateById(targetDeckId)?.shuffleTick) || 0;
+      const nextShuffleTick = currentShuffleTick + 1;
+      await update(getDeckNodeRef(targetDeckId), {
+        shuffleTick: nextShuffleTick,
+        updatedAt: serverTimestamp()
+      });
+      triggerDeckShuffleFx(targetDeckId);
+    } finally {
+      patchLocalDeck({ holderClientId: null }, targetDeckId);
+      queueDeckPatch({ holderClientId: null }, targetDeckId);
+      releaseDeckLock(targetDeckId).catch((error) => {
+        console.error(error);
+      });
     }
-    await update(cardsRef, updatesByPath);
-
-    await runTransaction(
-      ref(db, `${roomPath}/decks/${targetDeckId}/shuffleTick`),
-      (currentTick) => {
-        const parsed = Number(currentTick);
-        return Number.isFinite(parsed) ? parsed + 1 : 1;
-      },
-      { applyLocally: false }
-    );
   }
 
   async function handleStackPointShuffle(stackPointDieId = '') {
@@ -33369,91 +37397,89 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   async function handleDealOneToEachPlayer(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
-    const targetDeckState = getDeckStateById(targetDeckId);
-    if (targetDeckState?.holderClientId && targetDeckState.holderClientId !== clientId) {
+    const acquired = await acquireDeckLock(targetDeckId);
+    if (!acquired) {
       return;
     }
+    patchLocalDeck({ holderClientId: clientId }, targetDeckId);
+    try {
+      const targetOwnerTokens = getActivePlayerTokensForDeal();
+      if (targetOwnerTokens.length === 0) {
+        return;
+      }
+      if (getDeckCardCount(targetDeckId) < targetOwnerTokens.length) {
+        return;
+      }
 
-    const targetOwnerTokens = getActivePlayerTokensForDeal();
-    if (targetOwnerTokens.length === 0) {
-      return;
-    }
-    if (getDeckCardCount(targetDeckId) < targetOwnerTokens.length) {
-      return;
-    }
-
-    const topDeckCardsForDeal = getDeckCardIds(targetDeckId)
-      .sort((leftId, rightId) => (Number(cards.get(rightId)?.z) || 0) - (Number(cards.get(leftId)?.z) || 0))
-      .slice(0, targetOwnerTokens.length);
-    for (const cardId of topDeckCardsForDeal) {
-      warmCardFrontVariants(cards.get(cardId)?.frontSrc, LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
-    }
-
-    await runTransaction(
-      cardsRef,
-      (currentCards) => {
-        if (!currentCards || typeof currentCards !== 'object') {
-          return;
+      const topDeckCardsForDeal = getDeckCardIds(targetDeckId)
+        .sort((leftId, rightId) => (Number(cards.get(rightId)?.z) || 0) - (Number(cards.get(leftId)?.z) || 0))
+        .slice(0, targetOwnerTokens.length);
+      if (topDeckCardsForDeal.length < targetOwnerTokens.length) {
+        return;
+      }
+      for (const cardId of topDeckCardsForDeal) {
+        warmCardFrontVariants(cards.get(cardId)?.frontSrc, LOW_RES_FRONT_SWITCH_SCREEN_WIDTH);
+      }
+      const topHandZByOwner = new Map();
+      for (const cardState of cards.values()) {
+        if (!cardState || typeof cardState !== 'object') {
+          continue;
         }
-
-        const deckEntries = Object.entries(currentCards).filter(([cardId, cardState]) => {
-          if (!cardState || typeof cardState !== 'object') {
-            return false;
-          }
-          return cardState.inDeck === true && getCardDeckInstanceId(cardId, cardState) === targetDeckId;
-        });
-        if (deckEntries.length < targetOwnerTokens.length) {
-          return;
+        const ownerToken = getCardHandOwnerId(cardState);
+        if (!ownerToken) {
+          continue;
         }
-        deckEntries.sort(([, leftState], [, rightState]) => (Number(rightState?.z) || 0) - (Number(leftState?.z) || 0));
+        const nextZ = Number(cardState.z) || 0;
+        topHandZByOwner.set(ownerToken, Math.max(topHandZByOwner.get(ownerToken) || 0, nextZ));
+      }
 
-        const nextCards = { ...currentCards };
-        const topHandZByOwner = new Map();
-        for (const [, cardState] of Object.entries(currentCards)) {
-          if (!cardState || typeof cardState !== 'object') {
+      const updatesByPath = {};
+      const timestamp = Date.now();
+      for (let index = 0; index < targetOwnerTokens.length; index += 1) {
+        const ownerToken = targetOwnerTokens[index];
+        const cardId = topDeckCardsForDeal[index];
+        if (!cardId) {
+          continue;
+        }
+        const sourceCard = cards.get(cardId);
+        if (!sourceCard || typeof sourceCard !== 'object') {
+          continue;
+        }
+        const nextHandZ = (topHandZByOwner.get(ownerToken) || 0) + 1;
+        topHandZByOwner.set(ownerToken, nextHandZ);
+        const dealtFace = getFaceWhenEnteringHand(sourceCard);
+        const patch = {
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          deckId: targetDeckId,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: ownerToken,
+          face: dealtFace,
+          z: nextHandZ,
+          updatedAt: timestamp + index
+        };
+        patchLocalCard(cardId, patch);
+        for (const [patchKey, patchValue] of Object.entries(patch)) {
+          if (typeof patchValue === 'undefined') {
             continue;
           }
-          const ownerToken = getCardHandOwnerId(cardState);
-          if (!ownerToken) {
-            continue;
-          }
-          const nextZ = Number(cardState.z) || 0;
-          topHandZByOwner.set(ownerToken, Math.max(topHandZByOwner.get(ownerToken) || 0, nextZ));
+          updatesByPath[`${cardId}/${patchKey}`] = patchValue;
         }
-
-        const timestamp = Date.now();
-        for (let index = 0; index < targetOwnerTokens.length; index += 1) {
-          const ownerToken = targetOwnerTokens[index];
-          const deckEntry = deckEntries[index];
-          if (!deckEntry) {
-            break;
-          }
-          const [cardId, sourceCard] = deckEntry;
-          if (!sourceCard || typeof sourceCard !== 'object') {
-            continue;
-          }
-          const nextHandZ = (topHandZByOwner.get(ownerToken) || 0) + 1;
-          topHandZByOwner.set(ownerToken, nextHandZ);
-          const dealtFace = getFaceWhenEnteringHand(sourceCard);
-          nextCards[cardId] = {
-            ...sourceCard,
-            inDeck: false,
-            inDiscard: false,
-            inAuction: false,
-            deckId: targetDeckId,
-            holderClientId: null,
-            handOwnerClientId: null,
-            handOwnerPlayerToken: ownerToken,
-            face: dealtFace,
-            z: nextHandZ,
-            updatedAt: timestamp + index
-          };
-        }
-
-        return nextCards;
-      },
-      { applyLocally: false }
-    );
+      }
+      if (Object.keys(updatesByPath).length > 0) {
+        renderLocalHandCards();
+        setLocalHandCountLabel();
+        await update(cardsRef, updatesByPath);
+      }
+    } finally {
+      patchLocalDeck({ holderClientId: null }, targetDeckId);
+      queueDeckPatch({ holderClientId: null }, targetDeckId);
+      releaseDeckLock(targetDeckId).catch((error) => {
+        console.error(error);
+      });
+    }
   }
 
   async function handleDiscardReturnToDeck(deckId = activeDeckId) {
@@ -33462,6 +37488,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!targetDeckState) {
       return;
     }
+    const acquired = await acquireDeckLock(targetDeckId);
+    if (!acquired) {
+      return;
+    }
+    patchLocalDeck({ holderClientId: clientId }, targetDeckId);
+    try {
     const discardCardIds = getDiscardCardIds(targetDeckId).sort((leftId, rightId) => {
       const left = cards.get(leftId);
       const right = cards.get(rightId);
@@ -33506,6 +37538,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     if (Object.keys(updatesByPath).length > 0) {
       await update(cardsRef, updatesByPath);
+    }
+    } finally {
+      patchLocalDeck({ holderClientId: null }, targetDeckId);
+      queueDeckPatch({ holderClientId: null }, targetDeckId);
+      releaseDeckLock(targetDeckId).catch((error) => {
+        console.error(error);
+      });
     }
   }
 
@@ -34768,9 +38807,43 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         String(index + 1)
     }));
     const viewportCenter = getViewportWorldCenter();
-    const seededChipSet = normalizeChipSetPayload({
+    const provisionalChipSet = normalizeChipSetPayload({
       x: viewportCenter.x,
       y: viewportCenter.y,
+      stackCount,
+      stacks: seedStacks
+    });
+    const provisionalBounds = getChipSetCenterBounds(provisionalChipSet);
+    let spawnX = provisionalChipSet.x;
+    let spawnY = provisionalChipSet.y;
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(spawnX, spawnY)) {
+      const candidateOffsets = [
+        [220, 0],
+        [-220, 0],
+        [0, 220],
+        [0, -220],
+        [320, 180],
+        [-320, 180],
+        [320, -180],
+        [-320, -180],
+        [420, 0],
+        [-420, 0],
+        [0, 420],
+        [0, -420]
+      ];
+      for (const [offsetX, offsetY] of candidateOffsets) {
+        const candidateX = clamp(viewportCenter.x + offsetX, provisionalBounds.minX, provisionalBounds.maxX);
+        const candidateY = clamp(viewportCenter.y + offsetY, provisionalBounds.minY, provisionalBounds.maxY);
+        if (!isWorldPointHiddenBySecretAreaForLocalViewer(candidateX, candidateY)) {
+          spawnX = candidateX;
+          spawnY = candidateY;
+          break;
+        }
+      }
+    }
+    const seededChipSet = normalizeChipSetPayload({
+      x: spawnX,
+      y: spawnY,
       stackCount,
       stacks: seedStacks
     });
@@ -34778,9 +38851,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       worldX: seededChipSet.x,
       worldY: seededChipSet.y,
       worldWidth: getChipSetWorldWidth(seededChipSet),
-      worldHeight: CHIP_STACK_WORLD_SIZE
+      worldHeight: DIE_SIZE_CHIP
     });
     let createdChipSetId = '';
+    let createdChipSetPayload = null;
     try {
       await runTransaction(
         chipSetsRef,
@@ -34795,16 +38869,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             nextChipSetId = `chipset-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
           }
           createdChipSetId = nextChipSetId;
-          baseChipSets[nextChipSetId] = {
+          const nextChipSetPayload = {
             ...seededChipSet,
             z: nextTopZ + 1,
             holderClientId: null,
             updatedAt: Date.now()
           };
+          createdChipSetPayload = nextChipSetPayload;
+          baseChipSets[nextChipSetId] = nextChipSetPayload;
           return baseChipSets;
         },
         { applyLocally: false }
       );
+      if (createdChipSetId && createdChipSetPayload && hasLoadedInitialCardsSnapshot) {
+        chipSetsById.set(createdChipSetId, normalizeChipSetPayload(createdChipSetPayload));
+        renderChipSets();
+        syncClearTableButtonState();
+      }
       finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdChipSetId) && chipSetsById.has(createdChipSetId));
     } catch (error) {
       failSpawnLoadingIndicator(indicatorId);
@@ -34829,6 +38910,36 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     });
     let createdDieIds = [];
     try {
+      if (normalizedType === 'marble' && normalizedCount === 1) {
+        let nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        while (diceById.has(nextDieId)) {
+          nextDieId = `die-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        createdDieIds = [nextDieId];
+        const createdAt = Date.now();
+        const marblePayload = {
+          type: 'marble',
+          x: spawnCenterX,
+          y: spawnCenterY,
+          z: getTopObjectZ() + 1,
+          value: 1,
+          holderClientId: null,
+          moving: false,
+          velocityX: 0,
+          velocityY: 0,
+          marbleHue: getRandomMarbleHue(),
+          rollStartedAt: 0,
+          rollDurationMs: DIE_ROLL_DURATION_MS,
+          rollSeed: Math.floor(Math.random() * 0x7fffffff),
+          updatedAt: createdAt
+        };
+        await set(ref(db, `${roomPath}/dice/${nextDieId}`), marblePayload);
+        // Optimistic local insert avoids "missing marble" during high write contention.
+        diceById.set(nextDieId, normalizeDicePayload(marblePayload));
+        renderDieElement(nextDieId);
+        finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdDieIds[0]) && diceById.has(createdDieIds[0]));
+        return;
+      }
       await runTransaction(
         diceRef,
         (currentDice) => {
@@ -34859,6 +38970,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
                 ? 0
                 : normalizedType === 'timer'
                   ? 0
+                : normalizedType === 'arcade'
+                  ? 1
                 : 1 + Math.floor(Math.random() * sides);
             baseDice[nextDieId] = {
               type: normalizedType,
@@ -34874,6 +38987,42 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
                   timerStartedAt: 0,
                   timerSplits: [],
                   timerSplitsVisible: false
+                }
+                : {}),
+              ...(normalizedType === 'arcade'
+                ? {
+                  arcadeMenuIndex: 0,
+                  arcadeJPressed: false,
+                  arcadeKPressed: false,
+                  arcadeScreen: ARCADE_SCREEN_MAIN,
+                  arcadeStickX: 0,
+                  arcadeStickY: 0,
+                  arcadeManaMenuIndex: 0,
+                  arcadeControllerClientId: '',
+                  arcadeControllerPlayerToken: '',
+                  arcadeControllerName: '',
+                  arcadeControllerColor: '#ff7a59',
+                  arcadeMgTileX: ARCADE_MANA_CENTER_TILE,
+                  arcadeMgTileY: ARCADE_MANA_CENTER_TILE,
+                  arcadeMgTailPath: '',
+                  arcadeMgLooseManaPath: '',
+                  arcadeMgClearManaPath: '',
+                  arcadeMgManaType: ARCADE_MANA_TYPE_WHITE,
+                  arcadeMgManaTileX: ARCADE_MANA_CENTER_TILE,
+                  arcadeMgManaTileY: ARCADE_MANA_CENTER_TILE,
+                  arcadeMgGameOver: false,
+                  arcadeMgGameOverAt: 0,
+                  arcadeMgSquareClearScore: 0,
+                  arcadeMgPhaseActive: false,
+                  arcadeMgPhaseStartedAt: 0,
+                  arcadeMgClearManaStartedAt: 0,
+                  arcadeMgDirX: 0,
+                  arcadeMgDirY: 0,
+                  arcadeMgQueuedDirX: 0,
+                  arcadeMgQueuedDirY: 0,
+                  arcadeMgMoveStartedAt: 0,
+                  arcadeMgQueuedAt: 0,
+                  arcadeMgInputQueuePath: ''
                 }
                 : {}),
               ...(normalizedType === 'marble'
@@ -34916,6 +39065,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   spawnMarble = async () => {
     await spawnDice('marble', 1);
   };
+  spawnArcadeMachine = async () => {
+    await spawnDice('arcade', 1);
+  };
   spawnStackPointComponent = async () => {
     await spawnDice('stack-point', 1);
   };
@@ -34929,7 +39081,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       cardSized: false,
       twoSided: false,
       frontBlank: true,
-      frontBlankColor: '#ffffff'
+      frontBlankColor: '#ffffff',
+      initialWidth: SECRET_AREA_DEFAULT_WIDTH,
+      initialHeight: SECRET_AREA_DEFAULT_HEIGHT
     });
   };
   spawnSpinnerComponent = async (options = {}) => {
@@ -35235,6 +39389,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     try {
       const nativeSizeBase = useCardSize
         ? { width: CARD_WIDTH, height: CARD_HEIGHT }
+        : componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE
+          ? clampImageComponentSize(options.initialWidth, options.initialHeight)
         : frontBlank
           ? { width: CARD_WIDTH, height: CARD_HEIGHT }
           : (isStickerComponent && shouldUseNormalizedStickerSpawnSize(normalizedFrontSrc))
@@ -35695,7 +39851,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (Object.keys(updatesByPath).length > 0) {
       await update(cardsRef, updatesByPath);
     }
-    await update(ref(db, `${roomPath}/decks/${targetDeckId}`), {
+    await update(getDeckNodeRef(targetDeckId), {
       x: center.x,
       y: center.y,
       shuffleTick: 0,
@@ -35963,7 +40119,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       window.clearTimeout(cardWriteRetryTimerId);
       cardWriteRetryTimerId = 0;
     }
+    lastCardWriteFlushAt = 0;
     dieWriteScheduled = false;
+    if (dieWriteRetryTimerId) {
+      window.clearTimeout(dieWriteRetryTimerId);
+      dieWriteRetryTimerId = 0;
+    }
+    lastDieWriteFlushAt = 0;
     deckWriteScheduled = false;
     chipSetWriteScheduled = false;
     monsWriteScheduled = false;
@@ -36164,6 +40326,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     deckState = null;
     deckStatesById.clear();
     chipSetsById.clear();
+    activelyDraggedChipSetIds.clear();
     activeDeckId = DECK_KEY;
     deckShuffleFxDeckId = DECK_KEY;
     deckShuffleDarkenedCardId = '';
@@ -36388,6 +40551,35 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   );
 
   onValue(
+    arcadeScoresRef,
+    (snapshot) => {
+      const payload = snapshot.val() || {};
+      arcadeBestScoresByPlayerToken.clear();
+      for (const [rawToken, rawEntry] of Object.entries(payload)) {
+        const token = normalizeArcadePlayerToken(rawToken);
+        if (!token || !rawEntry || typeof rawEntry !== 'object') {
+          continue;
+        }
+        const bestScore = Math.max(0, Math.round(Number(rawEntry.bestScore) || 0));
+        if (bestScore <= 0) {
+          continue;
+        }
+        arcadeBestScoresByPlayerToken.set(token, {
+          bestScore,
+          name: String(rawEntry.name || '').trim().slice(0, 24) || 'anon',
+          color: normalizeHexColor(rawEntry.color || '#ff7a59'),
+          updatedAt: Math.max(0, Math.floor(Number(rawEntry.updatedAt) || 0))
+        });
+      }
+      renderAllDice();
+    },
+    (error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: read blocked');
+    }
+  );
+
+  onValue(
     cursorsRef,
     (snapshot) => {
       hasLoadedCursorSnapshot = true;
@@ -36409,9 +40601,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         return;
       }
       const wasInitialCardsSnapshotLoaded = hasLoadedInitialCardsSnapshot;
+      let shouldRenderAllCards = !wasInitialCardsSnapshotLoaded;
       let secretAreaVisibilityChanged = !wasInitialCardsSnapshotLoaded;
       const allCards = snapshot.val() || {};
       const activeCardIds = new Set();
+      const changedCardIds = new Set();
       let cardDeckMetricsChanged = false;
 
       for (const [cardId, payload] of Object.entries(allCards)) {
@@ -36436,6 +40630,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           setDiscardReturnAnimating(cardId, true);
         }
         cards.set(cardId, nextCard);
+        const cardChanged =
+          !previousCard ||
+          previousUpdatedAt !== nextUpdatedAt ||
+          (Number(previousCard?.x) || 0) !== (Number(nextCard?.x) || 0) ||
+          (Number(previousCard?.y) || 0) !== (Number(nextCard?.y) || 0) ||
+          (Number(previousCard?.z) || 0) !== (Number(nextCard?.z) || 0) ||
+          (previousCard?.face === 'back' ? 'back' : 'front') !== (nextCard?.face === 'back' ? 'back' : 'front') ||
+          (previousCard?.holderClientId || '') !== (nextCard?.holderClientId || '') ||
+          Boolean(previousCard?.inDeck) !== Boolean(nextCard?.inDeck) ||
+          Boolean(previousCard?.inDiscard) !== Boolean(nextCard?.inDiscard) ||
+          Boolean(previousCard?.inAuction) !== Boolean(nextCard?.inAuction) ||
+          getCardHandOwnerId(previousCard) !== getCardHandOwnerId(nextCard);
+        if (cardChanged) {
+          changedCardIds.add(cardId);
+        }
         if (!previousCard || didCardDeckMetricsFieldsChange(previousCard, nextCard)) {
           cardDeckMetricsChanged = true;
         }
@@ -36483,10 +40692,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           cardSelectionChanged = true;
         }
         frontDisplayPendingByCard.delete(cardId);
+        const pendingPersistTimer = cardPersistConfirmTimersById.get(cardId);
+        if (pendingPersistTimer) {
+          window.clearTimeout(pendingPersistTimer);
+          cardPersistConfirmTimersById.delete(cardId);
+        }
         removeHandCardElement(cardId);
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        changedCardIds.add(cardId);
         rerenderAttachedDrawingStrokesForCard(cardId);
         cardDeckMetricsChanged = true;
         staleCardLockRecoveryAttemptAtById.delete(cardId);
@@ -36498,11 +40713,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         markCardDeckMetricsCacheDirty();
         scheduleHotDeckFrontPreload();
       }
+      if (secretAreaVisibilityChanged) {
+        shouldRenderAllCards = true;
+      }
       const nextActiveAuctionCardId = getActiveAuctionCardId();
       if (previousActiveAuctionCardId && previousActiveAuctionCardId !== nextActiveAuctionCardId) {
         clearAuctionBidsForCard(previousActiveAuctionCardId);
       }
       previousActiveAuctionCardId = nextActiveAuctionCardId;
+      // Force a full card pass per snapshot to avoid stale/cull races that can hide
+      // existing components (notably notes) or leave stack state visually desynced.
       renderAllCards();
       if (secretAreaVisibilityChanged) {
         renderAllDice();
@@ -36540,10 +40760,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       for (const [dieId, payload] of Object.entries(allDice)) {
         activeDieIds.add(dieId);
         const previousDieState = diceById.get(dieId);
+        const normalizedIncomingDieState = normalizeDicePayload(payload);
+        const arcadeMergedDieState = mergeIncomingArcadeStateWithActiveLocalControl(
+          dieId,
+          previousDieState,
+          normalizedIncomingDieState
+        );
         const nextDieState = mergeIncomingMarbleStateWithActiveLocalMotion(
           dieId,
           previousDieState,
-          normalizeDicePayload(payload)
+          arcadeMergedDieState
         );
         diceById.set(dieId, nextDieState);
         syncMediaStartSignalFromState(dieId, previousDieState, nextDieState);
@@ -36595,9 +40821,6 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           }
         }
         diceById.delete(dieId);
-      }
-      if (!hasLoadedInitialCardsSnapshot) {
-        return;
       }
       renderAllDice();
       if (dieSelectionChanged) {
@@ -36678,10 +40901,26 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
       const nextDecksPayload = snapshot.val();
       const nextDeckEntries = [];
+      let legacyDeckRootPayload = null;
       if (nextDecksPayload && typeof nextDecksPayload === 'object') {
-        const looksLegacySingleDeck = Number.isFinite(Number(nextDecksPayload.x)) || Number.isFinite(Number(nextDecksPayload.y));
+        const looksLegacySingleDeck = isLegacyDeckRootPayload(nextDecksPayload);
+        hasLegacyDeckRootFormat = looksLegacySingleDeck;
         if (looksLegacySingleDeck) {
-          nextDeckEntries.push([DECK_KEY, nextDecksPayload]);
+          legacyDeckRootPayload = nextDecksPayload;
+          const explicitPrimaryDeckPayload =
+            nextDecksPayload[DECK_KEY] && typeof nextDecksPayload[DECK_KEY] === 'object'
+              ? nextDecksPayload[DECK_KEY]
+              : nextDecksPayload;
+          nextDeckEntries.push([DECK_KEY, explicitPrimaryDeckPayload]);
+          for (const [rawDeckId, rawDeckPayload] of Object.entries(nextDecksPayload)) {
+            if (rawDeckId === DECK_KEY || LEGACY_DECK_ROOT_FIELDS.includes(rawDeckId)) {
+              continue;
+            }
+            if (!rawDeckPayload || typeof rawDeckPayload !== 'object') {
+              continue;
+            }
+            nextDeckEntries.push([normalizeDeckId(rawDeckId), rawDeckPayload]);
+          }
         } else {
           for (const [rawDeckId, rawDeckPayload] of Object.entries(nextDecksPayload)) {
             if (!rawDeckPayload || typeof rawDeckPayload !== 'object') {
@@ -36690,6 +40929,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             nextDeckEntries.push([normalizeDeckId(rawDeckId), rawDeckPayload]);
           }
         }
+      } else {
+        hasLegacyDeckRootFormat = false;
+      }
+
+      if (legacyDeckRootPayload) {
+        scheduleLegacyDeckRootMigration(legacyDeckRootPayload);
       }
 
       const nextDeckIds = new Set();
@@ -36709,6 +40954,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       for (const existingDeckId of Array.from(deckStatesById.keys())) {
         if (nextDeckIds.has(existingDeckId)) {
           continue;
+        }
+        const pendingPersistTimer = deckPersistConfirmTimersById.get(existingDeckId);
+        if (pendingPersistTimer) {
+          window.clearTimeout(pendingPersistTimer);
+          deckPersistConfirmTimersById.delete(existingDeckId);
         }
         deckStatesById.delete(existingDeckId);
         removeDeckUi(existingDeckId);
@@ -36782,6 +41032,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           continue;
         }
         chipSetsById.delete(existingChipSetId);
+        activelyDraggedChipSetIds.delete(existingChipSetId);
         removeChipSetUi(existingChipSetId);
       }
       let chipSetSelectionChanged = false;
@@ -36794,10 +41045,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         }
       }
       if (chipSetDragState && !nextChipSetIds.has(chipSetDragState.chipSetId)) {
+        activelyDraggedChipSetIds.delete(chipSetDragState.chipSetId);
         chipSetDragState = null;
-      }
-      if (!hasLoadedInitialCardsSnapshot) {
-        return;
       }
       renderChipSets();
       if (chipSetSelectionChanged) {
@@ -37055,10 +41304,19 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   window.addEventListener('pointermove', onGoDragMove);
   window.addEventListener('pointerup', onGoDragEnd);
   window.addEventListener('pointercancel', onGoDragEnd);
+  window.addEventListener('keydown', handleArcadeKeyboardDown, true);
+  window.addEventListener('keyup', handleArcadeKeyboardUp, true);
 
   handReclaimIntervalId = window.setInterval(() => {
     scheduleHandReclaimCheck();
   }, HAND_RECLAIM_CHECK_INTERVAL_MS);
+  if (arcadeManaMotionIntervalId) {
+    window.clearInterval(arcadeManaMotionIntervalId);
+    arcadeManaMotionIntervalId = 0;
+  }
+  arcadeManaMotionIntervalId = window.setInterval(() => {
+    runArcadeManaMotionTick(Date.now());
+  }, ARCADE_MANA_MOTION_TICK_MS);
 
   window.addEventListener('beforeunload', () => {
     cancelActiveCardInteractions();
@@ -37092,6 +41350,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     staleDieLockRecoveryAttemptAtById.clear();
     staleDieLockRecoveryInFlight.clear();
     cancelMarbleFlickGesture();
+    releaseArcadeHeldButtons();
     if (drawingsLiftCutoffFlushTimerId) {
       window.clearTimeout(drawingsLiftCutoffFlushTimerId);
       drawingsLiftCutoffFlushTimerId = 0;
@@ -37109,6 +41368,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       window.clearInterval(localLockWatchdogIntervalId);
       localLockWatchdogIntervalId = 0;
     }
+    if (arcadeManaMotionIntervalId) {
+      window.clearInterval(arcadeManaMotionIntervalId);
+      arcadeManaMotionIntervalId = 0;
+    }
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -37121,6 +41384,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   window.addEventListener('blur', () => {
     cancelActiveCardInteractions();
     releaseUnexpectedLocalCardLocks();
+    releaseArcadeHeldButtons();
     if (deleteModeEnabled) {
       hideLocalDeleteCursor();
       syncDeleteCursorLock();
@@ -37200,6 +41464,69 @@ function isEventOnMonsBoardUi(event) {
 function isEventOnTimerSplits(event) {
   const target = event.target instanceof Element ? event.target : null;
   return Boolean(target?.closest('.table-timer-splits'));
+}
+
+function isEventOnInteractivePlayspaceElement(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) {
+    return false;
+  }
+  return Boolean(
+    target.closest(
+      '.table-card, .table-die, .deck-control-button, .chip-stack-slot, .chip-stack-move-button, .mons-game-shell, .tafl-game-shell, .go-game-shell, .table-drawing-layer, [data-mons-piece-id], [data-tafl-piece-id], [data-go-stone]'
+    )
+  );
+}
+
+function getMovingMarbleFlickTargetAtClient(clientX, clientY) {
+  const pointerX = Number(clientX);
+  const pointerY = Number(clientY);
+  if (!Number.isFinite(pointerX) || !Number.isFinite(pointerY)) {
+    return '';
+  }
+  let bestDieId = '';
+  let bestDistance = Number.POSITIVE_INFINITY;
+  let bestZ = Number.NEGATIVE_INFINITY;
+  for (const [dieId, dieState] of diceById.entries()) {
+    if (!isMarbleDieState(dieState)) {
+      continue;
+    }
+    if (dieState.holderClientId && dieState.holderClientId !== clientId) {
+      continue;
+    }
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
+      continue;
+    }
+    const speed = getMarbleSpeed(dieState);
+    const moving =
+      dieState.moving === true ||
+      marbleMotionByDieId.has(dieId) ||
+      speed > MARBLE_FORCE_STOP_SPEED;
+    if (!moving) {
+      continue;
+    }
+    const screenPoint = worldToScreen({
+      x: Number(dieState.x) || WORLD_WIDTH / 2,
+      y: Number(dieState.y) || WORLD_HEIGHT / 2
+    });
+    if (!screenPoint) {
+      continue;
+    }
+    const dimensions = getDieWorldDimensions(dieState);
+    const radiusPx = Math.max(8, Math.min(dimensions.width, dimensions.height) * camera.scale * 0.5);
+    const expandedRadiusPx = radiusPx + Math.max(14, radiusPx * 0.72);
+    const distance = Math.hypot(pointerX - screenPoint.x, pointerY - screenPoint.y);
+    if (distance > expandedRadiusPx) {
+      continue;
+    }
+    const z = Number(dieState.z) || 0;
+    if (!bestDieId || distance < bestDistance - 0.5 || (Math.abs(distance - bestDistance) <= 0.5 && z > bestZ)) {
+      bestDieId = dieId;
+      bestDistance = distance;
+      bestZ = z;
+    }
+  }
+  return bestDieId;
 }
 
 function getDistancePointToSegment(pointX, pointY, startX, startY, endX, endY) {
@@ -37399,6 +41726,16 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         return;
       }
 
+      if (event.button === 0 && !isEventOnInteractivePlayspaceElement(event)) {
+        const movingMarbleTargetId = getMovingMarbleFlickTargetAtClient(event.clientX, event.clientY);
+        if (movingMarbleTargetId) {
+          handleDiePointerDown(event, movingMarbleTargetId).catch((error) => {
+            console.error(error);
+          });
+          return;
+        }
+      }
+
       if (event.button === 0 && hasAnyGroupSelection() && !isEventOnCard(event)) {
         event.preventDefault();
         releaseAllSelectedObjects();
@@ -37451,6 +41788,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       }
       updateLocalMouseCursor(event.clientX, event.clientY);
       updateHandHoverFromClient(event.clientX, event.clientY, event.pointerType);
+      updateHoveredSecretAreaFromClient(event.clientX, event.clientY);
     } else if (drawModeEnabled) {
       hideLocalDrawCursor();
       hideLocalDeleteCursor();
@@ -37558,6 +41896,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         syncDeleteCursorLock();
       }
       updateLocalMouseCursor(event.clientX, event.clientY);
+      updateHoveredSecretAreaFromClient(event.clientX, event.clientY);
     }
   });
 
@@ -37637,6 +41976,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       hideLocalDrawCursor();
       hideLocalDeleteCursor();
       setHoveredHandCard(null);
+      setHoveredSecretAreaCard('');
     }
   });
 

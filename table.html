@@ -127,6 +127,7 @@
         <div id="roomRoster" class="room-roster hidden" aria-live="polite"></div>
       </div>
       <div id="playspaceLayer" class="playspace-layer" aria-hidden="true"></div>
+      <div id="secretAreaLayer" class="secret-area-layer" aria-hidden="true"></div>
       <div id="gameLayer" class="game-layer" aria-hidden="true"></div>
       <div id="stackLayer" class="stack-layer" aria-hidden="true"></div>
       <svg id="drawingBackLayer" class="drawing-layer drawing-layer-back" viewBox="0 0 7680 4320" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -385,8 +386,64 @@
               <span class="asset-placeholder-box" aria-hidden="true"></span>
               <span class="asset-label">unearthed</span>
             </button>
-            <button class="asset-gallery-item" type="button">
-              <span class="asset-placeholder-box" aria-hidden="true"></span>
+            <button id="arcadeMachineTile" class="asset-gallery-item asset-gallery-item-cool" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-preview-box-arcade" aria-hidden="true">
+                <svg
+                  class="asset-arcade-tile-icon"
+                  viewBox="0 0 96 96"
+                  width="96"
+                  height="96"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M24 16H72L76 22V82H20V22L24 16Z"
+                    class="asset-arcade-icon-shell"
+                    stroke="currentColor"
+                    stroke-width="2.4"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M31 23H65L67 29V37H29V29L31 23Z"
+                    class="asset-arcade-icon-marquee"
+                    stroke="currentColor"
+                    stroke-width="2.1"
+                    stroke-linejoin="round"
+                  />
+                  <rect
+                    x="28"
+                    y="40"
+                    width="40"
+                    height="27"
+                    rx="2.5"
+                    class="asset-arcade-icon-screen"
+                    stroke="currentColor"
+                    stroke-width="2.1"
+                  />
+                  <rect
+                    x="36"
+                    y="72"
+                    width="24"
+                    height="6"
+                    rx="2.8"
+                    class="asset-arcade-icon-panel"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle cx="38.5" cy="75" r="1.9" class="asset-arcade-icon-button" fill="currentColor" />
+                  <circle cx="45" cy="75" r="1.9" class="asset-arcade-icon-button" fill="currentColor" />
+                  <path
+                    d="M57 75H62.5"
+                    class="asset-arcade-icon-stick"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="64.8" cy="75" r="1.8" class="asset-arcade-icon-stick" fill="currentColor" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
               <span class="asset-label">arcade machine</span>
             </button>
             <button class="asset-gallery-item" type="button">
