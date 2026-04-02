@@ -3576,6 +3576,25 @@ function getArcadeHighScoreEntries() {
       updatedAt: Math.max(0, Math.floor(Number(rawEntry?.updatedAt) || 0))
     };
     const nameKey = name.toLowerCase();
+    if (nameKey === 'anon') {
+      const anonSessionKey = `${nameKey}:${token}`;
+      const existingAnonSessionEntry = entriesByNameKey.get(anonSessionKey);
+      if (!existingAnonSessionEntry) {
+        entriesByNameKey.set(anonSessionKey, entry);
+        continue;
+      }
+      if (entry.bestScore > existingAnonSessionEntry.bestScore) {
+        entriesByNameKey.set(anonSessionKey, entry);
+        continue;
+      }
+      if (
+        entry.bestScore === existingAnonSessionEntry.bestScore &&
+        entry.updatedAt > existingAnonSessionEntry.updatedAt
+      ) {
+        entriesByNameKey.set(anonSessionKey, entry);
+      }
+      continue;
+    }
     const existing = entriesByNameKey.get(nameKey);
     if (!existing) {
       entriesByNameKey.set(nameKey, entry);
