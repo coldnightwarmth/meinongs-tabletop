@@ -3554,7 +3554,7 @@ function getArcadeBestScoreForPlayerToken(token) {
 }
 
 function getArcadeHighScoreEntries() {
-  const entries = [];
+  const entriesByNameKey = new Map();
   for (const [rawToken, rawEntry] of arcadeBestScoresByPlayerToken.entries()) {
     const token = normalizeArcadePlayerToken(rawToken);
     if (!token) {
@@ -3568,14 +3568,34 @@ function getArcadeHighScoreEntries() {
     if (!name) {
       continue;
     }
-    entries.push({
+    const entry = {
       token,
       bestScore,
       name,
       color: normalizeHexColor(rawEntry?.color || '#ff7a59'),
       updatedAt: Math.max(0, Math.floor(Number(rawEntry?.updatedAt) || 0))
-    });
+    };
+    const nameKey = name.toLowerCase();
+    const existing = entriesByNameKey.get(nameKey);
+    if (!existing) {
+      entriesByNameKey.set(nameKey, entry);
+      continue;
+    }
+    if (entry.bestScore > existing.bestScore) {
+      entriesByNameKey.set(nameKey, entry);
+      continue;
+    }
+    if (entry.bestScore === existing.bestScore) {
+      if (entry.updatedAt > existing.updatedAt) {
+        entriesByNameKey.set(nameKey, entry);
+        continue;
+      }
+      if (entry.updatedAt === existing.updatedAt && entry.token.localeCompare(existing.token) < 0) {
+        entriesByNameKey.set(nameKey, entry);
+      }
+    }
   }
+  const entries = Array.from(entriesByNameKey.values());
   entries.sort((a, b) => {
     if (b.bestScore !== a.bestScore) {
       return b.bestScore - a.bestScore;
