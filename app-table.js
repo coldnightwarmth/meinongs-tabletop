@@ -426,27 +426,88 @@ const ARCADE_MANA_MENU_OPTION_LABELS = Object.freeze(['play', 'high scores', 'cl
 const ARCADE_MANA_MENU_PLAY_INDEX = 0;
 const ARCADE_MANA_MENU_HIGH_SCORES_INDEX = 1;
 const ARCADE_MANA_MENU_CLOSE_INDEX = 2;
+const ARCADE_MANA_GAME_OVER_OPTION_LABELS = Object.freeze(['play again', 'quit']);
+const ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX = 0;
+const ARCADE_MANA_GAME_OVER_QUIT_INDEX = 1;
 const ARCADE_MANA_GRID_SIZE = 11;
 const ARCADE_MANA_CENTER_TILE = Math.floor(ARCADE_MANA_GRID_SIZE / 2);
-const ARCADE_MANA_STEP_MS = 182;
+const ARCADE_MANA_STEP_MS_NORMAL = 194;
+const ARCADE_MANA_STEP_MS_PHASE = 168;
 const ARCADE_MANA_TURN_LEEWAY_MS = 52;
+const ARCADE_MANA_REPEAT_QUEUE_INTERVAL_MS = 96;
 const ARCADE_MANA_MOTION_TICK_MS = 16;
-const ARCADE_MANA_INPUT_QUEUE_MAX = 6;
+const ARCADE_MANA_INPUT_QUEUE_MAX = 16;
 const ARCADE_MANA_VISUAL_SMOOTHNESS_PER_SECOND = 22;
 const ARCADE_MANA_VISUAL_SNAP_DISTANCE_TILES = 1.4;
 const ARCADE_MANA_MIN_SPAWN_MANHATTAN_DISTANCE = 2;
 const ARCADE_MANA_GAME_OVER_DELAY_MS = 1500;
 const ARCADE_MANA_TAIL_MAX_LENGTH = ARCADE_MANA_GRID_SIZE * ARCADE_MANA_GRID_SIZE - 1;
-const ARCADE_MANA_PHASE_DURATION_MS = ARCADE_MANA_STEP_MS + 72;
+const ARCADE_MANA_PHASE_DURATION_MS = 254;
 const ARCADE_MANA_PHASE_AFTERGLOW_MS = 96;
 const ARCADE_MANA_PHASE_MIN_ALPHA = 0.38;
 const ARCADE_MANA_SQUARE_CLEAR_FLASH_DURATION_MS = 1200;
 const ARCADE_MANA_SQUARE_CLEAR_FLASH_CYCLES = 2;
 const ARCADE_MANA_TYPE_WHITE = 'white';
 const ARCADE_MANA_TYPE_BLACK = 'black';
+const ARCADE_MANA_TYPE_SUPER = 'super';
 const ARCADE_MANA_CANVAS_WIDTH = 420;
 const ARCADE_MANA_CANVAS_HEIGHT = 336;
 const ARCADE_MANA_BOARD_MARGIN = 24;
+const ARCADE_MANA_DEMON_INITIAL_SPAWN_DELAY_MS = 15000;
+const ARCADE_MANA_DEMON_SPAWN_INTERVAL_MS = 35000;
+const ARCADE_MANA_DEMON_EMPTY_RESPAWN_DELAY_MS = 10000;
+const ARCADE_MANA_DEMON_SPAWN_INTERVAL_MS_HARD = 20000;
+const ARCADE_MANA_DEMON_EMPTY_RESPAWN_DELAY_MS_HARD = 5000;
+const ARCADE_MANA_DEMON_SPAWN_GROW_MS = 3400;
+const ARCADE_MANA_DEMON_SPAWN_ARM_MS = 1500;
+const ARCADE_MANA_DEMON_IDLE_MS = 3000;
+const ARCADE_MANA_DEMON_WINDUP_MS = 3000;
+const ARCADE_MANA_DEMON_DASH_MS = 240;
+const ARCADE_MANA_DEMON_DIE_MS = 1200;
+const ARCADE_MANA_DEMON_SPINNED_MS = 4000;
+const ARCADE_MANA_DEMON_MAX = 48;
+const ARCADE_MANA_DEMON_STATE_SPAWN = 'spawn';
+const ARCADE_MANA_DEMON_STATE_ARMING = 'arming';
+const ARCADE_MANA_DEMON_STATE_IDLE = 'idle';
+const ARCADE_MANA_DEMON_STATE_WINDUP = 'windup';
+const ARCADE_MANA_DEMON_STATE_DASH = 'dash';
+const ARCADE_MANA_DEMON_STATE_DYING = 'dying';
+const ARCADE_MANA_DEMON_STATE_SPINNING = 'spinning';
+const ARCADE_MANA_DEMON_STANDING_HITBOX_RADIUS_TILES = 0.24;
+const ARCADE_MANA_DEMON_DASH_HITBOX_RADIUS_TILES = 0.24;
+const ARCADE_MANA_DEMON_AWAY_FROM_EDGE_WEIGHT = 2.35;
+const ARCADE_MANA_DEMON_TOWARD_EDGE_WEIGHT = 0.2;
+const ARCADE_MANA_BOMB_STATE_SPAWN = 'spawn';
+const ARCADE_MANA_BOMB_STATE_ARMING = 'arming';
+const ARCADE_MANA_BOMB_STATE_IDLE = 'idle';
+const ARCADE_MANA_BOMB_STATE_SPINNING = 'spinning';
+const ARCADE_MANA_BOMB_MAX = 48;
+const ARCADE_MANA_BOMB_FX_MAX = 24;
+const ARCADE_MANA_BOMB_SPAWN_PICKUP_INTERVAL = 5;
+const ARCADE_MANA_BOMB_SPAWN_PICKUP_INTERVAL_HARD = 3;
+const ARCADE_MANA_BOMB_SPIN_CLEAR_MS = 920;
+const ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS = 820;
+const ARCADE_MANA_BOMB_SPIN_SCORE_BONUS = 3;
+const ARCADE_MANA_DEMON_SPIN_SCORE_BONUS = 1;
+const ARCADE_MANA_POTION_DURATION_MS = 8000;
+const ARCADE_MANA_POTION_DEMON_SCORE_BONUS = 10;
+const ARCADE_MANA_PICKUP_PULSE_MAX = 32;
+const ARCADE_MANA_PICKUP_PULSE_DURATION_MS = 520;
+const ARCADE_MANA_PICKUP_ANIM_DURATION_MS = 260;
+const ARCADE_MANA_SCORE_POPUP_DURATION_MS = 1000;
+const ARCADE_MANA_SCORE_POPUP_FADE_IN_MS = 260;
+const ARCADE_MANA_SCORE_POPUP_MAX = 8;
+const ARCADE_MANA_COMBO_WINDOW_MS = 2500;
+const ARCADE_MANA_COMBO_BONUS_TABLE = Object.freeze([0, 3, 5, 10, 15, 20, 30, 50, 75, 100]);
+const ARCADE_MANA_COMBO_POST_CAP_BONUS = 30;
+const ARCADE_MANA_DEMON_CARDINAL_DIRECTIONS = Object.freeze([
+  { x: 0, y: -1 },
+  { x: 1, y: 0 },
+  { x: 0, y: 1 },
+  { x: -1, y: 0 }
+]);
+const ARCADE_BOMB_KIND_BOMB = 'bomb';
+const ARCADE_BOMB_KIND_POTION = 'potion';
 const STACK_POINT_SLOT_PADDING = 8;
 const DIE_SIZE_STACK_POINT_WIDTH = CARD_WIDTH + STACK_POINT_SLOT_PADDING * 2;
 const DIE_SIZE_STACK_POINT_HEIGHT = CARD_HEIGHT + STACK_POINT_SLOT_PADDING * 2;
@@ -479,8 +540,6 @@ const SPINNER_ROLL_DURATION_MS = 1320;
 const MARBLE_HUE_MIN = 0;
 const MARBLE_HUE_MAX = 359;
 const MARBLE_DEFAULT_HUE = 218;
-const MARBLE_WARBLE_SPEED_THRESHOLD = 760;
-const MARBLE_WARBLE_SPEED_MAX = 2100;
 const MARBLE_FLICK_MIN_DISTANCE = 10;
 const MARBLE_FLICK_MAX_DISTANCE = 3200;
 const MARBLE_FLICK_MIN_SPEED = 240;
@@ -1329,6 +1388,7 @@ const arcadeManaVisualStateByDieId = new Map();
 const arcadeManaPlayBackgroundBySizeKey = new Map();
 const arcadeManaScaledSpriteByKey = new Map();
 const arcadeSpriteImageBySrc = new Map();
+const arcadeBombParticlesBySeed = new Map();
 const arcadeBestScoresByPlayerToken = new Map();
 const arcadeBestScoreWriteInFlightByPlayerToken = new Set();
 const cardFlipTimers = new Map();
@@ -2724,6 +2784,14 @@ function normalizeArcadeTimestamp(value) {
 }
 
 function normalizeArcadeManaType(value) {
+  if (
+    value === ARCADE_MANA_TYPE_SUPER ||
+    value === 's' ||
+    value === 'super' ||
+    value === 'supermana'
+  ) {
+    return ARCADE_MANA_TYPE_SUPER;
+  }
   if (value === ARCADE_MANA_TYPE_BLACK || value === 'b' || value === 'black') {
     return ARCADE_MANA_TYPE_BLACK;
   }
@@ -2762,7 +2830,12 @@ function encodeArcadeManaTailPath(segments) {
     const segment = segments[index];
     const x = normalizeArcadeGridCoord(segment?.x);
     const y = normalizeArcadeGridCoord(segment?.y);
-    const type = normalizeArcadeManaType(segment?.type) === ARCADE_MANA_TYPE_BLACK ? 'b' : 'w';
+    const normalizedType = normalizeArcadeManaType(segment?.type);
+    const type = normalizedType === ARCADE_MANA_TYPE_BLACK
+      ? 'b'
+      : normalizedType === ARCADE_MANA_TYPE_SUPER
+        ? 's'
+        : 'w';
     encodedParts.push(`${x},${y},${type}`);
     if (encodedParts.length >= ARCADE_MANA_TAIL_MAX_LENGTH) {
       break;
@@ -2775,6 +2848,576 @@ function normalizeArcadeManaTailPath(value) {
   return encodeArcadeManaTailPath(parseArcadeManaTailPath(value));
 }
 
+function normalizeArcadeDemonState(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 's' || normalized === ARCADE_MANA_DEMON_STATE_SPAWN) {
+    return ARCADE_MANA_DEMON_STATE_SPAWN;
+  }
+  if (normalized === 'a' || normalized === ARCADE_MANA_DEMON_STATE_ARMING) {
+    return ARCADE_MANA_DEMON_STATE_ARMING;
+  }
+  if (normalized === 'w' || normalized === ARCADE_MANA_DEMON_STATE_WINDUP) {
+    return ARCADE_MANA_DEMON_STATE_WINDUP;
+  }
+  if (normalized === 'd' || normalized === ARCADE_MANA_DEMON_STATE_DASH) {
+    return ARCADE_MANA_DEMON_STATE_DASH;
+  }
+  if (normalized === 'k' || normalized === ARCADE_MANA_DEMON_STATE_DYING) {
+    return ARCADE_MANA_DEMON_STATE_DYING;
+  }
+  if (normalized === 'p' || normalized === ARCADE_MANA_DEMON_STATE_SPINNING) {
+    return ARCADE_MANA_DEMON_STATE_SPINNING;
+  }
+  return ARCADE_MANA_DEMON_STATE_IDLE;
+}
+
+function getArcadeDemonStateToken(state) {
+  const normalizedState = normalizeArcadeDemonState(state);
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_SPAWN) {
+    return 's';
+  }
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_ARMING) {
+    return 'a';
+  }
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_WINDUP) {
+    return 'w';
+  }
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_DASH) {
+    return 'd';
+  }
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_DYING) {
+    return 'k';
+  }
+  if (normalizedState === ARCADE_MANA_DEMON_STATE_SPINNING) {
+    return 'p';
+  }
+  return 'i';
+}
+
+function parseArcadeDemonPath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const parts = entry.split(',');
+    if (parts.length < 4) {
+      continue;
+    }
+    const x = normalizeArcadeGridCoord(parts[0]);
+    const y = normalizeArcadeGridCoord(parts[1]);
+    const state = normalizeArcadeDemonState(parts[2]);
+    const stateStartedAt = normalizeArcadeTimestamp(parts[3]);
+    const direction = normalizeArcadeDirectionVector(parts[4], parts[5]);
+    const dashFromX = Number.isFinite(Number(parts[6])) ? normalizeArcadeGridCoord(parts[6]) : x;
+    const dashFromY = Number.isFinite(Number(parts[7])) ? normalizeArcadeGridCoord(parts[7]) : y;
+    const dashToX = Number.isFinite(Number(parts[8])) ? normalizeArcadeGridCoord(parts[8]) : x;
+    const dashToY = Number.isFinite(Number(parts[9])) ? normalizeArcadeGridCoord(parts[9]) : y;
+    parsed.push({
+      x,
+      y,
+      state,
+      stateStartedAt,
+      dirX: direction.x,
+      dirY: direction.y,
+      dashFromX,
+      dashFromY,
+      dashToX,
+      dashToY
+    });
+    if (parsed.length >= ARCADE_MANA_DEMON_MAX) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadeDemonPath(demons) {
+  if (!Array.isArray(demons) || demons.length === 0) {
+    return '';
+  }
+  const encodedParts = [];
+  for (let index = 0; index < demons.length; index += 1) {
+    const demon = demons[index];
+    const x = normalizeArcadeGridCoord(demon?.x);
+    const y = normalizeArcadeGridCoord(demon?.y);
+    const state = getArcadeDemonStateToken(demon?.state);
+    const stateStartedAt = normalizeArcadeTimestamp(demon?.stateStartedAt);
+    const direction = normalizeArcadeDirectionVector(demon?.dirX, demon?.dirY);
+    const dashFromX = normalizeArcadeGridCoord(
+      Number.isFinite(Number(demon?.dashFromX)) ? demon.dashFromX : x
+    );
+    const dashFromY = normalizeArcadeGridCoord(
+      Number.isFinite(Number(demon?.dashFromY)) ? demon.dashFromY : y
+    );
+    const dashToX = normalizeArcadeGridCoord(
+      Number.isFinite(Number(demon?.dashToX)) ? demon.dashToX : x
+    );
+    const dashToY = normalizeArcadeGridCoord(
+      Number.isFinite(Number(demon?.dashToY)) ? demon.dashToY : y
+    );
+    encodedParts.push(
+      `${x},${y},${state},${stateStartedAt},${direction.x},${direction.y},${dashFromX},${dashFromY},${dashToX},${dashToY}`
+    );
+    if (encodedParts.length >= ARCADE_MANA_DEMON_MAX) {
+      break;
+    }
+  }
+  return encodedParts.join(';');
+}
+
+function normalizeArcadeDemonPath(value) {
+  return encodeArcadeDemonPath(parseArcadeDemonPath(value));
+}
+
+function normalizeArcadeManaPickupCount(value) {
+  const numeric = Math.round(Number(value) || 0);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.max(0, numeric);
+}
+
+function normalizeArcadeBombState(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'g' || normalized === ARCADE_MANA_BOMB_STATE_SPAWN) {
+    return ARCADE_MANA_BOMB_STATE_SPAWN;
+  }
+  if (normalized === 'a' || normalized === ARCADE_MANA_BOMB_STATE_ARMING) {
+    return ARCADE_MANA_BOMB_STATE_ARMING;
+  }
+  if (normalized === 's' || normalized === ARCADE_MANA_BOMB_STATE_SPINNING) {
+    return ARCADE_MANA_BOMB_STATE_SPINNING;
+  }
+  return ARCADE_MANA_BOMB_STATE_IDLE;
+}
+
+function getArcadeBombStateToken(state) {
+  const normalizedState = normalizeArcadeBombState(state);
+  if (normalizedState === ARCADE_MANA_BOMB_STATE_SPAWN) {
+    return 'g';
+  }
+  if (normalizedState === ARCADE_MANA_BOMB_STATE_ARMING) {
+    return 'a';
+  }
+  if (normalizedState === ARCADE_MANA_BOMB_STATE_SPINNING) {
+    return 's';
+  }
+  return 'i';
+}
+
+function normalizeArcadeBombKind(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'p' || normalized === ARCADE_BOMB_KIND_POTION) {
+    return ARCADE_BOMB_KIND_POTION;
+  }
+  return ARCADE_BOMB_KIND_BOMB;
+}
+
+function getArcadeBombKindToken(kind) {
+  return normalizeArcadeBombKind(kind) === ARCADE_BOMB_KIND_POTION ? 'p' : 'b';
+}
+
+function parseArcadeBombPath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const parts = entry.split(',');
+    if (parts.length < 2) {
+      continue;
+    }
+    const x = normalizeArcadeGridCoord(parts[0]);
+    const y = normalizeArcadeGridCoord(parts[1]);
+    const state = normalizeArcadeBombState(parts[2]);
+    const stateStartedAt = normalizeArcadeTimestamp(parts[3]);
+    const kind = normalizeArcadeBombKind(parts[4]);
+    parsed.push({
+      x,
+      y,
+      state,
+      stateStartedAt,
+      kind
+    });
+    if (parsed.length >= ARCADE_MANA_BOMB_MAX) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadeBombPath(bombs) {
+  if (!Array.isArray(bombs) || bombs.length === 0) {
+    return '';
+  }
+  const encodedParts = [];
+  for (let index = 0; index < bombs.length; index += 1) {
+    const bomb = bombs[index];
+    const x = normalizeArcadeGridCoord(bomb?.x);
+    const y = normalizeArcadeGridCoord(bomb?.y);
+    const state = getArcadeBombStateToken(bomb?.state);
+    const stateStartedAt = normalizeArcadeTimestamp(bomb?.stateStartedAt);
+    const kind = getArcadeBombKindToken(bomb?.kind);
+    encodedParts.push(`${x},${y},${state},${stateStartedAt},${kind}`);
+    if (encodedParts.length >= ARCADE_MANA_BOMB_MAX) {
+      break;
+    }
+  }
+  return encodedParts.join(';');
+}
+
+function normalizeArcadeBombPath(value) {
+  return encodeArcadeBombPath(parseArcadeBombPath(value));
+}
+
+function parseArcadeBombFxPath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const parts = entry.split(',');
+    if (parts.length < 3) {
+      continue;
+    }
+    const x = normalizeArcadeGridCoord(parts[0]);
+    const y = normalizeArcadeGridCoord(parts[1]);
+    const startedAt = normalizeArcadeTimestamp(parts[2]);
+    const seedRaw = Math.floor(Number(parts[3]) || 0);
+    const seed = clamp(seedRaw, 1, 0x7fffffff);
+    parsed.push({
+      x,
+      y,
+      startedAt,
+      seed
+    });
+    if (parsed.length >= ARCADE_MANA_BOMB_FX_MAX) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadeBombFxPath(effects) {
+  if (!Array.isArray(effects) || effects.length === 0) {
+    return '';
+  }
+  const encodedParts = [];
+  for (let index = 0; index < effects.length; index += 1) {
+    const effect = effects[index];
+    const x = normalizeArcadeGridCoord(effect?.x);
+    const y = normalizeArcadeGridCoord(effect?.y);
+    const startedAt = normalizeArcadeTimestamp(effect?.startedAt);
+    const seedRaw = Math.floor(Number(effect?.seed) || 0);
+    const seed = clamp(seedRaw, 1, 0x7fffffff);
+    encodedParts.push(`${x},${y},${startedAt},${seed}`);
+    if (encodedParts.length >= ARCADE_MANA_BOMB_FX_MAX) {
+      break;
+    }
+  }
+  return encodedParts.join(';');
+}
+
+function normalizeArcadeBombFxPath(value) {
+  return encodeArcadeBombFxPath(parseArcadeBombFxPath(value));
+}
+
+function parseArcadePickupPulsePath(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+  const entries = raw.split(';');
+  const parsed = [];
+  for (const entry of entries) {
+    const parts = entry.split(',');
+    if (parts.length < 3) {
+      continue;
+    }
+    const x = normalizeArcadeGridCoord(parts[0]);
+    const y = normalizeArcadeGridCoord(parts[1]);
+    const startedAt = normalizeArcadeTimestamp(parts[2]);
+    parsed.push({ x, y, startedAt });
+    if (parsed.length >= ARCADE_MANA_PICKUP_PULSE_MAX) {
+      break;
+    }
+  }
+  return parsed;
+}
+
+function encodeArcadePickupPulsePath(pulses) {
+  if (!Array.isArray(pulses) || pulses.length === 0) {
+    return '';
+  }
+  const encodedParts = [];
+  for (let index = 0; index < pulses.length; index += 1) {
+    const pulse = pulses[index];
+    const x = normalizeArcadeGridCoord(pulse?.x);
+    const y = normalizeArcadeGridCoord(pulse?.y);
+    const startedAt = normalizeArcadeTimestamp(pulse?.startedAt);
+    encodedParts.push(`${x},${y},${startedAt}`);
+    if (encodedParts.length >= ARCADE_MANA_PICKUP_PULSE_MAX) {
+      break;
+    }
+  }
+  return encodedParts.join(';');
+}
+
+function normalizeArcadePickupPulsePath(value) {
+  return encodeArcadePickupPulsePath(parseArcadePickupPulsePath(value));
+}
+
+function isArcadeDemonActiveState(state) {
+  const normalizedState = normalizeArcadeDemonState(state);
+  return (
+    normalizedState === ARCADE_MANA_DEMON_STATE_IDLE ||
+    normalizedState === ARCADE_MANA_DEMON_STATE_WINDUP ||
+    normalizedState === ARCADE_MANA_DEMON_STATE_DASH
+  );
+}
+
+function getArcadeSquareBounds(segments) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return null;
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const segment of segments) {
+    const x = normalizeArcadeGridCoord(segment?.x);
+    const y = normalizeArcadeGridCoord(segment?.y);
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return null;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function getArcadeDemonDashTiles(demon) {
+  if (!demon || typeof demon !== 'object') {
+    return [];
+  }
+  const state = normalizeArcadeDemonState(demon.state);
+  const currentX = normalizeArcadeGridCoord(demon.x);
+  const currentY = normalizeArcadeGridCoord(demon.y);
+  if (state !== ARCADE_MANA_DEMON_STATE_DASH) {
+    return [{ x: currentX, y: currentY }];
+  }
+  const fromX = normalizeArcadeGridCoord(
+    Number.isFinite(Number(demon.dashFromX)) ? demon.dashFromX : currentX
+  );
+  const fromY = normalizeArcadeGridCoord(
+    Number.isFinite(Number(demon.dashFromY)) ? demon.dashFromY : currentY
+  );
+  const toX = normalizeArcadeGridCoord(
+    Number.isFinite(Number(demon.dashToX)) ? demon.dashToX : currentX
+  );
+  const toY = normalizeArcadeGridCoord(
+    Number.isFinite(Number(demon.dashToY)) ? demon.dashToY : currentY
+  );
+  const direction = normalizeArcadeDirectionVector(
+    Math.sign(toX - fromX) || demon?.dirX,
+    Math.sign(toY - fromY) || demon?.dirY
+  );
+  if (direction.x === 0 && direction.y === 0) {
+    return [{ x: currentX, y: currentY }];
+  }
+  const tiles = [];
+  let cursorX = fromX;
+  let cursorY = fromY;
+  let safety = 0;
+  while (
+    (cursorX !== toX || cursorY !== toY) &&
+    safety < ARCADE_MANA_GRID_SIZE
+  ) {
+    cursorX += direction.x;
+    cursorY += direction.y;
+    if (!canArcadeMoveToTile(cursorX, cursorY)) {
+      break;
+    }
+    tiles.push({ x: cursorX, y: cursorY });
+    safety += 1;
+  }
+  if (tiles.length === 0) {
+    tiles.push({ x: currentX, y: currentY });
+  }
+  return tiles;
+}
+
+function getArcadeTileDistanceToBoardEdge(tileX, tileY) {
+  const normalizedTileX = normalizeArcadeGridCoord(tileX);
+  const normalizedTileY = normalizeArcadeGridCoord(tileY);
+  const maxCoord = ARCADE_MANA_GRID_SIZE - 1;
+  return Math.min(
+    normalizedTileX,
+    normalizedTileY,
+    maxCoord - normalizedTileX,
+    maxCoord - normalizedTileY
+  );
+}
+
+function getArcadeDemonSpawnTile(excludedTiles = []) {
+  const blocked = new Set();
+  if (Array.isArray(excludedTiles)) {
+    for (const tile of excludedTiles) {
+      const x = normalizeArcadeGridCoord(tile?.x);
+      const y = normalizeArcadeGridCoord(tile?.y);
+      blocked.add(`${x},${y}`);
+    }
+  }
+  const availableTiles = [];
+  for (let y = 0; y < ARCADE_MANA_GRID_SIZE; y += 1) {
+    for (let x = 0; x < ARCADE_MANA_GRID_SIZE; x += 1) {
+      if (getArcadeTileDistanceToBoardEdge(x, y) === 0) {
+        continue;
+      }
+      if (blocked.has(`${x},${y}`)) {
+        continue;
+      }
+      availableTiles.push({ x, y });
+    }
+  }
+  if (availableTiles.length > 0) {
+    const randomIndex = getRandomIntInclusive(0, availableTiles.length - 1);
+    return availableTiles[randomIndex];
+  }
+  return null;
+}
+
+function isArcadeCornerTile(tileX, tileY) {
+  const x = normalizeArcadeGridCoord(tileX);
+  const y = normalizeArcadeGridCoord(tileY);
+  const maxCoord = ARCADE_MANA_GRID_SIZE - 1;
+  return (x === 0 || x === maxCoord) && (y === 0 || y === maxCoord);
+}
+
+function getArcadeBombSpawnTile(excludedTiles = []) {
+  const blocked = new Set();
+  if (Array.isArray(excludedTiles)) {
+    for (const tile of excludedTiles) {
+      const x = normalizeArcadeGridCoord(tile?.x);
+      const y = normalizeArcadeGridCoord(tile?.y);
+      blocked.add(`${x},${y}`);
+    }
+  }
+  const maxCoord = ARCADE_MANA_GRID_SIZE - 1;
+  blocked.add(`0,0`);
+  blocked.add(`${maxCoord},0`);
+  blocked.add(`0,${maxCoord}`);
+  blocked.add(`${maxCoord},${maxCoord}`);
+
+  const candidates = [];
+  for (let y = 0; y < ARCADE_MANA_GRID_SIZE; y += 1) {
+    for (let x = 0; x < ARCADE_MANA_GRID_SIZE; x += 1) {
+      if (blocked.has(`${x},${y}`)) {
+        continue;
+      }
+      candidates.push({ x, y });
+    }
+  }
+  if (candidates.length === 0) {
+    return null;
+  }
+  const randomIndex = getRandomIntInclusive(0, candidates.length - 1);
+  return candidates[randomIndex];
+}
+
+function getArcadeDemonAttackDirectionFromTile(tileX, tileY, occupiedTargetTileKeys = null) {
+  const originX = normalizeArcadeGridCoord(tileX);
+  const originY = normalizeArcadeGridCoord(tileY);
+  const originEdgeDistance = getArcadeTileDistanceToBoardEdge(originX, originY);
+  const candidates = [];
+  let hasAwayFromEdgeOption = false;
+  for (const direction of ARCADE_MANA_DEMON_CARDINAL_DIRECTIONS) {
+    const nextTileX = originX + direction.x;
+    const nextTileY = originY + direction.y;
+    if (canArcadeMoveToTile(nextTileX, nextTileY)) {
+      const potentialTarget = getArcadeDemonDashTargetTile({
+        x: originX,
+        y: originY,
+        dirX: direction.x,
+        dirY: direction.y
+      });
+      const potentialTargetKey = getArcadeTileKey(potentialTarget.x, potentialTarget.y);
+      if (
+        occupiedTargetTileKeys instanceof Set &&
+        occupiedTargetTileKeys.has(potentialTargetKey)
+      ) {
+        continue;
+      }
+      const nextEdgeDistance = getArcadeTileDistanceToBoardEdge(nextTileX, nextTileY);
+      const movesAwayFromEdge = nextEdgeDistance > originEdgeDistance;
+      if (movesAwayFromEdge) {
+        hasAwayFromEdgeOption = true;
+      }
+      candidates.push({
+        x: direction.x,
+        y: direction.y,
+        awayFromEdge: movesAwayFromEdge
+      });
+    }
+  }
+  if (candidates.length === 0) {
+    return { x: 0, y: 0 };
+  }
+  if (!hasAwayFromEdgeOption) {
+    const randomIndex = getRandomIntInclusive(0, candidates.length - 1);
+    return candidates[randomIndex];
+  }
+  let totalWeight = 0;
+  const weightedCandidates = candidates.map((candidate) => {
+    const weight = candidate.awayFromEdge
+      ? ARCADE_MANA_DEMON_AWAY_FROM_EDGE_WEIGHT
+      : ARCADE_MANA_DEMON_TOWARD_EDGE_WEIGHT;
+    totalWeight += weight;
+    return {
+      ...candidate,
+      cumulativeWeight: totalWeight
+    };
+  });
+  let selection = Math.random() * totalWeight;
+  for (const candidate of weightedCandidates) {
+    if (selection <= candidate.cumulativeWeight) {
+      return { x: candidate.x, y: candidate.y };
+    }
+  }
+  const lastCandidate = weightedCandidates[weightedCandidates.length - 1];
+  return { x: lastCandidate.x, y: lastCandidate.y };
+}
+
+function getArcadeDemonDashTargetTile(demon) {
+  const originX = normalizeArcadeGridCoord(demon?.x);
+  const originY = normalizeArcadeGridCoord(demon?.y);
+  const direction = normalizeArcadeDirectionVector(demon?.dirX, demon?.dirY);
+  if (direction.x === 0 && direction.y === 0) {
+    return { x: originX, y: originY };
+  }
+  let targetX = originX;
+  let targetY = originY;
+  for (let step = 0; step < 2; step += 1) {
+    const nextX = targetX + direction.x;
+    const nextY = targetY + direction.y;
+    if (!canArcadeMoveToTile(nextX, nextY)) {
+      break;
+    }
+    targetX = nextX;
+    targetY = nextY;
+  }
+  return { x: targetX, y: targetY };
+}
+
 function isArcadeReverseDirection(direction, referenceDirection) {
   const normalizedDirection = normalizeArcadeDirectionVector(direction?.x, direction?.y);
   const normalizedReference = normalizeArcadeDirectionVector(referenceDirection?.x, referenceDirection?.y);
@@ -2784,6 +3427,34 @@ function isArcadeReverseDirection(direction, referenceDirection) {
     normalizedDirection.x === -normalizedReference.x &&
     normalizedDirection.y === -normalizedReference.y
   );
+}
+
+function areArcadeDirectionsEqual(directionA, directionB) {
+  const normalizedA = normalizeArcadeDirectionVector(directionA?.x, directionA?.y);
+  const normalizedB = normalizeArcadeDirectionVector(directionB?.x, directionB?.y);
+  return normalizedA.x === normalizedB.x && normalizedA.y === normalizedB.y;
+}
+
+function getArcadeEffectiveHeadingForReverseBlock(dieState, baseDirection = null, tailSegments = null) {
+  const normalizedBaseDirection = normalizeArcadeDirectionVector(baseDirection?.x, baseDirection?.y);
+  if (normalizedBaseDirection.x !== 0 || normalizedBaseDirection.y !== 0) {
+    return normalizedBaseDirection;
+  }
+  const parsedTailSegments = Array.isArray(tailSegments)
+    ? tailSegments
+    : parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
+  if (!Array.isArray(parsedTailSegments) || parsedTailSegments.length === 0) {
+    return { x: 0, y: 0 };
+  }
+  const headTileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+  const headTileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+  const nearestTailSegment = parsedTailSegments[0];
+  const deltaX = headTileX - normalizeArcadeGridCoord(nearestTailSegment?.x);
+  const deltaY = headTileY - normalizeArcadeGridCoord(nearestTailSegment?.y);
+  if (Math.abs(deltaX) + Math.abs(deltaY) !== 1) {
+    return { x: 0, y: 0 };
+  }
+  return normalizeArcadeDirectionVector(deltaX, deltaY);
 }
 
 function getArcadeTileKey(x, y) {
@@ -2890,13 +3561,17 @@ function getArcadeHighScoreEntries() {
       continue;
     }
     const bestScore = Math.max(0, Math.round(Number(rawEntry?.bestScore) || 0));
+    const name = String(rawEntry?.name || '').trim().slice(0, 24);
     if (bestScore <= 0) {
+      continue;
+    }
+    if (!name) {
       continue;
     }
     entries.push({
       token,
       bestScore,
-      name: String(rawEntry?.name || '').trim().slice(0, 24) || 'anon',
+      name,
       color: normalizeHexColor(rawEntry?.color || '#ff7a59'),
       updatedAt: Math.max(0, Math.floor(Number(rawEntry?.updatedAt) || 0))
     });
@@ -2965,6 +3640,13 @@ function getArcadeManaSpawnTile(excludedTiles = []) {
   return { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE };
 }
 
+function getArcadeManaStepMsForState(dieState) {
+  if (dieState?.arcadeMgPhaseActive === true) {
+    return ARCADE_MANA_STEP_MS_PHASE;
+  }
+  return ARCADE_MANA_STEP_MS_NORMAL;
+}
+
 function getArcadeManaPlayerRenderPosition(dieState, now = Date.now()) {
   const tileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
   const tileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
@@ -2976,7 +3658,8 @@ function getArcadeManaPlayerRenderPosition(dieState, now = Date.now()) {
       y: tileY
     };
   }
-  const progress = clamp((Math.max(0, Number(now) || 0) - moveStartedAt) / ARCADE_MANA_STEP_MS, 0, 1);
+  const stepDurationMs = Math.max(1, getArcadeManaStepMsForState(dieState));
+  const progress = clamp((Math.max(0, Number(now) || 0) - moveStartedAt) / stepDurationMs, 0, 1);
   return {
     x: tileX + moveDirection.x * progress,
     y: tileY + moveDirection.y * progress
@@ -2991,6 +3674,7 @@ function getArcadeManaSmoothedRenderPosition(dieId, dieState, now = Date.now()) 
   const tileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
   const tileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
   const moveDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+  const stepDurationMs = Math.max(1, getArcadeManaStepMsForState(dieState));
   const hasMotion = moveDirection.x !== 0 || moveDirection.y !== 0;
   const nowMs = Math.max(0, Number(now) || Date.now());
   let visualState = arcadeManaVisualStateByDieId.get(normalizedDieId);
@@ -2998,13 +3682,15 @@ function getArcadeManaSmoothedRenderPosition(dieId, dieState, now = Date.now()) 
     visualState.tileX !== tileX ||
     visualState.tileY !== tileY ||
     visualState.dirX !== moveDirection.x ||
-    visualState.dirY !== moveDirection.y;
+    visualState.dirY !== moveDirection.y ||
+    Math.abs((Number(visualState.stepMs) || 0) - stepDurationMs) > 0.01;
   if (!visualState) {
     visualState = {
       tileX,
       tileY,
       dirX: moveDirection.x,
       dirY: moveDirection.y,
+      stepMs: stepDurationMs,
       segmentStartedAt: nowMs,
       renderX: tileX,
       renderY: tileY,
@@ -3016,10 +3702,11 @@ function getArcadeManaSmoothedRenderPosition(dieId, dieState, now = Date.now()) 
     visualState.tileY = tileY;
     visualState.dirX = moveDirection.x;
     visualState.dirY = moveDirection.y;
+    visualState.stepMs = stepDurationMs;
     visualState.segmentStartedAt = nowMs;
   }
   const segmentProgress = hasMotion
-    ? clamp((nowMs - visualState.segmentStartedAt) / ARCADE_MANA_STEP_MS, 0, 1)
+    ? clamp((nowMs - visualState.segmentStartedAt) / stepDurationMs, 0, 1)
     : 0;
   const targetX = tileX + moveDirection.x * segmentProgress;
   const targetY = tileY + moveDirection.y * segmentProgress;
@@ -3043,6 +3730,56 @@ function getArcadeManaSmoothedRenderPosition(dieId, dieState, now = Date.now()) 
     x: visualState.renderX,
     y: visualState.renderY
   };
+}
+
+function updateArcadeManaScorePopups(dieId, dieState, now = Date.now()) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return [];
+  }
+  const nowMs = Math.max(0, Number(now) || Date.now());
+  const currentScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+  let visualState = arcadeManaVisualStateByDieId.get(normalizedDieId);
+  if (!visualState) {
+    visualState = {
+      tileX: normalizeArcadeGridCoord(dieState?.arcadeMgTileX),
+      tileY: normalizeArcadeGridCoord(dieState?.arcadeMgTileY),
+      dirX: normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).x,
+      dirY: normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).y,
+      stepMs: getArcadeManaStepMsForState(dieState),
+      segmentStartedAt: nowMs,
+      renderX: normalizeArcadeGridCoord(dieState?.arcadeMgTileX),
+      renderY: normalizeArcadeGridCoord(dieState?.arcadeMgTileY),
+      lastRenderAt: nowMs
+    };
+    arcadeManaVisualStateByDieId.set(normalizedDieId, visualState);
+  }
+  if (!Array.isArray(visualState.scorePopups)) {
+    visualState.scorePopups = [];
+  }
+  if (!Number.isFinite(Number(visualState.lastScoreValue))) {
+    visualState.lastScoreValue = currentScore;
+  }
+  const previousScore = Math.max(0, Math.round(Number(visualState.lastScoreValue) || 0));
+  if (currentScore > previousScore) {
+    const anchorX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX) + 0.5;
+    const anchorY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY) + 0.5;
+    visualState.scorePopups.push({
+      value: currentScore - previousScore,
+      startedAt: nowMs,
+      anchorX,
+      anchorY
+    });
+    if (visualState.scorePopups.length > ARCADE_MANA_SCORE_POPUP_MAX) {
+      visualState.scorePopups = visualState.scorePopups.slice(-ARCADE_MANA_SCORE_POPUP_MAX);
+    }
+  }
+  visualState.lastScoreValue = currentScore;
+  visualState.scorePopups = visualState.scorePopups.filter((popup) => {
+    const startedAt = Math.max(0, Number(popup?.startedAt) || 0);
+    return nowMs - startedAt <= ARCADE_MANA_SCORE_POPUP_DURATION_MS;
+  });
+  return visualState.scorePopups;
 }
 
 function getArcadeSpriteImage(src) {
@@ -4015,16 +4752,32 @@ function normalizeDicePayload(payload) {
   const arcadeMgTailPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgTailPath) : '';
   const arcadeMgLooseManaPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgLooseManaPath) : '';
   const arcadeMgClearManaPath = type === 'arcade' ? normalizeArcadeManaTailPath(payload?.arcadeMgClearManaPath) : '';
+  const arcadeMgDemonsPath = type === 'arcade' ? normalizeArcadeDemonPath(payload?.arcadeMgDemonsPath) : '';
+  const arcadeMgBombPath = type === 'arcade' ? normalizeArcadeBombPath(payload?.arcadeMgBombPath) : '';
+  const arcadeMgBombFxPath = type === 'arcade' ? normalizeArcadeBombFxPath(payload?.arcadeMgBombFxPath) : '';
+  const arcadeMgPickupPulsePath = type === 'arcade' ? normalizeArcadePickupPulsePath(payload?.arcadeMgPickupPulsePath) : '';
+  const arcadeMgLastPickupAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgLastPickupAt) : 0;
+  const arcadeMgManaPickupCount = type === 'arcade' ? normalizeArcadeManaPickupCount(payload?.arcadeMgManaPickupCount) : 0;
+  const arcadeMgHasSpawnedDemon = type === 'arcade' && payload?.arcadeMgHasSpawnedDemon === true;
+  const arcadeMgNextDemonSpawnAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgNextDemonSpawnAt) : 0;
   const arcadeMgManaType = type === 'arcade' ? normalizeArcadeManaType(payload?.arcadeMgManaType) : ARCADE_MANA_TYPE_WHITE;
   const arcadeMgManaTileX = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgManaTileX) : ARCADE_MANA_CENTER_TILE;
   const arcadeMgManaTileY = type === 'arcade' ? normalizeArcadeGridCoord(payload?.arcadeMgManaTileY) : ARCADE_MANA_CENTER_TILE;
   const arcadeMgGameOver = type === 'arcade' && payload?.arcadeMgGameOver === true;
   const arcadeMgGameOverAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgGameOverAt) : 0;
+  const arcadeMgGameOverFlip = type === 'arcade' && payload?.arcadeMgGameOverFlip === true;
+  const arcadeMgNewHighScore = type === 'arcade' && payload?.arcadeMgNewHighScore === true;
   const arcadeMgSquareClearScore = type === 'arcade'
     ? Math.max(0, Math.round(Number(payload?.arcadeMgSquareClearScore) || 0))
     : 0;
+  const arcadeMgComboCount = type === 'arcade'
+    ? Math.max(0, Math.round(Number(payload?.arcadeMgComboCount) || 0))
+    : 0;
+  const arcadeMgComboLastScoredAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgComboLastScoredAt) : 0;
   const arcadeMgPhaseActive = type === 'arcade' && payload?.arcadeMgPhaseActive === true;
   const arcadeMgPhaseStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgPhaseStartedAt) : 0;
+  const arcadeMgPotionActive = type === 'arcade' && payload?.arcadeMgPotionActive === true;
+  const arcadeMgPotionStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgPotionStartedAt) : 0;
   const arcadeMgClearManaStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgClearManaStartedAt) : 0;
   const arcadeMgMoveStartedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgMoveStartedAt) : 0;
   const arcadeMgQueuedAt = type === 'arcade' ? normalizeArcadeTimestamp(payload?.arcadeMgQueuedAt) : 0;
@@ -4180,14 +4933,28 @@ function normalizeDicePayload(payload) {
     arcadeMgTailPath,
     arcadeMgLooseManaPath,
     arcadeMgClearManaPath,
+    arcadeMgDemonsPath,
+    arcadeMgBombPath,
+    arcadeMgBombFxPath,
+    arcadeMgPickupPulsePath,
+    arcadeMgLastPickupAt,
+    arcadeMgManaPickupCount,
+    arcadeMgHasSpawnedDemon,
+    arcadeMgNextDemonSpawnAt,
     arcadeMgManaType,
     arcadeMgManaTileX,
     arcadeMgManaTileY,
     arcadeMgGameOver,
     arcadeMgGameOverAt,
+    arcadeMgGameOverFlip,
+    arcadeMgNewHighScore,
     arcadeMgSquareClearScore,
+    arcadeMgComboCount,
+    arcadeMgComboLastScoredAt,
     arcadeMgPhaseActive,
     arcadeMgPhaseStartedAt,
+    arcadeMgPotionActive,
+    arcadeMgPotionStartedAt,
     arcadeMgClearManaStartedAt,
     arcadeMgDirX: arcadeMoveDirection.x,
     arcadeMgDirY: arcadeMoveDirection.y,
@@ -8824,6 +9591,137 @@ function createMonsBombSmokeParticles(seed) {
     });
   }
   return particles;
+}
+
+function getArcadeBombParticles(seed) {
+  const normalizedSeed = clamp(Math.floor(Number(seed) || 0), 1, 0x7fffffff);
+  const cacheKey = String(normalizedSeed);
+  const cached = arcadeBombParticlesBySeed.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const payload = {
+    flame: createMonsBombFlameParticles(normalizedSeed),
+    smoke: createMonsBombSmokeParticles(normalizedSeed + 9191)
+  };
+  arcadeBombParticlesBySeed.set(cacheKey, payload);
+  if (arcadeBombParticlesBySeed.size > 128) {
+    const oldestKey = arcadeBombParticlesBySeed.keys().next().value;
+    if (typeof oldestKey === 'string' && oldestKey) {
+      arcadeBombParticlesBySeed.delete(oldestKey);
+    }
+  }
+  return payload;
+}
+
+function drawMonsBombExplosionOnCanvas(
+  ctx,
+  centerX,
+  centerY,
+  elapsedMs,
+  seed,
+  unitScale,
+  durationMs = ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS,
+  aspectCompensationX = 1
+) {
+  if (!ctx) {
+    return;
+  }
+  const safeDuration = Math.max(1, Math.floor(Number(durationMs) || ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS));
+  const elapsed = Math.max(0, Number(elapsedMs) || 0);
+  const progress = clamp(elapsed / safeDuration, 0, 1);
+  if (!Number.isFinite(progress) || progress >= 1) {
+    return;
+  }
+  const scale = Math.max(1, Number(unitScale) || 1) * 1.24;
+  const xScaleCompensation = clamp(Number(aspectCompensationX) || 1, 0.5, 2.5);
+  const particles = getArcadeBombParticles(seed);
+
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.scale(xScaleCompensation, 1);
+
+  const flashOpacity = Math.max(0, 1 - progress * 1.9);
+  const flashRadius = (0.22 + easeOutCubic(progress) * 1.18) * scale;
+  const heatOpacity = Math.max(0, 0.9 * (1 - progress * 1.25));
+  const heatRadius = (0.2 + easeOutCubic(progress) * 0.84) * scale;
+  const shockRingRadius = (0.16 + easeOutCubic(progress) * 1.84) * scale;
+  const shockRingOpacity = Math.max(0, 0.86 * (1 - progress * 1.3));
+  if (flashOpacity > 0) {
+    ctx.save();
+    ctx.globalAlpha *= flashOpacity;
+    ctx.fillStyle = '#FFF9D0';
+    ctx.beginPath();
+    ctx.arc(0, 0, flashRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  if (heatOpacity > 0) {
+    ctx.save();
+    ctx.globalAlpha *= heatOpacity;
+    ctx.fillStyle = '#FFB24A';
+    ctx.beginPath();
+    ctx.arc(0, 0, heatRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  if (shockRingOpacity > 0) {
+    ctx.save();
+    ctx.globalAlpha *= shockRingOpacity;
+    ctx.strokeStyle = '#FF7E1A';
+    ctx.lineWidth = Math.max(1, 0.12 * scale);
+    ctx.beginPath();
+    ctx.arc(0, 0, shockRingRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  for (const particle of particles.flame) {
+    const localProgress = clamp((elapsed - particle.delayMs) / Math.max(1, particle.durationMs), 0, 1);
+    const traveled = easeOutCubic(localProgress);
+    const px = particle.dx * traveled * scale;
+    const py = particle.dy * traveled * scale;
+    const radiusBase = Math.max(0.014 * scale, particle.size * scale * (1 - 0.86 * localProgress));
+    const flameAngle = Math.atan2(particle.dy, particle.dx) + Math.PI / 2;
+    const opacity = Math.max(0, particle.opacity * (1 - localProgress) * 1.12);
+    if (opacity <= 0) {
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha *= opacity;
+    ctx.translate(px, py);
+    ctx.rotate(flameAngle);
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radiusBase * 0.62, radiusBase * 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFDEA';
+    ctx.globalAlpha *= 0.88;
+    ctx.beginPath();
+    ctx.arc(0, 0, radiusBase * 0.36, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  for (const particle of particles.smoke) {
+    const localProgress = clamp((elapsed - particle.delayMs) / Math.max(1, particle.durationMs), 0, 1);
+    const traveled = easeOutCubic(localProgress);
+    const px = particle.dx * (0.45 + traveled * 0.72) * scale;
+    const py = particle.dy * (0.38 + traveled * 0.72) * scale - traveled * 0.42 * scale;
+    const radius = Math.max(0.02 * scale, particle.size * scale * (0.78 + localProgress * 0.96));
+    const opacity = Math.max(0, particle.opacity * (1 - localProgress * 0.9));
+    if (opacity <= 0) {
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha *= opacity;
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.arc(px, py, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function createMonsCornerWaveLines(seed) {
@@ -14809,6 +15707,18 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
   const height = canvas.height;
   const displayWidth = Math.max(1, Math.round(Number(canvas.clientWidth) || width));
   const displayHeight = Math.max(1, Math.round(Number(canvas.clientHeight) || height));
+  const arcadePixelTextSquishY = 0.92;
+  const drawArcadePixelText = (text, x, y, options = {}) => {
+    const stroke = options?.stroke === true;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, arcadePixelTextSquishY);
+    if (stroke) {
+      ctx.strokeText(text, 0, 0);
+    }
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  };
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
@@ -14828,18 +15738,48 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     const startY = Math.floor(height * 0.42);
 
     ctx.fillStyle = '#a9f3bd';
-    ctx.font = '700 34px "Courier New", monospace';
+    ctx.font = '400 28px "VT323","Press Start 2P","Courier New",monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('mana garden', Math.floor(width / 2), Math.floor(height * 0.24));
+    const titleText = 'mana garden';
+    const titleX = Math.floor(width / 2);
+    const titleY = Math.floor(height * 0.24);
+    drawArcadePixelText(titleText, titleX, titleY);
+
+    const titleMetrics = ctx.measureText(titleText);
+    const manaSpriteSize = 26;
+    const manaSpriteGap = 10;
+    const manaSpriteCenterX = Math.round(
+      clamp(
+        titleX + titleMetrics.width / 2 + manaSpriteGap + manaSpriteSize / 2,
+        manaSpriteSize / 2 + 6,
+        width - manaSpriteSize / 2 - 6
+      )
+    );
+    const manaSpriteCenterY = titleY;
+    const manaDrawX = manaSpriteCenterX - manaSpriteSize / 2;
+    const manaDrawY = manaSpriteCenterY - manaSpriteSize / 2;
+    const titleManaSprite = getArcadeScaledSpriteCanvas(
+      MONS_PIECE_ASSET_BY_TYPE.mana,
+      manaSpriteSize,
+      manaSpriteSize
+    );
+    if (titleManaSprite) {
+      ctx.drawImage(titleManaSprite, manaDrawX, manaDrawY);
+    } else {
+      const titleManaImage = getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.mana);
+      if (titleManaImage && titleManaImage.complete && titleManaImage.naturalWidth > 0) {
+        ctx.drawImage(titleManaImage, manaDrawX, manaDrawY, manaSpriteSize, manaSpriteSize);
+      }
+    }
 
     for (let index = 0; index < ARCADE_MANA_MENU_OPTION_LABELS.length; index += 1) {
       const optionText = ARCADE_MANA_MENU_OPTION_LABELS[index];
       const selected = index === selectedIndex;
       ctx.globalAlpha = selected ? pressedOpacity : 0.76;
       ctx.fillStyle = selected ? '#d8ffe3' : '#8fe2aa';
-      ctx.font = '700 28px "Courier New", monospace';
-      ctx.fillText(optionText, Math.floor(width / 2), startY + lineHeight * index);
+      ctx.font = '400 28px "VT323","Press Start 2P","Courier New",monospace';
+      drawArcadePixelText(optionText, Math.floor(width / 2), startY + lineHeight * index);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
@@ -14852,6 +15792,31 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
   const boardTop = playBackground.boardTop;
   const tileWidth = playBackground.tileWidth;
   const tileHeight = playBackground.tileHeight;
+  const drawArcadeSpriteGlow = (centerX, centerY, spriteWidth, spriteHeight, alpha = 0.18, radiusScale = 0.84) => {
+    const glowRadius = Math.max(spriteWidth, spriteHeight) * radiusScale;
+    const glowAlpha = clamp(alpha, 0, 1);
+    if (glowAlpha <= 0.002 || glowRadius <= 0) {
+      return;
+    }
+    ctx.save();
+    ctx.globalAlpha *= glowAlpha;
+    const glow = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      0,
+      centerX,
+      centerY,
+      glowRadius
+    );
+    glow.addColorStop(0, '#ffffff');
+    glow.addColorStop(0.56, 'rgba(255, 255, 255, 0.42)');
+    glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
 
   const localIsController =
     Boolean(localClientId) &&
@@ -14859,28 +15824,74 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
   const playerPosition = localIsController
     ? getArcadeManaPlayerRenderPosition(dieState, now)
     : getArcadeManaSmoothedRenderPosition(dieId, dieState, now);
+  const scorePopups = updateArcadeManaScorePopups(dieId, dieState, now);
   const tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
   const looseManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgLooseManaPath);
   const clearManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgClearManaPath);
+  const demons = parseArcadeDemonPath(dieState?.arcadeMgDemonsPath);
+  const bombs = parseArcadeBombPath(dieState?.arcadeMgBombPath);
+  const bombEffects = parseArcadeBombFxPath(dieState?.arcadeMgBombFxPath);
+  const pickupPulses = parseArcadePickupPulsePath(dieState?.arcadeMgPickupPulsePath);
   const phaseActive = dieState?.arcadeMgPhaseActive === true;
   const phaseStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt);
+  const potionActive = dieState?.arcadeMgPotionActive === true;
+  const potionStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPotionStartedAt);
   const phaseElapsedMs = phaseStartedAt > 0 ? Math.max(0, now - phaseStartedAt) : Infinity;
   const phaseProgress = phaseActive && Number.isFinite(phaseElapsedMs)
     ? clamp(phaseElapsedMs / ARCADE_MANA_PHASE_DURATION_MS, 0, 1)
     : 0;
   const phaseVisualActive = phaseActive && phaseProgress < 1;
+  const pickupStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgLastPickupAt);
+  const pickupElapsed = pickupStartedAt > 0 ? Math.max(0, now - pickupStartedAt) : Infinity;
+  const potionElapsed = potionStartedAt > 0 ? Math.max(0, now - potionStartedAt) : Infinity;
   const manaType = normalizeArcadeManaType(dieState?.arcadeMgManaType);
   const manaTileX = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileX);
   const manaTileY = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileY);
+  const manaPulseKey = `${manaTileX},${manaTileY},${manaType}`;
+  const manaPulseDieId = String(dieId || '').trim();
+  let manaPulseState = manaPulseDieId ? arcadeManaVisualStateByDieId.get(manaPulseDieId) : null;
+  if (manaPulseDieId && !manaPulseState) {
+    manaPulseState = {
+      tileX: manaTileX,
+      tileY: manaTileY,
+      dirX: 0,
+      dirY: 0,
+      stepMs: ARCADE_MANA_STEP_MS_NORMAL,
+      segmentStartedAt: now,
+      renderX: manaTileX,
+      renderY: manaTileY,
+      lastRenderAt: now
+    };
+    arcadeManaVisualStateByDieId.set(manaPulseDieId, manaPulseState);
+  }
+  if (manaPulseState && manaPulseState.manaPulseKey !== manaPulseKey) {
+    manaPulseState.manaPulseKey = manaPulseKey;
+    manaPulseState.manaPulseStartedAt = now;
+  }
+  const manaPulseStartedAt = normalizeArcadeTimestamp(manaPulseState?.manaPulseStartedAt);
+  const manaPulseElapsed = manaPulseStartedAt > 0 ? Math.max(0, now - manaPulseStartedAt) : 0;
+  const manaPulseWave = 0.5 + 0.5 * Math.sin((manaPulseElapsed / 1000) * Math.PI * 2 * 0.95);
+  const manaPulseScale = 1 + manaPulseWave * 0.085;
   const manaSpriteSrc = manaType === ARCADE_MANA_TYPE_BLACK
     ? MONS_PIECE_ASSET_BY_TYPE.manaB
-    : MONS_PIECE_ASSET_BY_TYPE.mana;
-  const manaSpriteWidth = Math.max(7, tileWidth * 0.72);
-  const manaSpriteHeight = Math.max(7, tileHeight * 0.72);
+    : manaType === ARCADE_MANA_TYPE_SUPER
+      ? MONS_PIECE_ASSET_BY_TYPE.supermana
+      : MONS_PIECE_ASSET_BY_TYPE.mana;
+  const manaSpriteScaleBase = manaType === ARCADE_MANA_TYPE_WHITE ? 0.88 : manaType === ARCADE_MANA_TYPE_SUPER ? 0.84 : 0.8;
+  const manaSpriteScale = manaSpriteScaleBase * manaPulseScale;
+  const manaTileLeft = boardLeft + manaTileX * tileWidth;
+  const manaTileTop = boardTop + manaTileY * tileHeight;
+  ctx.save();
+  ctx.fillStyle = 'rgba(38, 44, 50, 0.72)';
+  ctx.fillRect(manaTileLeft, manaTileTop, tileWidth, tileHeight);
+  ctx.restore();
+  const manaSpriteWidth = Math.max(7, tileWidth * manaSpriteScale);
+  const manaSpriteHeight = Math.max(7, tileHeight * manaSpriteScale);
   const manaCenterX = boardLeft + (manaTileX + 0.5) * tileWidth;
   const manaCenterY = boardTop + (manaTileY + 0.5) * tileHeight;
   const manaDrawX = manaCenterX - manaSpriteWidth / 2;
   const manaDrawY = manaCenterY - manaSpriteHeight / 2;
+  drawArcadeSpriteGlow(manaCenterX, manaCenterY, manaSpriteWidth, manaSpriteHeight, 0.16, 0.8);
   const manaScaledSprite = getArcadeScaledSpriteCanvas(manaSpriteSrc, manaSpriteWidth, manaSpriteHeight);
   if (manaScaledSprite) {
     ctx.drawImage(manaScaledSprite, manaDrawX, manaDrawY);
@@ -14895,7 +15906,7 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     if (!Array.isArray(segments) || segments.length === 0) {
       return;
     }
-    const sizeScale = clamp(Number(options?.sizeScale) || 0.66, 0.2, 1.2);
+    const sizeScale = clamp(Number(options?.sizeScale) || 0.74, 0.2, 1.2);
     const spriteWidth = Math.max(6, tileWidth * sizeScale);
     const spriteHeight = Math.max(6, tileHeight * sizeScale);
     const baseAlpha = clamp(Number(options?.alpha) || 1, 0, 1);
@@ -14909,50 +15920,450 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     }
     ctx.save();
     ctx.globalAlpha = baseAlpha * flashAlpha;
-    for (const segment of segments) {
+    for (let index = 0; index < segments.length; index += 1) {
+      const segment = segments[index];
       const tailCenterX = boardLeft + (segment.x + 0.5) * tileWidth;
       const tailCenterY = boardTop + (segment.y + 0.5) * tileHeight;
       const tailDrawX = tailCenterX - spriteWidth / 2;
       const tailDrawY = tailCenterY - spriteHeight / 2;
-      const tailSpriteSrc = normalizeArcadeManaType(segment.type) === ARCADE_MANA_TYPE_BLACK
+      drawArcadeSpriteGlow(tailCenterX, tailCenterY, spriteWidth, spriteHeight, 0.13, 0.78);
+      const normalizedSegmentType = normalizeArcadeManaType(segment.type);
+      let segmentScaleMultiplier = normalizedSegmentType === ARCADE_MANA_TYPE_WHITE ? 1.1 : normalizedSegmentType === ARCADE_MANA_TYPE_SUPER ? 1.02 : 1;
+      if (options?.tailPulse === true) {
+        const pulseElapsed = pickupElapsed - index * 46;
+        if (pulseElapsed >= 0 && pulseElapsed <= ARCADE_MANA_PICKUP_ANIM_DURATION_MS) {
+          const pulseProgress = clamp(pulseElapsed / ARCADE_MANA_PICKUP_ANIM_DURATION_MS, 0, 1);
+          const pulseBump = Math.sin(pulseProgress * Math.PI);
+          segmentScaleMultiplier *= 1 + pulseBump * 0.34;
+        }
+      }
+      if (potionActive) {
+        const t = (potionElapsed / 1000) + index * 0.47;
+        const wave = 0.5 + 0.5 * Math.sin(t * 6.4);
+        const randomish = 0.5 + 0.5 * Math.sin((t + index * 0.19) * 13.7);
+        segmentScaleMultiplier *= 1 + wave * 0.18;
+        ctx.globalAlpha = baseAlpha * flashAlpha * (0.58 + randomish * 0.42);
+      }
+      const segmentSpriteWidth = spriteWidth * segmentScaleMultiplier;
+      const segmentSpriteHeight = spriteHeight * segmentScaleMultiplier;
+      const segmentDrawX = tailCenterX - segmentSpriteWidth / 2;
+      const segmentDrawY = tailCenterY - segmentSpriteHeight / 2;
+      const tailSpriteSrc = normalizedSegmentType === ARCADE_MANA_TYPE_BLACK
         ? MONS_PIECE_ASSET_BY_TYPE.manaB
-        : MONS_PIECE_ASSET_BY_TYPE.mana;
-      const tailScaledSprite = getArcadeScaledSpriteCanvas(tailSpriteSrc, spriteWidth, spriteHeight);
+        : normalizedSegmentType === ARCADE_MANA_TYPE_SUPER
+          ? MONS_PIECE_ASSET_BY_TYPE.supermana
+          : MONS_PIECE_ASSET_BY_TYPE.mana;
+      const tailScaledSprite = getArcadeScaledSpriteCanvas(tailSpriteSrc, segmentSpriteWidth, segmentSpriteHeight);
       if (tailScaledSprite) {
-        ctx.drawImage(tailScaledSprite, tailDrawX, tailDrawY);
+        ctx.drawImage(tailScaledSprite, segmentDrawX, segmentDrawY);
         continue;
       }
       const tailImage = getArcadeSpriteImage(tailSpriteSrc);
       if (tailImage && tailImage.complete && tailImage.naturalWidth > 0) {
-        ctx.drawImage(tailImage, tailDrawX, tailDrawY, spriteWidth, spriteHeight);
+        ctx.drawImage(tailImage, segmentDrawX, segmentDrawY, segmentSpriteWidth, segmentSpriteHeight);
       }
     }
     ctx.restore();
   };
 
   drawManaSegments(looseManaSegments, {
-    sizeScale: 0.66,
+    sizeScale: 0.74,
     alpha: 0.9
   });
   drawManaSegments(tailSegments, {
-    sizeScale: 0.66,
-    alpha: 0.92
+    sizeScale: 0.74,
+    alpha: 0.92,
+    tailPulse: true
   });
   drawManaSegments(clearManaSegments, {
-    sizeScale: 0.66,
+    sizeScale: 0.74,
     alpha: 1,
     flashing: true,
     flashStartedAt: dieState?.arcadeMgClearManaStartedAt
   });
 
+  if (bombs.length > 0) {
+    const bombSpriteWidth = Math.max(7, tileWidth * 0.72);
+    const bombSpriteHeight = Math.max(7, tileHeight * 0.72);
+    for (const bombRaw of bombs) {
+      const bombKind = normalizeArcadeBombKind(bombRaw?.kind);
+      const bombState = normalizeArcadeBombState(bombRaw?.state);
+      const stateStartedAt = normalizeArcadeTimestamp(bombRaw?.stateStartedAt);
+      const elapsed = stateStartedAt > 0 ? Math.max(0, now - stateStartedAt) : 0;
+      const bombSpriteSrc = bombKind === ARCADE_BOMB_KIND_POTION
+        ? MONS_PIECE_ASSET_BY_TYPE.potion
+        : MONS_PIECE_ASSET_BY_TYPE.bomb;
+      const bombScaledSprite = getArcadeScaledSpriteCanvas(
+        bombSpriteSrc,
+        bombSpriteWidth,
+        bombSpriteHeight
+      );
+      const bombImage = bombScaledSprite ? null : getArcadeSpriteImage(bombSpriteSrc);
+      const centerX = boardLeft + (normalizeArcadeGridCoord(bombRaw?.x) + 0.5) * tileWidth;
+      const centerY = boardTop + (normalizeArcadeGridCoord(bombRaw?.y) + 0.5) * tileHeight;
+      let spriteAlpha = 1;
+      let rotationRadians = 0;
+      let scale = 1;
+      if (bombState === ARCADE_MANA_BOMB_STATE_SPAWN) {
+        const growProgress = clamp(elapsed / ARCADE_MANA_DEMON_SPAWN_GROW_MS, 0, 1);
+        const easedGrow = growProgress * growProgress * (3 - 2 * growProgress);
+        const minScale = 1 / Math.max(bombSpriteWidth, bombSpriteHeight);
+        scale = clamp(minScale + (1 - minScale) * easedGrow, minScale, 1);
+        const blinkPhase = (elapsed / 1000) * Math.PI * 2 * 0.62;
+        const blinkFactor = 0.5 + 0.5 * Math.sin(blinkPhase);
+        const blinkAmplitude = clamp(0.72 * (1 - easedGrow) + 0.3, 0.3, 0.9);
+        const blinkAlpha = (1 - blinkAmplitude) + blinkAmplitude * blinkFactor;
+        const growthFade = growProgress >= 0.999
+          ? 1
+          : clamp(0.03 + 0.9 * Math.pow(growProgress, 1.55), 0, 0.93);
+        spriteAlpha = clamp(growthFade * blinkAlpha, 0, 1);
+      } else if (bombState === ARCADE_MANA_BOMB_STATE_ARMING) {
+        const blinkPhase = (elapsed / 1000) * Math.PI * 2 * 0.86;
+        spriteAlpha = 0.82 + 0.18 * ((Math.sin(blinkPhase) + 1) * 0.5);
+        scale = 1;
+      }
+      if (bombState === ARCADE_MANA_BOMB_STATE_SPINNING) {
+        const spinProgress = clamp(elapsed / ARCADE_MANA_BOMB_SPIN_CLEAR_MS, 0, 1);
+        const easedSpin = easeOutCubic(spinProgress);
+        rotationRadians = Math.PI * 2 * (6.4 * easedSpin);
+        const fadeStart = 0.52;
+        if (spinProgress > fadeStart) {
+          spriteAlpha = clamp(1 - (spinProgress - fadeStart) / (1 - fadeStart), 0, 1);
+        }
+        scale = clamp(1.08 - spinProgress * 0.3, 0.72, 1.08);
+      }
+      if (spriteAlpha <= 0) {
+        continue;
+      }
+      const drawWidth = bombSpriteWidth * scale;
+      const drawHeight = bombSpriteHeight * scale;
+      const drawX = centerX - drawWidth / 2;
+      const drawY = centerY - drawHeight / 2;
+
+      const glowRadius = Math.max(drawWidth, drawHeight) * 0.84;
+      const preHitboxDurationMs = ARCADE_MANA_DEMON_SPAWN_GROW_MS + ARCADE_MANA_DEMON_SPAWN_ARM_MS;
+      let preHitboxProgress = 1;
+      if (bombState === ARCADE_MANA_BOMB_STATE_SPAWN) {
+        preHitboxProgress = clamp(elapsed / Math.max(1, preHitboxDurationMs), 0, 1);
+      } else if (bombState === ARCADE_MANA_BOMB_STATE_ARMING) {
+        preHitboxProgress = clamp(
+          (ARCADE_MANA_DEMON_SPAWN_GROW_MS + elapsed) / Math.max(1, preHitboxDurationMs),
+          0,
+          1
+        );
+      }
+      const preHitboxFade = easeOutCubic(preHitboxProgress);
+      const glowAlpha = clamp(
+        0.58 * spriteAlpha * (bombState === ARCADE_MANA_BOMB_STATE_IDLE ? 1 : preHitboxFade),
+        0,
+        0.58
+      );
+      if (glowAlpha > 0.002) {
+        ctx.save();
+        ctx.globalAlpha *= glowAlpha;
+        const glow = ctx.createRadialGradient(
+          centerX,
+          centerY,
+          0,
+          centerX,
+          centerY,
+          glowRadius
+        );
+        if (bombKind === ARCADE_BOMB_KIND_POTION) {
+          glow.addColorStop(0, '#ffffff');
+          glow.addColorStop(0.56, 'rgba(255, 255, 255, 0.62)');
+          glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        } else {
+          glow.addColorStop(0, '#ff3a3a');
+          glow.addColorStop(0.56, 'rgba(255, 58, 58, 0.56)');
+          glow.addColorStop(1, 'rgba(255, 58, 58, 0)');
+        }
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.globalAlpha *= spriteAlpha;
+      if (Math.abs(rotationRadians) > 0.0001) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotationRadians);
+        const localDrawX = -drawWidth / 2;
+        const localDrawY = -drawHeight / 2;
+        if (bombScaledSprite) {
+          ctx.drawImage(bombScaledSprite, localDrawX, localDrawY, drawWidth, drawHeight);
+        } else if (bombImage && bombImage.complete && bombImage.naturalWidth > 0) {
+          ctx.drawImage(bombImage, localDrawX, localDrawY, drawWidth, drawHeight);
+        }
+      } else if (bombScaledSprite) {
+        ctx.drawImage(bombScaledSprite, drawX, drawY, drawWidth, drawHeight);
+      } else if (bombImage && bombImage.complete && bombImage.naturalWidth > 0) {
+        ctx.drawImage(bombImage, drawX, drawY, drawWidth, drawHeight);
+      }
+      ctx.restore();
+    }
+  }
+
+  if (bombEffects.length > 0) {
+    const particleScale = Math.max(6, Math.min(tileWidth, tileHeight));
+    const displayScaleX = Math.max(0.0001, displayWidth / Math.max(1, width));
+    const displayScaleY = Math.max(0.0001, displayHeight / Math.max(1, height));
+    const bombExplosionAspectCompensationX = displayScaleY / displayScaleX;
+    for (const effectRaw of bombEffects) {
+      const startedAt = normalizeArcadeTimestamp(effectRaw?.startedAt);
+      const elapsed = Math.max(0, now - startedAt);
+      if (!Number.isFinite(elapsed) || elapsed > ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS) {
+        continue;
+      }
+      const centerX = boardLeft + (normalizeArcadeGridCoord(effectRaw?.x) + 0.5) * tileWidth;
+      const centerY = boardTop + (normalizeArcadeGridCoord(effectRaw?.y) + 0.5) * tileHeight;
+      drawMonsBombExplosionOnCanvas(
+        ctx,
+        centerX,
+        centerY,
+        elapsed,
+        effectRaw?.seed,
+        particleScale,
+        ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS,
+        bombExplosionAspectCompensationX
+      );
+    }
+  }
+
+  if (pickupPulses.length > 0) {
+    const pulseUnit = Math.max(4, Math.min(tileWidth, tileHeight));
+    const displayScaleX = Math.max(0.0001, displayWidth / Math.max(1, width));
+    const displayScaleY = Math.max(0.0001, displayHeight / Math.max(1, height));
+    const pulseAspectCompensationX = displayScaleY / displayScaleX;
+    for (const pulse of pickupPulses) {
+      const startedAt = normalizeArcadeTimestamp(pulse?.startedAt);
+      const elapsed = Math.max(0, now - startedAt);
+      if (!Number.isFinite(elapsed) || elapsed > ARCADE_MANA_PICKUP_PULSE_DURATION_MS) {
+        continue;
+      }
+      const progress = clamp(elapsed / ARCADE_MANA_PICKUP_PULSE_DURATION_MS, 0, 1);
+      const eased = easeOutCubic(progress);
+      const centerX = boardLeft + (normalizeArcadeGridCoord(pulse?.x) + 0.5) * tileWidth;
+      const centerY = boardTop + (normalizeArcadeGridCoord(pulse?.y) + 0.5) * tileHeight;
+      const ringRadius = pulseUnit * (0.28 + 1.08 * eased);
+      const ringOpacity = Math.max(0, 0.52 * (1 - progress));
+      if (ringOpacity <= 0.002) {
+        continue;
+      }
+      ctx.save();
+      ctx.globalAlpha *= ringOpacity;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = Math.max(1, pulseUnit * 0.095);
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX,
+        centerY,
+        Math.max(1, ringRadius * pulseAspectCompensationX),
+        Math.max(1, ringRadius),
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  const drawDemonAttackTargetOutline = (targetTileX, targetTileY, alpha = 1) => {
+    const tileX = normalizeArcadeGridCoord(targetTileX);
+    const tileY = normalizeArcadeGridCoord(targetTileY);
+    const tileLeft = boardLeft + tileX * tileWidth;
+    const tileTop = boardTop + tileY * tileHeight;
+    const inset = Math.max(1.25, Math.min(tileWidth, tileHeight) * 0.08);
+    const outlineWidth = Math.max(1.75, Math.min(tileWidth, tileHeight) * 0.12);
+    const outlineWidthPx = Math.max(2, tileWidth - inset * 2);
+    const outlineHeightPx = Math.max(2, tileHeight - inset * 2);
+    ctx.save();
+    ctx.globalAlpha *= clamp(alpha, 0.04, 1);
+    ctx.strokeStyle = '#ff4f4f';
+    ctx.lineWidth = outlineWidth;
+    ctx.lineJoin = 'round';
+    ctx.strokeRect(tileLeft + inset, tileTop + inset, outlineWidthPx, outlineHeightPx);
+    ctx.restore();
+  };
+
+  if (demons.length > 0) {
+    const demonSpriteWidth = Math.max(8, tileWidth * 0.9);
+    const demonSpriteHeight = Math.max(8, tileHeight * 0.9);
+    const demonScaledSprite = getArcadeScaledSpriteCanvas(
+      MONS_PIECE_ASSET_BY_TYPE.demon,
+      demonSpriteWidth,
+      demonSpriteHeight
+    );
+    const demonImage = demonScaledSprite ? null : getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.demon);
+    for (const demonRaw of demons) {
+      const demon = {
+        ...demonRaw,
+        state: normalizeArcadeDemonState(demonRaw?.state)
+      };
+      const stateStartedAt = normalizeArcadeTimestamp(demon.stateStartedAt);
+      const elapsed = stateStartedAt > 0 ? Math.max(0, now - stateStartedAt) : 0;
+      let renderTileX = normalizeArcadeGridCoord(demon.x);
+      let renderTileY = normalizeArcadeGridCoord(demon.y);
+      let scale = 1;
+      let spriteAlpha = 1;
+      let rotationRadians = 0;
+
+      if (demon.state === ARCADE_MANA_DEMON_STATE_DASH) {
+        const fromX = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashFromX)) ? demon.dashFromX : renderTileX
+        );
+        const fromY = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashFromY)) ? demon.dashFromY : renderTileY
+        );
+        const toX = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashToX)) ? demon.dashToX : renderTileX
+        );
+        const toY = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashToY)) ? demon.dashToY : renderTileY
+        );
+        const dashProgress = clamp(elapsed / ARCADE_MANA_DEMON_DASH_MS, 0, 1);
+        renderTileX = fromX + (toX - fromX) * dashProgress;
+        renderTileY = fromY + (toY - fromY) * dashProgress;
+      } else if (demon.state === ARCADE_MANA_DEMON_STATE_SPAWN) {
+        const growProgress = clamp(elapsed / ARCADE_MANA_DEMON_SPAWN_GROW_MS, 0, 1);
+        const easedGrow = growProgress * growProgress * (3 - 2 * growProgress);
+        const minScale = 1 / Math.max(demonSpriteWidth, demonSpriteHeight);
+        scale = clamp(minScale + (1 - minScale) * easedGrow, minScale, 1);
+        const blinkPhase = (elapsed / 1000) * Math.PI * 2 * 0.62;
+        const blinkFactor = 0.5 + 0.5 * Math.sin(blinkPhase);
+        const blinkAmplitude = clamp(0.72 * (1 - easedGrow) + 0.3, 0.3, 0.9);
+        const blinkAlpha = (1 - blinkAmplitude) + blinkAmplitude * blinkFactor;
+        const growthFade = growProgress >= 0.999
+          ? 1
+          : clamp(0.03 + 0.9 * Math.pow(growProgress, 1.55), 0, 0.93);
+        spriteAlpha = clamp(growthFade * blinkAlpha, 0, 1);
+      } else if (demon.state === ARCADE_MANA_DEMON_STATE_ARMING) {
+        const blinkPhase = (elapsed / 1000) * Math.PI * 2 * 0.86;
+        spriteAlpha = 0.82 + 0.18 * ((Math.sin(blinkPhase) + 1) * 0.5);
+        scale = 1;
+      } else if (demon.state === ARCADE_MANA_DEMON_STATE_WINDUP) {
+        const windupDirection = normalizeArcadeDirectionVector(demon?.dirX, demon?.dirY);
+        if (windupDirection.x !== 0 || windupDirection.y !== 0) {
+          const windupProgress = clamp(elapsed / ARCADE_MANA_DEMON_WINDUP_MS, 0, 1);
+          const windupEase = easeOutCubic(windupProgress);
+          const recoilDistanceTiles = 0.18;
+          renderTileX -= windupDirection.x * recoilDistanceTiles * windupEase;
+          renderTileY -= windupDirection.y * recoilDistanceTiles * windupEase;
+        }
+      } else if (demon.state === ARCADE_MANA_DEMON_STATE_SPINNING) {
+        const spinProgress = clamp(elapsed / ARCADE_MANA_DEMON_SPINNED_MS, 0, 1);
+        const easedSpin = 1 - Math.pow(1 - spinProgress, 2);
+        const totalTurns = 7.5;
+        rotationRadians = totalTurns * Math.PI * 2 * easedSpin;
+      } else if (demon.state === ARCADE_MANA_DEMON_STATE_DYING) {
+        const dieProgress = clamp(elapsed / ARCADE_MANA_DEMON_DIE_MS, 0, 1);
+        const easedDie = dieProgress * dieProgress * (3 - 2 * dieProgress);
+        scale = clamp(1 - easedDie * 0.98, 0.02, 1);
+        spriteAlpha = clamp(1 - easedDie, 0, 1);
+        rotationRadians = Math.PI * 2 * (1.35 * easedDie);
+      }
+
+      const centerX = boardLeft + (renderTileX + 0.5) * tileWidth;
+      const centerY = boardTop + (renderTileY + 0.5) * tileHeight;
+      const drawWidth = demonSpriteWidth * scale;
+      const drawHeight = demonSpriteHeight * scale;
+      const drawX = centerX - drawWidth / 2;
+      const drawY = centerY - drawHeight / 2;
+      drawArcadeSpriteGlow(centerX, centerY, drawWidth, drawHeight, 0.17 * clamp(spriteAlpha, 0, 1), 0.82);
+
+      ctx.save();
+      ctx.globalAlpha *= clamp(spriteAlpha, 0, 1);
+      if (Math.abs(rotationRadians) > 0.0001) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotationRadians);
+        const localDrawX = -drawWidth / 2;
+        const localDrawY = -drawHeight / 2;
+        if (demonScaledSprite) {
+          ctx.drawImage(demonScaledSprite, localDrawX, localDrawY, drawWidth, drawHeight);
+        } else if (demonImage && demonImage.complete && demonImage.naturalWidth > 0) {
+          ctx.drawImage(demonImage, localDrawX, localDrawY, drawWidth, drawHeight);
+        }
+      } else if (demonScaledSprite) {
+        ctx.drawImage(demonScaledSprite, drawX, drawY, drawWidth, drawHeight);
+      } else if (demonImage && demonImage.complete && demonImage.naturalWidth > 0) {
+        ctx.drawImage(demonImage, drawX, drawY, drawWidth, drawHeight);
+      }
+      ctx.restore();
+
+      if (demon.state === ARCADE_MANA_DEMON_STATE_WINDUP) {
+        const windupProgress = clamp(elapsed / ARCADE_MANA_DEMON_WINDUP_MS, 0, 1);
+        const blinkHz = 0.42 + Math.pow(windupProgress, 1.3) * 3.1;
+        const blinkPhase = (elapsed / 1000) * Math.PI * 2 * blinkHz;
+        const targetTile = getArcadeDemonDashTargetTile(demon);
+        const blinkAlpha = 0.2 + 0.8 * ((Math.sin(blinkPhase) + 1) * 0.5);
+        const fadeIn = clamp(elapsed / 260, 0, 1);
+        const indicatorAlpha = blinkAlpha * fadeIn;
+        drawDemonAttackTargetOutline(targetTile.x, targetTile.y, indicatorAlpha);
+      }
+    }
+  }
+
   const playerCenterX = boardLeft + (playerPosition.x + 0.5) * tileWidth;
   const playerCenterY = boardTop + (playerPosition.y + 0.5) * tileHeight;
   const spriteWidth = Math.max(8, tileWidth * 0.9);
   const spriteHeight = Math.max(8, tileHeight * 0.9);
-  const spriteDrawX = playerCenterX - spriteWidth / 2;
-  const spriteDrawY = playerCenterY - spriteHeight / 2;
-  const playerScaledSprite = getArcadeScaledSpriteCanvas(MONS_PIECE_ASSET_BY_TYPE.drainer, spriteWidth, spriteHeight);
+  const pickupProgress = clamp(pickupElapsed / ARCADE_MANA_PICKUP_ANIM_DURATION_MS, 0, 1);
+  const pickupBump = pickupProgress < 1 ? Math.sin(pickupProgress * Math.PI) : 0;
+  const potionWave = potionActive ? (0.5 + 0.5 * Math.sin((potionElapsed / 1000) * 7.2)) : 0;
+  const pickupScale = 1 + pickupBump * 0.22 + (potionActive ? potionWave * 0.28 : 0);
+  const pickupYOffset = 0;
+  const spriteRenderWidth = spriteWidth * pickupScale;
+  const spriteRenderHeight = spriteHeight * pickupScale;
+  const spriteDrawX = playerCenterX - spriteRenderWidth / 2;
+  const spriteDrawY = playerCenterY + pickupYOffset - spriteRenderHeight / 2;
+  drawArcadeSpriteGlow(
+    playerCenterX,
+    playerCenterY + pickupYOffset,
+    spriteRenderWidth,
+    spriteRenderHeight,
+    phaseVisualActive ? 0.24 : 0.18,
+    0.86
+  );
+  const playerScaledSprite = getArcadeScaledSpriteCanvas(
+    MONS_PIECE_ASSET_BY_TYPE.drainer,
+    spriteRenderWidth,
+    spriteRenderHeight
+  );
+  const gameOverFlipPlayer = dieState?.arcadeMgGameOver === true && dieState?.arcadeMgGameOverFlip === true;
   const drawPlayerSprite = () => {
+    if (gameOverFlipPlayer) {
+      ctx.save();
+      ctx.translate(playerCenterX, playerCenterY + pickupYOffset);
+      ctx.rotate(Math.PI);
+      const localDrawX = -spriteRenderWidth / 2;
+      const localDrawY = -spriteRenderHeight / 2;
+      if (playerScaledSprite) {
+        ctx.drawImage(playerScaledSprite, localDrawX, localDrawY);
+        ctx.restore();
+        return;
+      }
+      const rotatedImage = getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.drainer);
+      if (rotatedImage && rotatedImage.complete && rotatedImage.naturalWidth > 0) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+          rotatedImage,
+          localDrawX,
+          localDrawY,
+          spriteRenderWidth,
+          spriteRenderHeight
+        );
+        ctx.restore();
+        return;
+      }
+      ctx.fillStyle = '#d8ffe3';
+      ctx.fillRect(localDrawX, localDrawY, spriteRenderWidth, spriteRenderHeight);
+      ctx.restore();
+      return;
+    }
     if (playerScaledSprite) {
       ctx.drawImage(playerScaledSprite, spriteDrawX, spriteDrawY);
       return;
@@ -14965,8 +16376,8 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
         spriteImage,
         spriteDrawX,
         spriteDrawY,
-        spriteWidth,
-        spriteHeight
+        spriteRenderWidth,
+        spriteRenderHeight
       );
       return;
     }
@@ -14974,8 +16385,8 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     ctx.fillRect(
       spriteDrawX,
       spriteDrawY,
-      spriteWidth,
-      spriteHeight
+      spriteRenderWidth,
+      spriteRenderHeight
     );
   };
 
@@ -14984,11 +16395,11 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     const fadeAmount = 1 - Math.abs(1 - phaseProgress * 2);
     const alpha = clamp(1 - fadeAmount * (1 - ARCADE_MANA_PHASE_MIN_ALPHA), ARCADE_MANA_PHASE_MIN_ALPHA, 1);
     ctx.save();
-    ctx.translate(playerCenterX, playerCenterY);
+    ctx.translate(playerCenterX, playerCenterY + pickupYOffset);
     ctx.rotate(spinRadians);
     ctx.globalAlpha *= alpha;
-    const rotatedDrawX = -spriteWidth / 2;
-    const rotatedDrawY = -spriteHeight / 2;
+    const rotatedDrawX = -spriteRenderWidth / 2;
+    const rotatedDrawY = -spriteRenderHeight / 2;
     if (playerScaledSprite) {
       ctx.drawImage(playerScaledSprite, rotatedDrawX, rotatedDrawY);
     } else {
@@ -14996,30 +16407,184 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
       if (spriteImage && spriteImage.complete && spriteImage.naturalWidth > 0) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(spriteImage, rotatedDrawX, rotatedDrawY, spriteWidth, spriteHeight);
+        ctx.drawImage(spriteImage, rotatedDrawX, rotatedDrawY, spriteRenderWidth, spriteRenderHeight);
       } else {
         ctx.fillStyle = '#d8ffe3';
-        ctx.fillRect(rotatedDrawX, rotatedDrawY, spriteWidth, spriteHeight);
+        ctx.fillRect(rotatedDrawX, rotatedDrawY, spriteRenderWidth, spriteRenderHeight);
       }
     }
     ctx.restore();
   } else {
-    drawPlayerSprite();
+    if (potionActive) {
+      const potionFadeWave = 0.5 + 0.5 * Math.sin((potionElapsed / 1000) * 5.6);
+      ctx.save();
+      ctx.globalAlpha *= 0.48 + potionFadeWave * 0.52;
+      drawPlayerSprite();
+      ctx.restore();
+    } else {
+      drawPlayerSprite();
+    }
+  }
+
+  if (Array.isArray(scorePopups) && scorePopups.length > 0) {
+    const popupUnit = Math.max(8, Math.min(tileWidth, tileHeight));
+    const occupiedTileKeys = new Set();
+    const addOccupiedTile = (rawX, rawY) => {
+      if (!canArcadeMoveToTile(rawX, rawY)) {
+        return;
+      }
+      occupiedTileKeys.add(getArcadeTileKey(rawX, rawY));
+    };
+    addOccupiedTile(manaTileX, manaTileY);
+    for (const segment of tailSegments) {
+      addOccupiedTile(normalizeArcadeGridCoord(segment?.x), normalizeArcadeGridCoord(segment?.y));
+    }
+    for (const segment of looseManaSegments) {
+      addOccupiedTile(normalizeArcadeGridCoord(segment?.x), normalizeArcadeGridCoord(segment?.y));
+    }
+    for (const segment of clearManaSegments) {
+      addOccupiedTile(normalizeArcadeGridCoord(segment?.x), normalizeArcadeGridCoord(segment?.y));
+    }
+    for (const demon of demons) {
+      const demonState = normalizeArcadeDemonState(demon?.state);
+      if (demonState === ARCADE_MANA_DEMON_STATE_DYING) {
+        continue;
+      }
+      addOccupiedTile(normalizeArcadeGridCoord(demon?.x), normalizeArcadeGridCoord(demon?.y));
+    }
+    for (const bomb of bombs) {
+      const bombState = normalizeArcadeBombState(bomb?.state);
+      if (bombState === ARCADE_MANA_BOMB_STATE_SPINNING) {
+        continue;
+      }
+      addOccupiedTile(normalizeArcadeGridCoord(bomb?.x), normalizeArcadeGridCoord(bomb?.y));
+    }
+    for (let index = 0; index < scorePopups.length; index += 1) {
+      const popup = scorePopups[index];
+      const value = Math.max(0, Math.round(Number(popup?.value) || 0));
+      if (value <= 0) {
+        continue;
+      }
+      const elapsed = Math.max(0, now - Math.max(0, Number(popup?.startedAt) || 0));
+      if (elapsed > ARCADE_MANA_SCORE_POPUP_DURATION_MS) {
+        continue;
+      }
+      const progress = clamp(elapsed / ARCADE_MANA_SCORE_POPUP_DURATION_MS, 0, 1);
+      const fadeInProgress = clamp(elapsed / ARCADE_MANA_SCORE_POPUP_FADE_IN_MS, 0, 1);
+      const fadeOutProgress = clamp(
+        (elapsed - ARCADE_MANA_SCORE_POPUP_FADE_IN_MS) /
+          Math.max(1, ARCADE_MANA_SCORE_POPUP_DURATION_MS - ARCADE_MANA_SCORE_POPUP_FADE_IN_MS),
+        0,
+        1
+      );
+      const rise = easeOutCubic(progress);
+      const yOffset = popupUnit * (0.04 + rise * 0.42) + index * popupUnit * 0.05;
+      const scale = 1 + easeOutCubic(fadeOutProgress) * 0.3;
+      const alpha = fadeInProgress * (1 - fadeOutProgress);
+      if (alpha <= 0.001) {
+        continue;
+      }
+      const anchorX = Number.isFinite(Number(popup?.anchorX))
+        ? Number(popup.anchorX)
+        : playerPosition.x + 0.5;
+      const anchorY = Number.isFinite(Number(popup?.anchorY))
+        ? Number(popup.anchorY)
+        : playerPosition.y + 0.5;
+      const anchorTileX = normalizeArcadeGridCoord(Math.round(anchorX - 0.5));
+      const anchorTileY = normalizeArcadeGridCoord(Math.round(anchorY - 0.5));
+      let popupTileOffset = {
+        x: Number.isFinite(Number(popup?.offsetX)) ? Math.round(Number(popup.offsetX)) : Number.NaN,
+        y: Number.isFinite(Number(popup?.offsetY)) ? Math.round(Number(popup.offsetY)) : Number.NaN
+      };
+      if (!Number.isFinite(popupTileOffset.x) || !Number.isFinite(popupTileOffset.y)) {
+        const aboveTileY = anchorTileY - 1;
+        const aboveTileIsFree = canArcadeMoveToTile(anchorTileX, aboveTileY) &&
+          !occupiedTileKeys.has(getArcadeTileKey(anchorTileX, aboveTileY));
+        popupTileOffset = { x: 0, y: -1 };
+        if (!aboveTileIsFree) {
+          const fallbackOffsets = [
+            { x: 0, y: 1 },
+            { x: 1, y: 0 },
+            { x: -1, y: 0 }
+          ];
+          const nextOffset = fallbackOffsets.find((offset) => {
+            const testX = anchorTileX + offset.x;
+            const testY = anchorTileY + offset.y;
+            return canArcadeMoveToTile(testX, testY) && !occupiedTileKeys.has(getArcadeTileKey(testX, testY));
+          });
+          if (nextOffset) {
+            popupTileOffset = nextOffset;
+          }
+        }
+        popup.offsetX = popupTileOffset.x;
+        popup.offsetY = popupTileOffset.y;
+      }
+      const defaultCenterX = boardLeft + anchorX * tileWidth;
+      const defaultBaseY = boardTop + anchorY * tileHeight - Math.max(spriteHeight * 0.46, popupUnit * 0.45);
+      let popupCenterX = defaultCenterX;
+      let popupBaseY = defaultBaseY;
+      const targetTileX = anchorTileX + popupTileOffset.x;
+      const targetTileY = anchorTileY + popupTileOffset.y;
+      if (canArcadeMoveToTile(targetTileX, targetTileY)) {
+        popupCenterX = boardLeft + (targetTileX + 0.5) * tileWidth;
+        popupBaseY = boardTop + (targetTileY + 0.5) * tileHeight;
+      }
+      ctx.save();
+      ctx.translate(popupCenterX, popupBaseY - yOffset - 2);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha *= alpha;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffd85a';
+      ctx.strokeStyle = 'rgba(64, 42, 10, 0.58)';
+      ctx.lineWidth = Math.max(1, popupUnit * 0.08);
+      ctx.font = `700 ${Math.max(10, popupUnit * 0.54)}px "VT323","Press Start 2P","Courier New",monospace`;
+      const label = `+${value}`;
+      drawArcadePixelText(label, 0, 0, { stroke: true });
+      ctx.restore();
+    }
   }
 
   if (dieState?.arcadeMgGameOver === true) {
     const elapsed = Math.max(0, Number(now) - normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt));
-    const fadeProgress = clamp(elapsed / ARCADE_MANA_GAME_OVER_DELAY_MS, 0, 1);
+    const fadeProgress = clamp(elapsed / 520, 0, 1);
+    const currentScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+    const isNewHighScore = dieState?.arcadeMgNewHighScore === true;
+    const selectedIndex = clamp(
+      Math.round(Number(dieState?.arcadeManaMenuIndex) || 0),
+      0,
+      Math.max(0, ARCADE_MANA_GAME_OVER_OPTION_LABELS.length - 1)
+    );
+    const jPressed = dieState?.arcadeJPressed === true;
     ctx.save();
     ctx.globalAlpha = 0.36 + fadeProgress * 0.42;
     ctx.fillStyle = '#020304';
     ctx.fillRect(boardLeft, boardTop, playBackground.boardWidth, playBackground.boardHeight);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#f1ffe8';
-    ctx.font = '700 34px "Courier New", monospace';
+    ctx.font = '400 30px "VT323","Press Start 2P","Courier New",monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('game over', Math.floor(width / 2), Math.floor(height / 2));
+    const centerX = Math.floor(width / 2);
+    const centerY = Math.floor(height / 2);
+    if (isNewHighScore) {
+      const rainbowHue = Math.floor((now / 8) % 360);
+      const flash = 0.5 + Math.sin(now / 95) * 0.5;
+      ctx.fillStyle = `hsla(${rainbowHue}, 100%, ${58 + flash * 12}%, ${0.82 + flash * 0.18})`;
+      drawArcadePixelText('NEW HIGH SCORE!', centerX, centerY - 54);
+    }
+    ctx.fillStyle = '#f1ffe8';
+    drawArcadePixelText('game over', centerX, centerY - 18);
+    ctx.fillStyle = '#a8ffd8';
+    drawArcadePixelText(String(currentScore), centerX, centerY + 12);
+    ctx.fillStyle = '#f1ffe8';
+    for (let index = 0; index < ARCADE_MANA_GAME_OVER_OPTION_LABELS.length; index += 1) {
+      const selected = index === selectedIndex;
+      const isPressed = selected && jPressed;
+      const y = centerY + 48 + index * 24;
+      ctx.globalAlpha = selected ? (isPressed ? 0.52 : 1) : 0.6;
+      drawArcadePixelText(ARCADE_MANA_GAME_OVER_OPTION_LABELS[index], centerX, y);
+    }
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
@@ -15289,6 +16854,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
 
     const screen = document.createElement('div');
     screen.className = 'table-arcade-screen';
+    screen.classList.toggle('is-load-screen', screenMode === ARCADE_SCREEN_MAIN);
 
     const screenInner = document.createElement('div');
     screenInner.className = 'table-arcade-screen-inner';
@@ -15310,6 +16876,24 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       if (context) {
         arcadeManaCanvasByDieId.set(dieId, { canvas, context });
         drawArcadeManaCanvas(dieId, dieState, Date.now());
+        const redrawArcadeCanvasForFontLoad = () => {
+          const latestDieState = diceById.get(dieId);
+          if (!isArcadeDieState(latestDieState)) {
+            return;
+          }
+          const latestScreenMode = normalizeArcadeScreen(latestDieState?.arcadeScreen);
+          if (latestScreenMode !== ARCADE_SCREEN_MANA_MENU && latestScreenMode !== ARCADE_SCREEN_MANA_PLAY) {
+            return;
+          }
+          drawArcadeManaCanvas(dieId, latestDieState, Date.now());
+        };
+        if (typeof document !== 'undefined' && document.fonts && typeof document.fonts.ready?.then === 'function') {
+          document.fonts.ready.then(() => {
+            redrawArcadeCanvasForFontLoad();
+          }).catch(() => {});
+        }
+        window.setTimeout(redrawArcadeCanvasForFontLoad, 220);
+        window.setTimeout(redrawArcadeCanvasForFontLoad, 800);
         ensureArcadeManaRenderLoop();
       } else {
         arcadeManaCanvasByDieId.delete(dieId);
@@ -15988,19 +17572,6 @@ function renderDieElement(dieId, options = {}) {
     !drawModeEnabled &&
     !deleteModeEnabled;
   const canResizeDie = canResizeLabel || canResizeMedia;
-  const marbleSpeed =
-    dieType === 'marble'
-      ? Math.hypot(Number(dieState?.velocityX) || 0, Number(dieState?.velocityY) || 0)
-      : 0;
-  const marbleWarbleStrength =
-    dieType === 'marble'
-      ? clamp(
-        (marbleSpeed - MARBLE_WARBLE_SPEED_THRESHOLD) /
-        Math.max(1, MARBLE_WARBLE_SPEED_MAX - MARBLE_WARBLE_SPEED_THRESHOLD),
-        0,
-        1
-      )
-      : 0;
   die.classList.toggle('table-die-d20', dieType === 'd20');
   die.classList.toggle('table-die-d6', dieType === 'd6');
   die.classList.toggle('table-die-spinner', isSpinner);
@@ -16051,7 +17622,6 @@ function renderDieElement(dieId, options = {}) {
     die.classList.remove('is-timer-controls-hidden');
   }
   die.classList.toggle('is-marble-moving', dieType === 'marble' && dieState.moving === true);
-  die.classList.toggle('is-marble-fast', dieType === 'marble' && dieState.moving === true && marbleWarbleStrength > 0.001);
   die.classList.toggle('is-stack-point-hovered', isStackPoint && stackPointDropTargetDieId === dieId);
   die.classList.toggle('is-label-locked', isLabelLocked);
   die.classList.toggle('is-label-lockable', canToggleLabelLock);
@@ -16114,10 +17684,8 @@ function renderDieElement(dieId, options = {}) {
   }
   if (dieType === 'marble') {
     die.style.setProperty('--marble-hue', String(normalizeMarbleHue(dieState.marbleHue)));
-    die.style.setProperty('--marble-warble-strength', marbleWarbleStrength.toFixed(3));
   } else {
     die.style.removeProperty('--marble-hue');
-    die.style.removeProperty('--marble-warble-strength');
   }
   if (isChip) {
     const chipColor = normalizeHexColor(dieState?.chipColor || '#ffffff');
@@ -22584,7 +24152,7 @@ async function startRealtimeSession() {
   const decksRef = ref(db, `${roomPath}/decks`);
   const chipSetsRef = ref(db, `${roomPath}/chipSets`);
   const gamesRef = ref(db, `${roomPath}/games`);
-  const arcadeScoresRef = ref(db, `${roomPath}/arcadeScores`);
+  const arcadeScoresRef = ref(db, 'rooms/__global/arcadeScores');
   const roomMetaRef = ref(db, `${roomPath}/meta`);
   const roomPresenceRef = ref(db, `${roomPath}/presence`);
   const connectedRef = ref(db, '.info/connected');
@@ -22629,8 +24197,9 @@ async function startRealtimeSession() {
 
   const recordArcadeBestScoreForPlayer = async (playerToken, playerName, playerColor, scoreValue) => {
     const normalizedToken = normalizeArcadePlayerToken(playerToken);
+    const normalizedName = String(playerName || '').trim().slice(0, 24);
     const normalizedScore = Math.max(0, Math.round(Number(scoreValue) || 0));
-    if (!normalizedToken || normalizedScore <= 0) {
+    if (!normalizedToken || !normalizedName || normalizedScore <= 0) {
       return false;
     }
     const existingBest = getArcadeBestScoreForPlayerToken(normalizedToken);
@@ -22642,9 +24211,8 @@ async function startRealtimeSession() {
     }
     arcadeBestScoreWriteInFlightByPlayerToken.add(normalizedToken);
     try {
-      const normalizedName = String(playerName || '').trim().slice(0, 24) || 'anon';
       const normalizedColor = normalizeHexColor(playerColor || '#ff7a59');
-      const playerScoreRef = ref(db, `${roomPath}/arcadeScores/${normalizedToken}`);
+      const playerScoreRef = ref(db, `rooms/__global/arcadeScores/${normalizedToken}`);
       const result = await runTransaction(
         playerScoreRef,
         (current) => {
@@ -22670,7 +24238,7 @@ async function startRealtimeSession() {
         if (nextBest > 0) {
           arcadeBestScoresByPlayerToken.set(normalizedToken, {
             bestScore: nextBest,
-            name: String(payload?.name || normalizedName).trim().slice(0, 24) || 'anon',
+            name: String(payload?.name || normalizedName).trim().slice(0, 24),
             color: normalizeHexColor(payload?.color || normalizedColor),
             updatedAt: Math.max(0, Math.floor(Number(payload?.updatedAt) || Date.now()))
           });
@@ -31815,6 +33383,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   }
 
   const heldArcadeDirectionKeys = new Set();
+  const arcadeDirectionRepeatQueuedAtByKey = new Map();
 
   function getArcadeStickVectorFromHeldKeys() {
     let x = 0;
@@ -31835,6 +33404,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       x: clamp(x, ARCADE_STICK_MIN_AXIS, ARCADE_STICK_MAX_AXIS),
       y: clamp(y, ARCADE_STICK_MIN_AXIS, ARCADE_STICK_MAX_AXIS)
     };
+  }
+
+  function getMostRecentHeldArcadeDirectionKey() {
+    let preferredKey = '';
+    for (const key of heldArcadeDirectionKeys) {
+      if (key === 'w' || key === 'a' || key === 's' || key === 'd') {
+        preferredKey = key;
+      }
+    }
+    return preferredKey;
   }
 
   function syncArcadeStickDirection(force = false) {
@@ -31864,12 +33443,48 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     return true;
   }
 
+  function attemptArcadeFocusControlReclaim(dieId = '') {
+    const normalizedDieId = String(dieId || '').trim();
+    if (!normalizedDieId || !localClientId) {
+      return false;
+    }
+    const dieState = diceById.get(normalizedDieId);
+    if (!isArcadeDieState(dieState)) {
+      return false;
+    }
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    if (controllerClientId === localClientId) {
+      return false;
+    }
+    const controllerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+    const localToken = normalizeArcadePlayerToken(localPlayerToken);
+    const tokenOwnedByLocalPlayer = Boolean(controllerToken) && Boolean(localToken) && controllerToken === localToken;
+    const controllerStillPresent =
+      Boolean(controllerClientId) &&
+      Boolean(latestRawCursorsById?.[controllerClientId]);
+    if (!tokenOwnedByLocalPlayer && controllerStillPresent) {
+      return false;
+    }
+    const patch = {
+      arcadeControllerClientId: localClientId
+    };
+    patchLocalDie(normalizedDieId, patch);
+    queueDiePatch(normalizedDieId, patch);
+    return true;
+  }
+
   function setActiveArcadeDieFocus(dieId = '') {
     const normalizedDieId = String(dieId || '').trim();
     const nextDieId = normalizedDieId && isArcadeDieState(diceById.get(normalizedDieId))
       ? normalizedDieId
       : '';
     if (activeArcadeDieId === nextDieId) {
+      if (nextDieId) {
+        attemptArcadeFocusControlReclaim(nextDieId);
+      }
       return;
     }
     const previousDieId = activeArcadeDieId;
@@ -31902,11 +33517,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
     }
     heldArcadeDirectionKeys.clear();
+    arcadeDirectionRepeatQueuedAtByKey.clear();
     activeArcadeDieId = nextDieId;
     if (previousDieId) {
       renderDieElement(previousDieId);
     }
     if (nextDieId) {
+      attemptArcadeFocusControlReclaim(nextDieId);
       renderDieElement(nextDieId);
     }
   }
@@ -31982,6 +33599,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     };
   }
 
+  function isArcadePlayOwnedByLocalPlayerToken(dieState) {
+    const controllerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+    const localToken = normalizeArcadePlayerToken(localPlayerToken);
+    if (!controllerToken || !localToken) {
+      return false;
+    }
+    return controllerToken === localToken;
+  }
+
   function isArcadePlayControlledByOtherClient(dieState) {
     if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
       return false;
@@ -31990,7 +33616,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!controllerClientId) {
       return false;
     }
-    return !localClientId || controllerClientId !== localClientId;
+    if (localClientId && controllerClientId === localClientId) {
+      return false;
+    }
+    if (isArcadePlayOwnedByLocalPlayerToken(dieState)) {
+      return false;
+    }
+    return true;
   }
 
   function canLocalClientControlArcadePlay(dieState) {
@@ -32039,6 +33671,161 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     return true;
   }
 
+  function stepArcadeGameOverSelection(direction = 1) {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (dieState?.arcadeMgGameOver !== true) {
+      return false;
+    }
+    const optionCount = Math.max(1, ARCADE_MANA_GAME_OVER_OPTION_LABELS.length);
+    const currentIndex = clamp(
+      normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex),
+      0,
+      optionCount - 1
+    );
+    let nextIndex = currentIndex + (direction < 0 ? -1 : 1);
+    if (nextIndex < 0) {
+      nextIndex = optionCount - 1;
+    } else if (nextIndex >= optionCount) {
+      nextIndex = 0;
+    }
+    const patch = {};
+    if (nextIndex !== currentIndex) {
+      patch.arcadeManaMenuIndex = nextIndex;
+    }
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function activateArcadeGameOverSelection() {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (dieState?.arcadeMgGameOver !== true) {
+      return false;
+    }
+    const selectedIndex = clamp(
+      normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex),
+      0,
+      Math.max(0, ARCADE_MANA_GAME_OVER_OPTION_LABELS.length - 1)
+    );
+    const now = Date.now();
+    const patch = {};
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+    if (selectedIndex === ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX) {
+      const spawnTile = getArcadeManaSpawnTile([
+        { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE }
+      ]);
+      patch.arcadeScreen = ARCADE_SCREEN_MANA_PLAY;
+      patch.arcadeControllerClientId = localClientId || String(dieState?.arcadeControllerClientId || '').trim() || '';
+      patch.arcadeControllerPlayerToken =
+        normalizeArcadePlayerToken(localPlayerToken) ||
+        normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+      patch.arcadeControllerName =
+        String(playerState?.name || '').trim().slice(0, 24) ||
+        String(dieState?.arcadeControllerName || '').trim().slice(0, 24);
+      patch.arcadeControllerColor =
+        normalizeHexColor(playerState?.color || '') ||
+        normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59');
+      patch.arcadeMgTileX = ARCADE_MANA_CENTER_TILE;
+      patch.arcadeMgTileY = ARCADE_MANA_CENTER_TILE;
+      patch.arcadeMgTailPath = '';
+      patch.arcadeMgLooseManaPath = '';
+      patch.arcadeMgClearManaPath = '';
+      patch.arcadeMgDemonsPath = '';
+      patch.arcadeMgBombPath = '';
+      patch.arcadeMgBombFxPath = '';
+      patch.arcadeMgPickupPulsePath = '';
+      patch.arcadeMgLastPickupAt = 0;
+      patch.arcadeMgManaPickupCount = 0;
+      patch.arcadeMgHasSpawnedDemon = false;
+      patch.arcadeMgNextDemonSpawnAt = now + ARCADE_MANA_DEMON_INITIAL_SPAWN_DELAY_MS;
+      patch.arcadeMgManaType = getRandomArcadeManaType();
+      patch.arcadeMgManaTileX = spawnTile.x;
+      patch.arcadeMgManaTileY = spawnTile.y;
+      patch.arcadeMgGameOver = false;
+      patch.arcadeMgGameOverAt = 0;
+      patch.arcadeMgGameOverFlip = false;
+      patch.arcadeMgNewHighScore = false;
+      patch.arcadeMgSquareClearScore = 0;
+      patch.arcadeMgComboCount = 0;
+      patch.arcadeMgComboLastScoredAt = 0;
+      patch.arcadeMgPhaseActive = false;
+      patch.arcadeMgPhaseStartedAt = 0;
+      patch.arcadeMgPotionActive = false;
+      patch.arcadeMgPotionStartedAt = 0;
+      patch.arcadeMgClearManaStartedAt = 0;
+      patch.arcadeMgDirX = 0;
+      patch.arcadeMgDirY = 0;
+      patch.arcadeMgQueuedDirX = 0;
+      patch.arcadeMgQueuedDirY = 0;
+      patch.arcadeMgMoveStartedAt = 0;
+      patch.arcadeMgQueuedAt = now;
+      patch.arcadeMgInputQueuePath = '';
+      patch.arcadeManaMenuIndex = ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX;
+    } else {
+      patch.arcadeScreen = ARCADE_SCREEN_MANA_MENU;
+      patch.arcadeControllerClientId = '';
+      patch.arcadeControllerPlayerToken = '';
+      patch.arcadeControllerName = '';
+      patch.arcadeControllerColor = '#ff7a59';
+      patch.arcadeMgTailPath = '';
+      patch.arcadeMgLooseManaPath = '';
+      patch.arcadeMgClearManaPath = '';
+      patch.arcadeMgDemonsPath = '';
+      patch.arcadeMgBombPath = '';
+      patch.arcadeMgBombFxPath = '';
+      patch.arcadeMgPickupPulsePath = '';
+      patch.arcadeMgLastPickupAt = 0;
+      patch.arcadeMgManaPickupCount = 0;
+      patch.arcadeMgHasSpawnedDemon = false;
+      patch.arcadeMgNextDemonSpawnAt = 0;
+      patch.arcadeMgGameOver = false;
+      patch.arcadeMgGameOverAt = 0;
+      patch.arcadeMgGameOverFlip = false;
+      patch.arcadeMgNewHighScore = false;
+      patch.arcadeMgSquareClearScore = 0;
+      patch.arcadeMgComboCount = 0;
+      patch.arcadeMgComboLastScoredAt = 0;
+      patch.arcadeMgPhaseActive = false;
+      patch.arcadeMgPhaseStartedAt = 0;
+      patch.arcadeMgPotionActive = false;
+      patch.arcadeMgPotionStartedAt = 0;
+      patch.arcadeMgClearManaStartedAt = 0;
+      patch.arcadeMgDirX = 0;
+      patch.arcadeMgDirY = 0;
+      patch.arcadeMgQueuedDirX = 0;
+      patch.arcadeMgQueuedDirY = 0;
+      patch.arcadeMgMoveStartedAt = 0;
+      patch.arcadeMgQueuedAt = now;
+      patch.arcadeMgInputQueuePath = '';
+      patch.arcadeManaMenuIndex = ARCADE_MANA_MENU_PLAY_INDEX;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
   function activateArcadeMenuSelection() {
     const activeArcade = getActiveArcadeState();
     if (!activeArcade) {
@@ -32067,6 +33854,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (selectedManaIndex === ARCADE_MANA_MENU_PLAY_INDEX) {
         const now = Date.now();
         const controllerName = String(playerState?.name || '').trim().slice(0, 24) || 'anon';
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.drainer);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.demon);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.mana);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.manaB);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.supermana);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.bomb);
+        getArcadeSpriteImage(MONS_PIECE_ASSET_BY_TYPE.potion);
         const spawnTile = getArcadeManaSpawnTile([
           { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE }
         ]);
@@ -32080,14 +33874,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         patch.arcadeMgTailPath = '';
         patch.arcadeMgLooseManaPath = '';
         patch.arcadeMgClearManaPath = '';
+        patch.arcadeMgDemonsPath = '';
+        patch.arcadeMgBombPath = '';
+        patch.arcadeMgBombFxPath = '';
+        patch.arcadeMgPickupPulsePath = '';
+        patch.arcadeMgLastPickupAt = 0;
+        patch.arcadeMgManaPickupCount = 0;
+        patch.arcadeMgHasSpawnedDemon = false;
+        patch.arcadeMgNextDemonSpawnAt = now + ARCADE_MANA_DEMON_INITIAL_SPAWN_DELAY_MS;
         patch.arcadeMgManaType = getRandomArcadeManaType();
         patch.arcadeMgManaTileX = spawnTile.x;
         patch.arcadeMgManaTileY = spawnTile.y;
         patch.arcadeMgGameOver = false;
         patch.arcadeMgGameOverAt = 0;
+        patch.arcadeMgGameOverFlip = false;
+        patch.arcadeMgNewHighScore = false;
         patch.arcadeMgSquareClearScore = 0;
+        patch.arcadeMgComboCount = 0;
+        patch.arcadeMgComboLastScoredAt = 0;
         patch.arcadeMgPhaseActive = false;
         patch.arcadeMgPhaseStartedAt = 0;
+        patch.arcadeMgPotionActive = false;
+        patch.arcadeMgPotionStartedAt = 0;
         patch.arcadeMgClearManaStartedAt = 0;
         patch.arcadeMgDirX = 0;
         patch.arcadeMgDirY = 0;
@@ -32168,11 +33976,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const currentQueuedDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY);
     const currentMoveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
     const queuedInputTokens = parseArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath);
-    const hasTailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath).length > 0;
-    const isDirectReverseInput = hasTailSegments && isArcadeReverseDirection(direction, currentDirection);
-    if (isDirectReverseInput) {
-      return false;
-    }
+    const tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
+    const hasTailSegments = tailSegments.length > 0;
+    const reverseReferenceDirection = getArcadeEffectiveHeadingForReverseBlock(
+      dieState,
+      currentDirection,
+      tailSegments
+    );
+    const isDirectReverseInput =
+      hasTailSegments &&
+      isArcadeReverseDirection(direction, reverseReferenceDirection);
     const incomingDirectionToken = getArcadeDirectionQueueTokenFromVector(direction);
     if (!incomingDirectionToken) {
       return false;
@@ -32184,20 +33997,27 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
     if (moving) {
       if (currentQueuedDirection.x === 0 && currentQueuedDirection.y === 0) {
-        patch.arcadeMgQueuedDirX = direction.x;
-        patch.arcadeMgQueuedDirY = direction.y;
-        patch.arcadeMgQueuedAt = now;
-      } else if (currentQueuedDirection.x !== direction.x || currentQueuedDirection.y !== direction.y) {
-        const queuedDirectionToken = getArcadeDirectionQueueTokenFromVector(currentQueuedDirection);
-        const lastQueuedToken = queuedInputTokens.length > 0
-          ? queuedInputTokens[queuedInputTokens.length - 1]
-          : queuedDirectionToken;
-        if (queuedInputTokens.length < ARCADE_MANA_INPUT_QUEUE_MAX && incomingDirectionToken !== lastQueuedToken) {
-          queuedInputTokens.push(incomingDirectionToken);
-          patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(queuedInputTokens);
+        if (isDirectReverseInput) {
+          const nextQueuedTokens = queuedInputTokens.slice();
+          if (nextQueuedTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+            nextQueuedTokens.shift();
+          }
+          nextQueuedTokens.push(incomingDirectionToken);
+          patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(nextQueuedTokens);
+        } else {
+          patch.arcadeMgQueuedDirX = direction.x;
+          patch.arcadeMgQueuedDirY = direction.y;
+          patch.arcadeMgQueuedAt = now;
         }
+      } else if (currentQueuedDirection.x !== direction.x || currentQueuedDirection.y !== direction.y) {
+        const nextQueuedTokens = queuedInputTokens.slice();
+        if (nextQueuedTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+          nextQueuedTokens.shift();
+        }
+        nextQueuedTokens.push(incomingDirectionToken);
+        patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(nextQueuedTokens);
       }
-    } else if (canArcadeMoveToTile(currentTileX + direction.x, currentTileY + direction.y)) {
+    } else if (!isDirectReverseInput && canArcadeMoveToTile(currentTileX + direction.x, currentTileY + direction.y)) {
       if (currentDirection.x !== direction.x || currentDirection.y !== direction.y || currentMoveStartedAt <= 0) {
         patch.arcadeMgDirX = direction.x;
         patch.arcadeMgDirY = direction.y;
@@ -32212,12 +34032,93 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
       patch.arcadeMgQueuedAt = now;
     } else {
-      const lastQueuedToken = queuedInputTokens[queuedInputTokens.length - 1] || '';
-      if (queuedInputTokens.length < ARCADE_MANA_INPUT_QUEUE_MAX && incomingDirectionToken !== lastQueuedToken) {
-        queuedInputTokens.push(incomingDirectionToken);
-        patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(queuedInputTokens);
+      const nextQueuedTokens = queuedInputTokens.slice();
+      if (nextQueuedTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+        nextQueuedTokens.shift();
+      }
+      nextQueuedTokens.push(incomingDirectionToken);
+      patch.arcadeMgInputQueuePath = encodeArcadeInputQueuePath(nextQueuedTokens);
+    }
+    if (Object.keys(patch).length === 0) {
+      return false;
+    }
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
+  function reconcileArcadeHeldDirectionAfterKeyRelease(releasedDirectionKey = '') {
+    const activeArcade = getActiveArcadeState();
+    if (!activeArcade) {
+      return false;
+    }
+    const { dieId, dieState } = activeArcade;
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (!canLocalClientControlArcadePlay(dieState)) {
+      return false;
+    }
+    if (dieState?.arcadeMgGameOver === true) {
+      return false;
+    }
+
+    const patch = {};
+    if (localClientId && String(dieState?.arcadeControllerClientId || '').trim() !== localClientId) {
+      patch.arcadeControllerClientId = localClientId;
+    }
+
+    const currentDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY);
+    const currentQueuedDirection = normalizeArcadeDirectionVector(dieState?.arcadeMgQueuedDirX, dieState?.arcadeMgQueuedDirY);
+    const currentMoveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
+    const currentQueuedAt = normalizeArcadeTimestamp(dieState?.arcadeMgQueuedAt);
+    const moving = (currentDirection.x !== 0 || currentDirection.y !== 0) && currentMoveStartedAt > 0;
+    const now = Date.now();
+    const releasedDirection = getArcadeDirectionVectorFromKey(releasedDirectionKey);
+
+    const fallbackKey = getMostRecentHeldArcadeDirectionKey();
+    const fallbackDirection = getArcadeDirectionVectorFromKey(fallbackKey);
+    const hasFallbackDirection = fallbackDirection.x !== 0 || fallbackDirection.y !== 0;
+    const releasedWasQueued = areArcadeDirectionsEqual(currentQueuedDirection, releasedDirection);
+    const tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
+    const reverseReferenceDirection = getArcadeEffectiveHeadingForReverseBlock(
+      dieState,
+      currentDirection,
+      tailSegments
+    );
+    const reverseBlocked =
+      hasFallbackDirection &&
+      tailSegments.length > 0 &&
+      isArcadeReverseDirection(fallbackDirection, reverseReferenceDirection);
+
+    if (hasFallbackDirection && moving) {
+      const hasQueuedDirection = currentQueuedDirection.x !== 0 || currentQueuedDirection.y !== 0;
+      const fallbackMatchesCurrent = areArcadeDirectionsEqual(fallbackDirection, currentDirection);
+      if (releasedWasQueued || !hasQueuedDirection) {
+        if (!reverseBlocked && !fallbackMatchesCurrent) {
+          if (!areArcadeDirectionsEqual(currentQueuedDirection, fallbackDirection)) {
+            patch.arcadeMgQueuedDirX = fallbackDirection.x;
+            patch.arcadeMgQueuedDirY = fallbackDirection.y;
+          }
+          if (currentQueuedAt !== now) {
+            patch.arcadeMgQueuedAt = now;
+          }
+        }
+      }
+    } else if (hasFallbackDirection) {
+      const currentTileX = normalizeArcadeGridCoord(dieState?.arcadeMgTileX);
+      const currentTileY = normalizeArcadeGridCoord(dieState?.arcadeMgTileY);
+      if (
+        !reverseBlocked &&
+        canArcadeMoveToTile(currentTileX + fallbackDirection.x, currentTileY + fallbackDirection.y) &&
+        (!areArcadeDirectionsEqual(currentDirection, fallbackDirection) || currentMoveStartedAt <= 0)
+      ) {
+        patch.arcadeMgDirX = fallbackDirection.x;
+        patch.arcadeMgDirY = fallbackDirection.y;
+        patch.arcadeMgMoveStartedAt = now;
       }
     }
+
     if (Object.keys(patch).length === 0) {
       return false;
     }
@@ -32253,11 +34154,25 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       patch.arcadeMgTailPath = '';
       patch.arcadeMgLooseManaPath = '';
       patch.arcadeMgClearManaPath = '';
+      patch.arcadeMgDemonsPath = '';
+      patch.arcadeMgBombPath = '';
+      patch.arcadeMgBombFxPath = '';
+      patch.arcadeMgPickupPulsePath = '';
+      patch.arcadeMgLastPickupAt = 0;
+      patch.arcadeMgManaPickupCount = 0;
+      patch.arcadeMgHasSpawnedDemon = false;
+      patch.arcadeMgNextDemonSpawnAt = 0;
       patch.arcadeMgGameOver = false;
       patch.arcadeMgGameOverAt = 0;
+      patch.arcadeMgGameOverFlip = false;
+      patch.arcadeMgNewHighScore = false;
       patch.arcadeMgSquareClearScore = 0;
+      patch.arcadeMgComboCount = 0;
+      patch.arcadeMgComboLastScoredAt = 0;
       patch.arcadeMgPhaseActive = false;
       patch.arcadeMgPhaseStartedAt = 0;
+      patch.arcadeMgPotionActive = false;
+      patch.arcadeMgPotionStartedAt = 0;
       patch.arcadeMgClearManaStartedAt = 0;
       patch.arcadeMgDirX = 0;
       patch.arcadeMgDirY = 0;
@@ -32317,14 +34232,32 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     event.preventDefault();
     event.stopPropagation();
     if (actionKey === 'w' || actionKey === 'a' || actionKey === 's' || actionKey === 'd') {
+      const now = Date.now();
       if (!event.repeat || !heldArcadeDirectionKeys.has(actionKey)) {
+        heldArcadeDirectionKeys.delete(actionKey);
         heldArcadeDirectionKeys.add(actionKey);
         syncArcadeStickDirection();
       }
       const screenMode = normalizeArcadeScreen(activeArcade?.dieState?.arcadeScreen);
       if (screenMode === ARCADE_SCREEN_MANA_PLAY) {
+        if (activeArcade?.dieState?.arcadeMgGameOver === true) {
+          if (actionKey === 'w' && !event.repeat) {
+            stepArcadeGameOverSelection(-1);
+          } else if (actionKey === 's' && !event.repeat) {
+            stepArcadeGameOverSelection(1);
+          }
+          return;
+        }
         if (!event.repeat) {
           queueArcadeManaDirectionInput(actionKey);
+          arcadeDirectionRepeatQueuedAtByKey.set(actionKey, now);
+        } else {
+          const lastQueuedAt = Math.max(0, Number(arcadeDirectionRepeatQueuedAtByKey.get(actionKey)) || 0);
+          if (now - lastQueuedAt >= ARCADE_MANA_REPEAT_QUEUE_INTERVAL_MS) {
+            if (queueArcadeManaDirectionInput(actionKey)) {
+              arcadeDirectionRepeatQueuedAtByKey.set(actionKey, now);
+            }
+          }
         }
       } else if (actionKey === 'w' && !event.repeat) {
         stepArcadeMenuSelection(-1);
@@ -32337,7 +34270,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (!event.repeat) {
         const screenMode = normalizeArcadeScreen(activeArcade?.dieState?.arcadeScreen);
         if (screenMode === ARCADE_SCREEN_MANA_PLAY) {
-          triggerArcadeManaPhaseAbility();
+          if (activeArcade?.dieState?.arcadeMgGameOver === true) {
+            activateArcadeGameOverSelection();
+          } else {
+            triggerArcadeManaPhaseAbility();
+          }
         } else {
           activateArcadeMenuSelection();
         }
@@ -32369,7 +34306,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     event.stopPropagation();
     if (actionKey === 'w' || actionKey === 'a' || actionKey === 's' || actionKey === 'd') {
       if (heldArcadeDirectionKeys.delete(actionKey)) {
+        arcadeDirectionRepeatQueuedAtByKey.delete(actionKey);
         syncArcadeStickDirection();
+        reconcileArcadeHeldDirectionAfterKeyRelease(actionKey);
       }
       return;
     }
@@ -32380,6 +34319,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   function releaseArcadeHeldButtons() {
     heldArcadeDirectionKeys.clear();
+    arcadeDirectionRepeatQueuedAtByKey.clear();
     const activeArcade = getActiveArcadeState();
     if (!activeArcade) {
       return;
@@ -32412,25 +34352,40 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
       return false;
     }
-    if (!localClientId) {
+    const tokenOwnedByLocalPlayer = isArcadePlayOwnedByLocalPlayerToken(dieState);
+    if (!localClientId && !tokenOwnedByLocalPlayer) {
       return false;
     }
     const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
-    if (controllerClientId !== localClientId) {
+    const clientOwnedByLocal = Boolean(localClientId) && controllerClientId === localClientId;
+    if (!clientOwnedByLocal && !tokenOwnedByLocalPlayer) {
       return false;
     }
 
     let tailSegments = parseArcadeManaTailPath(dieState?.arcadeMgTailPath);
     let looseManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgLooseManaPath);
     let clearingManaSegments = parseArcadeManaTailPath(dieState?.arcadeMgClearManaPath);
+    let demons = parseArcadeDemonPath(dieState?.arcadeMgDemonsPath);
+    let bombs = parseArcadeBombPath(dieState?.arcadeMgBombPath);
+    let bombEffects = parseArcadeBombFxPath(dieState?.arcadeMgBombFxPath);
+    let pickupPulses = parseArcadePickupPulsePath(dieState?.arcadeMgPickupPulsePath);
+    let lastPickupAt = normalizeArcadeTimestamp(dieState?.arcadeMgLastPickupAt);
+    let manaPickupCount = normalizeArcadeManaPickupCount(dieState?.arcadeMgManaPickupCount);
+    let hasSpawnedDemon = dieState?.arcadeMgHasSpawnedDemon === true;
+    let nextDemonSpawnAt = normalizeArcadeTimestamp(dieState?.arcadeMgNextDemonSpawnAt);
     let manaType = normalizeArcadeManaType(dieState?.arcadeMgManaType);
     let manaTileX = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileX);
     let manaTileY = normalizeArcadeGridCoord(dieState?.arcadeMgManaTileY);
     let gameOver = dieState?.arcadeMgGameOver === true;
     let gameOverAt = normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt);
+    let gameOverFlip = dieState?.arcadeMgGameOverFlip === true;
     let squareClearScore = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+    let comboCount = Math.max(0, Math.round(Number(dieState?.arcadeMgComboCount) || 0));
+    let comboLastScoredAt = normalizeArcadeTimestamp(dieState?.arcadeMgComboLastScoredAt);
     let phaseActive = dieState?.arcadeMgPhaseActive === true;
     let phaseStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt);
+    let potionActive = dieState?.arcadeMgPotionActive === true;
+    let potionStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgPotionStartedAt);
     let clearManaStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgClearManaStartedAt);
     let changed = false;
     const phaseElapsedMs = phaseStartedAt > 0 ? Math.max(0, now - phaseStartedAt) : Infinity;
@@ -32455,6 +34410,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       changed = true;
       phaseInvulnerable = false;
     }
+    if (potionActive) {
+      if (potionStartedAt <= 0) {
+        potionStartedAt = now;
+        changed = true;
+      } else if (now - potionStartedAt >= ARCADE_MANA_POTION_DURATION_MS) {
+        potionActive = false;
+        potionStartedAt = 0;
+        changed = true;
+      }
+    } else if (potionStartedAt !== 0) {
+      potionStartedAt = 0;
+      changed = true;
+    }
+    const isPowerInvulnerable = () => phaseInvulnerable || potionActive;
 
     if (clearingManaSegments.length > 0) {
       if (clearManaStartedAt <= 0) {
@@ -32474,45 +34443,24 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (gameOverAt <= 0) {
         gameOverAt = now;
       }
-      if (now - gameOverAt >= ARCADE_MANA_GAME_OVER_DELAY_MS) {
-        const resetSpawnTile = getArcadeManaSpawnTile([
-          { x: ARCADE_MANA_CENTER_TILE, y: ARCADE_MANA_CENTER_TILE }
-        ]);
-        const resetPatch = {
-          arcadeScreen: ARCADE_SCREEN_MANA_MENU,
-          arcadeControllerClientId: '',
-          arcadeControllerPlayerToken: '',
-          arcadeControllerName: '',
-          arcadeControllerColor: '#ff7a59',
-          arcadeMgTileX: ARCADE_MANA_CENTER_TILE,
-          arcadeMgTileY: ARCADE_MANA_CENTER_TILE,
-          arcadeMgTailPath: '',
-          arcadeMgLooseManaPath: '',
-          arcadeMgClearManaPath: '',
-          arcadeMgManaType: getRandomArcadeManaType(),
-          arcadeMgManaTileX: resetSpawnTile.x,
-          arcadeMgManaTileY: resetSpawnTile.y,
-          arcadeMgGameOver: false,
-          arcadeMgGameOverAt: 0,
-          arcadeMgSquareClearScore: 0,
-          arcadeMgPhaseActive: false,
-          arcadeMgPhaseStartedAt: 0,
-          arcadeMgClearManaStartedAt: 0,
-          arcadeMgDirX: 0,
-          arcadeMgDirY: 0,
-          arcadeMgQueuedDirX: 0,
-          arcadeMgQueuedDirY: 0,
-          arcadeMgMoveStartedAt: 0,
-          arcadeMgQueuedAt: now,
-          arcadeMgInputQueuePath: ''
-        };
-        patchLocalDie(dieId, resetPatch);
-        queueDiePatch(dieId, resetPatch);
-        return true;
-      }
       const holdPatch = {};
       if (gameOverAt !== normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt)) {
         holdPatch.arcadeMgGameOverAt = gameOverAt;
+      }
+      if (gameOverFlip !== (dieState?.arcadeMgGameOverFlip === true)) {
+        holdPatch.arcadeMgGameOverFlip = gameOverFlip;
+      }
+      if (newHighScore !== (dieState?.arcadeMgNewHighScore === true)) {
+        holdPatch.arcadeMgNewHighScore = newHighScore;
+      }
+      if (gameOverMenuIndex !== normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex)) {
+        holdPatch.arcadeManaMenuIndex = gameOverMenuIndex;
+      }
+      if (comboCount !== Math.max(0, Math.round(Number(dieState?.arcadeMgComboCount) || 0))) {
+        holdPatch.arcadeMgComboCount = comboCount;
+      }
+      if (comboLastScoredAt !== normalizeArcadeTimestamp(dieState?.arcadeMgComboLastScoredAt)) {
+        holdPatch.arcadeMgComboLastScoredAt = comboLastScoredAt;
       }
       if (normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).x !== 0 ||
           normalizeArcadeDirectionVector(dieState?.arcadeMgDirX, dieState?.arcadeMgDirY).y !== 0) {
@@ -32534,6 +34482,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         holdPatch.arcadeMgPhaseActive = false;
         holdPatch.arcadeMgPhaseStartedAt = 0;
       }
+      if (dieState?.arcadeMgPotionActive === true || normalizeArcadeTimestamp(dieState?.arcadeMgPotionStartedAt) !== 0) {
+        holdPatch.arcadeMgPotionActive = false;
+        holdPatch.arcadeMgPotionStartedAt = 0;
+      }
       if (Object.keys(holdPatch).length > 0) {
         patchLocalDie(dieId, holdPatch);
         queueDiePatch(dieId, holdPatch);
@@ -32549,6 +34501,829 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     let moveStartedAt = normalizeArcadeTimestamp(dieState?.arcadeMgMoveStartedAt);
     let queuedAt = normalizeArcadeTimestamp(dieState?.arcadeMgQueuedAt);
     let inputQueueTokens = parseArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath);
+    let gameOverMenuIndex = normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex);
+    let newHighScore = dieState?.arcadeMgNewHighScore === true;
+    let scoreRecorded = false;
+
+    const recordArcadeScoreIfNeeded = () => {
+      if (scoreRecorded || squareClearScore <= 0) {
+        return;
+      }
+      const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+      if (!controllerPlayerToken) {
+        return;
+      }
+      scoreRecorded = true;
+      void recordArcadeBestScoreForPlayer(
+        controllerPlayerToken,
+        String(dieState?.arcadeControllerName || '').trim().slice(0, 24),
+        normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59'),
+        squareClearScore
+      );
+    };
+
+    const triggerArcadeManaGameOver = (flipPlayer = false) => {
+      if (gameOver) {
+        return;
+      }
+      const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
+      const controllerName = String(dieState?.arcadeControllerName || '').trim().slice(0, 24);
+      const personalBestBeforeRun =
+        controllerPlayerToken && controllerName
+          ? getArcadeBestScoreForPlayerToken(controllerPlayerToken)
+          : 0;
+      const runScore = Math.max(0, Math.round(Number(squareClearScore) || 0));
+      gameOver = true;
+      gameOverAt = now;
+      gameOverFlip = flipPlayer === true;
+      const hasNewHighScore = Boolean(controllerPlayerToken) && Boolean(controllerName) && runScore > personalBestBeforeRun;
+      moveDirection = { x: 0, y: 0 };
+      queuedDirection = { x: 0, y: 0 };
+      moveStartedAt = 0;
+      queuedAt = now;
+      gameOverMenuIndex = ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX;
+      newHighScore = hasNewHighScore;
+      changed = true;
+      recordArcadeScoreIfNeeded();
+    };
+
+    const getArcadeComboBonus = (nextComboCount) => {
+      const normalizedCombo = Math.max(1, Math.round(Number(nextComboCount) || 1));
+      if (normalizedCombo < 2) {
+        return 0;
+      }
+      const tableIndex = normalizedCombo - 1;
+      if (tableIndex < ARCADE_MANA_COMBO_BONUS_TABLE.length) {
+        return ARCADE_MANA_COMBO_BONUS_TABLE[tableIndex] || 0;
+      }
+      return ARCADE_MANA_COMBO_POST_CAP_BONUS;
+    };
+
+    const awardArcadeScore = (basePoints, timestamp = now) => {
+      const base = Math.max(0, Math.round(Number(basePoints) || 0));
+      if (base <= 0) {
+        return 0;
+      }
+      const scoredAt = Math.max(0, Math.floor(Number(timestamp) || now));
+      const withinWindow =
+        comboLastScoredAt > 0 &&
+        scoredAt - comboLastScoredAt <= ARCADE_MANA_COMBO_WINDOW_MS;
+      comboCount = withinWindow ? comboCount + 1 : 1;
+      comboLastScoredAt = scoredAt;
+      const comboBonus = getArcadeComboBonus(comboCount);
+      const awarded = base + comboBonus;
+      squareClearScore += awarded;
+      changed = true;
+      return awarded;
+    };
+
+    const spawnArcadeBombExplosionAt = (x, y, timestamp = now) => {
+      const normalizedX = normalizeArcadeGridCoord(x);
+      const normalizedY = normalizeArcadeGridCoord(y);
+      const startedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+      const seed = clamp(Math.floor(Math.random() * 0x7fffffff), 1, 0x7fffffff);
+      bombEffects.push({
+        x: normalizedX,
+        y: normalizedY,
+        startedAt,
+        seed
+      });
+      if (bombEffects.length > ARCADE_MANA_BOMB_FX_MAX) {
+        bombEffects = bombEffects.slice(-ARCADE_MANA_BOMB_FX_MAX);
+      }
+      changed = true;
+    };
+
+    const spawnArcadePickupPulseAt = (x, y, timestamp = now) => {
+      const normalizedX = normalizeArcadeGridCoord(x);
+      const normalizedY = normalizeArcadeGridCoord(y);
+      const startedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+      pickupPulses.push({
+        x: normalizedX,
+        y: normalizedY,
+        startedAt
+      });
+      if (pickupPulses.length > ARCADE_MANA_PICKUP_PULSE_MAX) {
+        pickupPulses = pickupPulses.slice(-ARCADE_MANA_PICKUP_PULSE_MAX);
+      }
+      changed = true;
+    };
+
+    const getArcadeBombSpawnBlockedTiles = () => {
+      const blocked = [
+        { x: tileX, y: tileY },
+        { x: manaTileX, y: manaTileY },
+        ...tailSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...looseManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...clearingManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...demons.map((demon) => ({ x: demon.x, y: demon.y })),
+        ...bombs.map((bomb) => ({ x: bomb.x, y: bomb.y }))
+      ];
+      return blocked;
+    };
+
+    const isArcadeManaHardMode = () => squareClearScore >= 50;
+
+    const getArcadeBombSpawnPickupInterval = () => (
+      isArcadeManaHardMode()
+        ? ARCADE_MANA_BOMB_SPAWN_PICKUP_INTERVAL_HARD
+        : ARCADE_MANA_BOMB_SPAWN_PICKUP_INTERVAL
+    );
+
+    const getArcadeDemonRespawnDelayMs = (hasAnyDemons) => (
+      isArcadeManaHardMode()
+        ? (hasAnyDemons ? ARCADE_MANA_DEMON_SPAWN_INTERVAL_MS_HARD : ARCADE_MANA_DEMON_EMPTY_RESPAWN_DELAY_MS_HARD)
+        : (hasAnyDemons ? ARCADE_MANA_DEMON_SPAWN_INTERVAL_MS : ARCADE_MANA_DEMON_EMPTY_RESPAWN_DELAY_MS)
+    );
+
+    const spawnArcadeBombs = (count = 1, extraExcludedTiles = []) => {
+      let requested = Math.max(0, Math.floor(Number(count) || 0));
+      if (requested <= 0) {
+        return 0;
+      }
+      let spawned = 0;
+      while (requested > 0 && bombs.length < ARCADE_MANA_BOMB_MAX) {
+        const blockedTiles = getArcadeBombSpawnBlockedTiles();
+        if (Array.isArray(extraExcludedTiles) && extraExcludedTiles.length > 0) {
+          blockedTiles.push(
+            ...extraExcludedTiles.map((tile) => ({
+              x: normalizeArcadeGridCoord(tile?.x),
+              y: normalizeArcadeGridCoord(tile?.y)
+            }))
+          );
+        }
+        const spawnTile = getArcadeBombSpawnTile(blockedTiles);
+        if (!spawnTile) {
+          break;
+        }
+        bombs.push({
+          x: spawnTile.x,
+          y: spawnTile.y,
+          state: ARCADE_MANA_BOMB_STATE_SPAWN,
+          stateStartedAt: now,
+          kind: ARCADE_BOMB_KIND_BOMB
+        });
+        spawned += 1;
+        requested -= 1;
+      }
+      if (spawned > 0) {
+        changed = true;
+      }
+      return spawned;
+    };
+
+    const handleArcadeBombSpawnProgression = (previousPickupCount, nextPickupCount, extraExcludedTiles = []) => {
+      const previousCount = normalizeArcadeManaPickupCount(previousPickupCount);
+      const nextCount = normalizeArcadeManaPickupCount(nextPickupCount);
+      if (nextCount <= previousCount) {
+        return 0;
+      }
+      const pickupInterval = Math.max(1, getArcadeBombSpawnPickupInterval());
+      const previousThreshold = Math.floor(previousCount / pickupInterval);
+      const nextThreshold = Math.floor(nextCount / pickupInterval);
+      const spawnCount = Math.max(0, nextThreshold - previousThreshold);
+      if (spawnCount <= 0) {
+        return 0;
+      }
+      return spawnArcadeBombs(spawnCount, extraExcludedTiles);
+    };
+
+    const applyArcadeBombCollisionAtTile = (targetX, targetY, timestamp = now) => {
+      const tileKey = getArcadeTileKey(targetX, targetY);
+      let collided = false;
+      for (let index = bombs.length - 1; index >= 0; index -= 1) {
+        const bomb = bombs[index];
+        const bombState = normalizeArcadeBombState(bomb?.state);
+        const bombKind = normalizeArcadeBombKind(bomb?.kind);
+        if (bombState === ARCADE_MANA_BOMB_STATE_SPINNING) {
+          continue;
+        }
+        if (getArcadeTileKey(bomb?.x, bomb?.y) !== tileKey) {
+          continue;
+        }
+        collided = true;
+        if (bombKind === ARCADE_BOMB_KIND_POTION) {
+          if (bombState !== ARCADE_MANA_BOMB_STATE_IDLE && !potionActive) {
+            continue;
+          }
+          bombs.splice(index, 1);
+          potionActive = true;
+          potionStartedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+          changed = true;
+          continue;
+        }
+        if (potionActive) {
+          bombs.splice(index, 1);
+          awardArcadeScore(ARCADE_MANA_BOMB_SPIN_SCORE_BONUS, timestamp);
+          continue;
+        }
+        if (phaseInvulnerable) {
+          bomb.state = ARCADE_MANA_BOMB_STATE_SPINNING;
+          bomb.stateStartedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+          awardArcadeScore(ARCADE_MANA_BOMB_SPIN_SCORE_BONUS, timestamp);
+          continue;
+        }
+        if (bombState !== ARCADE_MANA_BOMB_STATE_IDLE) {
+          continue;
+        }
+        spawnArcadeBombExplosionAt(bomb.x, bomb.y, timestamp);
+        bombs.splice(index, 1);
+        triggerArcadeManaGameOver(true);
+        break;
+      }
+      return collided;
+    };
+
+    const getCurrentArcadeStepDurationMs = () => (
+      phaseActive ? ARCADE_MANA_STEP_MS_PHASE : ARCADE_MANA_STEP_MS_NORMAL
+    );
+
+    const getArcadePlayerTilePositionAt = (timestamp = now) => {
+      if ((moveDirection.x === 0 && moveDirection.y === 0) || moveStartedAt <= 0) {
+        return {
+          x: tileX,
+          y: tileY
+        };
+      }
+      const sampleTimestamp = Math.max(0, Number(timestamp) || now);
+      const stepDurationMs = Math.max(1, getCurrentArcadeStepDurationMs());
+      const progress = clamp(
+        (sampleTimestamp - moveStartedAt) / stepDurationMs,
+        0,
+        1
+      );
+      return {
+        x: tileX + moveDirection.x * progress,
+        y: tileY + moveDirection.y * progress
+      };
+    };
+
+    const getArcadePlayerCollisionTileKeys = (timestamp = now) => {
+      const keys = new Set();
+      const currentTileKey = getArcadeTileKey(tileX, tileY);
+      keys.add(currentTileKey);
+      return keys;
+    };
+
+    const isPlayerInsideStandingDemonHitbox = (rawDemon, timestamp = now) => {
+      const playerPosition = getArcadePlayerTilePositionAt(timestamp);
+      const demonTileX = normalizeArcadeGridCoord(rawDemon?.x);
+      const demonTileY = normalizeArcadeGridCoord(rawDemon?.y);
+      const playerTileKeys = getArcadePlayerCollisionTileKeys(timestamp);
+      const playerTileXy = getArcadeTileKey(demonTileX, demonTileY);
+      if (!playerTileKeys.has(playerTileXy)) {
+        return false;
+      }
+      const deltaX = playerPosition.x - demonTileX;
+      const deltaY = playerPosition.y - demonTileY;
+      return (
+        deltaX * deltaX + deltaY * deltaY <=
+        ARCADE_MANA_DEMON_STANDING_HITBOX_RADIUS_TILES *
+          ARCADE_MANA_DEMON_STANDING_HITBOX_RADIUS_TILES
+      );
+    };
+
+    const isPlayerInsideDemonDashHitbox = (rawDemon, timestamp = now) => {
+      const playerPosition = getArcadePlayerTilePositionAt(timestamp);
+      const fromX = normalizeArcadeGridCoord(
+        Number.isFinite(Number(rawDemon?.dashFromX)) ? rawDemon.dashFromX : rawDemon?.x
+      );
+      const fromY = normalizeArcadeGridCoord(
+        Number.isFinite(Number(rawDemon?.dashFromY)) ? rawDemon.dashFromY : rawDemon?.y
+      );
+      const toX = normalizeArcadeGridCoord(
+        Number.isFinite(Number(rawDemon?.dashToX)) ? rawDemon.dashToX : rawDemon?.x
+      );
+      const toY = normalizeArcadeGridCoord(
+        Number.isFinite(Number(rawDemon?.dashToY)) ? rawDemon.dashToY : rawDemon?.y
+      );
+      const startedAt = normalizeArcadeTimestamp(rawDemon?.stateStartedAt);
+      const elapsed = Math.max(0, Math.floor(Number(timestamp) || now) - startedAt);
+      const progress = clamp(elapsed / Math.max(1, ARCADE_MANA_DEMON_DASH_MS), 0, 1);
+      // Leave the origin tile immediately and avoid "from-behind" premature kills.
+      if (progress <= 0.08) {
+        return false;
+      }
+      const dashX = fromX + (toX - fromX) * progress;
+      const dashY = fromY + (toY - fromY) * progress;
+      const playerTileKeys = getArcadePlayerCollisionTileKeys(timestamp);
+      const dashTileX = normalizeArcadeGridCoord(Math.round(dashX));
+      const dashTileY = normalizeArcadeGridCoord(Math.round(dashY));
+      if (dashTileX === fromX && dashTileY === fromY) {
+        return false;
+      }
+      if (!playerTileKeys.has(getArcadeTileKey(dashTileX, dashTileY))) {
+        return false;
+      }
+      const deltaX = playerPosition.x - dashX;
+      const deltaY = playerPosition.y - dashY;
+      return (
+        deltaX * deltaX + deltaY * deltaY <=
+        ARCADE_MANA_DEMON_DASH_HITBOX_RADIUS_TILES *
+          ARCADE_MANA_DEMON_DASH_HITBOX_RADIUS_TILES
+      );
+    };
+
+    const applyPhaseSpinToOverlappedDemons = (timestamp = now) => {
+      if (!phaseInvulnerable) {
+        return false;
+      }
+      const playerTileKeys = getArcadePlayerCollisionTileKeys(timestamp);
+      let spunAny = false;
+      let spunCount = 0;
+      for (const demon of demons) {
+        const demonState = normalizeArcadeDemonState(demon?.state);
+        if (demonState === ARCADE_MANA_DEMON_STATE_DYING || demonState === ARCADE_MANA_DEMON_STATE_SPINNING) {
+          continue;
+        }
+        let overlapped = false;
+        if (demonState === ARCADE_MANA_DEMON_STATE_DASH) {
+          const dashTiles = getArcadeDemonDashTiles(demon);
+          overlapped = dashTiles.some((tile) => playerTileKeys.has(getArcadeTileKey(tile.x, tile.y)));
+        } else {
+          overlapped = playerTileKeys.has(getArcadeTileKey(demon.x, demon.y));
+        }
+        if (!overlapped) {
+          continue;
+        }
+        const snappedTileX = normalizeArcadeGridCoord(demon.x);
+        const snappedTileY = normalizeArcadeGridCoord(demon.y);
+        demon.x = snappedTileX;
+        demon.y = snappedTileY;
+        demon.state = ARCADE_MANA_DEMON_STATE_SPINNING;
+        demon.stateStartedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+        demon.dirX = 0;
+        demon.dirY = 0;
+        demon.dashFromX = snappedTileX;
+        demon.dashFromY = snappedTileY;
+        demon.dashToX = snappedTileX;
+        demon.dashToY = snappedTileY;
+        spunAny = true;
+        spunCount += 1;
+      }
+      if (spunCount > 0) {
+        awardArcadeScore(spunCount * ARCADE_MANA_DEMON_SPIN_SCORE_BONUS, timestamp);
+      }
+      if (spunAny) {
+        changed = true;
+      }
+      return spunAny;
+    };
+
+    const isPlayerCollidingWithActiveDemon = (timestamp = now) => {
+      for (const rawDemon of demons) {
+        const demonState = normalizeArcadeDemonState(rawDemon?.state);
+        if (!isArcadeDemonActiveState(demonState)) {
+          continue;
+        }
+        if (demonState === ARCADE_MANA_DEMON_STATE_DASH) {
+          if (isPlayerInsideDemonDashHitbox(rawDemon, timestamp)) {
+            return true;
+          }
+          continue;
+        }
+        if (isPlayerInsideStandingDemonHitbox(rawDemon, timestamp)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const applyPotionDemonCollisions = (timestamp = now) => {
+      if (!potionActive) {
+        return false;
+      }
+      let killedAny = false;
+      let killedCount = 0;
+      for (const demon of demons) {
+        const demonState = normalizeArcadeDemonState(demon?.state);
+        if (demonState === ARCADE_MANA_DEMON_STATE_DYING) {
+          continue;
+        }
+        const colliding = demonState === ARCADE_MANA_DEMON_STATE_DASH
+          ? isPlayerInsideDemonDashHitbox(demon, timestamp)
+          : isPlayerInsideStandingDemonHitbox(demon, timestamp);
+        if (!colliding) {
+          continue;
+        }
+        const demonTileX = normalizeArcadeGridCoord(demon.x);
+        const demonTileY = normalizeArcadeGridCoord(demon.y);
+        demon.state = ARCADE_MANA_DEMON_STATE_DYING;
+        demon.stateStartedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+        demon.dirX = 0;
+        demon.dirY = 0;
+        demon.dashFromX = demonTileX;
+        demon.dashFromY = demonTileY;
+        demon.dashToX = demonTileX;
+        demon.dashToY = demonTileY;
+        killedCount += 1;
+        killedAny = true;
+      }
+      if (killedCount > 0) {
+        awardArcadeScore(killedCount * ARCADE_MANA_POTION_DEMON_SCORE_BONUS, timestamp);
+      }
+      return killedAny;
+    };
+
+    const injectHeldDirectionIntent = (timestamp = now) => {
+      if (String(activeArcadeDieId || '').trim() !== String(dieId || '').trim()) {
+        return false;
+      }
+      const heldKey = getMostRecentHeldArcadeDirectionKey();
+      const heldDirection = getArcadeDirectionVectorFromKey(heldKey);
+      if (heldDirection.x === 0 && heldDirection.y === 0) {
+        return false;
+      }
+      const heldToken = getArcadeDirectionQueueTokenFromVector(heldDirection);
+      if (!heldToken) {
+        return false;
+      }
+      const hasTailSegments = tailSegments.length > 0;
+      const reverseReferenceDirection = getArcadeEffectiveHeadingForReverseBlock(
+        { arcadeMgTileX: tileX, arcadeMgTileY: tileY },
+        moveDirection,
+        tailSegments
+      );
+      const reverseBlocked =
+        hasTailSegments &&
+        isArcadeReverseDirection(heldDirection, reverseReferenceDirection);
+      const movingNow = (moveDirection.x !== 0 || moveDirection.y !== 0) && moveStartedAt > 0;
+
+      if (movingNow) {
+        if (queuedDirection.x === 0 && queuedDirection.y === 0) {
+          if (reverseBlocked) {
+            const lastToken = inputQueueTokens[inputQueueTokens.length - 1] || '';
+            if (lastToken !== heldToken) {
+              if (inputQueueTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+                inputQueueTokens.shift();
+              }
+              inputQueueTokens.push(heldToken);
+              changed = true;
+            }
+            return false;
+          }
+          queuedDirection = { x: heldDirection.x, y: heldDirection.y };
+          queuedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+          changed = true;
+          return true;
+        }
+        if (!areArcadeDirectionsEqual(queuedDirection, heldDirection)) {
+          const lastToken = inputQueueTokens[inputQueueTokens.length - 1] || '';
+          if (lastToken !== heldToken) {
+            if (inputQueueTokens.length >= ARCADE_MANA_INPUT_QUEUE_MAX) {
+              inputQueueTokens.shift();
+            }
+            inputQueueTokens.push(heldToken);
+            changed = true;
+          }
+        }
+        return false;
+      }
+
+      if (reverseBlocked) {
+        return false;
+      }
+      if (!canArcadeMoveToTile(tileX + heldDirection.x, tileY + heldDirection.y)) {
+        return false;
+      }
+      if (areArcadeDirectionsEqual(moveDirection, heldDirection) && moveStartedAt > 0) {
+        return false;
+      }
+      moveDirection = { x: heldDirection.x, y: heldDirection.y };
+      moveStartedAt = Math.max(0, Math.floor(Number(timestamp) || now));
+      changed = true;
+      return true;
+    };
+
+    if (nextDemonSpawnAt <= 0) {
+      nextDemonSpawnAt = now + ARCADE_MANA_DEMON_INITIAL_SPAWN_DELAY_MS;
+      changed = true;
+    }
+    if (demons.length > ARCADE_MANA_DEMON_MAX) {
+      demons = demons.slice(0, ARCADE_MANA_DEMON_MAX);
+      changed = true;
+    }
+    if (!hasSpawnedDemon && demons.length > 0) {
+      hasSpawnedDemon = true;
+      changed = true;
+    }
+    if (!gameOver && hasSpawnedDemon && demons.length === 0) {
+      const fallbackSpawnAt = now + getArcadeDemonRespawnDelayMs(false);
+      if (nextDemonSpawnAt <= 0 || nextDemonSpawnAt > fallbackSpawnAt) {
+        nextDemonSpawnAt = fallbackSpawnAt;
+        changed = true;
+      }
+    }
+    if (!gameOver && nextDemonSpawnAt > 0 && now >= nextDemonSpawnAt && demons.length < ARCADE_MANA_DEMON_MAX) {
+      const blockedTiles = [
+        { x: tileX, y: tileY },
+        { x: manaTileX, y: manaTileY },
+        ...tailSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...looseManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...clearingManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+        ...demons.map((demon) => ({ x: demon.x, y: demon.y })),
+        ...bombs.map((bomb) => ({ x: bomb.x, y: bomb.y }))
+      ];
+      const blockedKeySet = new Set(blockedTiles.map((tile) => getArcadeTileKey(tile.x, tile.y)));
+      if (blockedKeySet.size < ARCADE_MANA_GRID_SIZE * ARCADE_MANA_GRID_SIZE) {
+        const spawnTile = getArcadeDemonSpawnTile(blockedTiles);
+        if (spawnTile) {
+          demons.push({
+            x: spawnTile.x,
+            y: spawnTile.y,
+            state: ARCADE_MANA_DEMON_STATE_SPAWN,
+            stateStartedAt: now,
+            dirX: 0,
+            dirY: 0,
+            dashFromX: spawnTile.x,
+            dashFromY: spawnTile.y,
+            dashToX: spawnTile.x,
+            dashToY: spawnTile.y
+          });
+          if (!hasSpawnedDemon) {
+            hasSpawnedDemon = true;
+          }
+          changed = true;
+        }
+      }
+      nextDemonSpawnAt = now + getArcadeDemonRespawnDelayMs(true);
+      changed = true;
+    }
+
+    if (!gameOver && demons.length > 0) {
+      for (const demon of demons) {
+        if (gameOver) {
+          break;
+        }
+        demon.x = normalizeArcadeGridCoord(demon.x);
+        demon.y = normalizeArcadeGridCoord(demon.y);
+        demon.state = normalizeArcadeDemonState(demon.state);
+        demon.stateStartedAt = normalizeArcadeTimestamp(demon.stateStartedAt);
+        const normalizedDirection = normalizeArcadeDirectionVector(demon.dirX, demon.dirY);
+        demon.dirX = normalizedDirection.x;
+        demon.dirY = normalizedDirection.y;
+        demon.dashFromX = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashFromX)) ? demon.dashFromX : demon.x
+        );
+        demon.dashFromY = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashFromY)) ? demon.dashFromY : demon.y
+        );
+        demon.dashToX = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashToX)) ? demon.dashToX : demon.x
+        );
+        demon.dashToY = normalizeArcadeGridCoord(
+          Number.isFinite(Number(demon.dashToY)) ? demon.dashToY : demon.y
+        );
+
+        if (demon.stateStartedAt <= 0) {
+          demon.stateStartedAt = now;
+          changed = true;
+        }
+        const elapsed = Math.max(0, now - demon.stateStartedAt);
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_DYING) {
+          continue;
+        }
+        if (demon.state === ARCADE_MANA_DEMON_STATE_SPINNING) {
+          if (elapsed >= ARCADE_MANA_DEMON_SPINNED_MS) {
+            demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+            demon.stateStartedAt = now;
+            demon.dirX = 0;
+            demon.dirY = 0;
+            demon.dashFromX = demon.x;
+            demon.dashFromY = demon.y;
+            demon.dashToX = demon.x;
+            demon.dashToY = demon.y;
+            changed = true;
+          }
+          continue;
+        }
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_SPAWN) {
+          if (elapsed >= ARCADE_MANA_DEMON_SPAWN_GROW_MS) {
+            demon.state = ARCADE_MANA_DEMON_STATE_ARMING;
+            demon.stateStartedAt = now;
+            changed = true;
+          }
+          continue;
+        }
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_ARMING) {
+          if (elapsed >= ARCADE_MANA_DEMON_SPAWN_ARM_MS) {
+            demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+            demon.stateStartedAt = now;
+            demon.dirX = 0;
+            demon.dirY = 0;
+            changed = true;
+          }
+          continue;
+        }
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_IDLE) {
+          if (elapsed >= ARCADE_MANA_DEMON_IDLE_MS) {
+            const occupiedByOtherDemons = new Set();
+            const selfDemonRef = demon;
+            for (const otherDemon of demons) {
+              if (!otherDemon || otherDemon === selfDemonRef) {
+                continue;
+              }
+              const otherState = normalizeArcadeDemonState(otherDemon.state);
+              if (otherState === ARCADE_MANA_DEMON_STATE_DYING) {
+                continue;
+              }
+              occupiedByOtherDemons.add(getArcadeTileKey(otherDemon.x, otherDemon.y));
+            }
+            const attackDirection = getArcadeDemonAttackDirectionFromTile(demon.x, demon.y, occupiedByOtherDemons);
+            if (attackDirection.x === 0 && attackDirection.y === 0) {
+              demon.stateStartedAt = now;
+            } else {
+              demon.state = ARCADE_MANA_DEMON_STATE_WINDUP;
+              demon.stateStartedAt = now;
+              demon.dirX = attackDirection.x;
+              demon.dirY = attackDirection.y;
+            }
+            changed = true;
+          }
+          continue;
+        }
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_WINDUP) {
+          if (elapsed >= ARCADE_MANA_DEMON_WINDUP_MS) {
+            const attackDirection = normalizeArcadeDirectionVector(demon.dirX, demon.dirY);
+            if (attackDirection.x === 0 && attackDirection.y === 0) {
+              demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+              demon.stateStartedAt = now;
+              changed = true;
+              continue;
+            }
+            const windupTarget = getArcadeDemonDashTargetTile({
+              x: demon.x,
+              y: demon.y,
+              dirX: attackDirection.x,
+              dirY: attackDirection.y
+            });
+            const windupTargetKey = getArcadeTileKey(windupTarget.x, windupTarget.y);
+            const targetOccupiedByOtherDemon = demons.some((otherDemon) => {
+              if (!otherDemon || otherDemon === demon) {
+                return false;
+              }
+              const otherState = normalizeArcadeDemonState(otherDemon.state);
+              if (otherState === ARCADE_MANA_DEMON_STATE_DYING) {
+                return false;
+              }
+              return getArcadeTileKey(otherDemon.x, otherDemon.y) === windupTargetKey;
+            });
+            if (targetOccupiedByOtherDemon) {
+              demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+              demon.stateStartedAt = now;
+              demon.dirX = 0;
+              demon.dirY = 0;
+              changed = true;
+              continue;
+            }
+            let currentX = demon.x;
+            let currentY = demon.y;
+            let moved = false;
+            for (let step = 0; step < 2; step += 1) {
+              const nextX = currentX + attackDirection.x;
+              const nextY = currentY + attackDirection.y;
+              if (!canArcadeMoveToTile(nextX, nextY)) {
+                break;
+              }
+              currentX = nextX;
+              currentY = nextY;
+              moved = true;
+              const hitTailIndex = tailSegments.findIndex((segment) => segment.x === nextX && segment.y === nextY);
+              if (hitTailIndex >= 0 && hitTailIndex < tailSegments.length - 1) {
+                const droppedSegments = tailSegments.splice(hitTailIndex + 1);
+                looseManaSegments.push(
+                  ...droppedSegments.map((segment) => ({
+                    x: normalizeArcadeGridCoord(segment.x),
+                    y: normalizeArcadeGridCoord(segment.y),
+                    type: normalizeArcadeManaType(segment.type)
+                  }))
+                );
+                changed = true;
+              }
+            }
+            if (moved) {
+              demon.dashFromX = demon.x;
+              demon.dashFromY = demon.y;
+              demon.dashToX = currentX;
+              demon.dashToY = currentY;
+              demon.x = currentX;
+              demon.y = currentY;
+              demon.state = ARCADE_MANA_DEMON_STATE_DASH;
+              demon.stateStartedAt = now;
+            } else {
+              demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+              demon.stateStartedAt = now;
+              demon.dirX = 0;
+              demon.dirY = 0;
+            }
+            changed = true;
+          }
+          continue;
+        }
+
+        if (demon.state === ARCADE_MANA_DEMON_STATE_DASH) {
+          if (elapsed >= ARCADE_MANA_DEMON_DASH_MS) {
+            demon.state = ARCADE_MANA_DEMON_STATE_IDLE;
+            demon.stateStartedAt = now;
+            demon.dirX = 0;
+            demon.dirY = 0;
+            demon.dashFromX = demon.x;
+            demon.dashFromY = demon.y;
+            demon.dashToX = demon.x;
+            demon.dashToY = demon.y;
+            changed = true;
+          }
+        }
+      }
+      const demonCountBeforeCull = demons.length;
+      demons = demons.filter((demon) => {
+        const demonState = normalizeArcadeDemonState(demon?.state);
+        if (demonState !== ARCADE_MANA_DEMON_STATE_DYING) {
+          return true;
+        }
+        const elapsed = Math.max(0, now - normalizeArcadeTimestamp(demon?.stateStartedAt));
+        return elapsed < ARCADE_MANA_DEMON_DIE_MS;
+      });
+      if (demons.length !== demonCountBeforeCull) {
+        changed = true;
+      }
+    }
+
+    if (!gameOver && bombs.length > 0) {
+      for (const bomb of bombs) {
+        bomb.x = normalizeArcadeGridCoord(bomb.x);
+        bomb.y = normalizeArcadeGridCoord(bomb.y);
+        bomb.state = normalizeArcadeBombState(bomb.state);
+        bomb.kind = normalizeArcadeBombKind(bomb.kind);
+        bomb.stateStartedAt = normalizeArcadeTimestamp(bomb.stateStartedAt);
+        if (bomb.stateStartedAt <= 0) {
+          bomb.stateStartedAt = now;
+          changed = true;
+        }
+        const elapsed = Math.max(0, now - normalizeArcadeTimestamp(bomb.stateStartedAt));
+        if (bomb.state === ARCADE_MANA_BOMB_STATE_SPAWN) {
+          if (elapsed >= ARCADE_MANA_DEMON_SPAWN_GROW_MS) {
+            bomb.state = ARCADE_MANA_BOMB_STATE_ARMING;
+            bomb.stateStartedAt = now;
+            changed = true;
+          }
+          continue;
+        }
+        if (bomb.state === ARCADE_MANA_BOMB_STATE_ARMING) {
+          if (elapsed >= ARCADE_MANA_DEMON_SPAWN_ARM_MS) {
+            bomb.state = ARCADE_MANA_BOMB_STATE_IDLE;
+            bomb.stateStartedAt = 0;
+            changed = true;
+          }
+          continue;
+        }
+      }
+      const bombCountBeforeCull = bombs.length;
+      bombs = bombs.filter((bomb) => {
+        const state = normalizeArcadeBombState(bomb?.state);
+        if (state !== ARCADE_MANA_BOMB_STATE_SPINNING) {
+          return true;
+        }
+        const elapsed = Math.max(0, now - normalizeArcadeTimestamp(bomb?.stateStartedAt));
+        return elapsed < ARCADE_MANA_BOMB_SPIN_CLEAR_MS;
+      });
+      if (bombs.length !== bombCountBeforeCull) {
+        changed = true;
+      }
+    }
+    if (bombEffects.length > 0) {
+      const effectCountBeforeCull = bombEffects.length;
+      bombEffects = bombEffects.filter((effect) => {
+        const elapsed = Math.max(0, now - normalizeArcadeTimestamp(effect?.startedAt));
+        return elapsed < ARCADE_MANA_BOMB_EXPLOSION_DURATION_MS;
+      });
+      if (bombEffects.length !== effectCountBeforeCull) {
+        changed = true;
+      }
+    }
+    if (pickupPulses.length > 0) {
+      const pulseCountBeforeCull = pickupPulses.length;
+      pickupPulses = pickupPulses.filter((pulse) => {
+        const elapsed = Math.max(0, now - normalizeArcadeTimestamp(pulse?.startedAt));
+        return elapsed < ARCADE_MANA_PICKUP_PULSE_DURATION_MS;
+      });
+      if (pickupPulses.length !== pulseCountBeforeCull) {
+        changed = true;
+      }
+    }
+
+    if (!gameOver) {
+      injectHeldDirectionIntent(now);
+    }
+
+    if (!gameOver && phaseInvulnerable) {
+      applyPhaseSpinToOverlappedDemons(now);
+    }
 
     const promoteInputQueueDirection = (timestamp = now) => {
       if (queuedDirection.x !== 0 || queuedDirection.y !== 0) {
@@ -32597,10 +35372,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     while (
       (moveDirection.x !== 0 || moveDirection.y !== 0) &&
       moveStartedAt > 0 &&
-      now - moveStartedAt >= ARCADE_MANA_STEP_MS &&
+      now - moveStartedAt >= Math.max(1, getCurrentArcadeStepDurationMs()) &&
       safety < 24
     ) {
-      const boundaryAt = moveStartedAt + ARCADE_MANA_STEP_MS;
+      const boundaryAt = moveStartedAt + Math.max(1, getCurrentArcadeStepDurationMs());
       const previousTileX = tileX;
       const previousTileY = tileY;
       const arrivedTileX = tileX + moveDirection.x;
@@ -32628,11 +35403,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       tileY = arrivedTileY;
       changed = true;
 
-      let pickedLooseMana = false;
+      let pickedLooseManaCount = 0;
+      let pickedLoosePulse = false;
       for (let index = looseManaSegments.length - 1; index >= 0; index -= 1) {
         const looseSegment = looseManaSegments[index];
         if (looseSegment.x !== tileX || looseSegment.y !== tileY) {
           continue;
+        }
+        if (!pickedLoosePulse) {
+          spawnArcadePickupPulseAt(looseSegment.x, looseSegment.y, boundaryAt);
+          pickedLoosePulse = true;
         }
         looseManaSegments.splice(index, 1);
         if (tailSegments.length < ARCADE_MANA_TAIL_MAX_LENGTH) {
@@ -32642,13 +35422,25 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             type: normalizeArcadeManaType(looseSegment.type)
           });
         }
-        pickedLooseMana = true;
+        pickedLooseManaCount += 1;
       }
-      if (pickedLooseMana) {
+      if (pickedLooseManaCount > 0) {
+        const previousPickupCount = manaPickupCount;
+        manaPickupCount = normalizeArcadeManaPickupCount(manaPickupCount + pickedLooseManaCount);
+        handleArcadeBombSpawnProgression(previousPickupCount, manaPickupCount);
+        lastPickupAt = Math.max(0, Math.floor(Number(boundaryAt) || now));
         changed = true;
       }
 
       if (tileX === manaTileX && tileY === manaTileY) {
+        spawnArcadePickupPulseAt(manaTileX, manaTileY, boundaryAt);
+        const nextSpawnTile = getArcadeManaSpawnTile([
+          { x: tileX, y: tileY },
+          ...tailSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+          ...looseManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+          ...clearingManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
+          ...bombs.map((bomb) => ({ x: bomb.x, y: bomb.y }))
+        ]);
         if (tailSegments.length < ARCADE_MANA_TAIL_MAX_LENGTH) {
           tailSegments.push({
             x: growSource.x,
@@ -32656,12 +35448,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             type: normalizeArcadeManaType(manaType)
           });
         }
-        const nextSpawnTile = getArcadeManaSpawnTile([
-          { x: tileX, y: tileY },
-          ...tailSegments.map((segment) => ({ x: segment.x, y: segment.y })),
-          ...looseManaSegments.map((segment) => ({ x: segment.x, y: segment.y })),
-          ...clearingManaSegments.map((segment) => ({ x: segment.x, y: segment.y }))
-        ]);
+        const previousPickupCount = manaPickupCount;
+        manaPickupCount = normalizeArcadeManaPickupCount(manaPickupCount + 1);
+        handleArcadeBombSpawnProgression(previousPickupCount, manaPickupCount, [nextSpawnTile]);
+        lastPickupAt = Math.max(0, Math.floor(Number(boundaryAt) || now));
         manaTileX = nextSpawnTile.x;
         manaTileY = nextSpawnTile.y;
         manaType = getRandomArcadeManaType();
@@ -32669,7 +35459,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
       const hitTail = tailSegments.some((segment) => segment.x === tileX && segment.y === tileY);
       if (hitTail) {
-        if (phaseInvulnerable) {
+        if (isPowerInvulnerable()) {
           const squareSegments = getArcadeSquareTailSegmentsAtIntersection(tileX, tileY, tailSegments);
           if (squareSegments.length > 0) {
             const squareKeys = new Set(squareSegments.map((segment) => getArcadeTileKey(segment.x, segment.y)));
@@ -32687,36 +35477,126 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             }
             tailSegments = [];
             looseManaSegments.push(...droppedLooseSegments);
+
+            const squareBounds = getArcadeSquareBounds(squareSegments);
+            if (squareBounds) {
+              // Any field mana enclosed by a successful square clear becomes super mana.
+              for (const looseSegment of looseManaSegments) {
+                if (!looseSegment || typeof looseSegment !== 'object') {
+                  continue;
+                }
+                const looseX = normalizeArcadeGridCoord(looseSegment.x);
+                const looseY = normalizeArcadeGridCoord(looseSegment.y);
+                if (
+                  looseX > squareBounds.minX &&
+                  looseX < squareBounds.maxX &&
+                  looseY > squareBounds.minY &&
+                  looseY < squareBounds.maxY
+                ) {
+                  looseSegment.type = ARCADE_MANA_TYPE_SUPER;
+                }
+              }
+              if (
+                manaTileX > squareBounds.minX &&
+                manaTileX < squareBounds.maxX &&
+                manaTileY > squareBounds.minY &&
+                manaTileY < squareBounds.maxY
+              ) {
+                manaType = ARCADE_MANA_TYPE_SUPER;
+              }
+            }
+
             clearingManaSegments = squareSegments.map((segment) => ({
               x: normalizeArcadeGridCoord(segment.x),
               y: normalizeArcadeGridCoord(segment.y),
               type: normalizeArcadeManaType(segment.type)
             }));
-            squareClearScore += squareSegments.length;
+            let demonKillCount = 0;
+            if (squareBounds) {
+              for (const demon of demons) {
+                if (!demon || typeof demon !== 'object') {
+                  continue;
+                }
+                const demonState = normalizeArcadeDemonState(demon.state);
+                if (demonState === ARCADE_MANA_DEMON_STATE_DYING) {
+                  continue;
+                }
+                const demonTileX = normalizeArcadeGridCoord(demon.x);
+                const demonTileY = normalizeArcadeGridCoord(demon.y);
+                if (
+                  demonTileX < squareBounds.minX ||
+                  demonTileX > squareBounds.maxX ||
+                  demonTileY < squareBounds.minY ||
+                  demonTileY > squareBounds.maxY
+                ) {
+                  continue;
+                }
+                demon.state = ARCADE_MANA_DEMON_STATE_DYING;
+                demon.stateStartedAt = now;
+                demon.dirX = 0;
+                demon.dirY = 0;
+                demon.dashFromX = demonTileX;
+                demon.dashFromY = demonTileY;
+                demon.dashToX = demonTileX;
+                demon.dashToY = demonTileY;
+                demonKillCount += 1;
+              }
+              for (const bomb of bombs) {
+                if (!bomb || typeof bomb !== 'object') {
+                  continue;
+                }
+                const bombState = normalizeArcadeBombState(bomb.state);
+                if (bombState === ARCADE_MANA_BOMB_STATE_SPINNING) {
+                  continue;
+                }
+                const bombX = normalizeArcadeGridCoord(bomb.x);
+                const bombY = normalizeArcadeGridCoord(bomb.y);
+                if (
+                  bombX > squareBounds.minX &&
+                  bombX < squareBounds.maxX &&
+                  bombY > squareBounds.minY &&
+                  bombY < squareBounds.maxY
+                ) {
+                  bomb.kind = ARCADE_BOMB_KIND_POTION;
+                  bomb.state = ARCADE_MANA_BOMB_STATE_IDLE;
+                  bomb.stateStartedAt = 0;
+                  changed = true;
+                }
+              }
+            }
+            let clearPoints = 0;
+            for (const segment of squareSegments) {
+              const segmentType = normalizeArcadeManaType(segment?.type);
+              clearPoints += segmentType === ARCADE_MANA_TYPE_SUPER ? 15 : 1;
+            }
+            const totalClearAward = clearPoints + Math.max(0, demonKillCount) * 15;
+            awardArcadeScore(totalClearAward, boundaryAt);
             clearManaStartedAt = now;
             changed = true;
           }
         } else {
-          gameOver = true;
-          gameOverAt = now;
-          moveDirection = { x: 0, y: 0 };
-          queuedDirection = { x: 0, y: 0 };
-          moveStartedAt = 0;
-          queuedAt = now;
-          changed = true;
-          if (squareClearScore > 0) {
-            const controllerPlayerToken = normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken);
-            if (controllerPlayerToken) {
-              void recordArcadeBestScoreForPlayer(
-                controllerPlayerToken,
-                String(dieState?.arcadeControllerName || '').trim().slice(0, 24),
-                normalizeHexColor(dieState?.arcadeControllerColor || '#ff7a59'),
-                squareClearScore
-              );
-            }
-          }
+          triggerArcadeManaGameOver(true);
           break;
         }
+      }
+
+      if (!gameOver && phaseInvulnerable) {
+        applyPhaseSpinToOverlappedDemons(boundaryAt);
+      }
+      if (!gameOver && potionActive) {
+        applyPotionDemonCollisions(boundaryAt);
+      }
+      if (!gameOver) {
+        applyArcadeBombCollisionAtTile(tileX, tileY, boundaryAt);
+      }
+      if (!gameOver) {
+        injectHeldDirectionIntent(boundaryAt);
+      }
+      if (!gameOver && !isPowerInvulnerable() && isPlayerCollidingWithActiveDemon(boundaryAt)) {
+        triggerArcadeManaGameOver(true);
+      }
+      if (gameOver) {
+        break;
       }
 
       let nextDirection = { x: moveDirection.x, y: moveDirection.y };
@@ -32754,9 +35634,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       safety += 1;
     }
 
+    if (!gameOver) {
+      applyArcadeBombCollisionAtTile(tileX, tileY, now);
+    }
+    if (!gameOver && potionActive) {
+      applyPotionDemonCollisions(now);
+    }
+    if (!gameOver && !isPowerInvulnerable() && isPlayerCollidingWithActiveDemon()) {
+      triggerArcadeManaGameOver(true);
+    }
+
     const tailPath = encodeArcadeManaTailPath(tailSegments);
     const looseManaPath = encodeArcadeManaTailPath(looseManaSegments);
     const clearManaPath = encodeArcadeManaTailPath(clearingManaSegments);
+    const demonsPath = encodeArcadeDemonPath(demons);
+    const bombPath = encodeArcadeBombPath(bombs);
+    const bombFxPath = encodeArcadeBombFxPath(bombEffects);
+    const pickupPulsePath = encodeArcadePickupPulsePath(pickupPulses);
     const inputQueuePath = encodeArcadeInputQueuePath(inputQueueTokens);
     const patch = {};
     if (tileX !== normalizeArcadeGridCoord(dieState?.arcadeMgTileX)) {
@@ -32774,6 +35668,30 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (clearManaPath !== normalizeArcadeManaTailPath(dieState?.arcadeMgClearManaPath)) {
       patch.arcadeMgClearManaPath = clearManaPath;
     }
+    if (demonsPath !== normalizeArcadeDemonPath(dieState?.arcadeMgDemonsPath)) {
+      patch.arcadeMgDemonsPath = demonsPath;
+    }
+    if (bombPath !== normalizeArcadeBombPath(dieState?.arcadeMgBombPath)) {
+      patch.arcadeMgBombPath = bombPath;
+    }
+    if (bombFxPath !== normalizeArcadeBombFxPath(dieState?.arcadeMgBombFxPath)) {
+      patch.arcadeMgBombFxPath = bombFxPath;
+    }
+    if (pickupPulsePath !== normalizeArcadePickupPulsePath(dieState?.arcadeMgPickupPulsePath)) {
+      patch.arcadeMgPickupPulsePath = pickupPulsePath;
+    }
+    if (lastPickupAt !== normalizeArcadeTimestamp(dieState?.arcadeMgLastPickupAt)) {
+      patch.arcadeMgLastPickupAt = lastPickupAt;
+    }
+    if (manaPickupCount !== normalizeArcadeManaPickupCount(dieState?.arcadeMgManaPickupCount)) {
+      patch.arcadeMgManaPickupCount = manaPickupCount;
+    }
+    if (hasSpawnedDemon !== (dieState?.arcadeMgHasSpawnedDemon === true)) {
+      patch.arcadeMgHasSpawnedDemon = hasSpawnedDemon;
+    }
+    if (nextDemonSpawnAt !== normalizeArcadeTimestamp(dieState?.arcadeMgNextDemonSpawnAt)) {
+      patch.arcadeMgNextDemonSpawnAt = nextDemonSpawnAt;
+    }
     if (manaType !== normalizeArcadeManaType(dieState?.arcadeMgManaType)) {
       patch.arcadeMgManaType = manaType;
     }
@@ -32789,14 +35707,32 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (gameOverAt !== normalizeArcadeTimestamp(dieState?.arcadeMgGameOverAt)) {
       patch.arcadeMgGameOverAt = gameOverAt;
     }
+    if (gameOverFlip !== (dieState?.arcadeMgGameOverFlip === true)) {
+      patch.arcadeMgGameOverFlip = gameOverFlip;
+    }
+    if (newHighScore !== (dieState?.arcadeMgNewHighScore === true)) {
+      patch.arcadeMgNewHighScore = newHighScore;
+    }
     if (squareClearScore !== Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0))) {
       patch.arcadeMgSquareClearScore = squareClearScore;
+    }
+    if (comboCount !== Math.max(0, Math.round(Number(dieState?.arcadeMgComboCount) || 0))) {
+      patch.arcadeMgComboCount = comboCount;
+    }
+    if (comboLastScoredAt !== normalizeArcadeTimestamp(dieState?.arcadeMgComboLastScoredAt)) {
+      patch.arcadeMgComboLastScoredAt = comboLastScoredAt;
     }
     if (phaseActive !== (dieState?.arcadeMgPhaseActive === true)) {
       patch.arcadeMgPhaseActive = phaseActive;
     }
     if (phaseStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgPhaseStartedAt)) {
       patch.arcadeMgPhaseStartedAt = phaseStartedAt;
+    }
+    if (potionActive !== (dieState?.arcadeMgPotionActive === true)) {
+      patch.arcadeMgPotionActive = potionActive;
+    }
+    if (potionStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgPotionStartedAt)) {
+      patch.arcadeMgPotionStartedAt = potionStartedAt;
     }
     if (clearManaStartedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgClearManaStartedAt)) {
       patch.arcadeMgClearManaStartedAt = clearManaStartedAt;
@@ -32816,6 +35752,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
     if (queuedAt !== normalizeArcadeTimestamp(dieState?.arcadeMgQueuedAt)) {
       patch.arcadeMgQueuedAt = queuedAt;
+    }
+    if (gameOverMenuIndex !== normalizeArcadeManaMenuIndex(dieState?.arcadeManaMenuIndex)) {
+      patch.arcadeManaMenuIndex = gameOverMenuIndex;
     }
     if (inputQueuePath !== normalizeArcadeInputQueuePath(dieState?.arcadeMgInputQueuePath)) {
       patch.arcadeMgInputQueuePath = inputQueuePath;
@@ -33862,14 +36801,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       arcadeMgTailPath: previousDieState.arcadeMgTailPath,
       arcadeMgLooseManaPath: previousDieState.arcadeMgLooseManaPath,
       arcadeMgClearManaPath: previousDieState.arcadeMgClearManaPath,
+      arcadeMgDemonsPath: previousDieState.arcadeMgDemonsPath,
+      arcadeMgBombPath: previousDieState.arcadeMgBombPath,
+      arcadeMgBombFxPath: previousDieState.arcadeMgBombFxPath,
+      arcadeMgPickupPulsePath: previousDieState.arcadeMgPickupPulsePath,
+      arcadeMgLastPickupAt: previousDieState.arcadeMgLastPickupAt,
+      arcadeMgManaPickupCount: previousDieState.arcadeMgManaPickupCount,
+      arcadeMgHasSpawnedDemon: previousDieState.arcadeMgHasSpawnedDemon === true,
+      arcadeMgNextDemonSpawnAt: previousDieState.arcadeMgNextDemonSpawnAt,
       arcadeMgManaType: previousDieState.arcadeMgManaType,
       arcadeMgManaTileX: previousDieState.arcadeMgManaTileX,
       arcadeMgManaTileY: previousDieState.arcadeMgManaTileY,
       arcadeMgGameOver: previousDieState.arcadeMgGameOver,
       arcadeMgGameOverAt: previousDieState.arcadeMgGameOverAt,
+      arcadeMgGameOverFlip: previousDieState.arcadeMgGameOverFlip,
+      arcadeMgNewHighScore: previousDieState.arcadeMgNewHighScore === true,
       arcadeMgSquareClearScore: previousDieState.arcadeMgSquareClearScore,
+      arcadeMgComboCount: previousDieState.arcadeMgComboCount,
+      arcadeMgComboLastScoredAt: previousDieState.arcadeMgComboLastScoredAt,
       arcadeMgPhaseActive: previousDieState.arcadeMgPhaseActive,
       arcadeMgPhaseStartedAt: previousDieState.arcadeMgPhaseStartedAt,
+      arcadeMgPotionActive: previousDieState.arcadeMgPotionActive,
+      arcadeMgPotionStartedAt: previousDieState.arcadeMgPotionStartedAt,
       arcadeMgClearManaStartedAt: previousDieState.arcadeMgClearManaStartedAt
     });
   }
@@ -39007,14 +41960,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
                   arcadeMgTailPath: '',
                   arcadeMgLooseManaPath: '',
                   arcadeMgClearManaPath: '',
+                  arcadeMgDemonsPath: '',
+                  arcadeMgBombPath: '',
+                  arcadeMgBombFxPath: '',
+                  arcadeMgPickupPulsePath: '',
+                  arcadeMgLastPickupAt: 0,
+                  arcadeMgManaPickupCount: 0,
+                  arcadeMgHasSpawnedDemon: false,
+                  arcadeMgNextDemonSpawnAt: 0,
                   arcadeMgManaType: ARCADE_MANA_TYPE_WHITE,
                   arcadeMgManaTileX: ARCADE_MANA_CENTER_TILE,
                   arcadeMgManaTileY: ARCADE_MANA_CENTER_TILE,
                   arcadeMgGameOver: false,
                   arcadeMgGameOverAt: 0,
+                  arcadeMgGameOverFlip: false,
+                  arcadeMgNewHighScore: false,
                   arcadeMgSquareClearScore: 0,
+                  arcadeMgComboCount: 0,
+                  arcadeMgComboLastScoredAt: 0,
                   arcadeMgPhaseActive: false,
                   arcadeMgPhaseStartedAt: 0,
+                  arcadeMgPotionActive: false,
+                  arcadeMgPotionStartedAt: 0,
                   arcadeMgClearManaStartedAt: 0,
                   arcadeMgDirX: 0,
                   arcadeMgDirY: 0,
@@ -40561,12 +43528,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           continue;
         }
         const bestScore = Math.max(0, Math.round(Number(rawEntry.bestScore) || 0));
+        const name = String(rawEntry.name || '').trim().slice(0, 24);
         if (bestScore <= 0) {
+          continue;
+        }
+        if (!name) {
           continue;
         }
         arcadeBestScoresByPlayerToken.set(token, {
           bestScore,
-          name: String(rawEntry.name || '').trim().slice(0, 24) || 'anon',
+          name,
           color: normalizeHexColor(rawEntry.color || '#ff7a59'),
           updatedAt: Math.max(0, Math.floor(Number(rawEntry.updatedAt) || 0))
         });
