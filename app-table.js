@@ -56,6 +56,7 @@ const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
 const goTile = document.getElementById('goTile');
 const arcadeMachineTile = document.getElementById('arcadeMachineTile');
+const codegameTile = document.getElementById('codegameTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
 const coinComponentTile = document.getElementById('coinComponentTile');
 const spinnerComponentTile = document.getElementById('spinnerComponentTile');
@@ -201,6 +202,7 @@ const LOW_ZOOM_PIXEL_SNAP_SCALE = 0.35;
 const CARD_SIZE_MULTIPLIER = 1.8;
 const CARD_WIDTH = 120 * CARD_SIZE_MULTIPLIER;
 const CARD_HEIGHT = 168 * CARD_SIZE_MULTIPLIER;
+const CODEGAME_CARD_SIZE = CARD_WIDTH;
 const CARD_FLIP_DURATION_MS = 220;
 const NOTE_ATTACHMENT_PICKUP_SYNC_MS = 220;
 const DECK_CONTROL_SIZE = 28;
@@ -217,6 +219,13 @@ const AUCTION_CARD_SCALE = 1.15;
 const AUCTION_STACK_OFFSET_X = CARD_WIDTH + STACK_SLOT_GAP + AUCTION_SHIFT_X;
 const DISCARD_RETURN_ANIMATION_MS = 300;
 const DECK_COUNT_OFFSET_Y = 18;
+const CODEGAME_GRID_SIZE = 5;
+const CODEGAME_GRID_GAP = 18;
+const CODEGAME_GRID_PADDING = 14;
+const CODEGAME_GRID_OFFSET_Y = 34;
+const CODEGAME_GRID_SLOT_COUNT = CODEGAME_GRID_SIZE * CODEGAME_GRID_SIZE;
+const CODEGAME_KEY_CARD_OFFSET_X = 24;
+const CODEGAME_KEY_CARD_GAP_Y = 18;
 const FRONT_IMAGE_PRELOAD_CONCURRENCY = 4;
 const DELETE_MODE_UNDO_HISTORY_LIMIT = 10;
 const TOUCH_TAP_MAX_MOVE_PX = 16;
@@ -244,6 +253,8 @@ const HOT_DECK_FRONT_PRELOAD_DELAY_MS = 90;
 const CURSOR_PENCIL_SVG =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 20L8.8 18.8L19.2 8.4C19.8 7.8 19.8 6.9 19.2 6.3L17.7 4.8C17.1 4.2 16.2 4.2 15.6 4.8L5.2 15.2L4 20Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path><path d="M13.8 6.6L17.4 10.2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"></path></svg>';
 const HAND_DROP_REGION_HEIGHT = 110;
+const HAND_DROP_REGION_STICKY_BUFFER_PX = 24;
+const HAND_DROP_PREVIEW_CLEAR_DELAY_MS = 90;
 const HAND_CARD_WIDTH = 170;
 const HAND_CARD_HEIGHT = (HAND_CARD_WIDTH * CARD_HEIGHT) / CARD_WIDTH;
 const HAND_CARD_BASE_BOTTOM_OFFSET = -Math.round(HAND_CARD_HEIGHT * 0.52);
@@ -261,6 +272,8 @@ const PRESENCE_STALE_TIMEOUT_MS = 45000;
 const CARD_STALE_LOCK_RECOVERY_RETRY_MS = 6000;
 const CARD_STALE_LOCK_RECOVERY_SWEEP_LIMIT = 6;
 const DECK_LOCK_FORCE_RECOVERY_MS = 90000;
+const DECK_POSITION_GUARD_MS = 2200;
+const DECK_DRAG_SYNC_INTERVAL_MS = 48;
 const LEGACY_DECK_MIGRATION_RETRY_MS = 30000;
 const CARD_WRITE_RETRY_DELAY_MS = 220;
 const SECRET_AREA_PERSIST_CONFIRM_DELAY_MS = 160;
@@ -279,8 +292,10 @@ const LEGACY_DECK_ROOT_FIELDS = Object.freeze([
 ]);
 const DECK_KEY = 'cool-jpegs';
 const POKER_DECK_KEY = 'poker-deck';
+const CODEGAME_DECK_KEY = 'codegame';
 const DECK_KIND_COOL = 'cool-jpegs';
 const DECK_KIND_POKER = 'poker';
+const DECK_KIND_CODEGAME = 'codegame';
 const MONS_GAME_KEY = 'super-metal-mons';
 const TAFL_GAME_KEY = 'hnefatafl';
 const GO_GAME_KEY = 'go';
@@ -1090,6 +1105,22 @@ const COOL_JPEGS_FRONT_IMAGES = Array.from({ length: 75 }, (_, index) => `${CARD
 const COOL_JPEGS_FRONT_IMAGES_LOW = COOL_JPEGS_FRONT_IMAGES.map((src) =>
   src.replace(CARD_FRONT_HIGH_RES_PREFIX, CARD_FRONT_LOW_RES_PREFIX)
 );
+const CODEGAME_FRONT_IMAGE_PREFIX = './assets/codegame/';
+const CODEGAME_FRONT_IMAGE_FIRST_ID = 1000;
+const CODEGAME_FRONT_IMAGE_LAST_ID = 1085;
+const CODEGAME_FRONT_IMAGES = Object.freeze(
+  Array.from(
+    { length: CODEGAME_FRONT_IMAGE_LAST_ID - CODEGAME_FRONT_IMAGE_FIRST_ID + 1 },
+    (_, index) => `${CODEGAME_FRONT_IMAGE_PREFIX}${CODEGAME_FRONT_IMAGE_FIRST_ID + index}.jpg`
+  )
+);
+const CODEGAME_KEY_CARD_BACK_IMAGE_SRC = createCodegameKeyBackSvgDataUri();
+const CODEGAME_KEY_CARD_ID_SUFFIXES = Object.freeze(['key-a', 'key-b']);
+const CODEGAME_KEY_BLUE_COUNT = 8;
+const CODEGAME_KEY_RED_COUNT = 9;
+const CODEGAME_KEY_ASSASSIN_COUNT = 1;
+const CODEGAME_KEY_TOTAL_CELLS = CODEGAME_GRID_SIZE * CODEGAME_GRID_SIZE;
+const CODEGAME_TINT_DEBUG = false;
 const POKER_RANK_SEQUENCE = Object.freeze(['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']);
 const POKER_SUIT_SEQUENCE = Object.freeze([
   Object.freeze({ key: 'spades', symbol: '♠', color: '#17171a' }),
@@ -1294,6 +1325,158 @@ function createPokerBackSvgDataUri() {
   `);
 }
 
+function normalizeCodegameKeyIndexList(value, maxCount = CODEGAME_KEY_TOTAL_CELLS) {
+  const source = Array.isArray(value) ? value : [];
+  const limit = Math.max(0, Math.floor(Number(maxCount) || CODEGAME_KEY_TOTAL_CELLS));
+  if (source.length === 0 || limit <= 0) {
+    return [];
+  }
+  const seen = new Set();
+  const normalized = [];
+  for (const item of source) {
+    const numeric = Number(item);
+    if (!Number.isInteger(numeric)) {
+      continue;
+    }
+    const clamped = clamp(numeric, 0, CODEGAME_KEY_TOTAL_CELLS - 1);
+    if (seen.has(clamped)) {
+      continue;
+    }
+    seen.add(clamped);
+    normalized.push(clamped);
+    if (normalized.length >= limit) {
+      break;
+    }
+  }
+  return normalized;
+}
+
+function normalizeCodegameMarkedType(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (
+    normalized === 'blue' ||
+    normalized === 'red' ||
+    normalized === 'assassin' ||
+    normalized === 'neutral'
+  ) {
+    return normalized;
+  }
+  return '';
+}
+
+function generateCodegameKeyPattern() {
+  const indices = Array.from({ length: CODEGAME_KEY_TOTAL_CELLS }, (_, index) => index);
+  for (let index = indices.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const temp = indices[index];
+    indices[index] = indices[swapIndex];
+    indices[swapIndex] = temp;
+  }
+  const blue = indices.slice(0, CODEGAME_KEY_BLUE_COUNT);
+  const red = indices.slice(CODEGAME_KEY_BLUE_COUNT, CODEGAME_KEY_BLUE_COUNT + CODEGAME_KEY_RED_COUNT);
+  const assassin = indices[CODEGAME_KEY_BLUE_COUNT + CODEGAME_KEY_RED_COUNT] ?? 0;
+  return {
+    blue,
+    red,
+    assassin
+  };
+}
+
+function createCodegameKeyFaceSvgDataUri(pattern) {
+  const blueSet = new Set(Array.isArray(pattern?.blue) ? pattern.blue.map((value) => Math.max(0, Math.min(24, Math.floor(Number(value) || 0)))) : []);
+  const redSet = new Set(Array.isArray(pattern?.red) ? pattern.red.map((value) => Math.max(0, Math.min(24, Math.floor(Number(value) || 0)))) : []);
+  const assassinIndex = Math.max(0, Math.min(24, Math.floor(Number(pattern?.assassin) || 0)));
+  const gridCell = 54;
+  const gridGap = 3;
+  const gridStart = 23;
+  const cellSpan = gridCell + gridGap;
+  const rows = CODEGAME_GRID_SIZE;
+  const cols = CODEGAME_GRID_SIZE;
+  let cellMarkup = '';
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const index = row * cols + col;
+      const x = gridStart + col * cellSpan;
+      const y = gridStart + row * cellSpan;
+      let fill = '#e4e0d6';
+      let stroke = 'rgba(86, 78, 65, 0.44)';
+      let overlay = '';
+      if (index === assassinIndex) {
+        fill = '#17171a';
+        stroke = 'rgba(64, 64, 64, 0.75)';
+        overlay = `
+          <path d="M${x + 13} ${y + 13}L${x + gridCell - 13} ${y + gridCell - 13}" stroke="rgba(198,198,198,0.8)" stroke-width="6" stroke-linecap="round"/>
+          <path d="M${x + gridCell - 13} ${y + 13}L${x + 13} ${y + gridCell - 13}" stroke="rgba(198,198,198,0.8)" stroke-width="6" stroke-linecap="round"/>
+        `;
+      } else if (blueSet.has(index)) {
+        fill = '#2b68de';
+        stroke = 'rgba(162, 198, 255, 0.5)';
+        const cx = x + gridCell / 2;
+        const cy = y + gridCell / 2;
+        overlay = `
+          <circle cx="${cx}" cy="${cy}" r="${gridCell * 0.23}" fill="none" stroke="rgba(255,255,255,0.88)" stroke-width="3.8"/>
+          <circle cx="${cx}" cy="${cy}" r="${gridCell * 0.31}" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="3"/>
+        `;
+      } else if (redSet.has(index)) {
+        fill = '#d8474a';
+        stroke = 'rgba(255, 207, 207, 0.48)';
+        const cx = x + gridCell / 2;
+        const cy = y + gridCell / 2;
+        overlay = `
+          <circle cx="${cx}" cy="${cy}" r="${gridCell * 0.23}" fill="none" stroke="rgba(255,255,255,0.88)" stroke-width="3.8"/>
+          <circle cx="${cx}" cy="${cy}" r="${gridCell * 0.31}" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="3"/>
+        `;
+      }
+      cellMarkup += `<rect x="${x}" y="${y}" width="${gridCell}" height="${gridCell}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.9"/>${overlay}`;
+    }
+  }
+  return encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330">
+      <rect x="0" y="0" width="330" height="330" rx="24" fill="#f7f4ea"/>
+      <rect x="8" y="8" width="314" height="314" rx="18" fill="none" stroke="#d4cdbf" stroke-width="2.8"/>
+      ${cellMarkup}
+    </svg>
+  `);
+}
+
+function createCodegameKeyBackSvgDataUri() {
+  return encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 330">
+      <defs>
+        <linearGradient id="codegameKeyBackGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#5b0f18"/>
+          <stop offset="54%" stop-color="#431018"/>
+          <stop offset="100%" stop-color="#2a0b12"/>
+        </linearGradient>
+        <radialGradient id="codegameKeyIconGlow" cx="50%" cy="50%" r="62%">
+          <stop offset="0%" stop-color="rgba(255,225,210,0.22)"/>
+          <stop offset="100%" stop-color="rgba(255,225,210,0)"/>
+        </radialGradient>
+        <filter id="codegameKeyBackGrain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.92" numOctaves="2" seed="19" stitchTiles="stitch" result="noise"/>
+          <feColorMatrix in="noise" type="saturate" values="0"/>
+          <feComponentTransfer>
+            <feFuncA type="table" tableValues="0 0.12"/>
+          </feComponentTransfer>
+        </filter>
+      </defs>
+      <rect x="0" y="0" width="330" height="330" rx="24" fill="url(#codegameKeyBackGradient)"/>
+      <rect x="0" y="0" width="330" height="330" rx="24" fill="#100508" opacity="0.16"/>
+      <rect x="0" y="0" width="330" height="330" rx="24" fill="#ffffff" opacity="0.04"/>
+      <rect x="0" y="0" width="330" height="330" rx="24" filter="url(#codegameKeyBackGrain)"/>
+      <circle cx="166" cy="166" r="92" fill="url(#codegameKeyIconGlow)"/>
+      <g transform="translate(166 166) rotate(-22)">
+        <circle cx="-38" cy="0" r="34" fill="none" stroke="rgba(234,214,204,0.94)" stroke-width="10"/>
+        <circle cx="-38" cy="0" r="11" fill="none" stroke="rgba(234,214,204,0.86)" stroke-width="5"/>
+        <rect x="-6" y="-8" width="92" height="16" rx="6" fill="rgba(234,214,204,0.94)"/>
+        <rect x="52" y="8" width="14" height="16" rx="2.4" fill="rgba(234,214,204,0.94)"/>
+        <rect x="72" y="-16" width="14" height="16" rx="2.4" fill="rgba(234,214,204,0.94)"/>
+      </g>
+      <rect x="8" y="8" width="314" height="314" rx="18" fill="none" stroke="rgba(241, 222, 214, 0.22)" stroke-width="2.6"/>
+    </svg>
+  `);
+}
+
 const POKER_CARD_BACK_IMAGE_SRC = createPokerBackSvgDataUri();
 const POKER_FRONT_IMAGES = Object.freeze(
   POKER_SUIT_SEQUENCE.flatMap((suit) => POKER_RANK_SEQUENCE.map((rank) => createPokerFaceSvgDataUri(rank, suit)))
@@ -1435,6 +1618,13 @@ let latestPresenceByToken = {};
 let hasLoadedInitialCardsSnapshot = false;
 let secretAreaRegionsCacheDirty = true;
 let secretAreaRegionsCache = [];
+let localCodegameKeyHighlightsCacheDirty = true;
+let localCodegameKeyHighlightsCacheToken = '';
+let localCodegameKeyHighlightsByDeck = new Map();
+let codegameKeyPatternCacheDirty = true;
+let codegameKeyPatternByDeck = new Map();
+let codegameRevealToggleAtByCardId = new Map();
+let codegameDebugStatusByCardId = new Map();
 let deckState = null;
 const deckStatesById = new Map();
 const chipSetsById = new Map();
@@ -1520,6 +1710,7 @@ let handDropGlowVisible = false;
 let drawingsLiftCutoffAt = 0;
 let handReorderState = null;
 let handDropPreview = null;
+let handDropPreviewClearTimerId = 0;
 let handHoverLayout = null;
 let hoveredHandCardId = null;
 let hoveredSecretAreaCardId = '';
@@ -1543,6 +1734,7 @@ let deckShuffleFxDeckId = DECK_KEY;
 let deckShuffleDarkenedCardId = '';
 let diceRollAnimationRafId = 0;
 let cameraRenderRafId = 0;
+let stackPointBadgeRenderRafId = 0;
 const cameraRenderStepErrorAt = new Map();
 let arcadeManaRenderRafId = 0;
 let cameraPersistTimerId = 0;
@@ -1550,6 +1742,7 @@ const spawnLoadingIndicatorsById = new Map();
 let hotDeckFrontPreloadTimerId = 0;
 let themeTransitionTimerId = 0;
 let coolJpegsFrontPreloadPromise = null;
+let codegameFrontPreloadPromise = null;
 let activeGameOptionsTarget = '';
 let gameOptionsShowCoordinatesToggleSyncing = false;
 let gameOptionsBoardSizeButtonsSyncing = false;
@@ -1595,6 +1788,9 @@ let spawnCoolJpegsDeck = async () => {
 };
 let spawnPokerDeck = async () => {
   showStatusMessage('Firebase connection is required before adding a poker deck.');
+};
+let spawnCodegameDeck = async () => {
+  showStatusMessage('Firebase connection is required before adding codegame.');
 };
 let spawnSuperMetalMonsBoard = async () => {
   showStatusMessage('Firebase connection is required before adding super metal mons.');
@@ -1726,6 +1922,7 @@ let submitAuctionBid = async () => {
 let shuffleCoolJpegsDeck = async () => {};
 let dealOneCardEach = async () => {};
 let reclaimDiscardToDeck = async () => {};
+let handleCodegamePlayShuffle = async () => {};
 let onCardPointerDown = () => {};
 let onSecretAreaMovePointerDown = () => {};
 let onCardResizePointerDown = () => {};
@@ -1744,6 +1941,7 @@ let onLabelResizePointerDown = () => {};
 let onLabelLockControlPointerDown = () => {};
 let onLabelRotatePointerDown = () => {};
 let onDeckMovePointerDown = () => {};
+let onDeckMoveMouseDown = () => {};
 let onMonsMovePointerDown = () => {};
 let onTaflMovePointerDown = () => {};
 let onTaflDragMove = () => {};
@@ -2188,8 +2386,10 @@ function isStandardDeckInstanceId(rawDeckId) {
   return (
     deckId === DECK_KEY ||
     deckId === POKER_DECK_KEY ||
+    deckId === CODEGAME_DECK_KEY ||
     deckId.startsWith(`${DECK_KEY}-copy-`) ||
-    deckId.startsWith(`${POKER_DECK_KEY}-copy-`)
+    deckId.startsWith(`${POKER_DECK_KEY}-copy-`) ||
+    deckId.startsWith(`${CODEGAME_DECK_KEY}-copy-`)
   );
 }
 
@@ -2206,9 +2406,22 @@ function inferDeckIdFromCardId(cardId) {
   return isStandardDeckInstanceId(candidateDeckId) ? candidateDeckId : '';
 }
 
+function getCardDeckInstanceId(cardId, cardState) {
+  const inferredDeckId = inferDeckIdFromCardId(cardId);
+  if (inferredDeckId) {
+    return inferredDeckId;
+  }
+  return normalizeDeckId(cardState?.deckId || DECK_KEY);
+}
+
 function isPokerDeckId(rawDeckId) {
   const normalizedDeckId = normalizeDeckId(rawDeckId);
   return normalizedDeckId === POKER_DECK_KEY || normalizedDeckId.startsWith(`${POKER_DECK_KEY}-copy-`);
+}
+
+function isCodegameDeckId(rawDeckId) {
+  const normalizedDeckId = normalizeDeckId(rawDeckId);
+  return normalizedDeckId === CODEGAME_DECK_KEY || normalizedDeckId.startsWith(`${CODEGAME_DECK_KEY}-copy-`);
 }
 
 function normalizeDeckKind(rawKind, deckId = '') {
@@ -2216,10 +2429,19 @@ function normalizeDeckKind(rawKind, deckId = '') {
   if (normalizedKind === DECK_KIND_POKER || normalizedKind === POKER_DECK_KEY) {
     return DECK_KIND_POKER;
   }
+  if (normalizedKind === DECK_KIND_CODEGAME || normalizedKind === CODEGAME_DECK_KEY) {
+    return DECK_KIND_CODEGAME;
+  }
   if (normalizedKind === DECK_KIND_COOL || normalizedKind === DECK_KEY) {
     return DECK_KIND_COOL;
   }
-  return isPokerDeckId(deckId) ? DECK_KIND_POKER : DECK_KIND_COOL;
+  if (isPokerDeckId(deckId)) {
+    return DECK_KIND_POKER;
+  }
+  if (isCodegameDeckId(deckId)) {
+    return DECK_KIND_CODEGAME;
+  }
+  return DECK_KIND_COOL;
 }
 
 function normalizeMonsGameId(rawMonsGameId) {
@@ -2311,11 +2533,47 @@ function getDeckKind(deckId = activeDeckId) {
 }
 
 function deckSupportsAuction(deckId = activeDeckId) {
-  return getDeckKind(deckId) !== DECK_KIND_POKER;
+  const deckKind = getDeckKind(deckId);
+  return deckKind !== DECK_KIND_POKER && deckKind !== DECK_KIND_CODEGAME;
+}
+
+function deckSupportsDiscard(deckId = activeDeckId) {
+  return getDeckKind(deckId) !== DECK_KIND_CODEGAME;
+}
+
+function deckSupportsShuffle(deckId = activeDeckId) {
+  return getDeckKind(deckId) !== DECK_KIND_CODEGAME;
+}
+
+function deckSupportsDealOne(deckId = activeDeckId) {
+  return getDeckKind(deckId) !== DECK_KIND_CODEGAME;
+}
+
+function deckShowsCountBadge(deckId = activeDeckId) {
+  return getDeckKind(deckId) !== DECK_KIND_CODEGAME;
+}
+
+function deckShowsPlayButton(deckId = activeDeckId) {
+  return getDeckKind(deckId) === DECK_KIND_CODEGAME;
+}
+
+function getDeckDisplayName(deckId = activeDeckId) {
+  const deckKind = getDeckKind(deckId);
+  if (deckKind === DECK_KIND_POKER) {
+    return 'poker deck';
+  }
+  if (deckKind === DECK_KIND_CODEGAME) {
+    return 'codegame';
+  }
+  return 'cool jpegs';
 }
 
 function isDeckDiscardEnabled(deckId = activeDeckId) {
-  return getDeckStateById(deckId)?.includeDiscard !== false;
+  const normalizedDeckId = normalizeDeckId(deckId);
+  if (!deckSupportsDiscard(normalizedDeckId)) {
+    return false;
+  }
+  return getDeckStateById(normalizedDeckId)?.includeDiscard !== false;
 }
 
 function getMonsGameStateById(gameId = activeMonsGameId) {
@@ -2562,6 +2820,48 @@ function getDeckCenterPosition(deckId = activeDeckId) {
   };
 }
 
+function getDeckBaseCardDimensions(deckId = activeDeckId) {
+  const deckKind = getDeckKind(deckId);
+  if (deckKind === DECK_KIND_CODEGAME) {
+    return {
+      width: CODEGAME_CARD_SIZE,
+      height: CODEGAME_CARD_SIZE
+    };
+  }
+  return {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT
+  };
+}
+
+function getDeckModuleWorldDimensions(deckId = activeDeckId, deckStateOverride = null) {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  const deckState = deckStateOverride && typeof deckStateOverride === 'object'
+    ? deckStateOverride
+    : getDeckStateById(normalizedDeckId);
+  const deckDimensions = getDeckBaseCardDimensions(normalizedDeckId);
+  const supportsAuction = deckSupportsAuction(normalizedDeckId);
+  let deckWorldWidth = supportsAuction
+    ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
+    : deckDimensions.width + DECK_CONTROL_SIZE * 2.6;
+  const isCodegameDeck = getDeckKind(normalizedDeckId) === DECK_KIND_CODEGAME;
+  const codegameGridActive = isCodegameDeck && deckState?.codegameGridActive === true;
+  let codegameGridDimensions = null;
+  if (codegameGridActive) {
+    codegameGridDimensions = getCodegameGridWorldDimensions();
+    if (codegameGridDimensions) {
+      deckWorldWidth = Math.max(deckWorldWidth, codegameGridDimensions.width);
+    }
+  }
+  const deckWorldHeight = codegameGridActive && codegameGridDimensions
+    ? deckDimensions.height + DECK_CONTROL_SIZE * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
+    : deckDimensions.height + DECK_CONTROL_SIZE * 3.2;
+  return {
+    width: Math.max(deckDimensions.width, deckWorldWidth),
+    height: Math.max(deckDimensions.height, deckWorldHeight)
+  };
+}
+
 function getDiscardCenterPosition(deckId = activeDeckId) {
   const deckCenter = getDeckCenterPosition(deckId);
   return {
@@ -2576,6 +2876,785 @@ function getAuctionCenterPosition(deckId = activeDeckId) {
     x: deckCenter.x + AUCTION_STACK_OFFSET_X,
     y: deckCenter.y
   };
+}
+
+function getCodegameGridWorldDimensions() {
+  const cardSize = CODEGAME_CARD_SIZE;
+  const totalCards = CODEGAME_GRID_SIZE;
+  const totalGap = Math.max(0, totalCards - 1) * CODEGAME_GRID_GAP;
+  const totalCardSpan = totalCards * cardSize;
+  const side = totalCardSpan + totalGap + CODEGAME_GRID_PADDING * 2;
+  return {
+    width: side,
+    height: side
+  };
+}
+
+function getCodegameGridCenterPosition(deckId = activeDeckId) {
+  const deckCenter = getDeckCenterPosition(deckId);
+  const deckDimensions = getDeckBaseCardDimensions(deckId);
+  const gridDimensions = getCodegameGridWorldDimensions();
+  return {
+    x: deckCenter.x,
+    y: deckCenter.y - deckDimensions.height / 2 - CODEGAME_GRID_OFFSET_Y - gridDimensions.height / 2
+  };
+}
+
+function getCodegameGridSlotWorldPosition(deckId = activeDeckId, slotIndex = 0) {
+  const normalizedIndex = Math.max(0, Number(slotIndex) || 0);
+  const row = Math.floor(normalizedIndex / CODEGAME_GRID_SIZE);
+  const col = normalizedIndex % CODEGAME_GRID_SIZE;
+  const gridCenter = getCodegameGridCenterPosition(deckId);
+  const gridDimensions = getCodegameGridWorldDimensions();
+  const gridLeft = gridCenter.x - gridDimensions.width / 2;
+  const gridTop = gridCenter.y - gridDimensions.height / 2;
+  const step = CODEGAME_CARD_SIZE + CODEGAME_GRID_GAP;
+  const rawX = gridLeft + CODEGAME_GRID_PADDING + CODEGAME_CARD_SIZE / 2 + col * step;
+  const rawY = gridTop + CODEGAME_GRID_PADDING + CODEGAME_CARD_SIZE / 2 + row * step;
+  return {
+    x: clamp(rawX, CODEGAME_CARD_SIZE / 2, WORLD_WIDTH - CODEGAME_CARD_SIZE / 2),
+    y: clamp(rawY, CODEGAME_CARD_SIZE / 2, WORLD_HEIGHT - CODEGAME_CARD_SIZE / 2)
+  };
+}
+
+function getCodegameKeyCardIds(deckId = activeDeckId) {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  return CODEGAME_KEY_CARD_ID_SUFFIXES.map((suffix) => `${normalizedDeckId}-${suffix}`);
+}
+
+function getCodegameKeyCardIndex(cardId = '', cardState = null) {
+  const normalizedCardId = String(cardId || '').trim();
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isCodegameKeyCardState(resolvedCardState)) {
+    return -1;
+  }
+  const deckId = normalizeDeckId(resolvedCardState.deckId || '');
+  if (!deckId) {
+    return -1;
+  }
+  if (normalizedCardId) {
+    const indexedKeyIds = getCodegameKeyCardIds(deckId);
+    const indexedMatch = indexedKeyIds.indexOf(normalizedCardId);
+    if (indexedMatch >= 0) {
+      return indexedMatch;
+    }
+  }
+  if (normalizedCardId) {
+    for (let index = 0; index < CODEGAME_KEY_CARD_ID_SUFFIXES.length; index += 1) {
+      const suffix = CODEGAME_KEY_CARD_ID_SUFFIXES[index];
+      if (normalizedCardId.endsWith(`-${suffix}`)) {
+        return index;
+      }
+    }
+  }
+  return 0;
+}
+
+function getCodegameKeyCardWorldPosition(deckId = activeDeckId, keyIndex = 0) {
+  const normalizedIndex = Math.max(0, Math.floor(Number(keyIndex) || 0));
+  const gridCenter = getCodegameGridCenterPosition(deckId);
+  const gridDimensions = getCodegameGridWorldDimensions();
+  const verticalStep = CODEGAME_CARD_SIZE + CODEGAME_KEY_CARD_GAP_Y;
+  const pairStartY = gridCenter.y - (verticalStep * (CODEGAME_KEY_CARD_ID_SUFFIXES.length - 1)) / 2;
+  const rawX = gridCenter.x - gridDimensions.width / 2 - CODEGAME_CARD_SIZE / 2 - CODEGAME_KEY_CARD_OFFSET_X;
+  const rawY = pairStartY + normalizedIndex * verticalStep;
+  return {
+    x: clamp(rawX, CODEGAME_CARD_SIZE / 2, WORLD_WIDTH - CODEGAME_CARD_SIZE / 2),
+    y: clamp(rawY, CODEGAME_CARD_SIZE / 2, WORLD_HEIGHT - CODEGAME_CARD_SIZE / 2)
+  };
+}
+
+function getCodegameKeyCardExpectedWorldCenter(cardId = '', cardState = null, options = {}) {
+  const normalizedCardId = String(cardId || '').trim();
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isCodegameKeyCardState(resolvedCardState)) {
+    return null;
+  }
+  const requireAnchored = options?.requireAnchored !== false;
+  if (requireAnchored && resolvedCardState.codegameKeyAnchored !== true) {
+    return null;
+  }
+  const requireAvailable = options?.requireAvailable !== false;
+  if (
+    requireAvailable &&
+    (
+      resolvedCardState.inDeck ||
+      resolvedCardState.inDiscard ||
+      resolvedCardState.inAuction ||
+      Boolean(resolvedCardState.holderClientId) ||
+      Boolean(getCardHandOwnerId(resolvedCardState))
+    )
+  ) {
+    return null;
+  }
+  const deckId = normalizeDeckId(resolvedCardState.deckId || '');
+  if (!deckId) {
+    return null;
+  }
+  const targetDeckState = getDeckStateById(deckId);
+  if (!targetDeckState || targetDeckState.codegameGridActive !== true) {
+    return null;
+  }
+  const keyIndex = getCodegameKeyCardIndex(normalizedCardId, resolvedCardState);
+  if (keyIndex < 0) {
+    return null;
+  }
+  return getCodegameKeyCardWorldPosition(deckId, keyIndex);
+}
+
+function getCodegameKeyCardWorldCenter(cardId = '', cardState = null) {
+  return getCodegameKeyCardExpectedWorldCenter(cardId, cardState, { requireAnchored: true });
+}
+
+function isCodegameKeyCardState(cardState) {
+  return isCodegameCardState(cardState) && cardState?.codegameKeyCard === true;
+}
+
+function invalidateLocalCodegameKeyHighlightsCache() {
+  localCodegameKeyHighlightsCacheDirty = true;
+}
+
+function invalidateCodegameKeyPatternCache() {
+  codegameKeyPatternCacheDirty = true;
+}
+
+function getLocalCodegameKeyHighlightsByDeck() {
+  const cacheToken = `${localPlayerToken}|${localClientId}`;
+  if (!localCodegameKeyHighlightsCacheDirty && localCodegameKeyHighlightsCacheToken === cacheToken) {
+    return localCodegameKeyHighlightsByDeck;
+  }
+  localCodegameKeyHighlightsCacheToken = cacheToken;
+  localCodegameKeyHighlightsByDeck = new Map();
+  for (const cardState of cards.values()) {
+    if (!isCodegameKeyCardState(cardState)) {
+      continue;
+    }
+    const handOwnerId = getCardHandOwnerId(cardState);
+    if (!handOwnerId || !isCardOwnedByLocalHandOwner(handOwnerId)) {
+      continue;
+    }
+    const deckId = normalizeDeckId(cardState.deckId || '');
+    if (!deckId) {
+      continue;
+    }
+    const blue = normalizeCodegameKeyIndexList(cardState.codegameKeyBlueIndices, CODEGAME_KEY_BLUE_COUNT);
+    const red = normalizeCodegameKeyIndexList(cardState.codegameKeyRedIndices, CODEGAME_KEY_RED_COUNT);
+    const assassinValue = Number(cardState.codegameKeyAssassinIndex);
+    const assassinIndex = Number.isInteger(assassinValue)
+      ? clamp(assassinValue, 0, CODEGAME_KEY_TOTAL_CELLS - 1)
+      : -1;
+    localCodegameKeyHighlightsByDeck.set(deckId, {
+      blue: new Set(blue),
+      red: new Set(red),
+      assassin: assassinIndex
+    });
+  }
+  localCodegameKeyHighlightsCacheDirty = false;
+  return localCodegameKeyHighlightsByDeck;
+}
+
+function getCodegameKeyPatternByDeck() {
+  if (!codegameKeyPatternCacheDirty) {
+    return codegameKeyPatternByDeck;
+  }
+  const nextPatternByDeck = new Map();
+  for (const cardState of cards.values()) {
+    if (!isCodegameKeyCardState(cardState)) {
+      continue;
+    }
+    const deckId = normalizeDeckId(cardState.deckId || '');
+    if (!deckId || nextPatternByDeck.has(deckId)) {
+      continue;
+    }
+    const blue = normalizeCodegameKeyIndexList(cardState.codegameKeyBlueIndices, CODEGAME_KEY_BLUE_COUNT);
+    const red = normalizeCodegameKeyIndexList(cardState.codegameKeyRedIndices, CODEGAME_KEY_RED_COUNT);
+    const assassinValue = Number(cardState.codegameKeyAssassinIndex);
+    const assassinIndex = Number.isInteger(assassinValue)
+      ? clamp(assassinValue, 0, CODEGAME_KEY_TOTAL_CELLS - 1)
+      : -1;
+    nextPatternByDeck.set(deckId, {
+      blue: new Set(blue),
+      red: new Set(red),
+      assassin: assassinIndex
+    });
+  }
+  codegameKeyPatternByDeck = nextPatternByDeck;
+  codegameKeyPatternCacheDirty = false;
+  return codegameKeyPatternByDeck;
+}
+
+function getCodegameSharedMarkTypeForSlot(deckId, slotIndex) {
+  const normalizedSlotIndex = Number(slotIndex);
+  if (!Number.isInteger(normalizedSlotIndex) || normalizedSlotIndex < 0 || normalizedSlotIndex >= CODEGAME_GRID_SLOT_COUNT) {
+    return 'neutral';
+  }
+  const normalizedDeckId = normalizeDeckId(deckId);
+  const pattern = getCodegameKeyPatternByDeck().get(normalizedDeckId);
+  if (!pattern) {
+    return 'neutral';
+  }
+  if (normalizedSlotIndex === pattern.assassin) {
+    return 'assassin';
+  }
+  if (pattern.blue.has(normalizedSlotIndex)) {
+    return 'blue';
+  }
+  if (pattern.red.has(normalizedSlotIndex)) {
+    return 'red';
+  }
+  return 'neutral';
+}
+
+function getCodegameSharedMarkTypeForCard(cardState, cardId = '') {
+  if (!cardState || typeof cardState !== 'object' || isCodegameKeyCardState(cardState)) {
+    return '';
+  }
+  if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+    return '';
+  }
+  let deckId = normalizeDeckId(cardState.deckId || '');
+  let slotIndex = getCodegameGridSlotIndex(cardState);
+  if (slotIndex < 0) {
+    const fallbackSlotTarget = getCodegameGridSlotAtPosition(
+      Number(cardState.x) || 0,
+      Number(cardState.y) || 0,
+      deckId
+    );
+    if (fallbackSlotTarget && getDeckKind(fallbackSlotTarget.deckId) === DECK_KIND_CODEGAME) {
+      slotIndex = fallbackSlotTarget.slotIndex;
+      deckId = normalizeDeckId(fallbackSlotTarget.deckId || deckId);
+    }
+  }
+  if (cardState.codegameTinted === true) {
+    if (slotIndex < 0) {
+      return normalizeCodegameMarkedType(cardState.codegameRevealColor || '');
+    }
+    return getCodegameSharedMarkTypeForSlot(deckId || cardState.deckId || '', slotIndex);
+  }
+  const markedType = normalizeCodegameMarkedType(cardState.codegameMarkedType || '');
+  if (!markedType) {
+    return '';
+  }
+  return markedType;
+}
+
+function getCodegameRevealColorForCard(cardState, cardId = '') {
+  if (!cardState || typeof cardState !== 'object' || isCodegameKeyCardState(cardState)) {
+    return '';
+  }
+  const markedType = normalizeCodegameMarkedType(cardState.codegameMarkedType || '');
+  if (markedType) {
+    return markedType;
+  }
+  const explicitColor = normalizeCodegameMarkedType(cardState.codegameRevealColor || '');
+  if (explicitColor) {
+    return explicitColor;
+  }
+  return getCodegameSharedMarkTypeForCard(cardState, cardId);
+}
+
+function applyCodegameMarkVisualToCardElement(cardId, markType) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  const card = cardElements.get(normalizedCardId);
+  if (!(card instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedMarkType = normalizeCodegameMarkedType(markType || '');
+  const hasMark = Boolean(normalizedMarkType);
+  let codegameMarkFill =
+    card._cardCodegameMarkFill instanceof HTMLElement
+      ? card._cardCodegameMarkFill
+      : card.querySelector('.table-card-codegame-mark-fill');
+  if (!(codegameMarkFill instanceof HTMLElement)) {
+    codegameMarkFill = document.createElement('div');
+    codegameMarkFill.className = 'table-card-codegame-mark-fill';
+    codegameMarkFill.setAttribute('aria-hidden', 'true');
+    card.appendChild(codegameMarkFill);
+    card._cardCodegameMarkFill = codegameMarkFill;
+  }
+  codegameMarkFill.classList.toggle('is-visible', hasMark);
+  codegameMarkFill.setAttribute('aria-hidden', hasMark ? 'false' : 'true');
+  codegameMarkFill.classList.toggle('is-blue', normalizedMarkType === 'blue');
+  codegameMarkFill.classList.toggle('is-red', normalizedMarkType === 'red');
+  codegameMarkFill.classList.toggle('is-assassin', normalizedMarkType === 'assassin');
+  codegameMarkFill.classList.toggle('is-neutral', normalizedMarkType === 'neutral');
+  card.classList.toggle('is-codegame-marked', hasMark);
+  card.classList.toggle('is-codegame-mark-blue', normalizedMarkType === 'blue');
+  card.classList.toggle('is-codegame-mark-red', normalizedMarkType === 'red');
+  card.classList.toggle('is-codegame-mark-assassin', normalizedMarkType === 'assassin');
+  card.classList.toggle('is-codegame-mark-neutral', normalizedMarkType === 'neutral');
+}
+
+function toggleCodegameGridCardMark(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return false;
+  }
+  try {
+    const cardState = cards.get(normalizedCardId);
+    if (!cardState || typeof cardState !== 'object' || isCodegameKeyCardState(cardState)) {
+      if (CODEGAME_TINT_DEBUG) {
+        codegameDebugStatusByCardId.set(normalizedCardId, 'reject:not-playable');
+      }
+      return false;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      if (CODEGAME_TINT_DEBUG) {
+        codegameDebugStatusByCardId.set(normalizedCardId, 'reject:not-on-grid');
+      }
+      return false;
+    }
+
+    let targetDeckId = normalizeDeckId(cardState.deckId || '');
+    let resolvedSlot = getCodegameEffectiveGridSlotIndex(normalizedCardId, cardState);
+    if (resolvedSlot < 0) {
+      const slotTarget = getCodegameGridSlotAtPosition(
+        Number(cardState.x) || 0,
+        Number(cardState.y) || 0,
+        targetDeckId
+      );
+      if (slotTarget) {
+        resolvedSlot = slotTarget.slotIndex;
+        targetDeckId = normalizeDeckId(slotTarget.deckId || targetDeckId);
+      }
+    }
+    if (!Number.isInteger(resolvedSlot) || resolvedSlot < 0 || resolvedSlot >= CODEGAME_GRID_SLOT_COUNT) {
+      if (CODEGAME_TINT_DEBUG) {
+        codegameDebugStatusByCardId.set(normalizedCardId, 'reject:no-slot');
+      }
+      return false;
+    }
+
+    const currentMarkedType = normalizeCodegameMarkedType(cardState.codegameMarkedType || '');
+    const currentMarkedSlotRaw = Number(cardState.codegameMarkedSlot);
+    const currentMarkedSlot = Number.isInteger(currentMarkedSlotRaw)
+      ? clamp(currentMarkedSlotRaw, 0, CODEGAME_GRID_SLOT_COUNT - 1)
+      : -1;
+    const isCurrentlyMarked = Boolean(currentMarkedType) && currentMarkedSlot === resolvedSlot;
+    const nextMarkedType = isCurrentlyMarked
+      ? ''
+      : (getCodegameSharedMarkTypeForSlot(targetDeckId || cardState.deckId || '', resolvedSlot) || 'neutral');
+    const nextMarkedSlot = isCurrentlyMarked ? -1 : resolvedSlot;
+    const patch = {
+      codegameTinted: Boolean(nextMarkedType),
+      codegameRevealColor: nextMarkedType,
+      codegameGridSlot: resolvedSlot,
+      codegameMarkedType: nextMarkedType,
+      codegameMarkedSlot: nextMarkedSlot
+    };
+    const existingLocalCard = cards.get(normalizedCardId);
+    if (existingLocalCard) {
+      const nextLocalCard = normalizeCardPayload(
+        { ...existingLocalCard, ...patch, updatedAt: Date.now() },
+        normalizedCardId
+      );
+      cards.set(normalizedCardId, nextLocalCard);
+      applyCodegameMarkVisualToCardElement(normalizedCardId, nextMarkedType);
+      invalidateLocalCodegameKeyHighlightsCache();
+      invalidateCodegameKeyPatternCache();
+      markCardDeckMetricsCacheDirty();
+      runStateRenderSafely('codegame-toggle:card', () => {
+        const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
+        renderCardElement(normalizedCardId, { visibleStackCardIds });
+      });
+    }
+    if (typeof queueCardPatch === 'function') {
+      queueCardPatch(normalizedCardId, patch);
+    }
+    if (CODEGAME_TINT_DEBUG) {
+      codegameDebugStatusByCardId.set(
+        normalizedCardId,
+        `ok:${nextMarkedType || 'off'} slot:${resolvedSlot} deck:${targetDeckId || '-'} local:direct`
+      );
+    }
+    return true;
+  } catch (error) {
+    if (CODEGAME_TINT_DEBUG) {
+      const message = String(error?.message || error || 'unknown').slice(0, 64);
+      codegameDebugStatusByCardId.set(normalizedCardId, `error:${message}`);
+    }
+    return false;
+  }
+}
+
+function toggleCodegameGridCardReveal(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return false;
+  }
+  const now = Date.now();
+  const lastToggledAt = Number(codegameRevealToggleAtByCardId.get(normalizedCardId)) || 0;
+  if (now - lastToggledAt < 80) {
+    if (CODEGAME_TINT_DEBUG) {
+      codegameDebugStatusByCardId.set(normalizedCardId, 'reject:debounced');
+    }
+    return false;
+  }
+  const toggled = toggleCodegameGridCardMark(normalizedCardId);
+  if (toggled) {
+    codegameRevealToggleAtByCardId.set(normalizedCardId, now);
+  } else if (CODEGAME_TINT_DEBUG && !codegameDebugStatusByCardId.has(normalizedCardId)) {
+    codegameDebugStatusByCardId.set(normalizedCardId, 'reject:toggle-false');
+  }
+  return toggled;
+}
+
+function getCodegameKeyHighlightTypeForCard(cardState) {
+  if (!isCodegameCardState(cardState) || isCodegameKeyCardState(cardState)) {
+    return '';
+  }
+  if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+    return '';
+  }
+  const slotIndex = getCodegameGridSlotIndex(cardState);
+  if (slotIndex < 0) {
+    return '';
+  }
+  const deckId = normalizeDeckId(cardState.deckId || '');
+  const highlights = getLocalCodegameKeyHighlightsByDeck().get(deckId);
+  if (!highlights) {
+    return '';
+  }
+  if (slotIndex === highlights.assassin) {
+    return 'assassin';
+  }
+  if (highlights.blue.has(slotIndex)) {
+    return 'blue';
+  }
+  if (highlights.red.has(slotIndex)) {
+    return 'red';
+  }
+  return '';
+}
+
+function getMovableAnchoredCodegameKeyCards(deckId = activeDeckId) {
+  const targetDeckId = normalizeDeckId(deckId);
+  if (getDeckKind(targetDeckId) !== DECK_KIND_CODEGAME) {
+    return [];
+  }
+  const targetDeckState = getDeckStateById(targetDeckId);
+  if (!targetDeckState || targetDeckState.codegameGridActive !== true) {
+    return [];
+  }
+  const movableCards = [];
+  const keyCardIds = getCodegameKeyCardIds(targetDeckId);
+  for (let index = 0; index < keyCardIds.length; index += 1) {
+    const keyCardId = keyCardIds[index];
+    const cardState = cards.get(keyCardId);
+    if (!isCodegameKeyCardState(cardState)) {
+      continue;
+    }
+    if (cardState.holderClientId || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction) {
+      continue;
+    }
+    const expectedPosition = getCodegameKeyCardWorldPosition(targetDeckId, index);
+    const cardX = Number(cardState.x);
+    const cardY = Number(cardState.y);
+    const distanceToExpected = Number.isFinite(cardX) && Number.isFinite(cardY)
+      ? Math.hypot(cardX - expectedPosition.x, cardY - expectedPosition.y)
+      : Number.POSITIVE_INFINITY;
+    const hasBeenMoved = cardState.codegameKeyMoved === true;
+    const shouldFollow =
+      !hasBeenMoved &&
+      (cardState.codegameKeyAnchored === true || distanceToExpected <= 2);
+    if (!shouldFollow) {
+      continue;
+    }
+    movableCards.push({
+      cardId: keyCardId,
+      index
+    });
+  }
+  return movableCards;
+}
+
+function syncAnchoredCodegameKeyCardsToDeck(deckId = activeDeckId, options = {}) {
+  const targetDeckId = normalizeDeckId(deckId);
+  const queue = options?.queue !== false;
+  const persist = options?.persist === true;
+  const movedCardIds = [];
+  const movableCards = getMovableAnchoredCodegameKeyCards(targetDeckId);
+  for (const entry of movableCards) {
+    const cardId = entry.cardId;
+    const nextPosition = getCodegameKeyCardWorldPosition(targetDeckId, entry.index);
+    const currentCardState = cards.get(cardId);
+    const patch = {
+      x: nextPosition.x,
+      y: nextPosition.y,
+      codegameKeyAnchored: true,
+      codegameKeyMoved: false,
+      drawLifted: currentCardState?.drawLifted === true
+    };
+    patchLocalCard(cardId, patch);
+    if (queue) {
+      queueCardPatch(cardId, patch);
+    }
+    if (persist) {
+      persistCardStateImmediately(cardId);
+    }
+    movedCardIds.push(cardId);
+  }
+  return movedCardIds;
+}
+
+function markCodegameKeyCardAsTouched(cardId) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return;
+  }
+  const cardState = cards.get(normalizedCardId);
+  if (!isCodegameKeyCardState(cardState) || cardState.codegameKeyAnchored !== true) {
+    return;
+  }
+  const patch = {
+    codegameKeyAnchored: false,
+    codegameKeyMoved: true,
+    codegameGridSlot: -1
+  };
+  patchLocalCard(normalizedCardId, patch);
+  queueCardPatch(normalizedCardId, patch);
+}
+
+function isCodegameCardState(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return false;
+  }
+  return getDeckKind(normalizeDeckId(cardState.deckId || '')) === DECK_KIND_CODEGAME;
+}
+
+function getCodegameGridSlotIndex(cardState) {
+  const rawSlotValue = cardState?.codegameGridSlot;
+  if (rawSlotValue === null || typeof rawSlotValue === 'undefined' || rawSlotValue === '') {
+    return -1;
+  }
+  const rawSlotIndex = Number(rawSlotValue);
+  if (!Number.isInteger(rawSlotIndex)) {
+    return -1;
+  }
+  if (rawSlotIndex < 0 || rawSlotIndex >= CODEGAME_GRID_SLOT_COUNT) {
+    return -1;
+  }
+  return rawSlotIndex;
+}
+
+function getCodegameEffectiveGridSlotIndex(cardId = '', cardState = null) {
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(String(cardId || '').trim());
+  if (!isCodegameCardState(resolvedCardState) || isCodegameKeyCardState(resolvedCardState)) {
+    return -1;
+  }
+  const directSlotIndex = getCodegameGridSlotIndex(resolvedCardState);
+  if (directSlotIndex >= 0) {
+    return directSlotIndex;
+  }
+  if (
+    resolvedCardState.inDeck ||
+    resolvedCardState.inDiscard ||
+    resolvedCardState.inAuction ||
+    Boolean(getCardHandOwnerId(resolvedCardState))
+  ) {
+    return -1;
+  }
+  const deckId = normalizeDeckId(resolvedCardState.deckId || '');
+  if (!deckId || getDeckKind(deckId) !== DECK_KIND_CODEGAME) {
+    return -1;
+  }
+  const cardX = Number(resolvedCardState.x);
+  const cardY = Number(resolvedCardState.y);
+  if (!Number.isFinite(cardX) || !Number.isFinite(cardY)) {
+    return -1;
+  }
+  const slotTarget = getCodegameGridSlotAtPosition(cardX, cardY, deckId);
+  if (!slotTarget || normalizeDeckId(slotTarget.deckId) !== deckId) {
+    return -1;
+  }
+  const normalizedCardId = String(cardId || '').trim();
+  if (normalizedCardId) {
+    const occupyingCardId = getCodegameCardIdForSlot(deckId, slotTarget.slotIndex, normalizedCardId);
+    if (occupyingCardId && occupyingCardId !== normalizedCardId) {
+      return -1;
+    }
+  }
+  return slotTarget.slotIndex;
+}
+
+function getCodegameCardSlotWorldCenter(cardId = '', cardState = null, options = {}) {
+  const resolvedCardState = cardState && typeof cardState === 'object'
+    ? cardState
+    : cards.get(String(cardId || '').trim());
+  if (!isCodegameCardState(resolvedCardState)) {
+    return null;
+  }
+  if (isCodegameKeyCardState(resolvedCardState)) {
+    return null;
+  }
+  if (resolvedCardState.inDeck || resolvedCardState.inDiscard || resolvedCardState.inAuction || getCardHandOwnerId(resolvedCardState)) {
+    return null;
+  }
+  const slotIndex = getCodegameGridSlotIndex(resolvedCardState);
+  if (slotIndex < 0) {
+    return null;
+  }
+  const targetDeckId = normalizeDeckId(resolvedCardState.deckId || '');
+  const targetDeckState = getDeckStateById(targetDeckId);
+  if (!targetDeckState) {
+    return null;
+  }
+  const requireActiveGrid = options.requireActiveGrid !== false;
+  if (requireActiveGrid && targetDeckState.codegameGridActive !== true) {
+    return null;
+  }
+  return getCodegameGridSlotWorldPosition(targetDeckId, slotIndex);
+}
+
+function getCodegameCardIdForSlot(deckId = activeDeckId, slotIndex = -1, excludedCardId = '') {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  const normalizedExcludedCardId = String(excludedCardId || '').trim();
+  const normalizedSlotIndex = Math.max(0, Math.floor(Number(slotIndex) || 0));
+  let matchedCardId = '';
+  let topZ = Number.NEGATIVE_INFINITY;
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isCodegameCardState(cardState)) {
+      continue;
+    }
+    if (normalizeDeckId(cardState.deckId || '') !== normalizedDeckId) {
+      continue;
+    }
+    if (normalizedExcludedCardId && cardId === normalizedExcludedCardId) {
+      continue;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    if (getCodegameGridSlotIndex(cardState) !== normalizedSlotIndex) {
+      continue;
+    }
+    const z = Number(cardState.z) || 0;
+    if (!matchedCardId || z >= topZ) {
+      matchedCardId = cardId;
+      topZ = z;
+    }
+  }
+  return matchedCardId;
+}
+
+function buildCodegameGridSlotOccupancyByDeck() {
+  const occupancyByDeck = new Map();
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isCodegameCardState(cardState) || isCodegameKeyCardState(cardState)) {
+      continue;
+    }
+    const normalizedDeckId = normalizeDeckId(cardState.deckId || '');
+    if (!normalizedDeckId) {
+      continue;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    const slotIndex = getCodegameGridSlotIndex(cardState);
+    if (slotIndex < 0 || slotIndex >= CODEGAME_GRID_SLOT_COUNT) {
+      continue;
+    }
+    let deckOccupancy = occupancyByDeck.get(normalizedDeckId);
+    if (!deckOccupancy) {
+      deckOccupancy = Array.from({ length: CODEGAME_GRID_SLOT_COUNT }, () => ({ cardId: '', z: Number.NEGATIVE_INFINITY }));
+      occupancyByDeck.set(normalizedDeckId, deckOccupancy);
+    }
+    const z = Number(cardState.z) || 0;
+    const existing = deckOccupancy[slotIndex];
+    if (!existing || !existing.cardId || z >= existing.z) {
+      deckOccupancy[slotIndex] = { cardId, z };
+    }
+  }
+  return occupancyByDeck;
+}
+
+function getCodegameCardIdForSlotFromOccupancy(occupancyByDeck, deckId = activeDeckId, slotIndex = -1) {
+  if (!(occupancyByDeck instanceof Map)) {
+    return '';
+  }
+  const normalizedDeckId = normalizeDeckId(deckId);
+  if (!normalizedDeckId) {
+    return '';
+  }
+  const normalizedSlotIndex = Math.max(0, Math.floor(Number(slotIndex) || 0));
+  if (normalizedSlotIndex >= CODEGAME_GRID_SLOT_COUNT) {
+    return '';
+  }
+  const deckOccupancy = occupancyByDeck.get(normalizedDeckId);
+  if (!Array.isArray(deckOccupancy)) {
+    return '';
+  }
+  const entry = deckOccupancy[normalizedSlotIndex];
+  return String(entry?.cardId || '').trim();
+}
+
+function getCodegameGridSlotAtPosition(x, y, preferredDeckId = '') {
+  const targetX = Number(x);
+  const targetY = Number(y);
+  if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+    return null;
+  }
+  const normalizedPreferredDeckId = normalizeDeckId(preferredDeckId);
+  const candidateDeckIds = normalizedPreferredDeckId
+    ? [normalizedPreferredDeckId, ...getDeckIdsInRoom().filter((deckId) => normalizeDeckId(deckId) !== normalizedPreferredDeckId)]
+    : getDeckIdsInRoom();
+  let bestMatch = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const candidateDeckId of candidateDeckIds) {
+    const normalizedDeckId = normalizeDeckId(candidateDeckId);
+    if (getDeckKind(normalizedDeckId) !== DECK_KIND_CODEGAME) {
+      continue;
+    }
+    const candidateDeckState = getDeckStateById(normalizedDeckId);
+    if (!candidateDeckState || candidateDeckState.codegameGridActive !== true) {
+      continue;
+    }
+    const gridCenter = getCodegameGridCenterPosition(normalizedDeckId);
+    const gridDimensions = getCodegameGridWorldDimensions();
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(gridCenter.x, gridCenter.y)) {
+      continue;
+    }
+    const insideGridBounds =
+      Math.abs(targetX - gridCenter.x) <= gridDimensions.width / 2 &&
+      Math.abs(targetY - gridCenter.y) <= gridDimensions.height / 2;
+    if (!insideGridBounds) {
+      continue;
+    }
+    for (let slotIndex = 0; slotIndex < CODEGAME_GRID_SLOT_COUNT; slotIndex += 1) {
+      const slotWorld = getCodegameGridSlotWorldPosition(normalizedDeckId, slotIndex);
+      const insideSlotBounds =
+        Math.abs(targetX - slotWorld.x) <= CODEGAME_CARD_SIZE / 2 &&
+        Math.abs(targetY - slotWorld.y) <= CODEGAME_CARD_SIZE / 2;
+      if (!insideSlotBounds) {
+        continue;
+      }
+      const distance = Math.hypot(targetX - slotWorld.x, targetY - slotWorld.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = {
+          deckId: normalizedDeckId,
+          slotIndex,
+          center: slotWorld
+        };
+      }
+    }
+  }
+  return bestMatch;
 }
 
 function normalizeDieType(type) {
@@ -5178,6 +6257,58 @@ function buildPokerDeck(options = {}) {
   return deck;
 }
 
+function buildCodegameDeck(options = {}) {
+  const {
+    instanceId = 'default',
+    deckId: requestedDeckId = '',
+    center: requestedCenter = getDeckCenterPosition(),
+    inDeck: startInDeck = true,
+    zStart = 1,
+    shuffle = true
+  } = options;
+  const deck = {};
+  const normalizedRequestedDeckId = normalizeDeckId(requestedDeckId);
+  const safeId = String(instanceId || 'default').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'default';
+  const cardIdPrefix = normalizedRequestedDeckId || (safeId === 'default' ? CODEGAME_DECK_KEY : `${CODEGAME_DECK_KEY}-${safeId}`);
+  const nextDeckId = normalizeDeckId(cardIdPrefix);
+  const center = {
+    x: clamp(Number(requestedCenter?.x) || WORLD_WIDTH / 2, CODEGAME_CARD_SIZE / 2, WORLD_WIDTH - CODEGAME_CARD_SIZE / 2),
+    y: clamp(Number(requestedCenter?.y) || WORLD_HEIGHT / 2, CODEGAME_CARD_SIZE / 2, WORLD_HEIGHT - CODEGAME_CARD_SIZE / 2)
+  };
+  const baseZ = Number.isFinite(Number(zStart)) ? Number(zStart) : 1;
+  const fronts = [...CODEGAME_FRONT_IMAGES];
+  if (shuffle) {
+    for (let index = fronts.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      const temp = fronts[index];
+      fronts[index] = fronts[swapIndex];
+      fronts[swapIndex] = temp;
+    }
+  }
+  for (let index = 0; index < fronts.length; index += 1) {
+    const frontSrc = fronts[index];
+    const cardId = `${cardIdPrefix}-${String(index + 1).padStart(3, '0')}`;
+    deck[cardId] = {
+      x: center.x,
+      y: center.y,
+      z: baseZ + index,
+      face: 'front',
+      frontSrc,
+      deckBackSrc: frontSrc,
+      deckId: nextDeckId,
+      inDeck: startInDeck,
+      inDiscard: false,
+      inAuction: false,
+      drawLifted: false,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null,
+      updatedAt: Date.now()
+    };
+  }
+  return deck;
+}
+
 function getMonsBoardTileFill(row, col) {
   const tileKey = `${row}-${col}`;
   const isCorner = (row === 0 || row === MONS_BOARD_SIZE - 1) && (col === 0 || col === MONS_BOARD_SIZE - 1);
@@ -5202,6 +6333,7 @@ function normalizeDeckPayload(payload, deckId = '') {
   const includeDiscard = payload?.includeDiscard !== false;
   const coverDrawings = payload?.coverDrawings === true;
   const kind = normalizeDeckKind(payload?.kind, deckId);
+  const codegameGridActive = kind === DECK_KIND_CODEGAME ? payload?.codegameGridActive === true : false;
   return {
     x: Number.isFinite(nextX) ? clamp(nextX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2) : WORLD_HEIGHT / 2,
@@ -5210,6 +6342,7 @@ function normalizeDeckPayload(payload, deckId = '') {
     includeDiscard,
     coverDrawings,
     kind,
+    codegameGridActive,
     updatedAt: Number.isFinite(nextUpdatedAt) ? Math.floor(nextUpdatedAt) : 0
   };
 }
@@ -6674,6 +7807,18 @@ function getAuctionCardCount(deckId = activeDeckId) {
   return getDeckMetricsEntry(deckId)?.inAuctionCount || 0;
 }
 
+function getDeckCardEntries(deckId = activeDeckId) {
+  const targetDeckId = normalizeDeckId(deckId);
+  const entries = [];
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!cardState || normalizeDeckId(cardState.deckId || '') !== targetDeckId) {
+      continue;
+    }
+    entries.push([cardId, cardState]);
+  }
+  return entries;
+}
+
 function toHighResFrontSrc(src) {
   if (typeof src !== 'string') {
     return COOL_JPEGS_FRONT_IMAGES[0];
@@ -6872,8 +8017,30 @@ function collectTopCardIdsByZ(cardIds, limit) {
   return topEntries.map((entry) => entry.cardId);
 }
 
+function shouldDeferHotDeckFrontPreload() {
+  return Boolean(
+    cardDragState ||
+    cardResizeState ||
+    cardRotateState ||
+    dieDragState ||
+    chipSetDragState ||
+    deckDragState ||
+    groupDragState ||
+    handReorderState ||
+    labelResizeState ||
+    labelRotateState ||
+    monsDragState ||
+    taflDragState ||
+    goDragState
+  );
+}
+
 function runHotDeckFrontPreload() {
   hotDeckFrontPreloadTimerId = 0;
+  if (shouldDeferHotDeckFrontPreload()) {
+    scheduleHotDeckFrontPreload();
+    return;
+  }
   if (cards.size === 0) {
     return;
   }
@@ -6921,6 +8088,14 @@ function preloadCoolJpegsFrontImages() {
     await preloadImageSources(COOL_JPEGS_FRONT_IMAGES, FRONT_IMAGE_PRELOAD_CONCURRENCY);
   })();
   return coolJpegsFrontPreloadPromise;
+}
+
+function preloadCodegameFrontImages() {
+  if (codegameFrontPreloadPromise) {
+    return codegameFrontPreloadPromise;
+  }
+  codegameFrontPreloadPromise = preloadImageSources(CODEGAME_FRONT_IMAGES, FRONT_IMAGE_PRELOAD_CONCURRENCY);
+  return codegameFrontPreloadPromise;
 }
 
 function getDeckTopZ(deckId = activeDeckId) {
@@ -7198,6 +8373,26 @@ function ensureDeckDropIndicators() {
   return true;
 }
 
+function setCodegamePlayButtonMode(playButton, mode = 'play') {
+  if (!(playButton instanceof HTMLElement)) {
+    return;
+  }
+  const nextMode = mode === 'shuffle' ? 'shuffle' : 'play';
+  if (playButton.dataset.codegameMode === nextMode) {
+    return;
+  }
+  playButton.dataset.codegameMode = nextMode;
+  if (nextMode === 'shuffle') {
+    playButton.setAttribute('aria-label', 'shuffle codegame board');
+    playButton.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 7C5.2 5.1 7.4 4 10 4C13.8 4 16.8 6.7 17.6 10.2M20 8V12H16M20 17C18.8 18.9 16.6 20 14 20C10.2 20 7.2 17.3 6.4 13.8M4 16V12H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return;
+  }
+  playButton.setAttribute('aria-label', 'play codegame');
+  playButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 6.5V17.5L17 12L8 6.5Z" fill="currentColor"/></svg>';
+}
+
 function removeDeckUi(deckId) {
   const normalizedDeckId = normalizeDeckId(deckId);
   const deckUi = deckUiById.get(normalizedDeckId);
@@ -7207,10 +8402,12 @@ function removeDeckUi(deckId) {
   for (const element of [
     deckUi.shuffleButton,
     deckUi.dealOneButton,
+    deckUi.playButton,
     deckUi.moveButton,
     deckUi.optionsButton,
     deckUi.discardResetButton,
     deckUi.deckSlot,
+    deckUi.codegameGridFrame,
     deckUi.discardSlot,
     deckUi.auctionSlot,
     deckUi.deckCountBadge
@@ -7230,6 +8427,7 @@ function hideDeckUi(deckUi) {
   for (const control of [
     deckUi.shuffleButton,
     deckUi.dealOneButton,
+    deckUi.playButton,
     deckUi.moveButton,
     deckUi.optionsButton,
     deckUi.discardResetButton
@@ -7240,6 +8438,7 @@ function hideDeckUi(deckUi) {
     control?.classList.remove('is-group-selected');
   }
   deckUi.deckSlot?.classList.add('hidden');
+  deckUi.codegameGridFrame?.classList.add('hidden');
   deckUi.discardSlot?.classList.add('hidden');
   deckUi.auctionSlot?.classList.add('hidden');
   deckUi.deckCountBadge?.classList.add('hidden');
@@ -7256,7 +8455,9 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   if (existingDeckUi) {
     if (
       existingDeckUi.shuffleButton?.isConnected &&
+      existingDeckUi.playButton?.isConnected &&
       existingDeckUi.deckSlot?.isConnected &&
+      existingDeckUi.codegameGridFrame?.isConnected &&
       existingDeckUi.discardSlot?.isConnected &&
       existingDeckUi.auctionSlot?.isConnected
     ) {
@@ -7320,6 +8521,26 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   shieldPointerEvents(dealOneButton);
   tableRoot.appendChild(dealOneButton);
 
+  const playButton = document.createElement('button');
+  playButton.type = 'button';
+  playButton.className = 'deck-control-button deck-play-button hidden';
+  playButton.dataset.stackScope = 'deck';
+  playButton.dataset.deckId = normalizedDeckId;
+  setCodegamePlayButtonMode(playButton, 'play');
+  playButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
+    handleCodegamePlayShuffle(normalizedDeckId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  });
+  shieldPointerEvents(playButton);
+  tableRoot.appendChild(playButton);
+
   const moveButton = document.createElement('button');
   moveButton.type = 'button';
   moveButton.className = 'deck-control-button deck-move-button hidden';
@@ -7329,7 +8550,12 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   moveButton.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   moveButton.addEventListener('pointerdown', (event) => {
-    onDeckMovePointerDown(event, normalizedDeckId);
+    handleDeckMovePointerDown(event, normalizedDeckId).catch((error) => {
+      console.error(error);
+    });
+  });
+  moveButton.addEventListener('mousedown', (event) => {
+    onDeckMoveMouseDown(event, normalizedDeckId);
   });
   shieldPointerEvents(moveButton);
   tableRoot.appendChild(moveButton);
@@ -7381,6 +8607,20 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   deckSlot.setAttribute('aria-hidden', 'true');
   stackVisualHost.appendChild(deckSlot);
 
+  const codegameGridFrame = document.createElement('div');
+  codegameGridFrame.className = 'codegame-grid-frame hidden';
+  codegameGridFrame.dataset.deckId = normalizedDeckId;
+  codegameGridFrame.setAttribute('aria-hidden', 'true');
+  const codegameGridSlots = [];
+  for (let slotIndex = 0; slotIndex < CODEGAME_GRID_SLOT_COUNT; slotIndex += 1) {
+    const slot = document.createElement('div');
+    slot.className = 'codegame-grid-slot';
+    slot.dataset.slotIndex = String(slotIndex);
+    codegameGridFrame.appendChild(slot);
+    codegameGridSlots.push(slot);
+  }
+  stackVisualHost.appendChild(codegameGridFrame);
+
   const discardSlot = document.createElement('div');
   discardSlot.className = 'discard-slot hidden';
   discardSlot.dataset.deckId = normalizedDeckId;
@@ -7416,10 +8656,13 @@ function ensureDeckControlElements(deckId = activeDeckId) {
     deckId: normalizedDeckId,
     shuffleButton,
     dealOneButton,
+    playButton,
     moveButton,
     optionsButton,
     discardResetButton,
     deckSlot,
+    codegameGridFrame,
+    codegameGridSlots,
     discardSlot,
     discardLabel,
     auctionSlot,
@@ -7752,18 +8995,20 @@ function renderDeckControls(precomputedMetrics = null) {
       ? precomputedMetrics
       : buildDeckCardMetrics();
   const { deckIds, metricsByDeck } = deckCardMetrics;
+  const hasAnyCodegameGridDeck = deckIds.some((deckId) => {
+    if (getDeckKind(deckId) !== DECK_KIND_CODEGAME) {
+      return false;
+    }
+    const deckState = getDeckStateById(deckId);
+    return deckState?.codegameGridActive === true;
+  });
+  const codegameSlotOccupancyByDeck = hasAnyCodegameGridDeck ? buildCodegameGridSlotOccupancyByDeck() : null;
   const renderedDeckIds = new Set();
   let hasVisibleDeck = false;
   let deckSelectionChanged = false;
   const controlSize = DECK_CONTROL_SIZE;
   const controlGap = DECK_CONTROL_GAP;
   const dealTargetCount = getActivePlayerTokensForDeal().length;
-  const cardScreenWidth = snapToDevicePixel(CARD_WIDTH * camera.scale);
-  const cardScreenHeight = (cardScreenWidth * CARD_HEIGHT) / CARD_WIDTH;
-  const auctionSlotScreenWidth = snapToDevicePixel((CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) * camera.scale);
-  const auctionSlotScreenHeight = snapToDevicePixel((CARD_HEIGHT + AUCTION_SLOT_EXTRA_SIZE) * camera.scale);
-  const auctionCardScreenHeight = snapToDevicePixel(CARD_HEIGHT * AUCTION_CARD_SCALE * camera.scale);
-  const auctionIconOccupiedSize = snapToDevicePixel(controlSize * 0.82, 14);
   const controlsXOffset = controlSize + controlGap;
   let handDropIndicatorScreen = null;
   if (handReorderState?.releaseToTable) {
@@ -7787,12 +9032,27 @@ function renderDeckControls(precomputedMetrics = null) {
 
   for (const deckId of deckIds) {
     const targetDeckState = getDeckStateById(deckId);
+    const isCodegameDeck = getDeckKind(deckId) === DECK_KIND_CODEGAME;
+    const codegameGridDimensions = isCodegameDeck ? getCodegameGridWorldDimensions() : null;
+    const codegameGridWorldCenter = isCodegameDeck ? getCodegameGridCenterPosition(deckId) : null;
+    const deckDimensions = getDeckBaseCardDimensions(deckId);
+    const cardScreenWidth = snapToDevicePixel(deckDimensions.width * camera.scale);
+    const cardScreenHeight = snapToDevicePixel(deckDimensions.height * camera.scale);
+    const auctionSlotScreenWidth = snapToDevicePixel((deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE) * camera.scale);
+    const auctionSlotScreenHeight = snapToDevicePixel((deckDimensions.height + AUCTION_SLOT_EXTRA_SIZE) * camera.scale);
+    const auctionCardScreenHeight = snapToDevicePixel(deckDimensions.height * AUCTION_CARD_SCALE * camera.scale);
+    const auctionIconOccupiedSize = snapToDevicePixel(controlSize * 0.82, 14);
     const supportsAuction = deckSupportsAuction(deckId);
+    const supportsShuffle = deckSupportsShuffle(deckId);
+    const supportsDealOne = deckSupportsDealOne(deckId);
+    const showsPlayButton = deckShowsPlayButton(deckId);
+    const showsCountBadge = deckShowsCountBadge(deckId);
     const discardEnabled = isDeckDiscardEnabled(deckId);
     const deckMetrics = metricsByDeck.get(deckId) || EMPTY_DECK_CARD_METRICS;
     const inDeckCount = deckMetrics.inDeckCount;
     const inDiscardCount = deckMetrics.inDiscardCount;
     const inAuctionCount = deckMetrics.inAuctionCount;
+    const codegameGridActive = isCodegameDeck && targetDeckState?.codegameGridActive === true;
     if (!targetDeckState) {
       const staleDeckUi = deckUiById.get(deckId);
       if (staleDeckUi) {
@@ -7818,10 +9078,15 @@ function renderDeckControls(precomputedMetrics = null) {
       continue;
     }
     hasVisibleDeck = true;
-    const deckWorldWidth = supportsAuction
-      ? Math.abs(AUCTION_STACK_OFFSET_X) + CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
-      : CARD_WIDTH + DECK_CONTROL_SIZE * 2.6;
-    const deckWorldHeight = CARD_HEIGHT + DECK_CONTROL_SIZE * 3.2;
+    let deckWorldWidth = supportsAuction
+      ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
+      : deckDimensions.width + DECK_CONTROL_SIZE * 2.6;
+    if (codegameGridActive && codegameGridDimensions) {
+      deckWorldWidth = Math.max(deckWorldWidth, codegameGridDimensions.width);
+    }
+    const deckWorldHeight = codegameGridActive && codegameGridDimensions
+      ? deckDimensions.height + DECK_CONTROL_SIZE * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
+      : deckDimensions.height + DECK_CONTROL_SIZE * 3.2;
     const deckVisible = isWorldRectLikelyVisible(
       targetDeckState.x,
       targetDeckState.y,
@@ -7857,20 +9122,77 @@ function renderDeckControls(precomputedMetrics = null) {
       deckUi.deckSlot.classList.remove('is-hovered');
     }
 
-    deckUi.shuffleButton.classList.remove('hidden');
-    setElementStylePx(deckUi.shuffleButton, 'left', deckScreen.x - controlsXOffset);
-    setElementStylePx(deckUi.shuffleButton, 'top', controlsY);
-    setElementStylePx(deckUi.shuffleButton, 'width', controlSize);
-    setElementStylePx(deckUi.shuffleButton, 'height', controlSize);
+    if (supportsShuffle) {
+      deckUi.shuffleButton.classList.remove('hidden');
+      setElementStylePx(deckUi.shuffleButton, 'left', deckScreen.x - controlsXOffset);
+      setElementStylePx(deckUi.shuffleButton, 'top', controlsY);
+      setElementStylePx(deckUi.shuffleButton, 'width', controlSize);
+      setElementStylePx(deckUi.shuffleButton, 'height', controlSize);
+    } else {
+      deckUi.shuffleButton.classList.add('hidden');
+      deckUi.shuffleButton.classList.remove('is-pressing');
+    }
 
-    const canDealToAllPlayers = dealTargetCount > 0 && inDeckCount >= dealTargetCount;
-    deckUi.dealOneButton.classList.remove('hidden');
-    setElementStylePx(deckUi.dealOneButton, 'left', deckScreen.x + controlsXOffset);
-    setElementStylePx(deckUi.dealOneButton, 'top', controlsY);
-    setElementStylePx(deckUi.dealOneButton, 'width', controlSize);
-    setElementStylePx(deckUi.dealOneButton, 'height', controlSize);
-    deckUi.dealOneButton.disabled = !canDealToAllPlayers;
-    deckUi.dealOneButton.classList.toggle('is-disabled', !canDealToAllPlayers);
+    if (supportsDealOne) {
+      const canDealToAllPlayers = dealTargetCount > 0 && inDeckCount >= dealTargetCount;
+      deckUi.dealOneButton.classList.remove('hidden');
+      setElementStylePx(deckUi.dealOneButton, 'left', deckScreen.x + controlsXOffset);
+      setElementStylePx(deckUi.dealOneButton, 'top', controlsY);
+      setElementStylePx(deckUi.dealOneButton, 'width', controlSize);
+      setElementStylePx(deckUi.dealOneButton, 'height', controlSize);
+      deckUi.dealOneButton.disabled = !canDealToAllPlayers;
+      deckUi.dealOneButton.classList.toggle('is-disabled', !canDealToAllPlayers);
+    } else {
+      deckUi.dealOneButton.classList.add('hidden');
+      deckUi.dealOneButton.disabled = false;
+      deckUi.dealOneButton.classList.remove('is-disabled');
+    }
+
+    if (showsPlayButton) {
+      deckUi.playButton.classList.remove('hidden');
+      setCodegamePlayButtonMode(deckUi.playButton, codegameGridActive ? 'shuffle' : 'play');
+      setElementStylePx(deckUi.playButton, 'left', deckScreen.x);
+      setElementStylePx(deckUi.playButton, 'top', controlsY);
+      setElementStylePx(deckUi.playButton, 'width', controlSize);
+      setElementStylePx(deckUi.playButton, 'height', controlSize);
+    } else {
+      deckUi.playButton.classList.add('hidden');
+    }
+
+    if (isCodegameDeck && codegameGridDimensions && codegameGridWorldCenter) {
+      const codegameGridScreen = worldToScreen(codegameGridWorldCenter);
+      deckUi.codegameGridFrame.classList.toggle('hidden', !codegameGridActive);
+      if (codegameGridActive) {
+        const codegameGridScreenWidth = snapToDevicePixel(codegameGridDimensions.width * camera.scale);
+        const codegameGridScreenHeight = snapToDevicePixel(codegameGridDimensions.height * camera.scale);
+        setElementStylePx(deckUi.codegameGridFrame, 'left', codegameGridScreen.x);
+        setElementStylePx(deckUi.codegameGridFrame, 'top', codegameGridScreen.y);
+        setElementStylePx(deckUi.codegameGridFrame, 'width', codegameGridScreenWidth);
+        setElementStylePx(deckUi.codegameGridFrame, 'height', codegameGridScreenHeight);
+        if (Array.isArray(deckUi.codegameGridSlots) && deckUi.codegameGridSlots.length === CODEGAME_GRID_SLOT_COUNT) {
+          for (let slotIndex = 0; slotIndex < deckUi.codegameGridSlots.length; slotIndex += 1) {
+            const slotElement = deckUi.codegameGridSlots[slotIndex];
+            if (!(slotElement instanceof HTMLElement)) {
+              continue;
+            }
+            const slotWorld = getCodegameGridSlotWorldPosition(deckId, slotIndex);
+            const slotScreen = worldToScreen(slotWorld);
+            setElementStylePx(slotElement, 'left', slotScreen.x - codegameGridScreen.x + codegameGridScreenWidth / 2);
+            setElementStylePx(slotElement, 'top', slotScreen.y - codegameGridScreen.y + codegameGridScreenHeight / 2);
+            setElementStylePx(slotElement, 'width', cardScreenWidth);
+            setElementStylePx(slotElement, 'height', cardScreenHeight);
+            const occupiedCardId = getCodegameCardIdForSlotFromOccupancy(
+              codegameSlotOccupancyByDeck,
+              deckId,
+              slotIndex
+            );
+            slotElement.classList.toggle('is-occupied', Boolean(occupiedCardId));
+          }
+        }
+      }
+    } else {
+      deckUi.codegameGridFrame.classList.add('hidden');
+    }
 
     const moveControlX = supportsAuction
       ? auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15
@@ -7949,10 +9271,14 @@ function renderDeckControls(precomputedMetrics = null) {
       deckUi.auctionLabel.classList.add('hidden');
     }
 
-    deckUi.deckCountBadge.classList.remove('hidden');
-    setElementStylePx(deckUi.deckCountBadge, 'left', deckScreen.x);
-    setElementStylePx(deckUi.deckCountBadge, 'top', controlsY);
-    deckUi.deckCountBadge.textContent = String(inDeckCount);
+    if (showsCountBadge) {
+      deckUi.deckCountBadge.classList.remove('hidden');
+      setElementStylePx(deckUi.deckCountBadge, 'left', deckScreen.x);
+      setElementStylePx(deckUi.deckCountBadge, 'top', controlsY);
+      deckUi.deckCountBadge.textContent = String(inDeckCount);
+    } else {
+      deckUi.deckCountBadge.classList.add('hidden');
+    }
   }
 
   for (const existingDeckId of Array.from(deckUiById.keys())) {
@@ -7977,14 +9303,14 @@ function renderDeckControls(precomputedMetrics = null) {
   }
 
   const isHandAnchoredDropIndicator = Boolean(handDropIndicatorScreen && handReorderState?.releaseToTable);
-  const dropIndicatorOffsetY = isHandAnchoredDropIndicator ? 0 : cardScreenHeight / 2 + DECK_DROP_INDICATOR_OFFSET_Y;
 
-  const applyDropIndicator = (indicator, visible, targetScreen) => {
+  const applyDropIndicator = (indicator, visible, targetScreen, offsetY) => {
     if (!indicator || !visible || !targetScreen || !hasVisibleDeck) {
       indicator?.classList.add('hidden');
       indicator?.classList.remove('is-visible');
       return;
     }
+    const dropIndicatorOffsetY = isHandAnchoredDropIndicator ? 0 : offsetY;
     const screen = isHandAnchoredDropIndicator && handDropIndicatorScreen ? handDropIndicatorScreen : targetScreen;
     setElementStylePx(indicator, 'left', screen.x);
     setElementStylePx(indicator, 'top', screen.y - dropIndicatorOffsetY);
@@ -7996,16 +9322,44 @@ function renderDeckControls(precomputedMetrics = null) {
   const deckDropTargetScreen = deckDropTargetState
     ? worldToScreen({ x: deckDropTargetState.x, y: deckDropTargetState.y })
     : null;
+  const deckDropTargetDimensions = deckDropIndicatorDeckId ? getDeckBaseCardDimensions(deckDropIndicatorDeckId) : null;
+  const deckDropIndicatorOffsetY = deckDropTargetDimensions
+    ? snapToDevicePixel(deckDropTargetDimensions.height * camera.scale) / 2 + DECK_DROP_INDICATOR_OFFSET_Y
+    : DECK_DROP_INDICATOR_OFFSET_Y;
   const discardDropTargetScreen = discardDropIndicatorDeckId && isDeckDiscardEnabled(discardDropIndicatorDeckId)
     ? worldToScreen(getDiscardCenterPosition(discardDropIndicatorDeckId))
     : null;
+  const discardDropTargetDimensions =
+    discardDropIndicatorDeckId && isDeckDiscardEnabled(discardDropIndicatorDeckId)
+      ? getDeckBaseCardDimensions(discardDropIndicatorDeckId)
+      : null;
+  const discardDropIndicatorOffsetY = discardDropTargetDimensions
+    ? snapToDevicePixel(discardDropTargetDimensions.height * camera.scale) / 2 + DECK_DROP_INDICATOR_OFFSET_Y
+    : DECK_DROP_INDICATOR_OFFSET_Y;
   const auctionDropTargetScreen = auctionDropIndicatorDeckId && deckSupportsAuction(auctionDropIndicatorDeckId)
     ? worldToScreen(getAuctionCenterPosition(auctionDropIndicatorDeckId))
     : null;
+  const auctionDropTargetDimensions =
+    auctionDropIndicatorDeckId && deckSupportsAuction(auctionDropIndicatorDeckId)
+      ? getDeckBaseCardDimensions(auctionDropIndicatorDeckId)
+      : null;
+  const auctionDropIndicatorOffsetY = auctionDropTargetDimensions
+    ? (snapToDevicePixel((auctionDropTargetDimensions.height + AUCTION_SLOT_EXTRA_SIZE) * camera.scale) / 2) + DECK_DROP_INDICATOR_OFFSET_Y
+    : DECK_DROP_INDICATOR_OFFSET_Y;
 
-  applyDropIndicator(deckDropIndicator, deckDropIndicatorVisible, deckDropTargetScreen);
-  applyDropIndicator(discardDropIndicator, discardDropIndicatorVisible, discardDropTargetScreen);
-  applyDropIndicator(auctionDropIndicator, auctionDropIndicatorVisible, auctionDropTargetScreen);
+  applyDropIndicator(deckDropIndicator, deckDropIndicatorVisible, deckDropTargetScreen, deckDropIndicatorOffsetY);
+  applyDropIndicator(
+    discardDropIndicator,
+    discardDropIndicatorVisible,
+    discardDropTargetScreen,
+    discardDropIndicatorOffsetY
+  );
+  applyDropIndicator(
+    auctionDropIndicator,
+    auctionDropIndicatorVisible,
+    auctionDropTargetScreen,
+    auctionDropIndicatorOffsetY
+  );
 
   if (deckShuffleFxActive) {
     const shuffleDeckId = normalizeDeckId(deckShuffleFxDeckId || activeDeckId);
@@ -8013,7 +9367,10 @@ function renderDeckControls(precomputedMetrics = null) {
     const shuffleDeckMetrics = metricsByDeck.get(shuffleDeckId);
     if (shuffleDeckState && shuffleDeckMetrics && shuffleDeckMetrics.inDeckCount > 0) {
       const shuffleDeckScreen = worldToScreen({ x: shuffleDeckState.x, y: shuffleDeckState.y });
-      renderDeckShuffleFx(shuffleDeckId, shuffleDeckScreen, cardScreenWidth, cardScreenHeight);
+      const shuffleDeckDimensions = getDeckBaseCardDimensions(shuffleDeckId);
+      const shuffleCardScreenWidth = snapToDevicePixel(shuffleDeckDimensions.width * camera.scale);
+      const shuffleCardScreenHeight = snapToDevicePixel(shuffleDeckDimensions.height * camera.scale);
+      renderDeckShuffleFx(shuffleDeckId, shuffleDeckScreen, shuffleCardScreenWidth, shuffleCardScreenHeight);
     } else {
       setDeckShuffleFxActive(false);
     }
@@ -14299,6 +15656,9 @@ function isCardFlippable(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return false;
   }
+  if (getDeckKind(normalizeDeckId(cardState.deckId || '')) === DECK_KIND_CODEGAME && cardState.codegameKeyCard !== true) {
+    return false;
+  }
   if (isStickerComponentCard(cardState)) {
     return false;
   }
@@ -14544,24 +15904,32 @@ function isWorldPointHiddenBySecretAreaForLocalViewer(worldX, worldY, options = 
   return false;
 }
 
-function getCardWorldCenter(cardState) {
-  if (!cardState || typeof cardState !== 'object') {
+function getCardWorldCenter(cardId, cardState = null) {
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(String(cardId || '').trim());
+  if (!resolvedCardState || typeof resolvedCardState !== 'object') {
     return null;
   }
-  const deckId = normalizeDeckId(cardState.deckId || activeDeckId || DECK_KEY);
+  const codegameSlotCenter = getCodegameCardSlotWorldCenter(cardId, resolvedCardState);
+  if (codegameSlotCenter) {
+    return codegameSlotCenter;
+  }
+  const deckId = normalizeDeckId(resolvedCardState.deckId || activeDeckId || DECK_KEY);
   const targetDeckState = getDeckStateById(deckId);
-  if (cardState.inDeck && targetDeckState) {
+  if (resolvedCardState.inDeck && targetDeckState) {
     return { x: targetDeckState.x, y: targetDeckState.y };
   }
-  if (cardState.inDiscard && targetDeckState) {
+  if (resolvedCardState.inDiscard && targetDeckState) {
     return getDiscardCenterPosition(deckId);
   }
-  if (cardState.inAuction && targetDeckState) {
+  if (resolvedCardState.inAuction && targetDeckState) {
     return getAuctionCenterPosition(deckId);
   }
   return {
-    x: Number(cardState.x) || WORLD_WIDTH / 2,
-    y: Number(cardState.y) || WORLD_HEIGHT / 2
+    x: Number(resolvedCardState.x) || WORLD_WIDTH / 2,
+    y: Number(resolvedCardState.y) || WORLD_HEIGHT / 2
   };
 }
 
@@ -14569,7 +15937,7 @@ function isCardHiddenBySecretAreaForLocalViewer(cardId, cardState) {
   if (!cardState || isSecretAreaComponentCard(cardState)) {
     return false;
   }
-  const worldCenter = getCardWorldCenter(cardState);
+  const worldCenter = getCardWorldCenter(cardId, cardState);
   if (!worldCenter) {
     return false;
   }
@@ -14948,6 +16316,10 @@ function getCardTableDimensions(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
   }
+  const deckKind = getDeckKind(normalizeDeckId(cardState.deckId || ''));
+  if (!isVisualImageComponentCard(cardState) && deckKind === DECK_KIND_CODEGAME) {
+    return { width: CODEGAME_CARD_SIZE, height: CODEGAME_CARD_SIZE };
+  }
   if (isNoteComponentCard(cardState)) {
     return clampNoteComponentSize(cardState.componentWidth, cardState.componentHeight);
   }
@@ -15048,6 +16420,19 @@ function normalizeCardPayload(payload, cardId = '') {
   const explicitDeckId = normalizeOptionalDeckId(payload?.deckId);
   const inferredDeckId = componentType ? '' : inferDeckIdFromCardId(cardId);
   const deckId = normalizeDeckId(inferredDeckId || explicitDeckId || DECK_KEY);
+  const codegameKeyCard = payload?.codegameKeyCard === true;
+  const codegameKeyBlueIndices = codegameKeyCard
+    ? normalizeCodegameKeyIndexList(payload?.codegameKeyBlueIndices, CODEGAME_KEY_BLUE_COUNT)
+    : [];
+  const codegameKeyRedIndices = codegameKeyCard
+    ? normalizeCodegameKeyIndexList(payload?.codegameKeyRedIndices, CODEGAME_KEY_RED_COUNT)
+    : [];
+  const rawCodegameKeyAssassinIndex = Number(payload?.codegameKeyAssassinIndex);
+  const codegameKeyAssassinIndex = codegameKeyCard && Number.isInteger(rawCodegameKeyAssassinIndex)
+    ? clamp(rawCodegameKeyAssassinIndex, 0, CODEGAME_KEY_TOTAL_CELLS - 1)
+    : -1;
+  const codegameKeyAnchored = codegameKeyCard && payload?.codegameKeyAnchored === true;
+  const codegameKeyMoved = codegameKeyCard && payload?.codegameKeyMoved === true;
   const componentFrontBlank = isImageComponent && !isNoteComponent ? payload?.componentFrontBlank === true : false;
   const componentBackBlank = isImageComponent && !isNoteComponent ? payload?.componentBackBlank === true : false;
   const componentTwoSided = isImageComponent
@@ -15097,6 +16482,47 @@ function normalizeCardPayload(payload, cardId = '') {
   const inDeck = Boolean(payload?.inDeck);
   const inDiscard = Boolean(payload?.inDiscard);
   const inAuction = Boolean(payload?.inAuction);
+  const rawCodegameGridSlotValue = payload?.codegameGridSlot;
+  const rawCodegameGridSlot =
+    rawCodegameGridSlotValue === null ||
+    typeof rawCodegameGridSlotValue === 'undefined' ||
+    rawCodegameGridSlotValue === ''
+      ? NaN
+      : Number(rawCodegameGridSlotValue);
+  const hasHandOwner = Boolean(handOwnerClientId || handOwnerPlayerToken);
+  const codegameGridSlot =
+    inDeck || inDiscard || inAuction || hasHandOwner
+      ? -1
+      : Number.isInteger(rawCodegameGridSlot)
+        ? Math.max(-1, rawCodegameGridSlot)
+        : -1;
+  const rawCodegameMarkedType = normalizeCodegameMarkedType(payload?.codegameMarkedType || '');
+  const rawCodegameMarkedSlotValue = payload?.codegameMarkedSlot;
+  const rawCodegameMarkedSlot =
+    rawCodegameMarkedSlotValue === null ||
+    typeof rawCodegameMarkedSlotValue === 'undefined' ||
+    rawCodegameMarkedSlotValue === ''
+      ? NaN
+      : Number(rawCodegameMarkedSlotValue);
+  const canApplyCodegameMark =
+    getDeckKind(deckId) === DECK_KIND_CODEGAME &&
+    !codegameKeyCard &&
+    !inDeck &&
+    !inDiscard &&
+    !inAuction &&
+    !hasHandOwner;
+  const parsedCodegameMarkedSlot =
+    canApplyCodegameMark &&
+    Number.isInteger(rawCodegameMarkedSlot)
+      ? clamp(rawCodegameMarkedSlot, 0, CODEGAME_GRID_SLOT_COUNT - 1)
+      : -1;
+  const hasCodegameMark = parsedCodegameMarkedSlot >= 0 && Boolean(rawCodegameMarkedType);
+  const codegameMarkedType = hasCodegameMark ? rawCodegameMarkedType : '';
+  const codegameMarkedSlot = hasCodegameMark ? parsedCodegameMarkedSlot : -1;
+  const codegameTinted = canApplyCodegameMark && payload?.codegameTinted === true;
+  const codegameRevealColor = canApplyCodegameMark
+    ? normalizeCodegameMarkedType(payload?.codegameRevealColor || '')
+    : '';
   const face = inAuction || isStickerComponent || (isImageComponent && !componentTwoSided)
     ? 'front'
     : payload?.face === 'front'
@@ -15139,6 +16565,17 @@ function normalizeCardPayload(payload, cardId = '') {
     inDeck,
     inDiscard,
     inAuction,
+    codegameGridSlot,
+    codegameTinted,
+    codegameRevealColor,
+    codegameMarkedType,
+    codegameMarkedSlot,
+    codegameKeyCard,
+    codegameKeyBlueIndices,
+    codegameKeyRedIndices,
+    codegameKeyAssassinIndex,
+    codegameKeyAnchored,
+    codegameKeyMoved,
     drawLifted,
     updatedAt: Number.isFinite(nextUpdatedAt) ? Math.floor(nextUpdatedAt) : 0,
     holderClientId,
@@ -17879,6 +19316,9 @@ function renderAllDice(options = {}) {
 }
 
 function renderStackPointCountBadges() {
+  if (stackPointBadgeRenderRafId) {
+    stackPointBadgeRenderRafId = 0;
+  }
   for (const [dieId, die] of diceElements.entries()) {
     const stackPointCountBadge =
       die?._stackPointCountBadge instanceof HTMLElement ? die._stackPointCountBadge : die?.querySelector?.('.table-stack-point-count');
@@ -17914,6 +19354,24 @@ function renderStackPointCountBadges() {
       }
     }
   }
+}
+
+function cancelScheduledStackPointCountBadgesRender() {
+  if (!stackPointBadgeRenderRafId) {
+    return;
+  }
+  window.cancelAnimationFrame(stackPointBadgeRenderRafId);
+  stackPointBadgeRenderRafId = 0;
+}
+
+function scheduleStackPointCountBadgesRender() {
+  if (stackPointBadgeRenderRafId) {
+    return;
+  }
+  stackPointBadgeRenderRafId = window.requestAnimationFrame(() => {
+    stackPointBadgeRenderRafId = 0;
+    renderStackPointCountBadges();
+  });
 }
 
 function getActiveNoteEditState() {
@@ -18005,6 +19463,24 @@ function ensureCardElement(cardId) {
     });
     card.appendChild(image);
     card._cardImage = image;
+
+    const codegameKeyOverlay = document.createElement('div');
+    codegameKeyOverlay.className = 'table-card-codegame-key-overlay';
+    codegameKeyOverlay.setAttribute('aria-hidden', 'true');
+    card.appendChild(codegameKeyOverlay);
+    card._cardCodegameKeyOverlay = codegameKeyOverlay;
+
+    const codegameMarkFill = document.createElement('div');
+    codegameMarkFill.className = 'table-card-codegame-mark-fill';
+    codegameMarkFill.setAttribute('aria-hidden', 'true');
+    card.appendChild(codegameMarkFill);
+    card._cardCodegameMarkFill = codegameMarkFill;
+
+    const codegameDebug = document.createElement('div');
+    codegameDebug.className = 'table-card-codegame-debug hidden';
+    codegameDebug.setAttribute('aria-hidden', 'true');
+    card.appendChild(codegameDebug);
+    card._cardCodegameDebug = codegameDebug;
 
     const noteInlineText = document.createElement('textarea');
     noteInlineText.className = 'table-note-inline-text';
@@ -18360,6 +19836,24 @@ function setHandDropGlow(visible) {
   handDropGlow.classList.toggle('is-visible', nextVisible);
 }
 
+function clearHandDropPreviewClearTimer() {
+  if (!handDropPreviewClearTimerId) {
+    return;
+  }
+  window.clearTimeout(handDropPreviewClearTimerId);
+  handDropPreviewClearTimerId = 0;
+}
+
+function scheduleHandDropPreviewClear() {
+  if (handDropPreviewClearTimerId || !handDropPreview) {
+    return;
+  }
+  handDropPreviewClearTimerId = window.setTimeout(() => {
+    handDropPreviewClearTimerId = 0;
+    setHandDropPreview(null);
+  }, HAND_DROP_PREVIEW_CLEAR_DELAY_MS);
+}
+
 function isClientInHandDropRegion(clientY) {
   if (!tableRoot) {
     return false;
@@ -18370,6 +19864,22 @@ function isClientInHandDropRegion(clientY) {
   }
   const screenY = clientY - rect.top;
   return screenY >= rect.height - HAND_DROP_REGION_HEIGHT;
+}
+
+function isClientInHandDropRegionSticky(clientY, cardId = '') {
+  if (isClientInHandDropRegion(clientY)) {
+    return true;
+  }
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId || handDropPreview?.cardId !== normalizedCardId || !tableRoot) {
+    return false;
+  }
+  const rect = tableRoot.getBoundingClientRect();
+  if (!rect.height) {
+    return false;
+  }
+  const screenY = clientY - rect.top;
+  return screenY >= rect.height - HAND_DROP_REGION_HEIGHT - HAND_DROP_REGION_STICKY_BUFFER_PX;
 }
 
 function getHandFanLayout(handSize, trayWidth) {
@@ -18400,12 +19910,15 @@ function getHandInsertIndex(clientX, handSize, trayWidth) {
 
 function getHandCardDisplayDimensions(cardState) {
   const width = HAND_CARD_WIDTH;
-  const isNoteCard = isNoteComponentCard(cardState);
-  const height = isNoteCard ? HAND_CARD_WIDTH : HAND_CARD_HEIGHT;
+  const tableDimensions = getCardTableDimensions(cardState);
+  const tableWidth = Math.max(1, Number(tableDimensions?.width) || CARD_WIDTH);
+  const tableHeight = Math.max(1, Number(tableDimensions?.height) || CARD_HEIGHT);
+  const aspectRatio = clamp(tableHeight / tableWidth, 0.55, 1.8);
+  const height = Math.round(width * aspectRatio);
   return {
     width,
     height,
-    baseBottomOffset: isNoteCard ? -Math.round(height * 0.52) : HAND_CARD_BASE_BOTTOM_OFFSET
+    baseBottomOffset: -Math.round(height * 0.52)
   };
 }
 
@@ -18628,7 +20141,7 @@ function renderLocalHandCards() {
   let previewCardId = null;
   if (handDropPreview?.cardId && cards.has(handDropPreview.cardId) && !localHandIds.includes(handDropPreview.cardId)) {
     const previewCardState = cards.get(handDropPreview.cardId);
-    if (previewCardState && !getCardHandOwnerId(previewCardState) && previewCardState.holderClientId === localClientId) {
+    if (previewCardState && !getCardHandOwnerId(previewCardState)) {
       previewCardId = handDropPreview.cardId;
       const previewIndex = getHandInsertIndex(handDropPreview.clientX, localHandIds.length + 1, trayWidth);
       localHandIds.splice(previewIndex, 0, previewCardId);
@@ -18780,7 +20293,7 @@ function renderLocalHandCards() {
     if (isStickerNativeHandCard) {
       image.style.imageRendering = isAlwaysSmoothStickerCard(cardState)
         ? 'auto'
-        : getStickerImageRenderingMode(HAND_CARD_WIDTH, HAND_CARD_HEIGHT);
+        : getStickerImageRenderingMode(handDimensions.width, handDimensions.height);
     } else {
       image.style.removeProperty('image-rendering');
     }
@@ -18901,13 +20414,17 @@ function buildCardRenderLogicKey(cardId, cardState) {
     resizingImageCardId === cardId ? '1' : '0',
     rotatingStickerCardId === cardId ? '1' : '0',
     cardState?.drawLifted === true ? '1' : '0',
+    cardState?.codegameTinted === true ? '1' : '0',
+    cardState?.codegameRevealColor || '',
+    cardState?.codegameMarkedType || '',
+    Number.isInteger(Number(cardState?.codegameMarkedSlot)) ? Number(cardState.codegameMarkedSlot) : -1,
     activeNoteEditToken
   ].join('|');
 }
 
 function renderCardElement(cardId, options = {}) {
   const cameraOnly = options?.cameraOnly === true;
-  const cardState = cards.get(cardId);
+  let cardState = cards.get(cardId);
   if (!cardState) {
     removeHandCardElement(cardId);
     removeTableCardElement(cardId);
@@ -18940,7 +20457,15 @@ function renderCardElement(cardId, options = {}) {
     return;
   }
 
-  removeHandCardElement(cardId);
+  const previewHandCardElement = handCardElements.get(cardId);
+  const hasActiveHandPreviewForCard =
+    handDropPreview?.cardId === cardId &&
+    previewHandCardElement instanceof HTMLElement &&
+    previewHandCardElement.classList.contains('is-preview') &&
+    Boolean(handTray && !handTray.classList.contains('hidden'));
+  if (!hasActiveHandPreviewForCard) {
+    removeHandCardElement(cardId);
+  }
 
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
@@ -18948,15 +20473,60 @@ function renderCardElement(cardId, options = {}) {
   const isSelected = selectedCardIds.has(cardId);
   const isHeld = Boolean(cardState.holderClientId);
   const isNoteComponent = isNoteComponentCard(cardState);
+  const isCodegameCard = isCodegameCardState(cardState);
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
   const baseCardSize = getCardTableDimensions(cardState);
-  const cardWorldX = cardState.inDeck && cardDeckState ? cardDeckState.x : discardCenter ? discardCenter.x : auctionCenter ? auctionCenter.x : cardState.x;
-  const cardWorldY = cardState.inDeck && cardDeckState ? cardDeckState.y : discardCenter ? discardCenter.y : auctionCenter ? auctionCenter.y : cardState.y;
+  const codegameSlotCenter = isCodegameCard ? getCodegameCardSlotWorldCenter(cardId, cardState) : null;
+  const codegameKeyAnchorCenter =
+    isCodegameCard && !codegameSlotCenter ? getCodegameKeyCardWorldCenter(cardId, cardState) : null;
+  const anchoredCodegameCenter = codegameSlotCenter || codegameKeyAnchorCenter;
+  if (
+    anchoredCodegameCenter &&
+    (Math.abs((Number(cardState.x) || 0) - anchoredCodegameCenter.x) > 0.01 ||
+      Math.abs((Number(cardState.y) || 0) - anchoredCodegameCenter.y) > 0.01)
+  ) {
+    cardState = { ...cardState, x: anchoredCodegameCenter.x, y: anchoredCodegameCenter.y };
+    cards.set(cardId, cardState);
+  }
+  const cardWorldX = cardState.inDeck && cardDeckState
+    ? cardDeckState.x
+    : discardCenter
+      ? discardCenter.x
+      : auctionCenter
+        ? auctionCenter.x
+        : anchoredCodegameCenter
+          ? anchoredCodegameCenter.x
+          : cardState.x;
+  const cardWorldY = cardState.inDeck && cardDeckState
+    ? cardDeckState.y
+    : discardCenter
+      ? discardCenter.y
+      : auctionCenter
+        ? auctionCenter.y
+        : anchoredCodegameCenter
+          ? anchoredCodegameCenter.y
+          : cardState.y;
   const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
   const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
   const cardWorldWidth = cardState.inAuction ? auctionCardWorldWidth : baseCardSize.width;
   const cardWorldHeight = cardState.inAuction ? auctionCardWorldHeight : baseCardSize.height;
+  const isVisibleInViewport = isWorldRectLikelyVisible(
+    cardWorldX,
+    cardWorldY,
+    cardWorldWidth,
+    cardWorldHeight,
+    VIEWPORT_CULL_MARGIN_PX
+  );
+  const shouldKeepMountedWhenOffscreen =
+    isHeld ||
+    isSelected ||
+    hasActiveHandPreviewForCard ||
+    discardReturnAnimatingCardIds.has(cardId);
+  if (!isVisibleInViewport && !shouldKeepMountedWhenOffscreen) {
+    removeTableCardElement(cardId);
+    return;
+  }
   const card = ensureCardElement(cardId);
   if (!card) {
     return;
@@ -19036,7 +20606,12 @@ function renderCardElement(cardId, options = {}) {
   if (cameraOnly && cardRenderLogicKeyById.get(cardId) === logicRenderKey) {
     return;
   }
-  card.classList.toggle('is-hand-preview-hidden', handDropPreview?.cardId === cardId);
+  const shouldHideForHandPreview =
+    handDropPreview?.cardId === cardId &&
+    previewHandCardElement instanceof HTMLElement &&
+    previewHandCardElement.classList.contains('is-preview') &&
+    Boolean(handTray && !handTray.classList.contains('hidden'));
+  card.classList.toggle('is-hand-preview-hidden', shouldHideForHandPreview);
   card.classList.toggle('is-held-by-self', heldBySelf);
   card.classList.toggle('is-held-by-other', heldByOther);
   card.classList.toggle('is-group-selected', selectedCardIds.has(cardId));
@@ -19045,6 +20620,92 @@ function renderCardElement(cardId, options = {}) {
   card.classList.toggle('is-in-auction', cardState.inAuction);
   card.classList.toggle('is-discard-returning', discardReturnAnimatingCardIds.has(cardId));
   card.classList.toggle('is-cover-drawings', !isHeld && !isCoolStackCard && shouldAlwaysCoverDrawings);
+  const codegameTopDeckCardId = isCodegameCard ? getDeckMetricsEntry(cardDeckId)?.topDeckCardId || '' : '';
+  const shouldBlurCodegameDeckTopCard = Boolean(
+    isCodegameCard &&
+      cardState.inDeck &&
+      cardDeckState?.codegameGridActive === true &&
+      codegameTopDeckCardId === cardId
+  );
+  card.classList.toggle('is-codegame-top-blurred', shouldBlurCodegameDeckTopCard);
+  const codegameKeyOverlay =
+    card._cardCodegameKeyOverlay instanceof HTMLElement
+      ? card._cardCodegameKeyOverlay
+      : card.querySelector('.table-card-codegame-key-overlay');
+  const codegameDebug =
+    card._cardCodegameDebug instanceof HTMLElement
+      ? card._cardCodegameDebug
+      : card.querySelector('.table-card-codegame-debug');
+  let codegameMarkFill =
+    card._cardCodegameMarkFill instanceof HTMLElement
+      ? card._cardCodegameMarkFill
+      : card.querySelector('.table-card-codegame-mark-fill');
+  if (isCodegameCard && !(codegameMarkFill instanceof HTMLElement)) {
+    codegameMarkFill = document.createElement('div');
+    codegameMarkFill.className = 'table-card-codegame-mark-fill';
+    codegameMarkFill.setAttribute('aria-hidden', 'true');
+    card.appendChild(codegameMarkFill);
+    card._cardCodegameMarkFill = codegameMarkFill;
+  }
+  const sharedMarkType = isCodegameCard ? getCodegameRevealColorForCard(cardState, cardId) : '';
+  if (isCodegameCard && codegameMarkFill instanceof HTMLElement) {
+    const hasMarkFill = Boolean(sharedMarkType);
+    codegameMarkFill.classList.toggle('is-visible', hasMarkFill);
+    codegameMarkFill.setAttribute('aria-hidden', hasMarkFill ? 'false' : 'true');
+    codegameMarkFill.classList.toggle('is-blue', sharedMarkType === 'blue');
+    codegameMarkFill.classList.toggle('is-red', sharedMarkType === 'red');
+    codegameMarkFill.classList.toggle('is-assassin', sharedMarkType === 'assassin');
+    codegameMarkFill.classList.toggle('is-neutral', sharedMarkType === 'neutral');
+  } else if (codegameMarkFill instanceof HTMLElement) {
+    codegameMarkFill.classList.remove('is-visible', 'is-blue', 'is-red', 'is-assassin', 'is-neutral');
+    codegameMarkFill.setAttribute('aria-hidden', 'true');
+  }
+  card.classList.toggle('is-codegame-marked', isCodegameCard && Boolean(sharedMarkType));
+  card.classList.toggle('is-codegame-mark-blue', isCodegameCard && sharedMarkType === 'blue');
+  card.classList.toggle('is-codegame-mark-red', isCodegameCard && sharedMarkType === 'red');
+  card.classList.toggle('is-codegame-mark-assassin', isCodegameCard && sharedMarkType === 'assassin');
+  card.classList.toggle('is-codegame-mark-neutral', isCodegameCard && sharedMarkType === 'neutral');
+  if (isCodegameCard && codegameKeyOverlay instanceof HTMLElement) {
+    const keyHighlightType = getCodegameKeyHighlightTypeForCard(cardState);
+    const overlayType = sharedMarkType || keyHighlightType;
+    const hasOverlay = Boolean(overlayType);
+    codegameKeyOverlay.classList.toggle('is-visible', hasOverlay);
+    codegameKeyOverlay.setAttribute('aria-hidden', hasOverlay ? 'false' : 'true');
+    codegameKeyOverlay.classList.toggle('is-blue', overlayType === 'blue');
+    codegameKeyOverlay.classList.toggle('is-red', overlayType === 'red');
+    codegameKeyOverlay.classList.toggle('is-assassin', overlayType === 'assassin');
+    codegameKeyOverlay.classList.toggle('is-neutral', overlayType === 'neutral');
+    // Keep marked reveal tint from a single visual layer (mark-fill) so it stays
+    // stable across camera zoom/render passes.
+    codegameKeyOverlay.classList.toggle('is-marked', false);
+  } else if (codegameKeyOverlay instanceof HTMLElement) {
+    codegameKeyOverlay.classList.remove('is-visible', 'is-blue', 'is-red', 'is-assassin', 'is-neutral', 'is-marked');
+    codegameKeyOverlay.setAttribute('aria-hidden', 'true');
+  }
+  if (codegameDebug instanceof HTMLElement) {
+    const isCodegamePlayableCard = isCodegameCard && !isCodegameKeyCardState(cardState);
+    const deckId = normalizeDeckId(cardState.deckId || '');
+    const hasCodegameDebugData =
+      Number.isInteger(Number(cardState.codegameGridSlot)) ||
+      Boolean(cardState.codegameMarkedType) ||
+      Boolean(cardState.codegameRevealColor) ||
+      deckId.startsWith(`${CODEGAME_DECK_KEY}`);
+    const showDebug = isCodegameCard && CODEGAME_TINT_DEBUG && (isCodegamePlayableCard || hasCodegameDebugData);
+    codegameDebug.classList.toggle('hidden', !showDebug);
+    codegameDebug.setAttribute('aria-hidden', showDebug ? 'false' : 'true');
+    if (showDebug) {
+      const directSlot = getCodegameGridSlotIndex(cardState);
+      const effectiveSlot = getCodegameEffectiveGridSlotIndex(cardId, cardState);
+      const markedType = normalizeCodegameMarkedType(cardState.codegameMarkedType || '') || '-';
+      const markedSlotRaw = Number(cardState.codegameMarkedSlot);
+      const markedSlot = Number.isInteger(markedSlotRaw) ? markedSlotRaw : -1;
+      const revealColor = normalizeCodegameMarkedType(cardState.codegameRevealColor || '') || '-';
+      const tinted = cardState.codegameTinted === true ? '1' : '0';
+      const debugStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+      codegameDebug.textContent =
+        `d:${deckId} gs:${directSlot} es:${effectiveSlot} m:${markedType}:${markedSlot} r:${revealColor} t:${tinted} sh:${sharedMarkType || '-'} ${debugStatus}`;
+    }
+  }
   const isImageComponent = isImageComponentCard(cardState);
   const isStickerComponent = isStickerComponentCard(cardState);
   const isComponentLocked = isNativeImageComponentLocked(cardState);
@@ -19327,9 +20988,116 @@ function renderCardElement(cardId, options = {}) {
 
 function renderAllCards() {
   renderTableCardsAndDeckControls();
+  cancelScheduledStackPointCountBadgesRender();
   renderStackPointCountBadges();
   renderLocalHandCards();
   setLocalHandCountLabel();
+}
+
+function collectDeckFollowerCardIdsForMove(deckId = activeDeckId) {
+  const targetDeckId = normalizeDeckId(deckId);
+  if (!targetDeckId) {
+    return [];
+  }
+  const isCodegameDeck = getDeckKind(targetDeckId) === DECK_KIND_CODEGAME;
+  const followerIds = [];
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!cardState || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
+      continue;
+    }
+    const anchoredCodegameKey =
+      isCodegameDeck &&
+      isCodegameKeyCardState(cardState) &&
+      cardState.codegameKeyAnchored === true &&
+      !cardState.inDeck &&
+      !cardState.inDiscard &&
+      !cardState.inAuction &&
+      !getCardHandOwnerId(cardState);
+    const onCodegameGrid = isCodegameDeck && getCodegameGridSlotIndex(cardState) >= 0;
+    const followsDeckCenter =
+      Boolean(cardState.inDeck || cardState.inDiscard || cardState.inAuction) ||
+      anchoredCodegameKey ||
+      onCodegameGrid;
+    if (followsDeckCenter) {
+      followerIds.push(cardId);
+    }
+  }
+  return followerIds;
+}
+
+function renderDeckCardsAndControlsForMove(deckId = activeDeckId, precomputedMetrics = null, options = {}) {
+  const targetDeckId = normalizeDeckId(deckId);
+  if (!targetDeckId) {
+    renderDeckControls(precomputedMetrics);
+    return;
+  }
+  const deckMetrics =
+    precomputedMetrics && precomputedMetrics.metricsByDeck instanceof Map
+      ? precomputedMetrics
+      : buildDeckCardMetrics();
+  const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(deckMetrics.metricsByDeck);
+  const isCodegameDeck = getDeckKind(targetDeckId) === DECK_KIND_CODEGAME;
+  const providedFollowerIds = Array.isArray(options?.followCardIds) ? options.followCardIds : null;
+  if (providedFollowerIds && providedFollowerIds.length > 0) {
+    for (const rawCardId of providedFollowerIds) {
+      const cardId = String(rawCardId || '').trim();
+      if (!cardId) {
+        continue;
+      }
+      const cardState = cards.get(cardId);
+      if (!cardState || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
+        continue;
+      }
+      const anchoredCodegameKey =
+        isCodegameDeck &&
+        isCodegameKeyCardState(cardState) &&
+        cardState.codegameKeyAnchored === true &&
+        !cardState.inDeck &&
+        !cardState.inDiscard &&
+        !cardState.inAuction &&
+        !getCardHandOwnerId(cardState);
+      const onCodegameGrid = isCodegameDeck && getCodegameGridSlotIndex(cardState) >= 0;
+      const followsDeckCenter =
+        Boolean(cardState.inDeck || cardState.inDiscard || cardState.inAuction) ||
+        anchoredCodegameKey ||
+        onCodegameGrid;
+      if (!followsDeckCenter) {
+        continue;
+      }
+      renderCardElement(cardId, {
+        cameraOnly: true,
+        visibleStackCardIds
+      });
+    }
+    renderDeckControls(deckMetrics);
+    return;
+  }
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!cardState || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
+      continue;
+    }
+    const anchoredCodegameKey =
+      isCodegameDeck &&
+      isCodegameKeyCardState(cardState) &&
+      cardState.codegameKeyAnchored === true &&
+      !cardState.inDeck &&
+      !cardState.inDiscard &&
+      !cardState.inAuction &&
+      !getCardHandOwnerId(cardState);
+    const onCodegameGrid = isCodegameDeck && getCodegameGridSlotIndex(cardState) >= 0;
+    const followsDeckCenter =
+      Boolean(cardState.inDeck || cardState.inDiscard || cardState.inAuction) ||
+      anchoredCodegameKey ||
+      onCodegameGrid;
+    if (!followsDeckCenter) {
+      continue;
+    }
+    renderCardElement(cardId, {
+      cameraOnly: true,
+      visibleStackCardIds
+    });
+  }
+  renderDeckControls(deckMetrics);
 }
 
 function renderTableCardsAndDeckControls(options = {}) {
@@ -21314,7 +23082,14 @@ function resolveGameOptionsTitle(targetKey) {
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(targetKey);
   if (targetDeckId) {
-    return getDeckKind(targetDeckId) === DECK_KIND_POKER ? 'poker deck' : 'cool jpegs';
+    const deckKind = getDeckKind(targetDeckId);
+    if (deckKind === DECK_KIND_POKER) {
+      return 'poker deck';
+    }
+    if (deckKind === DECK_KIND_CODEGAME) {
+      return 'codegame';
+    }
+    return 'cool jpegs';
   }
   return 'cool jpegs';
 }
@@ -21376,7 +23151,8 @@ function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTa
 }
 
 function canConfigureIncludeDiscardForGameOptionsTarget(target = activeGameOptionsTarget) {
-  return Boolean(getDeckIdFromGameOptionsTarget(target));
+  const targetDeckId = getDeckIdFromGameOptionsTarget(target);
+  return Boolean(targetDeckId && deckSupportsDiscard(targetDeckId));
 }
 
 function canConfigureGoBoardSizeForGameOptionsTarget(target = activeGameOptionsTarget) {
@@ -21617,7 +23393,8 @@ function openInstanceWarningModal() {
   }
   closeMonsItemChoiceModal();
   if (instanceWarningResolver) {
-    return Promise.resolve(false);
+    // Recover from stale/pending resolver state so this interaction never no-ops.
+    closeInstanceWarningModal(false);
   }
   instanceWarningModal.classList.remove('hidden');
   return new Promise((resolve) => {
@@ -21626,20 +23403,29 @@ function openInstanceWarningModal() {
 }
 
 function hasGameInstanceOnTable(gameKey) {
-  const requestedDeckKind = gameKey === POKER_DECK_KEY ? DECK_KIND_POKER : gameKey === DECK_KEY ? DECK_KIND_COOL : '';
+  const requestedDeckKind =
+    gameKey === POKER_DECK_KEY
+      ? DECK_KIND_POKER
+      : gameKey === CODEGAME_DECK_KEY
+        ? DECK_KIND_CODEGAME
+        : gameKey === DECK_KEY
+          ? DECK_KIND_COOL
+          : '';
   if (!requestedDeckKind) {
     return false;
   }
-  for (const [deckId, deckState] of deckStatesById.entries()) {
-    if (normalizeDeckKind(deckState?.kind, deckId) === requestedDeckKind) {
-      return true;
-    }
-  }
+  // Treat a game instance as present only when gameplay cards for that deck
+  // are actually on the table/hand, not merely because a stale deck node exists.
   for (const [cardId, cardState] of cards.entries()) {
     if (!cardState || typeof cardState !== 'object' || isVisualImageComponentCard(cardState)) {
       continue;
     }
-    const deckId = getCardDeckInstanceId(cardId, cardState);
+    const inferredDeckId = inferDeckIdFromCardId(cardId);
+    const explicitDeckId = normalizeDeckId(cardState?.deckId || '');
+    const deckId = normalizeDeckId(inferredDeckId || explicitDeckId);
+    if (!deckId) {
+      continue;
+    }
     if (normalizeDeckKind(getDeckStateById(deckId)?.kind, deckId) === requestedDeckKind) {
       return true;
     }
@@ -21863,6 +23649,14 @@ coolJpegsTile?.addEventListener('click', async () => {
   }
   closeAssetMenu();
   spawnCoolJpegsDeck().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
+codegameTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnCodegameDeck().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -23067,6 +24861,7 @@ initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(hnefataflTile);
 initializeTileTilt(goTile);
 initializeTileTilt(arcadeMachineTile);
+initializeTileTilt(codegameTile);
 initializeTileTilt(diceComponentTile);
 initializeTileTilt(coinComponentTile);
 initializeTileTilt(spinnerComponentTile);
@@ -24051,6 +25846,12 @@ shieldPointerEvents(assetMenuModal);
 shieldPointerEvents(assetMenuCloseButton);
 shieldPointerEvents(assetMenuTabGameButton);
 shieldPointerEvents(assetMenuTabComponentButton);
+shieldPointerEvents(coolJpegsTile);
+shieldPointerEvents(superMetalMonsTile);
+shieldPointerEvents(hnefataflTile);
+shieldPointerEvents(goTile);
+shieldPointerEvents(arcadeMachineTile);
+shieldPointerEvents(codegameTile);
 shieldPointerEvents(diceComponentTile);
 shieldPointerEvents(coinComponentTile);
 shieldPointerEvents(spinnerComponentTile);
@@ -24457,6 +26258,7 @@ async function startRealtimeSession() {
   let pendingDeckPatch = {};
   let deckWriteGeneration = 0;
   let deckDragState = null;
+  let deckDragLastQueuedAt = 0;
   let chipSetWriteScheduled = false;
   let pendingChipSetPatch = {};
   let chipSetWriteGeneration = 0;
@@ -24520,6 +26322,10 @@ async function startRealtimeSession() {
   const staleDieLockRecoveryInFlight = new Set();
   const staleDeckLockRecoveryAttemptAtById = new Map();
   const staleDeckLockRecoveryInFlight = new Set();
+  const deckPositionGuardsById = new Map();
+  const pendingFastDeckMoveRenderDeckIds = new Set();
+  const pendingFastDeckMoveFollowerCardIdsByDeck = new Map();
+  let fastDeckMoveRenderRafId = 0;
   let staleCardLockSweepInProgress = false;
   let staleDieLockSweepInProgress = false;
   let hasSignaledSessionLeave = false;
@@ -24894,10 +26700,12 @@ async function startRealtimeSession() {
       elements.push(
         deckUi.shuffleButton,
         deckUi.dealOneButton,
+        deckUi.playButton,
         deckUi.moveButton,
         deckUi.optionsButton,
         deckUi.discardResetButton,
         deckUi.deckSlot,
+        deckUi.codegameGridFrame,
         deckUi.discardSlot,
         deckUi.auctionSlot,
         deckUi.deckCountBadge
@@ -26188,6 +27996,39 @@ function closeNoteEditor(options = {}) {
       }
     }
 
+    if (deckDragState) {
+      const startedAt = Number(deckDragState.startedAt) || 0;
+      const lastMotionAt = Number(deckDragState.lastMotionAt) || startedAt;
+      if (startedAt > 0 && now - Math.max(startedAt, lastMotionAt) > staleAfterMs) {
+        handleDeckDragEnd({
+          type: 'pointercancel',
+          pointerId: deckDragState.pointerId,
+          clientX: Number(deckDragState.lastClientX ?? deckDragState.startClientX ?? 0),
+          clientY: Number(deckDragState.lastClientY ?? deckDragState.startClientY ?? 0),
+          button: 0,
+          buttons: 0
+        });
+        recoveredAny = true;
+      }
+    }
+
+    if (groupDragState) {
+      const startedAt = Number(groupDragState.startedAt) || 0;
+      const lastMotionAt = Number(groupDragState.lastMotionAt) || startedAt;
+      if (startedAt > 0 && now - Math.max(startedAt, lastMotionAt) > staleAfterMs) {
+        handleGroupDragEnd({
+          type: 'pointercancel',
+          pointerId: groupDragState.pointerId,
+          pointerType: groupDragState.pointerType,
+          clientX: Number(groupDragState.lastClientX ?? groupDragState.startClientX ?? 0),
+          clientY: Number(groupDragState.lastClientY ?? groupDragState.startClientY ?? 0),
+          button: 0,
+          buttons: 0
+        });
+        recoveredAny = true;
+      }
+    }
+
     if (mousePanState) {
       const startedAt = Number(mousePanState.startedAt) || 0;
       if (startedAt > 0 && now - startedAt > staleAfterMs * 2) {
@@ -27213,7 +29054,11 @@ function closeNoteEditor(options = {}) {
 
   function setHandDropPreview(cardId, clientX = 0) {
     const nextCardId = typeof cardId === 'string' && cardId ? cardId : null;
+    if (nextCardId) {
+      clearHandDropPreviewClearTimer();
+    }
     if (!nextCardId) {
+      clearHandDropPreviewClearTimer();
       if (!handDropPreview) {
         return;
       }
@@ -27612,10 +29457,24 @@ function closeNoteEditor(options = {}) {
     if (isTableResetting || !cardId || !patch || typeof patch !== 'object') {
       return;
     }
-    const nextPatch =
+    let nextPatch =
       patchTouchesPosition(patch) && !Object.prototype.hasOwnProperty.call(patch, 'drawLifted')
         ? { ...patch, drawLifted: true }
         : patch;
+    const currentCardState = cards.get(cardId);
+    if (isCodegameCardState(currentCardState) && !isCodegameKeyCardState(currentCardState)) {
+      const rawMarkedSlot = Number(currentCardState.codegameMarkedSlot);
+      const markedSlot = Number.isInteger(rawMarkedSlot) ? clamp(rawMarkedSlot, 0, CODEGAME_GRID_SLOT_COUNT - 1) : -1;
+      const markedType = normalizeCodegameMarkedType(currentCardState.codegameMarkedType || '');
+      const revealColor = normalizeCodegameMarkedType(currentCardState.codegameRevealColor || '');
+      nextPatch = {
+        ...nextPatch,
+        codegameTinted: currentCardState.codegameTinted === true,
+        codegameRevealColor: revealColor || '',
+        codegameMarkedType: markedType || '',
+        codegameMarkedSlot: markedType && markedSlot >= 0 ? markedSlot : -1
+      };
+    }
     if (patchTouchesPosition(nextPatch)) {
       queueDrawingsLiftCutoffUpdate(Date.now());
     }
@@ -27654,6 +29513,7 @@ function closeNoteEditor(options = {}) {
       inDeck: Boolean(currentCard.inDeck),
       inDiscard: Boolean(currentCard.inDiscard),
       inAuction: Boolean(currentCard.inAuction),
+      codegameGridSlot: getCodegameEffectiveGridSlotIndex(normalizedCardId, currentCard),
       holderClientId:
         typeof currentCard.holderClientId === 'string' && currentCard.holderClientId
           ? currentCard.holderClientId
@@ -27664,6 +29524,16 @@ function closeNoteEditor(options = {}) {
           : null,
       handOwnerPlayerToken: getCardHandOwnerId(currentCard) || null
     };
+    if (isCodegameCardState(currentCard) && !isCodegameKeyCardState(currentCard)) {
+      const rawMarkedSlot = Number(currentCard.codegameMarkedSlot);
+      const markedSlot = Number.isInteger(rawMarkedSlot) ? clamp(rawMarkedSlot, 0, CODEGAME_GRID_SLOT_COUNT - 1) : -1;
+      const markedType = normalizeCodegameMarkedType(currentCard.codegameMarkedType || '');
+      const revealColor = normalizeCodegameMarkedType(currentCard.codegameRevealColor || '');
+      nextPatch.codegameTinted = currentCard.codegameTinted === true;
+      nextPatch.codegameRevealColor = revealColor || '';
+      nextPatch.codegameMarkedType = markedType || '';
+      nextPatch.codegameMarkedSlot = markedType && markedSlot >= 0 ? markedSlot : -1;
+    }
     if (isVisualImageComponentCard(currentCard)) {
       const componentType = getCardComponentType(currentCard);
       const componentSubtype = getCardComponentSubtype(currentCard);
@@ -27852,10 +29722,24 @@ function closeNoteEditor(options = {}) {
       return;
     }
     const normalizedDeckId = normalizeDeckId(deckId);
+    const nextPatch = { ...(patch || {}) };
+    const currentDeckState = getDeckStateById(normalizedDeckId);
+    if (!Object.prototype.hasOwnProperty.call(nextPatch, 'x')) {
+      const currentX = Number(currentDeckState?.x);
+      if (Number.isFinite(currentX)) {
+        nextPatch.x = currentX;
+      }
+    }
+    if (!Object.prototype.hasOwnProperty.call(nextPatch, 'y')) {
+      const currentY = Number(currentDeckState?.y);
+      if (Number.isFinite(currentY)) {
+        nextPatch.y = currentY;
+      }
+    }
     const queuedForDeck = pendingDeckPatch[normalizedDeckId] || {};
     pendingDeckPatch = {
       ...pendingDeckPatch,
-      [normalizedDeckId]: { ...queuedForDeck, ...patch }
+      [normalizedDeckId]: { ...queuedForDeck, ...nextPatch }
     };
     if (deckWriteScheduled) {
       return;
@@ -27919,7 +29803,8 @@ function closeNoteEditor(options = {}) {
           : null,
       includeDiscard: currentDeck.includeDiscard !== false,
       coverDrawings: currentDeck.coverDrawings === true,
-      kind: normalizeDeckKind(currentDeck.kind, normalizedDeckId)
+      kind: normalizeDeckKind(currentDeck.kind, normalizedDeckId),
+      codegameGridActive: currentDeck.codegameGridActive === true
     };
   }
 
@@ -28874,9 +30759,63 @@ function closeNoteEditor(options = {}) {
     const localPatch = Object.prototype.hasOwnProperty.call(nextPatch || {}, 'updatedAt')
       ? nextPatch
       : { ...nextPatch, updatedAt: Date.now() };
-    const nextCard = normalizeCardPayload({ ...existingCard, ...localPatch }, cardId);
+    let nextCard = normalizeCardPayload({ ...existingCard, ...localPatch }, cardId);
+    if (isCodegameCardState(nextCard) && !isCodegameKeyCardState(nextCard)) {
+      const effectiveSlot = getCodegameEffectiveGridSlotIndex(cardId, nextCard);
+      if (effectiveSlot < 0) {
+        if (
+          nextCard.codegameTinted === true ||
+          normalizeCodegameMarkedType(nextCard.codegameRevealColor || '') ||
+          normalizeCodegameMarkedType(nextCard.codegameMarkedType || '') ||
+          Number.isInteger(Number(nextCard.codegameMarkedSlot))
+        ) {
+          nextCard = {
+            ...nextCard,
+            codegameTinted: false,
+            codegameRevealColor: '',
+            codegameMarkedType: '',
+            codegameMarkedSlot: -1
+          };
+        }
+      } else {
+      const markedType = normalizeCodegameMarkedType(nextCard.codegameMarkedType || '');
+      const rawMarkedSlot = Number(nextCard.codegameMarkedSlot);
+      if (markedType && Number.isInteger(rawMarkedSlot)) {
+        const resolvedMarkedSlot = clamp(rawMarkedSlot, 0, CODEGAME_GRID_SLOT_COUNT - 1);
+        if (effectiveSlot !== resolvedMarkedSlot) {
+          nextCard = {
+            ...nextCard,
+            codegameMarkedType: '',
+            codegameMarkedSlot: -1
+          };
+        } else if (resolvedMarkedSlot !== rawMarkedSlot) {
+          nextCard = {
+            ...nextCard,
+            codegameMarkedSlot: resolvedMarkedSlot
+          };
+        }
+      } else if (markedType || Number.isInteger(rawMarkedSlot)) {
+        nextCard = {
+          ...nextCard,
+          codegameMarkedType: '',
+          codegameMarkedSlot: -1
+        };
+      }
+      }
+    }
+    const previousHandOwnerId = getCardHandOwnerId(existingCard);
+    const nextHandOwnerId = getCardHandOwnerId(nextCard);
+    const handOwnerChanged = previousHandOwnerId !== nextHandOwnerId;
+    const affectsLocalHand =
+      handOwnerChanged ||
+      isCardOwnedByLocalHandOwner(previousHandOwnerId) ||
+      isCardOwnedByLocalHandOwner(nextHandOwnerId) ||
+      handDropPreview?.cardId === cardId ||
+      handReorderState?.cardId === cardId;
     warmCardFrontOnDeckExit(existingCard, nextCard);
     cards.set(cardId, nextCard);
+    invalidateLocalCodegameKeyHighlightsCache();
+    invalidateCodegameKeyPatternCache();
     markSecretAreaRegionsCacheDirty();
     const secretAreaVisibilityChanged = didSecretAreaVisibilityFieldsChange(existingCard, nextCard);
     if (didCardDeckMetricsFieldsChange(existingCard, nextCard)) {
@@ -28884,7 +30823,11 @@ function closeNoteEditor(options = {}) {
     }
     const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
     runStateRenderSafely('patchLocalCard:card', () => renderCardElement(cardId, { visibleStackCardIds }));
-    runStateRenderSafely('patchLocalCard:stackPointCounts', () => renderStackPointCountBadges());
+    scheduleStackPointCountBadgesRender();
+    if (affectsLocalHand) {
+      runStateRenderSafely('patchLocalCard:hand', () => renderLocalHandCards());
+      runStateRenderSafely('patchLocalCard:handCount', () => setLocalHandCountLabel());
+    }
     if (secretAreaVisibilityChanged) {
       runStateRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
       runStateRenderSafely('patchLocalCard:dice', () => renderAllDice());
@@ -28895,15 +30838,74 @@ function closeNoteEditor(options = {}) {
     }
   }
 
-  function patchLocalDeck(patch, deckId = activeDeckId) {
+  function clearQueuedFastDeckMoveRenders() {
+    pendingFastDeckMoveRenderDeckIds.clear();
+    pendingFastDeckMoveFollowerCardIdsByDeck.clear();
+    if (fastDeckMoveRenderRafId) {
+      window.cancelAnimationFrame(fastDeckMoveRenderRafId);
+      fastDeckMoveRenderRafId = 0;
+    }
+  }
+
+  function flushQueuedFastDeckMoveRenders() {
+    fastDeckMoveRenderRafId = 0;
+    if (pendingFastDeckMoveRenderDeckIds.size === 0) {
+      return;
+    }
+    const deckIds = Array.from(pendingFastDeckMoveRenderDeckIds.values());
+    pendingFastDeckMoveRenderDeckIds.clear();
+    const deckMetrics = buildDeckCardMetrics();
+    if (deckIds.length === 1) {
+      const followCardIds = pendingFastDeckMoveFollowerCardIdsByDeck.get(deckIds[0]) || null;
+      pendingFastDeckMoveFollowerCardIdsByDeck.delete(deckIds[0]);
+      runStateRenderSafely('patchLocalDeck:fast-queued-single', () => {
+        renderDeckCardsAndControlsForMove(deckIds[0], deckMetrics, { followCardIds });
+      });
+      return;
+    }
+    pendingFastDeckMoveFollowerCardIdsByDeck.clear();
+    runStateRenderSafely('patchLocalDeck:fast-queued-multi', () => {
+      renderTableCardsAndDeckControls({ deckMetrics });
+    });
+  }
+
+  function queueFastDeckMoveRender(deckId = activeDeckId, options = {}) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return;
+    }
+    const followCardIds = Array.isArray(options?.followCardIds) ? options.followCardIds : null;
+    if (followCardIds && followCardIds.length > 0) {
+      pendingFastDeckMoveFollowerCardIdsByDeck.set(normalizedDeckId, [...followCardIds]);
+    }
+    pendingFastDeckMoveRenderDeckIds.add(normalizedDeckId);
+    if (fastDeckMoveRenderRafId) {
+      return;
+    }
+    fastDeckMoveRenderRafId = window.requestAnimationFrame(() => {
+      flushQueuedFastDeckMoveRenders();
+    });
+  }
+
+  function patchLocalDeck(patch, deckId = activeDeckId, options = {}) {
     const normalizedDeckId = normalizeDeckId(deckId);
     const baseDeck = getDeckStateById(normalizedDeckId) || normalizeDeckPayload(getDeckCenterPosition(normalizedDeckId), normalizedDeckId);
     const nextDeck = normalizeDeckPayload({ ...baseDeck, ...patch }, normalizedDeckId);
+    const xUnchanged = Math.abs((Number(nextDeck.x) || 0) - (Number(baseDeck.x) || 0)) <= 0.0001;
+    const yUnchanged = Math.abs((Number(nextDeck.y) || 0) - (Number(baseDeck.y) || 0)) <= 0.0001;
+    const holderUnchanged = String(nextDeck.holderClientId || '') === String(baseDeck.holderClientId || '');
+    if (xUnchanged && yUnchanged && holderUnchanged) {
+      return;
+    }
     deckStatesById.set(normalizedDeckId, nextDeck);
+    if (patchTouchesPosition(patch)) {
+      setDeckPositionGuard(normalizedDeckId, nextDeck.x, nextDeck.y);
+    }
     if (normalizeDeckId(activeDeckId) === normalizedDeckId) {
       deckState = nextDeck;
     }
     syncCoverDrawingsGamesLayerState();
+    clearQueuedFastDeckMoveRenders();
     runStateRenderSafely('patchLocalDeck', () => renderAllCards());
   }
 
@@ -28987,14 +30989,6 @@ function getCardDeckId(cardState) {
   return normalizeDeckId(cardState?.deckId || activeDeckId || DECK_KEY);
 }
 
-function getCardDeckInstanceId(cardId, cardState) {
-  const inferredDeckId = inferDeckIdFromCardId(cardId);
-  if (inferredDeckId) {
-    return inferredDeckId;
-  }
-  return normalizeDeckId(cardState?.deckId || DECK_KEY);
-}
-
   function getDeckIdAtPosition(x, y, region = 'deck') {
     const deckIds = getDeckIdsInRoom();
     let matchedDeckId = '';
@@ -29006,6 +31000,7 @@ function getCardDeckInstanceId(cardId, cardState) {
       }
       let matches = false;
       let center = { x: candidateDeckState.x, y: candidateDeckState.y };
+      const candidateDeckDimensions = getDeckBaseCardDimensions(candidateDeckId);
       if (region === 'discard') {
         if (!isDeckDiscardEnabled(candidateDeckId)) {
           continue;
@@ -29014,7 +31009,9 @@ function getCardDeckInstanceId(cardId, cardState) {
         if (isWorldPointHiddenBySecretAreaForLocalViewer(center.x, center.y)) {
           continue;
         }
-        matches = Math.abs(x - center.x) <= CARD_WIDTH / 2 && Math.abs(y - center.y) <= CARD_HEIGHT / 2;
+        matches =
+          Math.abs(x - center.x) <= candidateDeckDimensions.width / 2 &&
+          Math.abs(y - center.y) <= candidateDeckDimensions.height / 2;
       } else if (region === 'auction') {
         if (!deckSupportsAuction(candidateDeckId)) {
           continue;
@@ -29024,13 +31021,15 @@ function getCardDeckInstanceId(cardId, cardState) {
           continue;
         }
         matches =
-          Math.abs(x - center.x) <= (CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
-          Math.abs(y - center.y) <= (CARD_HEIGHT + AUCTION_SLOT_EXTRA_SIZE) / 2;
+          Math.abs(x - center.x) <= (candidateDeckDimensions.width + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
+          Math.abs(y - center.y) <= (candidateDeckDimensions.height + AUCTION_SLOT_EXTRA_SIZE) / 2;
       } else {
         if (isWorldPointHiddenBySecretAreaForLocalViewer(center.x, center.y)) {
           continue;
         }
-        matches = Math.abs(x - center.x) <= CARD_WIDTH / 2 && Math.abs(y - center.y) <= CARD_HEIGHT / 2;
+        matches =
+          Math.abs(x - center.x) <= candidateDeckDimensions.width / 2 &&
+          Math.abs(y - center.y) <= candidateDeckDimensions.height / 2;
       }
       if (!matches) {
         continue;
@@ -29177,7 +31176,11 @@ function getCardDeckInstanceId(cardId, cardState) {
     if (!targetDeckState) {
       return false;
     }
-    return Math.abs(x - targetDeckState.x) <= CARD_WIDTH / 2 && Math.abs(y - targetDeckState.y) <= CARD_HEIGHT / 2;
+    const deckDimensions = getDeckBaseCardDimensions(deckId);
+    return (
+      Math.abs(x - targetDeckState.x) <= deckDimensions.width / 2 &&
+      Math.abs(y - targetDeckState.y) <= deckDimensions.height / 2
+    );
   }
 
   function isPositionOverDiscard(x, y, deckId = activeDeckId) {
@@ -29186,7 +31189,11 @@ function getCardDeckInstanceId(cardId, cardState) {
       return false;
     }
     const discardCenter = getDiscardCenterPosition(deckId);
-    return Math.abs(x - discardCenter.x) <= CARD_WIDTH / 2 && Math.abs(y - discardCenter.y) <= CARD_HEIGHT / 2;
+    const deckDimensions = getDeckBaseCardDimensions(deckId);
+    return (
+      Math.abs(x - discardCenter.x) <= deckDimensions.width / 2 &&
+      Math.abs(y - discardCenter.y) <= deckDimensions.height / 2
+    );
   }
 
   function isPositionOverAuction(x, y, deckId = activeDeckId) {
@@ -29197,10 +31204,11 @@ function getCardDeckInstanceId(cardId, cardState) {
     if (!targetDeckState) {
       return false;
     }
+    const deckDimensions = getDeckBaseCardDimensions(deckId);
     const auctionCenter = getAuctionCenterPosition(deckId);
     return (
-      Math.abs(x - auctionCenter.x) <= (CARD_WIDTH + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
-      Math.abs(y - auctionCenter.y) <= (CARD_HEIGHT + AUCTION_SLOT_EXTRA_SIZE) / 2
+      Math.abs(x - auctionCenter.x) <= (deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE) / 2 &&
+      Math.abs(y - auctionCenter.y) <= (deckDimensions.height + AUCTION_SLOT_EXTRA_SIZE) / 2
     );
   }
 
@@ -29266,7 +31274,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return null;
     }
     const nextFace = getFaceWhenEnteringHand(cardState);
-    return {
+    const patch = {
       x: cardState.x,
       y: cardState.y,
       z: Number.isFinite(nextHandZ) ? nextHandZ : getTopHandZ(ownerToken) + 1,
@@ -29274,10 +31282,33 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       inDeck: false,
       inDiscard: false,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: ownerToken
     };
+    return withCodegameKeyCardUnanchoredPatch(cardId, patch);
+  }
+
+  function withCodegameKeyCardUnanchoredPatch(cardId, patch) {
+    if (!patch || typeof patch !== 'object') {
+      return patch;
+    }
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId) {
+      return patch;
+    }
+    const cardState = cards.get(normalizedCardId);
+    if (!isCodegameKeyCardState(cardState)) {
+      return patch;
+    }
+    const nextPatch = { ...patch };
+    if (nextPatch.codegameKeyAnchored !== false) {
+      nextPatch.codegameKeyAnchored = false;
+    }
+    nextPatch.codegameKeyMoved = true;
+    nextPatch.codegameGridSlot = -1;
+    return nextPatch;
   }
 
   function getCardsSortedByZ(cardIds) {
@@ -29286,6 +31317,51 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       const right = cards.get(rightId);
       return (Number(left?.z) || 0) - (Number(right?.z) || 0);
     });
+  }
+
+  function buildCodegameGridDropPatchAtPosition(cardId, x, y, preferredDeckId = '') {
+    const cardState = cards.get(cardId);
+    if (!isCodegameCardState(cardState) || !canCardUseDeckZones(cardState)) {
+      return null;
+    }
+    if (isCodegameKeyCardState(cardState)) {
+      return null;
+    }
+    const slotTarget = getCodegameGridSlotAtPosition(x, y, preferredDeckId);
+    if (!slotTarget) {
+      return null;
+    }
+    if (getDeckKind(slotTarget.deckId) !== DECK_KIND_CODEGAME) {
+      return null;
+    }
+    const occupiedCardId = getCodegameCardIdForSlot(slotTarget.deckId, slotTarget.slotIndex, cardId);
+    if (occupiedCardId) {
+      return null;
+    }
+    const slotCenter = slotTarget.center || getCodegameGridSlotWorldPosition(slotTarget.deckId, slotTarget.slotIndex);
+    const patch = {
+      x: slotCenter.x,
+      y: slotCenter.y,
+      z: Math.max(getTopCardZ() + 1, getDeckTopZ(slotTarget.deckId) + slotTarget.slotIndex + 2),
+      face: 'front',
+      deckId: slotTarget.deckId,
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      codegameGridSlot: slotTarget.slotIndex,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    return withCodegameKeyCardUnanchoredPatch(cardId, patch);
+  }
+
+  function buildCodegameGridDropPatch(cardId, preferredDeckId = '') {
+    const cardState = cards.get(cardId);
+    if (!cardState) {
+      return null;
+    }
+    return buildCodegameGridDropPatchAtPosition(cardId, cardState.x, cardState.y, preferredDeckId);
   }
 
   function buildDeckDropPatch(cardId, preferredDeckId = '') {
@@ -29300,7 +31376,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return null;
     }
 
-    return {
+    const patch = {
       x: targetDeckState.x,
       y: targetDeckState.y,
       z: getDeckTopZ(targetDeckId) + 1,
@@ -29308,10 +31384,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       inDeck: true,
       inDiscard: false,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: null
     };
+    return withCodegameKeyCardUnanchoredPatch(cardId, patch);
   }
 
   function buildDiscardPlacementPatch(nextZ = getDiscardTopZ() + 1, deckId = activeDeckId) {
@@ -29328,6 +31406,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       inDeck: false,
       inDiscard: true,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: null
@@ -29346,7 +31425,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return null;
     }
     const placementPatch = buildDiscardPlacementPatch(getDiscardTopZ(targetDeckId) + 1, targetDeckId);
-    return placementPatch || null;
+    return placementPatch ? withCodegameKeyCardUnanchoredPatch(cardId, placementPatch) : null;
   }
 
   function buildAuctionPlacementPatch(nextZ = getAuctionTopZ() + 1, deckId = activeDeckId) {
@@ -29364,6 +31443,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       inDeck: false,
       inDiscard: false,
       inAuction: true,
+      codegameGridSlot: -1,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: null
@@ -29384,7 +31464,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!canPlaceCardOnAuction(cardId, targetDeckId)) {
       return null;
     }
-    return buildAuctionPlacementPatch(getAuctionTopZ(targetDeckId) + 1, targetDeckId);
+    const placementPatch = buildAuctionPlacementPatch(getAuctionTopZ(targetDeckId) + 1, targetDeckId);
+    return placementPatch ? withCodegameKeyCardUnanchoredPatch(cardId, placementPatch) : null;
   }
 
   function buildStackPointDropPatch(cardId, preferredStackPointDieId = '') {
@@ -29407,7 +31488,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!isPositionOverStackPoint(cardState.x, cardState.y, targetDieId)) {
       return null;
     }
-    return {
+    const patch = {
       x: targetStackPointState.x,
       y: targetStackPointState.y,
       z: getStackPointTopZ(targetDieId, cardId) + 1,
@@ -29415,10 +31496,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       inDeck: false,
       inDiscard: false,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: null,
       handOwnerClientId: null,
       handOwnerPlayerToken: null
     };
+    return withCodegameKeyCardUnanchoredPatch(cardId, patch);
   }
 
   async function bringDeckToFront(deckId = activeDeckId) {
@@ -29909,9 +31992,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         continue;
       }
       if (deckState.holderClientId && deckState.holderClientId !== clientId) {
-        continue;
+        const holderLikelyActive = isClientSessionLikelyActive(deckState.holderClientId, Date.now());
+        if (holderLikelyActive) {
+          continue;
+        }
+        patchLocalDeck({ holderClientId: null }, normalizedDeckId);
+        queueDeckPatch({ holderClientId: null }, normalizedDeckId);
       }
-      if (overlapsSelectionRect(deckState.x, deckState.y, CARD_WIDTH, CARD_HEIGHT)) {
+      const deckWorldDimensions = getDeckModuleWorldDimensions(normalizedDeckId, deckState);
+      if (overlapsSelectionRect(deckState.x, deckState.y, deckWorldDimensions.width, deckWorldDimensions.height)) {
         deckCandidates.push(normalizedDeckId);
       }
     }
@@ -30017,7 +32106,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     for (const deckId of deckCandidates) {
       const acquired = await acquireDeckLock(deckId);
       if (!acquired) {
-        continue;
+        const latestDeckState = getDeckStateById(deckId);
+        const latestHolder =
+          typeof latestDeckState?.holderClientId === 'string' ? latestDeckState.holderClientId : '';
+        if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+          continue;
+        }
+        if (latestHolder && latestHolder !== clientId) {
+          patchLocalDeck({ holderClientId: null }, deckId);
+          queueDeckPatch({ holderClientId: null }, deckId);
+        }
       }
       selectedDeckIds.add(deckId);
       patchLocalDeck({ holderClientId: clientId }, deckId);
@@ -30197,6 +32295,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30242,10 +32341,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       releaseAllSelectedObjects();
       return false;
     }
+    clearDeckPositionGuard(normalizedDeckId);
 
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30295,6 +32396,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30345,6 +32447,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30397,6 +32500,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30449,6 +32553,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30497,6 +32602,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     groupDragState = {
       pointerId: event.pointerId,
       pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -30521,7 +32627,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!groupDragState || event.pointerId !== groupDragState.pointerId) {
       return false;
     }
-    if (groupDragState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+    if (
+      groupDragState.pointerType === 'mouse' &&
+      groupDragState.anchorType !== 'deck' &&
+      (event.buttons & 1) === 0
+    ) {
       handleGroupDragEnd({
         type: 'pointercancel',
         pointerId: event.pointerId,
@@ -30662,16 +32772,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (canPlaceGroupOnAuction && auctionTargetDeckId && isPositionOverAuction(nextX, nextY, auctionTargetDeckId)) {
         overAuction = true;
       }
-      const patch = {
+      const patch = withCodegameKeyCardUnanchoredPatch(selectedCardId, {
         x: nextX,
         y: nextY,
         inDeck: false,
         inDiscard: false,
         inAuction: false,
+        codegameGridSlot: -1,
         holderClientId: clientId,
         handOwnerClientId: null,
         handOwnerPlayerToken: null
-      };
+      });
       patchLocalCard(selectedCardId, patch);
       queueCardPatch(selectedCardId, patch);
     }
@@ -30801,6 +32912,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         continue;
       }
       patchLocalDeck({ holderClientId: null }, deckId);
+      syncAnchoredCodegameKeyCardsToDeck(deckId, {
+        queue: true,
+        persist: true
+      });
       queueDeckPatch({ holderClientId: null }, deckId);
       persistDeckStateImmediately(deckId);
       releaseDeckLock(deckId).catch((error) => {
@@ -30930,14 +33045,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       for (const cardId of orderedSelectedIds) {
         const currentCard = cards.get(cardId);
         if (!canCardEnterHand(currentCard)) {
-          const releasePatch = {
+          const releasePatch = withCodegameKeyCardUnanchoredPatch(cardId, {
             holderClientId: null,
             inDeck: false,
             inDiscard: false,
             inAuction: false,
+            codegameGridSlot: -1,
             handOwnerClientId: null,
             handOwnerPlayerToken: null
-          };
+          });
           patchLocalCard(cardId, releasePatch);
           queueCardPatch(cardId, releasePatch);
           persistCardStateImmediately(cardId);
@@ -30965,14 +33081,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         if (!currentCard || currentCard.holderClientId !== clientId) {
           continue;
         }
-        const releasePatch = {
+        const releasePatch = withCodegameKeyCardUnanchoredPatch(cardId, {
           holderClientId: null,
           inDeck: false,
           inDiscard: false,
           inAuction: false,
+          codegameGridSlot: -1,
           handOwnerClientId: null,
           handOwnerPlayerToken: null
-        };
+        });
         patchLocalCard(cardId, releasePatch);
         queueCardPatch(cardId, releasePatch);
         persistCardStateImmediately(cardId);
@@ -30986,6 +33103,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           continue;
         }
         patchLocalDeck({ holderClientId: null }, deckId);
+        syncAnchoredCodegameKeyCardsToDeck(deckId, {
+          queue: true,
+          persist: true
+        });
         queueDeckPatch({ holderClientId: null }, deckId);
         persistDeckStateImmediately(deckId);
         releaseDeckLock(deckId).catch((error) => {
@@ -31060,14 +33181,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         if (!currentCard) {
           continue;
         }
-        const patch = {
+        const patch = withCodegameKeyCardUnanchoredPatch(cardId, {
           holderClientId: null,
           inDeck: false,
           inDiscard: false,
           inAuction: false,
+          codegameGridSlot: -1,
           handOwnerClientId: null,
           handOwnerPlayerToken: null
-        };
+        });
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
         persistCardStateImmediately(cardId);
@@ -31084,6 +33206,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const deckTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'deck') : '';
     const discardTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'discard') : '';
     const auctionTargetDeckId = anchorCardState && canAnchorUseDeckZones ? getDeckIdAtPosition(anchorCardState.x, anchorCardState.y, 'auction') : '';
+    const codegameGridTarget = anchorCardState && canAnchorUseDeckZones
+      ? getCodegameGridSlotAtPosition(anchorCardState.x, anchorCardState.y, anchorCardState.deckId)
+      : null;
     const stackPointTargetDieId = anchorCardState && canAnchorUseDeckZones
       ? getStackPointIdAtPosition(anchorCardState.x, anchorCardState.y, stackPointDropTargetDieId)
       : '';
@@ -31110,13 +33235,54 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       Boolean(stackPointTargetDieId) &&
       Boolean(anchorCardState) &&
       isPositionOverStackPoint(anchorCardState.x, anchorCardState.y, stackPointTargetDieId);
+    const shouldSnapAnchorToCodegameSlot =
+      deckEligibleSelectedIds.length > 0 &&
+      Boolean(anchorCardState) &&
+      Boolean(codegameGridTarget) &&
+      Boolean(anchorCardId) &&
+      deckEligibleSelectedIds.includes(anchorCardId);
+
+    if (shouldSnapAnchorToCodegameSlot) {
+      const anchorCodegamePatch = buildCodegameGridDropPatch(anchorCardId, codegameGridTarget.deckId);
+      if (anchorCodegamePatch) {
+        selectedCardIds.clear();
+        syncSelectionDeleteButtonUi();
+        for (const cardId of deckEligibleSelectedIds) {
+          const patch = cardId === anchorCardId
+            ? anchorCodegamePatch
+            : withCodegameKeyCardUnanchoredPatch(cardId, {
+              holderClientId: null,
+              inDeck: false,
+              inDiscard: false,
+              inAuction: false,
+              codegameGridSlot: -1,
+              handOwnerClientId: null,
+              handOwnerPlayerToken: null
+            });
+          patchLocalCard(cardId, patch);
+          queueCardPatch(cardId, patch);
+          persistCardStateImmediately(cardId);
+          releaseCardLock(cardId).catch((error) => {
+            console.error(error);
+          });
+        }
+        releaseNonDeckSelectedCards();
+        finalizeMovedNonCardGroupObjects(finishedGroupDrag);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return true;
+      }
+    }
 
     if (shouldStackOnAuction && auctionTargetDeckId) {
       selectedCardIds.clear();
       syncSelectionDeleteButtonUi();
       let nextAuctionZ = getAuctionTopZ(auctionTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
-        const patch = buildAuctionPlacementPatch(nextAuctionZ, auctionTargetDeckId);
+        const basePatch = buildAuctionPlacementPatch(nextAuctionZ, auctionTargetDeckId);
+        const patch = withCodegameKeyCardUnanchoredPatch(cardId, basePatch);
+        if (!patch) {
+          continue;
+        }
         nextAuctionZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
@@ -31136,7 +33302,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       syncSelectionDeleteButtonUi();
       let nextDiscardZ = getDiscardTopZ(discardTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
-        const patch = buildDiscardPlacementPatch(nextDiscardZ, discardTargetDeckId);
+        const basePatch = buildDiscardPlacementPatch(nextDiscardZ, discardTargetDeckId);
+        const patch = withCodegameKeyCardUnanchoredPatch(cardId, basePatch);
         if (!patch) {
           continue;
         }
@@ -31165,7 +33332,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       syncSelectionDeleteButtonUi();
       let nextDeckZ = getDeckTopZ(deckTargetDeckId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
-        const patch = {
+        const patch = withCodegameKeyCardUnanchoredPatch(cardId, {
           x: targetDeckState.x,
           y: targetDeckState.y,
           z: nextDeckZ,
@@ -31173,10 +33340,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           inDeck: true,
           inDiscard: false,
           inAuction: false,
+          codegameGridSlot: -1,
           holderClientId: null,
           handOwnerClientId: null,
           handOwnerPlayerToken: null
-        };
+        });
         nextDeckZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
@@ -31202,7 +33370,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       syncSelectionDeleteButtonUi();
       let nextStackZ = getStackPointTopZ(stackPointTargetDieId) + 1;
       for (const cardId of deckEligibleSelectedIds) {
-        const patch = {
+        const patch = withCodegameKeyCardUnanchoredPatch(cardId, {
           x: targetStackPointState.x,
           y: targetStackPointState.y,
           z: nextStackZ,
@@ -31210,10 +33378,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           inDeck: false,
           inDiscard: false,
           inAuction: false,
+          codegameGridSlot: -1,
           holderClientId: null,
           handOwnerClientId: null,
           handOwnerPlayerToken: null
-        };
+        });
         nextStackZ += 1;
         patchLocalCard(cardId, patch);
         queueCardPatch(cardId, patch);
@@ -31407,9 +33576,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
-    const acquired = await acquireMonsBoardLock(targetMonsGameId);
+    let acquired = false;
+    try {
+      acquired = await acquireMonsBoardLock(targetMonsGameId);
+    } catch (error) {
+      console.error(error);
+    }
     if (!acquired) {
-      return;
+      const latestMonsGame = getMonsGameStateById(targetMonsGameId);
+      const latestHolder = typeof latestMonsGame?.holderClientId === 'string' ? latestMonsGame.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+        return;
+      }
+      if (latestHolder && latestHolder !== clientId) {
+        patchLocalMonsGame({ holderClientId: null }, targetMonsGameId);
+      }
     }
     if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       await releaseMonsBoardLock(targetMonsGameId);
@@ -36802,6 +38983,223 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     });
   }
 
+  function setDeckPositionGuard(deckId = '', x = NaN, y = NaN, durationMs = DECK_POSITION_GUARD_MS) {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return;
+    }
+    const deckDimensions = getDeckBaseCardDimensions(normalizedDeckId);
+    const normalizedX = clamp(
+      Number.isFinite(Number(x)) ? Number(x) : WORLD_WIDTH / 2,
+      deckDimensions.width / 2,
+      WORLD_WIDTH - deckDimensions.width / 2
+    );
+    const normalizedY = clamp(
+      Number.isFinite(Number(y)) ? Number(y) : WORLD_HEIGHT / 2,
+      deckDimensions.height / 2,
+      WORLD_HEIGHT - deckDimensions.height / 2
+    );
+    const ttl = Math.max(250, Number(durationMs) || DECK_POSITION_GUARD_MS);
+    deckPositionGuardsById.set(normalizedDeckId, {
+      x: normalizedX,
+      y: normalizedY,
+      expiresAt: Date.now() + ttl
+    });
+  }
+
+  function clearDeckPositionGuard(deckId = '') {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return;
+    }
+    deckPositionGuardsById.delete(normalizedDeckId);
+  }
+
+  function getDeckPositionGuard(deckId = '') {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId) {
+      return null;
+    }
+    const guard = deckPositionGuardsById.get(normalizedDeckId);
+    if (!guard) {
+      return null;
+    }
+    if ((Number(guard.expiresAt) || 0) <= Date.now()) {
+      deckPositionGuardsById.delete(normalizedDeckId);
+      return null;
+    }
+    return guard;
+  }
+
+  function isDeckUnderActiveLocalControl(deckId = '') {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (!normalizedDeckId || !localClientId) {
+      return false;
+    }
+    if (deckDragState && normalizeDeckId(deckDragState.deckId) === normalizedDeckId) {
+      return true;
+    }
+    if (
+      groupDragState &&
+      groupDragState.baseDeckPositions instanceof Map &&
+      groupDragState.baseDeckPositions.has(normalizedDeckId)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function isCardUnderActiveLocalControl(cardId = '', previousCardState = null) {
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId || !previousCardState || !localClientId) {
+      return false;
+    }
+    if (previousCardState.holderClientId !== localClientId) {
+      return false;
+    }
+    if (cardDragState?.cardId === normalizedCardId) {
+      return true;
+    }
+    if (cardResizeState?.cardId === normalizedCardId) {
+      return true;
+    }
+    if (cardRotateState?.cardId === normalizedCardId) {
+      return true;
+    }
+    if (
+      groupDragState &&
+      groupDragState.basePositions instanceof Map &&
+      groupDragState.basePositions.has(normalizedCardId)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function mergeIncomingDeckStateWithActiveLocalControl(deckId, previousDeckState, incomingDeckState) {
+    if (!previousDeckState || !incomingDeckState) {
+      return incomingDeckState;
+    }
+    const normalizedDeckId = normalizeDeckId(deckId);
+    if (isDeckUnderActiveLocalControl(normalizedDeckId)) {
+      const isLocalDeckDragActive =
+        Boolean(deckDragState) && normalizeDeckId(deckDragState?.deckId) === normalizedDeckId;
+      const isLocalGroupDeckDragActive =
+        Boolean(groupDragState) &&
+        groupDragState.baseDeckPositions instanceof Map &&
+        groupDragState.baseDeckPositions.has(normalizedDeckId);
+      const incomingHolder =
+        typeof incomingDeckState.holderClientId === 'string'
+          ? incomingDeckState.holderClientId.trim()
+          : '';
+      if (
+        !isLocalDeckDragActive &&
+        !isLocalGroupDeckDragActive &&
+        incomingHolder &&
+        incomingHolder !== localClientId
+      ) {
+        if (isClientSessionLikelyActive(incomingHolder, Date.now())) {
+          return incomingDeckState;
+        }
+      }
+      return normalizeDeckPayload(
+        {
+          ...incomingDeckState,
+          ...previousDeckState,
+          updatedAt: Math.max(
+            Number(incomingDeckState.updatedAt) || 0,
+            Number(previousDeckState.updatedAt) || 0
+          )
+        },
+        normalizedDeckId
+      );
+    }
+    const positionGuard = getDeckPositionGuard(normalizedDeckId);
+    if (!positionGuard) {
+      return incomingDeckState;
+    }
+    if (incomingDeckState.holderClientId && incomingDeckState.holderClientId !== localClientId) {
+      clearDeckPositionGuard(normalizedDeckId);
+      return incomingDeckState;
+    }
+    const incomingX = Number(incomingDeckState.x);
+    const incomingY = Number(incomingDeckState.y);
+    if (Number.isFinite(incomingX) && Number.isFinite(incomingY)) {
+      if (Math.hypot(incomingX - positionGuard.x, incomingY - positionGuard.y) <= 0.75) {
+        clearDeckPositionGuard(normalizedDeckId);
+        return incomingDeckState;
+      }
+      return normalizeDeckPayload(
+        {
+          ...incomingDeckState,
+          x: positionGuard.x,
+          y: positionGuard.y
+        },
+        normalizedDeckId
+      );
+    }
+    return incomingDeckState;
+  }
+
+  function mergeIncomingCardStateWithActiveLocalControl(cardId, previousCardState, incomingCardState) {
+    if (!previousCardState || !incomingCardState) {
+      return incomingCardState;
+    }
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId) {
+      return incomingCardState;
+    }
+    if (isCardUnderActiveLocalControl(normalizedCardId, previousCardState)) {
+      if (incomingCardState.holderClientId && incomingCardState.holderClientId !== localClientId) {
+        return incomingCardState;
+      }
+      return normalizeCardPayload({
+        ...incomingCardState,
+        ...previousCardState,
+        updatedAt: Math.max(
+          Number(incomingCardState.updatedAt) || 0,
+          Number(previousCardState.updatedAt) || 0
+        )
+      }, normalizedCardId);
+    }
+    if (
+      isCodegameKeyCardState(previousCardState) &&
+      previousCardState.codegameKeyAnchored === true &&
+      isDeckUnderActiveLocalControl(previousCardState.deckId || '')
+    ) {
+      if (incomingCardState.holderClientId && incomingCardState.holderClientId !== localClientId) {
+        return incomingCardState;
+      }
+      return normalizeCardPayload({
+        ...incomingCardState,
+        x: Number(previousCardState.x),
+        y: Number(previousCardState.y),
+        z: Math.max(Number(incomingCardState.z) || 0, Number(previousCardState.z) || 0),
+        codegameKeyAnchored: true,
+        codegameKeyMoved: previousCardState.codegameKeyMoved === true,
+        updatedAt: Math.max(
+          Number(incomingCardState.updatedAt) || 0,
+          Number(previousCardState.updatedAt) || 0
+        )
+      }, normalizedCardId);
+    }
+    if (isCodegameKeyCardState(incomingCardState) && incomingCardState.codegameKeyAnchored === true) {
+      const expectedKeyCenter = getCodegameKeyCardExpectedWorldCenter(
+        normalizedCardId,
+        incomingCardState,
+        { requireAnchored: true, requireAvailable: false }
+      );
+      if (expectedKeyCenter) {
+        return normalizeCardPayload({
+          ...incomingCardState,
+          x: expectedKeyCenter.x,
+          y: expectedKeyCenter.y
+        }, normalizedCardId);
+      }
+    }
+    return incomingCardState;
+  }
+
   function mergeIncomingArcadeStateWithActiveLocalControl(dieId, previousDieState, incomingDieState) {
     if (!isArcadeDieState(previousDieState) || !isArcadeDieState(incomingDieState)) {
       return incomingDieState;
@@ -37084,10 +39482,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     selectionBoxState = null;
     hideSelectionBox();
 
-    if (!completedSelection.moved) {
+  if (!completedSelection.moved) {
       if (completedSelection.targetCardId) {
         suppressNextCardContextMenu = true;
-        await handleRightClickFlipIntent(completedSelection.targetCardId);
+        if (CODEGAME_TINT_DEBUG) {
+          codegameDebugStatusByCardId.set(completedSelection.targetCardId, 'event:selection-rightclick');
+          runStateRenderSafely('codegame-debug:selection-rightclick', () => renderCardElement(completedSelection.targetCardId));
+        }
+        const toggledMark = toggleCodegameGridCardReveal(completedSelection.targetCardId);
+        if (CODEGAME_TINT_DEBUG) {
+          const statusCardId = completedSelection.targetCardId;
+          const priorStatus = codegameDebugStatusByCardId.get(statusCardId) || '-';
+          codegameDebugStatusByCardId.set(statusCardId, `${priorStatus} -> ${toggledMark ? 'toggle:1' : 'toggle:0'}`);
+          runStateRenderSafely('codegame-debug:selection-rightclick-result', () => renderCardElement(statusCardId));
+        }
+        if (!toggledMark) {
+          await handleRightClickFlipIntent(completedSelection.targetCardId);
+        }
       }
       return true;
     }
@@ -38619,6 +41030,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const consumedDoubleTap = consumeDoubleTapIfPresent(cardId, event);
     const consumedDoubleClick = consumeDoubleClickIfPresent(cardId, event);
     if (consumedDoubleTap || consumedDoubleClick) {
+      if (CODEGAME_TINT_DEBUG) {
+        codegameDebugStatusByCardId.set(cardId, consumedDoubleClick ? 'event:pointer-doubleclick' : 'event:pointer-doubletap');
+        runStateRenderSafely('codegame-debug:pointer-double', () => renderCardElement(cardId));
+      }
       if (isNoteComponentCard(existingCard)) {
         const pointerId = Number(event.pointerId);
         const pointerPressedAt = Date.now();
@@ -38638,10 +41053,19 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         // Defer opening until the double-click/tap press has settled so the
         // editor does not immediately blur/close on the same pointer sequence.
         window.setTimeout(openNoteEditor, 0);
-      } else {
+      } else if (!toggleCodegameGridCardReveal(cardId)) {
         handleCardFlipIntent(cardId).catch((error) => {
           console.error(error);
         });
+        if (CODEGAME_TINT_DEBUG) {
+          const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+          codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
+          runStateRenderSafely('codegame-debug:pointer-double-result-false', () => renderCardElement(cardId));
+        }
+      } else if (CODEGAME_TINT_DEBUG) {
+        const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+        codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
+        runStateRenderSafely('codegame-debug:pointer-double-result-true', () => renderCardElement(cardId));
       }
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
@@ -38691,7 +41115,6 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       await releaseCardLock(cardId);
       return;
     }
-
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
     if (!worldPoint) {
       await releaseCardLock(cardId);
@@ -38702,15 +41125,44 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const sourceDeckId = getCardDeckId(latestCard);
     setActiveDeckId(sourceDeckId);
     const sourceDeckState = getDeckStateById(sourceDeckId);
+    const codegameSlotStartCenter = getCodegameCardSlotWorldCenter(cardId, latestCard);
+    const codegameKeyStartCenter = codegameSlotStartCenter
+      ? null
+      : getCodegameKeyCardExpectedWorldCenter(cardId, latestCard, {
+        requireAnchored: true,
+        requireAvailable: false
+      });
     const discardStartCenter = latestCard.inDiscard && sourceDeckState ? getDiscardCenterPosition(sourceDeckId) : null;
     const auctionStartCenter = latestCard.inAuction && sourceDeckState ? getAuctionCenterPosition(sourceDeckId) : null;
-    const cardStartX = latestCard.inDeck && sourceDeckState ? sourceDeckState.x : discardStartCenter ? discardStartCenter.x : auctionStartCenter ? auctionStartCenter.x : latestCard.x;
-    const cardStartY = latestCard.inDeck && sourceDeckState ? sourceDeckState.y : discardStartCenter ? discardStartCenter.y : auctionStartCenter ? auctionStartCenter.y : latestCard.y;
+    const rawCardStartX = latestCard.inDeck && sourceDeckState
+      ? sourceDeckState.x
+      : discardStartCenter
+        ? discardStartCenter.x
+        : auctionStartCenter
+          ? auctionStartCenter.x
+          : codegameSlotStartCenter
+            ? codegameSlotStartCenter.x
+            : codegameKeyStartCenter
+              ? codegameKeyStartCenter.x
+            : latestCard.x;
+    const rawCardStartY = latestCard.inDeck && sourceDeckState
+      ? sourceDeckState.y
+      : discardStartCenter
+        ? discardStartCenter.y
+        : auctionStartCenter
+          ? auctionStartCenter.y
+          : codegameSlotStartCenter
+            ? codegameSlotStartCenter.y
+            : codegameKeyStartCenter
+              ? codegameKeyStartCenter.y
+            : latestCard.y;
+    const cardStartX = Number.isFinite(rawCardStartX) ? rawCardStartX : worldPoint.x;
+    const cardStartY = Number.isFinite(rawCardStartY) ? rawCardStartY : worldPoint.y;
     cardDragState = {
       cardId,
       pointerId: event.pointerId,
-      offsetX: worldPoint.x - cardStartX,
-      offsetY: worldPoint.y - cardStartY,
+      offsetX: Number.isFinite(worldPoint.x - cardStartX) ? worldPoint.x - cardStartX : 0,
+      offsetY: Number.isFinite(worldPoint.y - cardStartY) ? worldPoint.y - cardStartY : 0,
       pointerType: effectivePointerType,
       startClientX: event.clientX,
       startClientY: event.clientY,
@@ -38722,17 +41174,19 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     syncHandHoverDragLock();
 
     const topZ = getTopCardZ() + 1;
-    const startPatch = {
+    const startPatchBase = {
       x: cardStartX,
       y: cardStartY,
       inDeck: false,
       inDiscard: false,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: clientId,
       handOwnerClientId: null,
       handOwnerPlayerToken: null,
       z: topZ
     };
+    const startPatch = withCodegameKeyCardUnanchoredPatch(cardId, startPatchBase);
     patchLocalCard(cardId, startPatch);
     queueCardPatch(cardId, startPatch);
 
@@ -38904,9 +41358,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         const auctionDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'auction') : '';
         const discardDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'discard') : '';
         const mainDeckId = canUseDeckZones ? getDeckIdAtPosition(dropX, dropY, 'deck') : '';
+        const codegameGridPatch = canUseDeckZones
+          ? buildCodegameGridDropPatchAtPosition(finishedState.cardId, dropX, dropY)
+          : null;
         const stackPointDieId = canUseDeckZones ? getStackPointIdAtPosition(dropX, dropY) : '';
         const releasePatch = canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
+          : codegameGridPatch
+            ? codegameGridPatch
           : canUseDeckZones && Boolean(discardDeckId) && isDeckDiscardEnabled(discardDeckId)
             ? buildDiscardPlacementPatch(topZ, discardDeckId)
             : canUseDeckZones && Boolean(mainDeckId)
@@ -38918,6 +41377,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
                 inDeck: true,
                 inDiscard: false,
                 inAuction: false,
+                codegameGridSlot: -1,
                 holderClientId: null,
                 handOwnerClientId: null,
                 handOwnerPlayerToken: null
@@ -38931,6 +41391,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
                 inDeck: false,
                 inDiscard: false,
                 inAuction: false,
+                codegameGridSlot: -1,
                 holderClientId: null,
                 handOwnerClientId: null,
                 handOwnerPlayerToken: null,
@@ -38944,13 +41405,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
               inDeck: false,
               inDiscard: false,
               inAuction: false,
+              codegameGridSlot: -1,
               holderClientId: null,
               handOwnerClientId: null,
               handOwnerPlayerToken: null,
               z: topZ
             };
-        patchLocalCard(finishedState.cardId, releasePatch);
-        queueCardPatch(finishedState.cardId, releasePatch);
+        const resolvedReleasePatch = withCodegameKeyCardUnanchoredPatch(finishedState.cardId, releasePatch);
+        patchLocalCard(finishedState.cardId, resolvedReleasePatch);
+        queueCardPatch(finishedState.cardId, resolvedReleasePatch);
         persistCardStateImmediately(finishedState.cardId);
       }
       schedulePublishFromClient(event.clientX, event.clientY);
@@ -39075,20 +41538,34 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
     if (!worldPoint) {
+      const activeCardAtEdge = cards.get(cardDragState.cardId);
+      const canEnterHandAtEdge = canCardEnterHand(activeCardAtEdge);
+      const overHandDropRegionAtEdge = canEnterHandAtEdge && isClientInHandDropRegionSticky(event.clientY, cardDragState.cardId);
+      const showHandPreviewAtEdge = canEnterHandAtEdge && isClientInHandDropRegion(event.clientY);
+      setHandDropGlow(overHandDropRegionAtEdge);
+      if (showHandPreviewAtEdge) {
+        setHandDropPreview(cardDragState.cardId, event.clientX);
+      } else {
+        setHandDropPreview(null);
+      }
       setDeckDropIndicator(false);
       setDiscardDropIndicator(false);
       setAuctionDropIndicator(false);
       setStackPointDropTarget('');
-      setHandDropGlow(false);
-      setHandDropPreview(null);
       return;
     }
 
     const activeCard = cards.get(cardDragState.cardId);
     const activeCardSize = getCardTableDimensions(activeCard);
     const activeCardBounds = getCardPositionBounds(activeCard, activeCardSize.width, activeCardSize.height);
-    const nextX = clamp(worldPoint.x - cardDragState.offsetX, activeCardBounds.minX, activeCardBounds.maxX);
-    const nextY = clamp(worldPoint.y - cardDragState.offsetY, activeCardBounds.minY, activeCardBounds.maxY);
+    const dragOffsetX = Number.isFinite(cardDragState.offsetX) ? cardDragState.offsetX : 0;
+    const dragOffsetY = Number.isFinite(cardDragState.offsetY) ? cardDragState.offsetY : 0;
+    const rawNextX = worldPoint.x - dragOffsetX;
+    const rawNextY = worldPoint.y - dragOffsetY;
+    const fallbackX = Number.isFinite(Number(activeCard?.x)) ? Number(activeCard.x) : worldPoint.x;
+    const fallbackY = Number.isFinite(Number(activeCard?.y)) ? Number(activeCard.y) : worldPoint.y;
+    const nextX = clamp(Number.isFinite(rawNextX) ? rawNextX : fallbackX, activeCardBounds.minX, activeCardBounds.maxX);
+    const nextY = clamp(Number.isFinite(rawNextY) ? rawNextY : fallbackY, activeCardBounds.minY, activeCardBounds.maxY);
     const movedDistance = Math.hypot(event.clientX - cardDragState.startClientX, event.clientY - cardDragState.startClientY);
     const movedThreshold =
       cardDragState.pointerType === 'mouse' ? MOUSE_CLICK_MAX_MOVE_PX : TOUCH_TAP_MAX_MOVE_PX;
@@ -39096,13 +41573,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (movedDistance > movedThreshold) {
       cardDragState.moved = true;
     }
+    if (!wasMoved && cardDragState.moved) {
+      markCodegameKeyCardAsTouched(cardDragState.cardId);
+    }
     if (!wasMoved && cardDragState.moved && (cardDragState.pointerType === 'touch' || cardDragState.pointerType === 'pen')) {
       recentTouchTapByCardId.delete(cardDragState.cardId);
     }
     const canEnterHand = canCardEnterHand(activeCard);
-    const overHandDropRegion = canEnterHand && isClientInHandDropRegion(event.clientY);
+    const overHandDropRegion = canEnterHand && isClientInHandDropRegionSticky(event.clientY, cardDragState.cardId);
+    const showHandPreview = canEnterHand && isClientInHandDropRegion(event.clientY);
     setHandDropGlow(overHandDropRegion);
-    if (overHandDropRegion) {
+    if (showHandPreview) {
       setHandDropPreview(cardDragState.cardId, event.clientX);
     } else {
       setHandDropPreview(null);
@@ -39122,26 +41603,22 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     setAuctionDropIndicator(overAuction && !overHandDropRegion, auctionTargetDeckId);
     setDeckDropIndicator(Boolean(deckTargetDeckId) && !overHandDropRegion && !overDiscard && !overAuction, deckTargetDeckId);
 
-    patchLocalCard(cardDragState.cardId, {
+    const dragPatchBase = {
       x: nextX,
       y: nextY,
       inDeck: false,
       inDiscard: false,
       inAuction: false,
+      codegameGridSlot: -1,
       holderClientId: clientId,
       handOwnerClientId: null,
       handOwnerPlayerToken: null
-    });
-    queueCardPatch(cardDragState.cardId, {
-      x: nextX,
-      y: nextY,
-      inDeck: false,
-      inDiscard: false,
-      inAuction: false,
-      holderClientId: clientId,
-      handOwnerClientId: null,
-      handOwnerPlayerToken: null
-    });
+    };
+    const dragPatch = cardDragState.moved
+      ? withCodegameKeyCardUnanchoredPatch(cardDragState.cardId, dragPatchBase)
+      : dragPatchBase;
+    patchLocalCard(cardDragState.cardId, dragPatch);
+    queueCardPatch(cardDragState.cardId, dragPatch);
     schedulePublishFromClient(event.clientX, event.clientY);
     event.preventDefault();
   }
@@ -39165,6 +41642,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     const finishedDrag = cardDragState;
     cardDragState = null;
+    clearHandDropPreviewClearTimer();
     syncHandHoverDragLock();
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
@@ -39175,7 +41653,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     let finalPatch = null;
     const draggedCardState = cards.get(finishedDrag.cardId);
-    if (canCardEnterHand(draggedCardState) && isClientInHandDropRegion(event.clientY)) {
+    if (canCardEnterHand(draggedCardState) && isClientInHandDropRegionSticky(event.clientY, finishedDrag.cardId)) {
       finalPatch = buildHandDropPatch(finishedDrag.cardId, localPlayerToken);
       if (selectedCardIds.delete(finishedDrag.cardId)) {
         syncSelectionDeleteButtonUi();
@@ -39184,6 +41662,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!finalPatch) {
       finalPatch =
         buildAuctionDropPatch(finishedDrag.cardId, auctionDropIndicatorDeckId) ||
+        buildCodegameGridDropPatch(finishedDrag.cardId) ||
         buildDiscardDropPatch(finishedDrag.cardId, discardDropIndicatorDeckId) ||
         buildDeckDropPatch(finishedDrag.cardId, deckDropIndicatorDeckId) ||
         buildStackPointDropPatch(finishedDrag.cardId, stackPointDropTargetDieId) || {
@@ -39191,13 +41670,32 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           inDeck: false,
           inDiscard: false,
           inAuction: false,
+          codegameGridSlot: -1,
           handOwnerClientId: null,
           handOwnerPlayerToken: null
         };
     }
 
-    patchLocalCard(finishedDrag.cardId, finalPatch);
-    queueCardPatch(finishedDrag.cardId, finalPatch);
+    const releaseTargetsHand = Boolean(finalPatch?.handOwnerClientId || finalPatch?.handOwnerPlayerToken);
+    const releaseTargetsStack = Boolean(finalPatch?.inDeck || finalPatch?.inDiscard || finalPatch?.inAuction);
+    const releaseSlotValue = Number(finalPatch?.codegameGridSlot);
+    const releaseTargetsCodegameGrid = Number.isInteger(releaseSlotValue) && releaseSlotValue >= 0;
+    const keepKeyAnchoredOnRelease =
+      isCodegameKeyCardState(draggedCardState) &&
+      !finishedDrag.moved &&
+      !releaseTargetsHand &&
+      !releaseTargetsStack &&
+      !releaseTargetsCodegameGrid;
+    const finalReleasePatch = keepKeyAnchoredOnRelease
+      ? {
+        ...finalPatch,
+        codegameKeyAnchored: true,
+        codegameKeyMoved: false,
+        codegameGridSlot: -1
+      }
+      : withCodegameKeyCardUnanchoredPatch(finishedDrag.cardId, finalPatch);
+    patchLocalCard(finishedDrag.cardId, finalReleasePatch);
+    queueCardPatch(finishedDrag.cardId, finalReleasePatch);
     persistCardStateImmediately(finishedDrag.cardId);
     releaseCardLock(finishedDrag.cardId).catch((error) => {
       console.error(error);
@@ -39256,13 +41754,32 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   onCardContextMenu = (event, cardId) => {
     event.preventDefault();
     event.stopPropagation();
-    if (deleteModeEnabled) {
+    if (CODEGAME_TINT_DEBUG) {
+      codegameDebugStatusByCardId.set(cardId, 'event:contextmenu');
+      runStateRenderSafely('codegame-debug:contextmenu', () => renderCardElement(cardId));
+    }
+    if (suppressNextCardContextMenu) {
       suppressNextCardContextMenu = false;
       return;
     }
-    if (drawModeEnabled) {
-      suppressNextCardContextMenu = false;
+    if (deleteModeEnabled) {
       return;
+    }
+    if (drawModeEnabled) {
+      return;
+    }
+    if (toggleCodegameGridCardReveal(cardId)) {
+      if (CODEGAME_TINT_DEBUG) {
+        const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+        codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
+        runStateRenderSafely('codegame-debug:contextmenu-result-true', () => renderCardElement(cardId));
+      }
+      return;
+    }
+    if (CODEGAME_TINT_DEBUG) {
+      const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+      codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
+      runStateRenderSafely('codegame-debug:contextmenu-result-false', () => renderCardElement(cardId));
     }
     const canFlipWhileHeldIdle =
       (Boolean(cardDragState) && cardDragState.cardId === cardId && hasDragPointerComeToRest(cardDragState)) ||
@@ -39271,11 +41788,6 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         groupDragState.basePositions?.has(cardId) &&
         hasDragPointerComeToRest(groupDragState));
     if (hasActiveCardInteraction() && !canFlipWhileHeldIdle) {
-      suppressNextCardContextMenu = false;
-      return;
-    }
-    if (suppressNextCardContextMenu) {
-      suppressNextCardContextMenu = false;
       return;
     }
     handleRightClickFlipIntent(cardId).catch((error) => {
@@ -39283,11 +41795,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     });
   };
   onCardDoubleClick = (event, cardId) => {
+    if (CODEGAME_TINT_DEBUG) {
+      codegameDebugStatusByCardId.set(cardId, 'event:dblclick');
+      runStateRenderSafely('codegame-debug:dblclick', () => renderCardElement(cardId));
+    }
     if (drawModeEnabled || deleteModeEnabled) {
       return;
     }
     const cardState = cards.get(cardId);
     if (!isNoteComponentCard(cardState)) {
+      if (toggleCodegameGridCardReveal(cardId)) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (CODEGAME_TINT_DEBUG) {
+          const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+          codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
+          runStateRenderSafely('codegame-debug:dblclick-result-true', () => renderCardElement(cardId));
+        }
+      } else if (CODEGAME_TINT_DEBUG) {
+        const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+        codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
+        runStateRenderSafely('codegame-debug:dblclick-result-false', () => renderCardElement(cardId));
+      }
       return;
     }
     event.preventDefault();
@@ -40088,9 +42617,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (targetChipSet.holderClientId && targetChipSet.holderClientId !== clientId) {
       return;
     }
-    const acquired = await acquireChipSetLock(targetChipSetId);
+    let acquired = false;
+    try {
+      acquired = await acquireChipSetLock(targetChipSetId);
+    } catch (error) {
+      console.error(error);
+    }
     if (!acquired) {
-      return;
+      const latestChipSet = chipSetsById.get(targetChipSetId);
+      const latestHolder = typeof latestChipSet?.holderClientId === 'string' ? latestChipSet.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+        return;
+      }
+      if (latestHolder && latestHolder !== clientId) {
+        patchLocalChipSet({ holderClientId: null }, targetChipSetId);
+      }
     }
     if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       await releaseChipSetLock(targetChipSetId);
@@ -40167,6 +42708,107 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
+  function handleDeckMoveMouseDown(event, deckId = activeDeckId) {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    recoverStuckPointerInteractions(Date.now());
+    mousePanState = null;
+
+    const targetDeckId = normalizeDeckId(deckId);
+    setActiveDeckId(targetDeckId);
+    clearDeckPositionGuard(targetDeckId);
+
+    const targetDeckState = getDeckStateById(targetDeckId);
+    if (!targetDeckState) {
+      return;
+    }
+
+    const hasPointerId = Number.isFinite(Number(event.pointerId)) && Number(event.pointerId) >= 0;
+    if (hasAnyGroupSelection()) {
+      if (hasPointerId && selectedDeckIds.has(targetDeckId) && beginGroupDragFromDeck(event, targetDeckId)) {
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedDeckIds.has(targetDeckId) || !hasPointerId) {
+        releaseAllSelectedObjects();
+      }
+    }
+
+    if (
+      chipSetDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return;
+    }
+
+    if (deckDragState) {
+      const activeDragDeckId = normalizeDeckId(deckDragState.deckId);
+      if (activeDragDeckId === targetDeckId && Date.now() - (Number(deckDragState.startedAt) || 0) < 180) {
+        return;
+      }
+      const staleFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
+      patchLocalDeck({ holderClientId: null }, activeDragDeckId, { followCardIds: staleFollowCardIds });
+      queueDeckPatch({ holderClientId: null }, activeDragDeckId);
+      releaseDeckLock(activeDragDeckId).catch((error) => {
+        console.error(error);
+      });
+      deckDragState = null;
+      deckDragLastQueuedAt = 0;
+    }
+
+    deckDragState = {
+      deckId: targetDeckId,
+      pointerId: Number.isFinite(Number(event.pointerId)) ? Number(event.pointerId) : -1,
+      pointerType: 'mouse',
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: targetDeckState.x,
+      startY: targetDeckState.y,
+      followCardIds: collectDeckFollowerCardIdsForMove(targetDeckId),
+      startedAt: Date.now(),
+      lastMotionAt: Date.now(),
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      captureTarget: null
+    };
+    deckDragLastQueuedAt = 0;
+
+    patchLocalDeck({ holderClientId: clientId }, targetDeckId, { followCardIds: deckDragState.followCardIds });
+    queueDeckPatch({ holderClientId: clientId }, targetDeckId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+
+    bringDeckToFront(targetDeckId).catch((error) => {
+      console.error(error);
+    });
+
+    acquireDeckLock(targetDeckId).then((acquired) => {
+      if (acquired) {
+        return;
+      }
+      const latestDeckState = getDeckStateById(targetDeckId);
+      const latestHolder = typeof latestDeckState?.holderClientId === 'string' ? latestDeckState.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && !isClientSessionLikelyActive(latestHolder, Date.now())) {
+        patchLocalDeck({ holderClientId: null }, targetDeckId);
+      }
+    }).catch((error) => {
+      console.error(error);
+    });
+  }
+
   async function handleDeckMovePointerDown(event, deckId = activeDeckId) {
     if (drawModeEnabled) {
       return;
@@ -40186,9 +42828,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
     event.preventDefault();
     event.stopPropagation();
+    recoverStuckPointerInteractions(Date.now());
+    const captureTarget = event.currentTarget;
+    mousePanState = null;
 
     const targetDeckId = normalizeDeckId(deckId);
     setActiveDeckId(targetDeckId);
+    clearDeckPositionGuard(targetDeckId);
+
     if (hasAnyGroupSelection()) {
       if (selectedDeckIds.has(targetDeckId) && beginGroupDragFromDeck(event, targetDeckId)) {
         safeSetPointerCapture(event.currentTarget, event.pointerId);
@@ -40200,9 +42847,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
     }
     const targetDeckState = getDeckStateById(targetDeckId);
+    if (!targetDeckState) {
+      return;
+    }
+
     if (
-      !targetDeckState ||
-      deckDragState ||
       chipSetDragState ||
       cardResizeState ||
       cardRotateState ||
@@ -40214,94 +42863,428 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
-    if (targetDeckState.holderClientId && targetDeckState.holderClientId !== clientId) {
-      return;
+    if (deckDragState) {
+      const staleDeckId = normalizeDeckId(deckDragState.deckId);
+      const staleFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
+      deckDragState = null;
+      deckDragLastQueuedAt = 0;
+      patchLocalDeck({ holderClientId: null }, staleDeckId, { followCardIds: staleFollowCardIds });
+      queueDeckPatch({ holderClientId: null }, staleDeckId);
+      releaseDeckLock(staleDeckId).catch((error) => {
+        console.error(error);
+      });
     }
 
-    const acquired = await acquireDeckLock(targetDeckId);
-    if (!acquired) {
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       return;
     }
-    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
-      await releaseDeckLock(targetDeckId);
+    const latestDeckStateForDrag = getDeckStateById(targetDeckId);
+    if (!latestDeckStateForDrag) {
       return;
     }
 
     deckDragState = {
       deckId: targetDeckId,
       pointerId: event.pointerId,
+      pointerType: getEffectivePointerType(event),
       startClientX: event.clientX,
       startClientY: event.clientY,
-      startX: targetDeckState.x,
-      startY: targetDeckState.y
+      startX: latestDeckStateForDrag.x,
+      startY: latestDeckStateForDrag.y,
+      followCardIds: collectDeckFollowerCardIdsForMove(targetDeckId),
+      startedAt: Date.now(),
+      lastMotionAt: Date.now(),
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      captureTarget: null
     };
+    deckDragLastQueuedAt = 0;
 
-    patchLocalDeck({ holderClientId: clientId }, targetDeckId);
+    patchLocalDeck({ holderClientId: clientId }, targetDeckId, { followCardIds: deckDragState.followCardIds });
     queueDeckPatch({ holderClientId: clientId }, targetDeckId);
 
-    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    const stableCaptureTarget = tableRoot instanceof Element ? tableRoot : captureTarget;
+    deckDragState.captureTarget = stableCaptureTarget;
+    safeSetPointerCapture(stableCaptureTarget, event.pointerId);
     schedulePublishFromClient(event.clientX, event.clientY);
 
     bringDeckToFront(targetDeckId).catch((error) => {
       console.error(error);
     });
+
+    acquireDeckLock(targetDeckId).then((acquired) => {
+      if (acquired) {
+        return;
+      }
+      const latestDeckState = getDeckStateById(targetDeckId);
+      const latestHolder = typeof latestDeckState?.holderClientId === 'string' ? latestDeckState.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && !isClientSessionLikelyActive(latestHolder, Date.now())) {
+        patchLocalDeck({ holderClientId: null }, targetDeckId);
+      }
+    }).catch((error) => {
+      console.error(error);
+    });
   }
 
   function handleDeckDragMove(event) {
-    if (!deckDragState || event.pointerId !== deckDragState.pointerId) {
+    if (!deckDragState) {
       return;
     }
-    if ((event.buttons & 1) === 0) {
-      handleDeckDragEnd({
-        type: 'pointercancel',
-        pointerId: event.pointerId,
-        clientX: event.clientX,
-        clientY: event.clientY,
-        button: 0
-      });
+    const dragPointerType = String(deckDragState.pointerType || '');
+    const isMouseDrag =
+      dragPointerType === 'mouse' ||
+      (!dragPointerType && Number(deckDragState.pointerId) < 0);
+    const pointerMatches = isMouseDrag
+      ? event.pointerType === 'mouse' || typeof event.pointerType === 'undefined'
+      : event.pointerId === deckDragState.pointerId;
+    if (!pointerMatches) {
       return;
     }
-
-    const deltaX = (event.clientX - deckDragState.startClientX) / camera.scale;
-    const deltaY = (event.clientY - deckDragState.startClientY) / camera.scale;
-    const nextX = clamp(deckDragState.startX + deltaX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2);
-    const nextY = clamp(deckDragState.startY + deltaY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2);
-
-    patchLocalDeck({
-      x: nextX,
-      y: nextY,
-      holderClientId: clientId
-    }, deckDragState.deckId);
-    queueDeckPatch({
-      x: nextX,
-      y: nextY,
-      holderClientId: clientId
-    }, deckDragState.deckId);
+    applyDeckDragFromClient(event.clientX, event.clientY);
     schedulePublishFromClient(event.clientX, event.clientY);
     event.preventDefault();
   }
 
-  function handleDeckDragEnd(event) {
-    if (!deckDragState || event.pointerId !== deckDragState.pointerId) {
+  function applyDeckDragFromClient(clientX, clientY) {
+    if (!deckDragState) {
       return;
+    }
+    const moveSinceLastEvent = Math.hypot(
+      clientX - Number(deckDragState.lastClientX ?? deckDragState.startClientX ?? clientX),
+      clientY - Number(deckDragState.lastClientY ?? deckDragState.startClientY ?? clientY)
+    );
+    if (moveSinceLastEvent >= 0.5) {
+      deckDragState.lastMotionAt = Date.now();
+    }
+    deckDragState.lastClientX = clientX;
+    deckDragState.lastClientY = clientY;
+
+    const deltaX = (clientX - deckDragState.startClientX) / camera.scale;
+    const deltaY = (clientY - deckDragState.startClientY) / camera.scale;
+    const deckDimensions = getDeckBaseCardDimensions(deckDragState.deckId);
+    const nextX = clamp(
+      deckDragState.startX + deltaX,
+      deckDimensions.width / 2,
+      WORLD_WIDTH - deckDimensions.width / 2
+    );
+    const nextY = clamp(
+      deckDragState.startY + deltaY,
+      deckDimensions.height / 2,
+      WORLD_HEIGHT - deckDimensions.height / 2
+    );
+
+    const dragFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
+    patchLocalDeck(
+      {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      },
+      deckDragState.deckId,
+      { followCardIds: dragFollowCardIds }
+    );
+    const now = Date.now();
+    if (now - deckDragLastQueuedAt >= DECK_DRAG_SYNC_INTERVAL_MS) {
+      queueDeckPatch({
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      }, deckDragState.deckId);
+      deckDragLastQueuedAt = now;
+    }
+  }
+
+  function handleDeckDragMouseMoveFallback(event) {
+    if (!deckDragState) {
+      return;
+    }
+    const dragPointerType = String(deckDragState.pointerType || '');
+    if (dragPointerType && dragPointerType !== 'mouse') {
+      return;
+    }
+    applyDeckDragFromClient(event.clientX, event.clientY);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  }
+
+  function handleDeckDragMouseUpFallback(event) {
+    if (!deckDragState) {
+      return;
+    }
+    handleDeckDragEnd({
+      type: 'pointerup',
+      pointerId: deckDragState.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      button: 0,
+      buttons: 0
+    });
+  }
+
+  function handleDeckDragEnd(event) {
+    if (!deckDragState) {
+      return;
+    }
+    const dragPointerType = String(deckDragState.pointerType || '');
+    const isMouseDrag =
+      dragPointerType === 'mouse' ||
+      (!dragPointerType && Number(deckDragState.pointerId) < 0);
+    const pointerMatches = isMouseDrag
+      ? event.pointerType === 'mouse' || typeof event.pointerType === 'undefined'
+      : event.pointerId === deckDragState.pointerId;
+    if (!pointerMatches) {
+      return;
+    }
+    if (event.type === 'pointercancel') {
+      const startedAt = Number(deckDragState.startedAt) || 0;
+      if (startedAt > 0 && Date.now() - startedAt < 180) {
+        return;
+      }
     }
     if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
       return;
     }
 
     const targetDeckId = normalizeDeckId(deckDragState.deckId);
+    releasePointerCaptureSafely(deckDragState.captureTarget, deckDragState.pointerId);
+    const dragFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
     deckDragState = null;
-    patchLocalDeck({ holderClientId: null }, targetDeckId);
+    deckDragLastQueuedAt = 0;
+    patchLocalDeck({ holderClientId: null }, targetDeckId, { followCardIds: dragFollowCardIds });
     queueDeckPatch({ holderClientId: null }, targetDeckId);
-    persistDeckStateImmediately(targetDeckId);
     releaseDeckLock(targetDeckId).catch((error) => {
       console.error(error);
     });
+    syncAnchoredCodegameKeyCardsToDeck(targetDeckId, {
+      queue: true,
+      persist: true
+    });
+    persistDeckStateImmediately(targetDeckId);
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
+  handleCodegamePlayShuffle = async (deckId = activeDeckId) => {
+    const targetDeckId = normalizeDeckId(deckId);
+    if (getDeckKind(targetDeckId) !== DECK_KIND_CODEGAME) {
+      return;
+    }
+    const acquired = await acquireDeckLock(targetDeckId);
+    if (!acquired) {
+      return;
+    }
+    const deckStateBeforeShuffle = getDeckStateById(targetDeckId);
+    const guardedDeckPosition = getDeckPositionGuard(targetDeckId);
+    const stableDeckX = Number.isFinite(Number(guardedDeckPosition?.x))
+      ? Number(guardedDeckPosition.x)
+      : Number.isFinite(Number(deckStateBeforeShuffle?.x))
+        ? Number(deckStateBeforeShuffle.x)
+        : WORLD_WIDTH / 2;
+    const stableDeckY = Number.isFinite(Number(guardedDeckPosition?.y))
+      ? Number(guardedDeckPosition.y)
+      : Number.isFinite(Number(deckStateBeforeShuffle?.y))
+        ? Number(deckStateBeforeShuffle.y)
+        : WORLD_HEIGHT / 2;
+    patchLocalDeck({ x: stableDeckX, y: stableDeckY, holderClientId: clientId }, targetDeckId);
+    setDeckPositionGuard(targetDeckId, stableDeckX, stableDeckY, DECK_POSITION_GUARD_MS * 3);
+    try {
+      const targetDeckState = getDeckStateById(targetDeckId);
+      if (!targetDeckState) {
+        return;
+      }
+      const deckCardEntries = getDeckCardEntries(targetDeckId);
+      if (deckCardEntries.length === 0) {
+        return;
+      }
+      const movableEntries = deckCardEntries.filter(([, cardState]) => (
+        cardState &&
+        !isCodegameKeyCardState(cardState) &&
+        !getCardHandOwnerId(cardState) &&
+        !cardState.holderClientId &&
+        !cardState.inDiscard &&
+        !cardState.inAuction
+      ));
+      if (movableEntries.length === 0) {
+        return;
+      }
+      const maxGridCards = CODEGAME_GRID_SIZE * CODEGAME_GRID_SIZE;
+      const isShuffleMode = targetDeckState.codegameGridActive === true;
+      let selectedCardIds = [];
+      if (isShuffleMode) {
+        const randomizedEntries = [...movableEntries];
+        for (let index = randomizedEntries.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          const temp = randomizedEntries[index];
+          randomizedEntries[index] = randomizedEntries[swapIndex];
+          randomizedEntries[swapIndex] = temp;
+        }
+        selectedCardIds = randomizedEntries
+          .slice(0, Math.min(maxGridCards, randomizedEntries.length))
+          .map(([cardId]) => cardId);
+      } else {
+        const topDeckCardIds = movableEntries
+          .filter(([, cardState]) => cardState.inDeck)
+          .sort(([, leftState], [, rightState]) => (Number(rightState?.z) || 0) - (Number(leftState?.z) || 0))
+          .slice(0, Math.min(maxGridCards, movableEntries.length))
+          .map(([cardId]) => cardId);
+        selectedCardIds = topDeckCardIds.length > 0
+          ? topDeckCardIds
+          : movableEntries.slice(0, Math.min(maxGridCards, movableEntries.length)).map(([cardId]) => cardId);
+      }
+      if (selectedCardIds.length === 0) {
+        return;
+      }
+
+      const resetOrder = [...movableEntries].sort(([, leftState], [, rightState]) => (
+        (Number(leftState?.z) || 0) - (Number(rightState?.z) || 0)
+      ));
+      if (isShuffleMode) {
+        for (let index = resetOrder.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          const temp = resetOrder[index];
+          resetOrder[index] = resetOrder[swapIndex];
+          resetOrder[swapIndex] = temp;
+        }
+      }
+
+      const updatesByPath = {};
+      const startedAt = Date.now();
+
+      for (let index = 0; index < resetOrder.length; index += 1) {
+        const [cardId] = resetOrder[index];
+        const patch = {
+          x: targetDeckState.x,
+          y: targetDeckState.y,
+          z: index + 1,
+          face: 'front',
+          inDeck: true,
+          inDiscard: false,
+          inAuction: false,
+          codegameGridSlot: -1,
+          codegameTinted: false,
+          codegameRevealColor: '',
+          codegameMarkedType: '',
+          codegameMarkedSlot: -1,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null,
+          drawLifted: false,
+          updatedAt: startedAt + index
+        };
+        patchLocalCard(cardId, patch);
+        for (const [patchKey, patchValue] of Object.entries(patch)) {
+          if (typeof patchValue === 'undefined') {
+            continue;
+          }
+          updatesByPath[`${cardId}/${patchKey}`] = patchKey === 'updatedAt' ? serverTimestamp() : patchValue;
+        }
+      }
+
+      const boardBaseZ = Math.max(getTopObjectZ() + 5, resetOrder.length + 2);
+      for (let index = 0; index < selectedCardIds.length; index += 1) {
+        const cardId = selectedCardIds[index];
+        const slotPosition = getCodegameGridSlotWorldPosition(targetDeckId, index);
+        const patch = {
+          x: slotPosition.x,
+          y: slotPosition.y,
+          z: boardBaseZ + index,
+          face: 'front',
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          codegameGridSlot: index,
+          codegameTinted: false,
+          codegameRevealColor: '',
+          codegameMarkedType: '',
+          codegameMarkedSlot: -1,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null,
+          drawLifted: false,
+          updatedAt: startedAt + resetOrder.length + index
+        };
+        patchLocalCard(cardId, patch);
+        for (const [patchKey, patchValue] of Object.entries(patch)) {
+          if (typeof patchValue === 'undefined') {
+            continue;
+          }
+          updatesByPath[`${cardId}/${patchKey}`] = patchKey === 'updatedAt' ? serverTimestamp() : patchValue;
+        }
+      }
+
+      const keyPattern = generateCodegameKeyPattern();
+      const keyFrontSrc = createCodegameKeyFaceSvgDataUri(keyPattern);
+      const keyCardIds = getCodegameKeyCardIds(targetDeckId);
+      const keyBaseZ = boardBaseZ + selectedCardIds.length + 1;
+      for (let index = 0; index < keyCardIds.length; index += 1) {
+        const keyCardId = keyCardIds[index];
+        const keyPosition = getCodegameKeyCardWorldPosition(targetDeckId, index);
+        const patch = {
+          x: keyPosition.x,
+          y: keyPosition.y,
+          z: keyBaseZ + index,
+          face: 'back',
+          frontSrc: keyFrontSrc,
+          deckBackSrc: CODEGAME_KEY_CARD_BACK_IMAGE_SRC,
+          deckId: targetDeckId,
+          inDeck: false,
+          inDiscard: false,
+          inAuction: false,
+          codegameGridSlot: -1,
+          codegameKeyCard: true,
+          codegameKeyBlueIndices: keyPattern.blue,
+          codegameKeyRedIndices: keyPattern.red,
+          codegameKeyAssassinIndex: keyPattern.assassin,
+          codegameKeyAnchored: true,
+          codegameKeyMoved: false,
+          holderClientId: null,
+          handOwnerClientId: null,
+          handOwnerPlayerToken: null,
+          drawLifted: false,
+          updatedAt: startedAt + resetOrder.length + selectedCardIds.length + index
+        };
+        if (cards.has(keyCardId)) {
+          patchLocalCard(keyCardId, patch);
+        }
+        for (const [patchKey, patchValue] of Object.entries(patch)) {
+          if (typeof patchValue === 'undefined') {
+            continue;
+          }
+          updatesByPath[`${keyCardId}/${patchKey}`] = patchKey === 'updatedAt' ? serverTimestamp() : patchValue;
+        }
+      }
+
+      patchLocalDeck({
+        x: stableDeckX,
+        y: stableDeckY,
+        codegameGridActive: true,
+        holderClientId: clientId
+      }, targetDeckId);
+      if (Object.keys(updatesByPath).length > 0) {
+        await update(cardsRef, updatesByPath);
+      }
+      await update(getDeckNodeRef(targetDeckId), {
+        x: stableDeckX,
+        y: stableDeckY,
+        codegameGridActive: true,
+        updatedAt: serverTimestamp()
+      });
+      if (isShuffleMode) {
+        triggerDeckShuffleFx(targetDeckId);
+      }
+    } finally {
+      patchLocalDeck({ x: stableDeckX, y: stableDeckY, holderClientId: null }, targetDeckId);
+      queueDeckPatch({ x: stableDeckX, y: stableDeckY, holderClientId: null }, targetDeckId);
+      persistDeckStateImmediately(targetDeckId);
+      releaseDeckLock(targetDeckId).catch((error) => {
+        console.error(error);
+      });
+    }
+  };
+
   async function handleDeckShuffle(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
+    if (!deckSupportsShuffle(targetDeckId)) {
+      return;
+    }
     const acquired = await acquireDeckLock(targetDeckId);
     if (!acquired) {
       return;
@@ -40389,6 +43372,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
   async function handleDealOneToEachPlayer(deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(deckId);
+    if (!deckSupportsDealOne(targetDeckId)) {
+      return;
+    }
     const acquired = await acquireDeckLock(targetDeckId);
     if (!acquired) {
       return;
@@ -40706,6 +43692,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       console.error(error);
     });
   };
+  onDeckMoveMouseDown = (event, deckId) => {
+    try {
+      handleDeckMoveMouseDown(event, deckId);
+    } catch (error) {
+      console.error(error);
+    }
+  };
   onMonsMovePointerDown = (event, gameId = activeMonsGameId) => {
     handleMonsMovePointerDown(event, gameId).catch((error) => {
       console.error(error);
@@ -40756,9 +43749,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
-    const acquired = await acquireMonsBoardLock(targetTaflGameId);
+    let acquired = false;
+    try {
+      acquired = await acquireMonsBoardLock(targetTaflGameId);
+    } catch (error) {
+      console.error(error);
+    }
     if (!acquired) {
-      return;
+      const latestTaflGame = getTaflGameStateById(targetTaflGameId);
+      const latestHolder = typeof latestTaflGame?.holderClientId === 'string' ? latestTaflGame.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+        return;
+      }
+      if (latestHolder && latestHolder !== clientId) {
+        patchLocalTaflGame({ holderClientId: null }, targetTaflGameId);
+      }
     }
     if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       await releaseMonsBoardLock(targetTaflGameId);
@@ -41483,9 +44488,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
-    const acquired = await acquireMonsBoardLock(targetGoGameId);
+    let acquired = false;
+    try {
+      acquired = await acquireMonsBoardLock(targetGoGameId);
+    } catch (error) {
+      console.error(error);
+    }
     if (!acquired) {
-      return;
+      const latestGoGame = getGoGameStateById(targetGoGameId);
+      const latestHolder = typeof latestGoGame?.holderClientId === 'string' ? latestGoGame.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+        return;
+      }
+      if (latestHolder && latestHolder !== clientId) {
+        patchLocalGoGame({ holderClientId: null }, targetGoGameId);
+      }
     }
     if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
       await releaseMonsBoardLock(targetGoGameId);
@@ -42578,6 +45595,59 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
   };
 
+  spawnCodegameDeck = async () => {
+    void preloadCodegameFrontImages();
+    const viewportCenter = getViewportWorldCenter();
+    const spawnCenter = {
+      x: clamp(viewportCenter.x, CODEGAME_CARD_SIZE / 2, WORLD_WIDTH - CODEGAME_CARD_SIZE / 2),
+      y: clamp(viewportCenter.y, CODEGAME_CARD_SIZE / 2, WORLD_HEIGHT - CODEGAME_CARD_SIZE / 2)
+    };
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenter.x,
+      worldY: spawnCenter.y,
+      worldWidth: CODEGAME_CARD_SIZE,
+      worldHeight: CODEGAME_CARD_SIZE
+    });
+    const hasBaseCodegameDeck =
+      deckStatesById.has(CODEGAME_DECK_KEY) ||
+      Array.from(cards.values()).some((cardState) => normalizeDeckId(cardState?.deckId || '') === CODEGAME_DECK_KEY);
+    const nextDeckId = hasBaseCodegameDeck
+      ? `${CODEGAME_DECK_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+      : CODEGAME_DECK_KEY;
+    const extraStack = buildCodegameDeck({
+      deckId: nextDeckId,
+      center: spawnCenter,
+      inDeck: true,
+      zStart: 1,
+      shuffle: true
+    });
+    const expectedDeckCardCount = Object.keys(extraStack).length;
+
+    try {
+      await update(cardsRef, extraStack);
+
+      await set(ref(db, `${roomPath}/decks/${nextDeckId}`), {
+        x: spawnCenter.x,
+        y: spawnCenter.y,
+        shuffleTick: 0,
+        holderClientId: null,
+        includeDiscard: false,
+        coverDrawings: false,
+        kind: DECK_KIND_CODEGAME,
+        codegameGridActive: false,
+        updatedAt: serverTimestamp()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => (
+        deckStatesById.has(nextDeckId) &&
+        getDeckCardCount(nextDeckId) >= Math.max(1, expectedDeckCardCount)
+      ));
+      setActiveDeckId(nextDeckId);
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
+  };
+
   spawnSuperMetalMonsBoard = async () => {
     const viewportCenter = getViewportWorldCenter();
     const spawnX = clamp(viewportCenter.x, MONS_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - MONS_BOARD_WORLD_WIDTH / 2);
@@ -42838,12 +45908,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         inDeck: true,
         zStart: 1
       })
-      : buildCoolJpegsDeck({
-        deckId: targetDeckId,
-        center,
-        inDeck: true,
-        zStart: 1
-      });
+      : deckKind === DECK_KIND_CODEGAME
+        ? buildCodegameDeck({
+          deckId: targetDeckId,
+          center,
+          inDeck: true,
+          zStart: 1,
+          shuffle: true
+        })
+        : buildCoolJpegsDeck({
+          deckId: targetDeckId,
+          center,
+          inDeck: true,
+          zStart: 1
+        });
     const updatesByPath = {};
     for (const [cardId, cardState] of cards.entries()) {
       if (!cardState || isVisualImageComponentCard(cardState) || getCardDeckInstanceId(cardId, cardState) !== targetDeckId) {
@@ -42865,6 +45943,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       includeDiscard,
       coverDrawings: shouldCoverDrawings,
       kind: deckKind,
+      codegameGridActive: false,
       updatedAt: serverTimestamp()
     });
   };
@@ -43251,6 +46330,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       window.cancelAnimationFrame(cameraRenderRafId);
       cameraRenderRafId = 0;
     }
+    clearQueuedFastDeckMoveRenders();
     if (marbleMotionRafId) {
       window.cancelAnimationFrame(marbleMotionRafId);
       marbleMotionRafId = 0;
@@ -43320,6 +46400,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     drawingStrokes.clear();
     syncDrawActionButtonsState();
     cards.clear();
+    codegameRevealToggleAtByCardId.clear();
+    codegameDebugStatusByCardId.clear();
     markSecretAreaRegionsCacheDirty();
     markCardDeckMetricsCacheDirty();
     diceById.clear();
@@ -43468,6 +46550,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     knownPeerTokens = activePeerTokens;
     if (hasNewPeer) {
       void preloadCoolJpegsFrontImages();
+      void preloadCodegameFrontImages();
     }
 
     const activeDotIds = new Set();
@@ -43621,7 +46704,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       for (const [cardId, payload] of Object.entries(allCards)) {
         activeCardIds.add(cardId);
         const previousCard = cards.get(cardId);
-        const nextCard = normalizeCardPayload(payload, cardId);
+        const normalizedIncomingCard = normalizeCardPayload(payload, cardId);
+        const nextCard = mergeIncomingCardStateWithActiveLocalControl(
+          cardId,
+          previousCard,
+          normalizedIncomingCard
+        );
         const previousUpdatedAt = Number(previousCard?.updatedAt) || 0;
         const nextUpdatedAt = Number(nextCard?.updatedAt) || 0;
         if (previousCard && previousUpdatedAt > 0) {
@@ -43711,6 +46799,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        codegameRevealToggleAtByCardId.delete(cardId);
+        codegameDebugStatusByCardId.delete(cardId);
         changedCardIds.add(cardId);
         rerenderAttachedDrawingStrokesForCard(cardId);
         cardDeckMetricsChanged = true;
@@ -43718,6 +46808,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         staleCardLockRecoveryInFlight.delete(cardId);
       }
       markSecretAreaRegionsCacheDirty();
+      invalidateLocalCodegameKeyHighlightsCache();
+      invalidateCodegameKeyPatternCache();
       hasLoadedInitialCardsSnapshot = true;
       if (cardDeckMetricsChanged) {
         markCardDeckMetricsCacheDirty();
@@ -43951,8 +47043,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       let shouldTriggerShuffleFx = false;
       let shuffleFxDeckId = '';
       for (const [nextDeckId, rawDeckPayload] of nextDeckEntries) {
-        const normalizedDeck = normalizeDeckPayload(rawDeckPayload, nextDeckId);
+        const normalizedIncomingDeck = normalizeDeckPayload(rawDeckPayload, nextDeckId);
         const previousDeckState = deckStatesById.get(nextDeckId) || null;
+        const normalizedDeck = mergeIncomingDeckStateWithActiveLocalControl(
+          nextDeckId,
+          previousDeckState,
+          normalizedIncomingDeck
+        );
+        const previousUpdatedAt = Number(previousDeckState?.updatedAt) || 0;
+        const nextUpdatedAt = Number(normalizedDeck?.updatedAt) || 0;
+        if (previousDeckState && previousUpdatedAt > 0) {
+          if (nextUpdatedAt > 0 && nextUpdatedAt < previousUpdatedAt) {
+            continue;
+          }
+          if (nextUpdatedAt === 0) {
+            continue;
+          }
+        }
         if (previousDeckState && normalizedDeck.shuffleTick !== previousDeckState.shuffleTick) {
           shouldTriggerShuffleFx = true;
           shuffleFxDeckId = nextDeckId;
@@ -43971,6 +47078,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           deckPersistConfirmTimersById.delete(existingDeckId);
         }
         deckStatesById.delete(existingDeckId);
+        clearDeckPositionGuard(existingDeckId);
         removeDeckUi(existingDeckId);
       }
       let deckSelectionChanged = false;
@@ -44001,6 +47109,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         return;
       }
       void preloadCoolJpegsFrontImages();
+      void preloadCodegameFrontImages();
       renderAllCards();
 
       if (shouldTriggerShuffleFx) {
@@ -44302,6 +47411,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   window.addEventListener('pointermove', handleDeckDragMove);
   window.addEventListener('pointerup', handleDeckDragEnd);
   window.addEventListener('pointercancel', handleDeckDragEnd);
+  window.addEventListener('mousemove', handleDeckDragMouseMoveFallback);
+  window.addEventListener('mouseup', handleDeckDragMouseUpFallback);
   window.addEventListener('pointermove', handleChipSetDragMove);
   window.addEventListener('pointerup', handleChipSetDragEnd);
   window.addEventListener('pointercancel', handleChipSetDragEnd);
@@ -44348,6 +47459,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       window.cancelAnimationFrame(cameraRenderRafId);
       cameraRenderRafId = 0;
     }
+    cancelScheduledStackPointCountBadgesRender();
     if (marbleMotionRafId) {
       window.cancelAnimationFrame(marbleMotionRafId);
       marbleMotionRafId = 0;
@@ -44747,6 +47859,20 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       }
 
       if (event.button === 0 && hasAnyGroupSelection() && !isEventOnCard(event)) {
+        const movableSelectedDeckIds = getMovableSelectedDeckIds();
+        const hasOnlyDeckSelection =
+          movableSelectedDeckIds.length > 0 &&
+          getMovableSelectedIds().length === 0 &&
+          getMovableSelectedDieIds().length === 0 &&
+          getMovableSelectedMonsGameIds().length === 0 &&
+          getMovableSelectedChipSetIds().length === 0 &&
+          getMovableSelectedTaflGameIds().length === 0 &&
+          getMovableSelectedGoGameIds().length === 0;
+        if (hasOnlyDeckSelection && beginGroupDragFromDeck(event, movableSelectedDeckIds[0])) {
+          event.preventDefault();
+          schedulePublishFromEvent(event);
+          return;
+        }
         event.preventDefault();
         releaseAllSelectedObjects();
         schedulePublishFromEvent(event);
@@ -44808,6 +47934,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       if (
         event.pointerType === 'mouse' &&
         mousePanState &&
+        !deckDragState &&
         mousePanState.pointerId === event.pointerId &&
         (event.buttons & (mousePanState.buttonMask || 1)) !== 0
       ) {
@@ -44851,6 +47978,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     if (event.pointerType === 'mouse') {
       if (
         mousePanState &&
+        !deckDragState &&
         mousePanState.pointerId === event.pointerId &&
         (event.buttons & (mousePanState.buttonMask || 1)) !== 0
       ) {

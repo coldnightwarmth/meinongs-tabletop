@@ -4378,6 +4378,151 @@ input[type="color"]::-webkit-color-swatch {
   transition: filter 120ms ease;
 }
 
+.table-card-codegame-key-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 4px solid transparent;
+  pointer-events: none;
+  z-index: 4;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.table-card-codegame-mark-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 9;
+  opacity: 0;
+  mix-blend-mode: normal;
+  transition: opacity 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  box-shadow: none;
+}
+
+.table-card-codegame-mark-fill.is-blue {
+  background: rgba(56, 117, 214, 0.68);
+  box-shadow: inset 0 0 0 999px rgba(56, 117, 214, 0.3), inset 0 0 0 3px rgba(176, 208, 255, 0.58);
+}
+
+.table-card-codegame-mark-fill.is-red {
+  background: rgba(201, 63, 76, 0.68);
+  box-shadow: inset 0 0 0 999px rgba(201, 63, 76, 0.3), inset 0 0 0 3px rgba(255, 206, 206, 0.5);
+}
+
+.table-card-codegame-mark-fill.is-assassin {
+  background: rgba(18, 18, 20, 0.74);
+  box-shadow: inset 0 0 0 999px rgba(8, 8, 10, 0.34), inset 0 0 0 3px rgba(154, 154, 154, 0.32);
+}
+
+.table-card-codegame-mark-fill.is-assassin.is-visible::after {
+  content: '☠';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: clamp(42px, 34%, 72px);
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.66), 0 0 12px rgba(0, 0, 0, 0.44);
+  pointer-events: none;
+}
+
+.table-card-codegame-mark-fill.is-neutral {
+  background: rgba(248, 250, 255, 0.72);
+  box-shadow: inset 0 0 0 999px rgba(244, 247, 255, 0.34), inset 0 0 0 3px rgba(212, 219, 233, 0.48);
+}
+
+.table-card-codegame-mark-fill.is-visible {
+  opacity: 0.96;
+}
+
+.table-card-codegame-debug {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  z-index: 20;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.78);
+  color: #f5f7ff;
+  font: 600 10px/1.25 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-card.is-codegame-marked {
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+}
+
+.table-card.is-codegame-mark-blue {
+  outline-color: rgba(102, 160, 255, 0.92);
+}
+
+.table-card.is-codegame-mark-red {
+  outline-color: rgba(235, 118, 130, 0.92);
+}
+
+.table-card.is-codegame-mark-assassin {
+  outline-color: rgba(54, 54, 60, 0.96);
+}
+
+.table-card.is-codegame-mark-neutral {
+  outline-color: rgba(226, 230, 242, 0.96);
+}
+
+.table-card-codegame-key-overlay.is-blue {
+  border-color: rgba(52, 112, 210, 0.96);
+  box-shadow: inset 0 0 0 3px rgba(156, 194, 255, 0.42), 0 0 0 1px rgba(42, 82, 168, 0.42);
+}
+
+.table-card-codegame-key-overlay.is-red {
+  border-color: rgba(201, 63, 76, 0.96);
+  box-shadow: inset 0 0 0 3px rgba(255, 194, 194, 0.36), 0 0 0 1px rgba(148, 45, 57, 0.4);
+}
+
+.table-card-codegame-key-overlay.is-assassin {
+  border-color: rgba(34, 34, 38, 0.96);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.32);
+}
+
+.table-card-codegame-key-overlay.is-neutral {
+  border-color: rgba(236, 240, 246, 0.95);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.34), 0 0 0 1px rgba(196, 203, 216, 0.42);
+}
+
+.table-card-codegame-key-overlay.is-marked.is-blue {
+  background: rgba(56, 117, 214, 0.68);
+  box-shadow: inset 0 0 0 999px rgba(56, 117, 214, 0.3), inset 0 0 0 3px rgba(176, 208, 255, 0.58);
+}
+
+.table-card-codegame-key-overlay.is-marked.is-red {
+  background: rgba(201, 63, 76, 0.68);
+  box-shadow: inset 0 0 0 999px rgba(201, 63, 76, 0.3), inset 0 0 0 3px rgba(255, 206, 206, 0.5);
+}
+
+.table-card-codegame-key-overlay.is-marked.is-assassin {
+  background: rgba(18, 18, 20, 0.74);
+  box-shadow: inset 0 0 0 999px rgba(8, 8, 10, 0.34), inset 0 0 0 3px rgba(154, 154, 154, 0.32);
+}
+
+.table-card-codegame-key-overlay.is-marked.is-neutral {
+  background: rgba(248, 250, 255, 0.72);
+  box-shadow: inset 0 0 0 999px rgba(244, 247, 255, 0.34), inset 0 0 0 3px rgba(212, 219, 233, 0.48);
+}
+
+.table-card-codegame-key-overlay.is-visible {
+  opacity: 1;
+}
+
 .table-card.is-image-component-blank-face {
   background: var(--image-card-blank-color, #ffffff);
   backdrop-filter: none;
@@ -4988,6 +5133,14 @@ input[type="color"]::-webkit-color-swatch {
   animation: deckTopCardDarken 980ms ease both;
 }
 
+.table-card.is-codegame-top-blurred.is-shuffle-darkening img {
+  animation: deckTopCardDarkenCodegame 980ms ease both;
+}
+
+.table-card.is-codegame-top-blurred img {
+  filter: blur(2.2px) saturate(0.88) brightness(0.82);
+}
+
 .deck-control-button {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -5216,6 +5369,32 @@ input[type="color"]::-webkit-color-swatch {
   background: rgba(247, 243, 232, 0.04);
 }
 
+.codegame-grid-frame {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 90;
+  border-radius: 11px;
+  border: 1px dashed rgba(247, 243, 232, 0.34);
+  background: transparent;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.codegame-grid-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  border: 1px dashed rgba(247, 243, 232, 0.24);
+  background: rgba(247, 243, 232, 0.02);
+  pointer-events: none;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.codegame-grid-slot.is-occupied {
+  border-color: rgba(247, 243, 232, 0.14);
+  background: rgba(247, 243, 232, 0.01);
+}
+
 .discard-slot {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -5409,6 +5588,18 @@ input[type="color"]::-webkit-color-swatch {
   }
   100% {
     filter: brightness(1);
+  }
+}
+
+@keyframes deckTopCardDarkenCodegame {
+  0% {
+    filter: blur(2.2px) saturate(0.88) brightness(0.82);
+  }
+  42% {
+    filter: blur(2.2px) saturate(0.88) brightness(0.5);
+  }
+  100% {
+    filter: blur(2.2px) saturate(0.88) brightness(0.82);
   }
 }
 
@@ -5951,6 +6142,7 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-shell.is-theme-transitioning .deck-control-button,
 .table-shell.is-theme-transitioning .deck-count-badge,
 .table-shell.is-theme-transitioning .deck-slot,
+.table-shell.is-theme-transitioning .codegame-grid-frame,
 .table-shell.is-theme-transitioning .discard-slot,
 .table-shell.is-theme-transitioning .discard-slot-label,
 .table-shell.is-theme-transitioning .auction-slot::before,
@@ -6619,6 +6811,20 @@ body.tabletop-delete-cursor-hidden *::after {
   border-color: rgba(34, 29, 23, 0.28);
 }
 
+.table-shell.light-mode .codegame-grid-frame {
+  border-color: rgba(34, 29, 23, 0.28);
+}
+
+.table-shell.light-mode .codegame-grid-slot {
+  border-color: rgba(34, 29, 23, 0.2);
+  background: rgba(34, 29, 23, 0.02);
+}
+
+.table-shell.light-mode .codegame-grid-slot.is-occupied {
+  border-color: rgba(34, 29, 23, 0.12);
+  background: rgba(34, 29, 23, 0.01);
+}
+
 .table-shell.light-mode .deck-slot.is-hovered {
   border-color: rgba(34, 29, 23, 0.5);
   background: rgba(34, 29, 23, 0.04);
@@ -7110,6 +7316,7 @@ body.tabletop-delete-cursor-hidden *::after {
 .table-die.is-delete-fading,
 .deck-control-button.is-delete-fading,
 .deck-slot.is-delete-fading,
+.codegame-grid-frame.is-delete-fading,
 .mons-game-shell.is-delete-fading,
 .mons-side-claims.is-delete-fading,
 .mons-board-svg [data-mons-piece-id].is-delete-fading,
