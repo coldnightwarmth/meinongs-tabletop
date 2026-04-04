@@ -1101,7 +1101,7 @@ for (const piece of MONS_DEFAULT_PIECES) {
 
 const CARD_FRONT_HIGH_RES_PREFIX = './assets/cards/';
 const CARD_FRONT_LOW_RES_PREFIX = './assets/cards-low/';
-const COOL_JPEGS_FRONT_IMAGES = Array.from({ length: 75 }, (_, index) => `${CARD_FRONT_HIGH_RES_PREFIX}${1000 + index}.png`);
+const COOL_JPEGS_FRONT_IMAGES = Array.from({ length: 75 }, (_, index) => `${CARD_FRONT_HIGH_RES_PREFIX}${1000 + index}.webp`);
 const COOL_JPEGS_FRONT_IMAGES_LOW = COOL_JPEGS_FRONT_IMAGES.map((src) =>
   src.replace(CARD_FRONT_HIGH_RES_PREFIX, CARD_FRONT_LOW_RES_PREFIX)
 );
@@ -1111,7 +1111,7 @@ const CODEGAME_FRONT_IMAGE_LAST_ID = 1085;
 const CODEGAME_FRONT_IMAGES = Object.freeze(
   Array.from(
     { length: CODEGAME_FRONT_IMAGE_LAST_ID - CODEGAME_FRONT_IMAGE_FIRST_ID + 1 },
-    (_, index) => `${CODEGAME_FRONT_IMAGE_PREFIX}${CODEGAME_FRONT_IMAGE_FIRST_ID + index}.jpg`
+    (_, index) => `${CODEGAME_FRONT_IMAGE_PREFIX}${CODEGAME_FRONT_IMAGE_FIRST_ID + index}.webp`
   )
 );
 const CODEGAME_KEY_CARD_BACK_IMAGE_SRC = createCodegameKeyBackSvgDataUri();
@@ -1942,6 +1942,7 @@ let onLabelLockControlPointerDown = () => {};
 let onLabelRotatePointerDown = () => {};
 let onDeckMovePointerDown = () => {};
 let onDeckMoveMouseDown = () => {};
+let shouldDeferHotDeckFrontPreloadDuringInteraction = () => false;
 let onMonsMovePointerDown = () => {};
 let onTaflMovePointerDown = () => {};
 let onTaflDragMove = () => {};
@@ -8018,21 +8019,7 @@ function collectTopCardIdsByZ(cardIds, limit) {
 }
 
 function shouldDeferHotDeckFrontPreload() {
-  return Boolean(
-    cardDragState ||
-    cardResizeState ||
-    cardRotateState ||
-    dieDragState ||
-    chipSetDragState ||
-    deckDragState ||
-    groupDragState ||
-    handReorderState ||
-    labelResizeState ||
-    labelRotateState ||
-    monsDragState ||
-    taflDragState ||
-    goDragState
-  );
+  return shouldDeferHotDeckFrontPreloadDuringInteraction();
 }
 
 function runHotDeckFrontPreload() {
@@ -8550,9 +8537,7 @@ function ensureDeckControlElements(deckId = activeDeckId) {
   moveButton.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   moveButton.addEventListener('pointerdown', (event) => {
-    handleDeckMovePointerDown(event, normalizedDeckId).catch((error) => {
-      console.error(error);
-    });
+    onDeckMovePointerDown(event, normalizedDeckId);
   });
   moveButton.addEventListener('mousedown', (event) => {
     onDeckMoveMouseDown(event, normalizedDeckId);
@@ -15009,7 +14994,26 @@ function setLocalHandCountLabel(countsOverride = null) {
 }
 
 function normalizeImageComponentSrc(src) {
-  return typeof src === 'string' ? src.trim() : '';
+  const normalized = typeof src === 'string' ? src.trim() : '';
+  if (!normalized) {
+    return '';
+  }
+  if (normalized.startsWith(CARD_FRONT_HIGH_RES_PREFIX) && normalized.toLowerCase().endsWith('.png')) {
+    return `${normalized.slice(0, -4)}.webp`;
+  }
+  if (normalized.startsWith(CARD_FRONT_LOW_RES_PREFIX) && normalized.toLowerCase().endsWith('.png')) {
+    return `${normalized.slice(0, -4)}.webp`;
+  }
+  if (normalized.startsWith(CODEGAME_FRONT_IMAGE_PREFIX)) {
+    const lower = normalized.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      const dotIndex = normalized.lastIndexOf('.');
+      if (dotIndex > 0) {
+        return `${normalized.slice(0, dotIndex)}.webp`;
+      }
+    }
+  }
+  return normalized;
 }
 
 function normalizeMediaProvider(value) {
@@ -26330,6 +26334,22 @@ async function startRealtimeSession() {
   let staleDieLockSweepInProgress = false;
   let hasSignaledSessionLeave = false;
 
+  shouldDeferHotDeckFrontPreloadDuringInteraction = () => Boolean(
+    cardDragState ||
+    cardResizeState ||
+    cardRotateState ||
+    dieDragState ||
+    chipSetDragState ||
+    deckDragState ||
+    groupDragState ||
+    handReorderState ||
+    labelResizeState ||
+    labelRotateState ||
+    monsDragState ||
+    taflDragState ||
+    goDragState
+  );
+
   function runStateRenderSafely(stepName, renderFn) {
     if (typeof renderFn !== 'function') {
       return;
@@ -30905,6 +30925,12 @@ function closeNoteEditor(options = {}) {
       deckState = nextDeck;
     }
     syncCoverDrawingsGamesLayerState();
+    const useFastMoveRender = options?.fastMove === true;
+    if (useFastMoveRender) {
+      const followCardIds = Array.isArray(options?.followCardIds) ? options.followCardIds : null;
+      queueFastDeckMoveRender(normalizedDeckId, { followCardIds });
+      return;
+    }
     clearQueuedFastDeckMoveRenders();
     runStateRenderSafely('patchLocalDeck', () => renderAllCards());
   }
@@ -42981,7 +43007,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         holderClientId: clientId
       },
       deckDragState.deckId,
-      { followCardIds: dragFollowCardIds }
+      {
+        followCardIds: dragFollowCardIds,
+        fastMove: true
+      }
     );
     const now = Date.now();
     if (now - deckDragLastQueuedAt >= DECK_DRAG_SYNC_INTERVAL_MS) {

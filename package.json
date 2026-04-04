@@ -6,10 +6,12 @@
     "start": "python3 -m http.server 4373 --bind 127.0.0.1",
     "start:lan": "python3 -m http.server 4373 --bind 0.0.0.0",
     "build:cards-low": "./scripts/generate-card-variants.sh",
+    "optimize:card-faces": "node ./scripts/optimize-card-faces.mjs",
     "cleanup:rooms": "node ./scripts/cleanup-inactive-rooms.mjs",
     "cleanup:rooms:apply": "node ./scripts/cleanup-inactive-rooms.mjs --apply"
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "@playwright/test": "^1.58.2",
+    "sharp": "^0.34.5"
   }
 }
