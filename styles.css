@@ -2850,11 +2850,12 @@ input[type="color"]::-webkit-color-swatch {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--arcade-score-color, rgba(224, 250, 231, 0.95));
 }
 
 .table-arcade-score-value {
   flex: 0 0 auto;
-  color: var(--arcade-score-color, rgba(224, 250, 231, 0.95));
+  color: inherit;
 }
 
 .table-arcade-score-empty {
@@ -4345,8 +4346,29 @@ input[type="color"]::-webkit-color-swatch {
     background-color 180ms ease;
 }
 
-.table-card.is-in-deck {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+.table-card.is-stack-buried {
+  box-shadow: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.table-card.is-in-deck,
+.table-card.is-in-discard,
+.table-card.is-in-auction {
+  box-shadow: none !important;
+}
+
+.table-card.is-in-deck.is-held-by-self,
+.table-card.is-in-deck.is-group-selected,
+.table-card.is-in-discard.is-held-by-self,
+.table-card.is-in-discard.is-group-selected,
+.table-card.is-in-auction.is-held-by-self,
+.table-card.is-in-auction.is-group-selected {
+  box-shadow: none !important;
+}
+
+.table-card.is-stack-shadow-anchor {
+  box-shadow: none !important;
 }
 
 .table-card.is-discard-returning {
@@ -5360,7 +5382,7 @@ input[type="color"]::-webkit-color-swatch {
   border: 1px dashed rgba(247, 243, 232, 0.34);
   background: transparent;
   pointer-events: none;
-  box-shadow: none;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.36);
   transition: border-color 120ms ease, background-color 120ms ease;
 }
 
@@ -5517,7 +5539,7 @@ input[type="color"]::-webkit-color-swatch {
   transform: translate(-50%, -50%) rotate(0deg);
   opacity: 0;
   pointer-events: none;
-  filter: drop-shadow(0 7px 14px rgba(0, 0, 0, 0.32));
+  filter: none;
   will-change: transform, opacity;
 }
 
@@ -5526,7 +5548,11 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 .deck-shuffle-fx-1.is-active {
-  animation: deckShuffleSpinOne 700ms linear both;
+  animation: deckShuffleSpinOneStandard 980ms linear both;
+}
+
+.deck-shuffle-fx-1.is-active.is-codegame-shuffle {
+  animation: deckShuffleSpinOneCodegame 700ms linear both;
 }
 
 .deck-shuffle-fx-2.is-active {
@@ -5557,7 +5583,18 @@ input[type="color"]::-webkit-color-swatch {
   }
 }
 
-@keyframes deckShuffleSpinOne {
+@keyframes deckShuffleSpinOneStandard {
+  0% {
+    transform: translate(-50%, -50%) rotate(6deg);
+    opacity: 0.82;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(366deg);
+    opacity: 0;
+  }
+}
+
+@keyframes deckShuffleSpinOneCodegame {
   0% {
     transform: translate(-50%, -50%) rotate(6deg);
     opacity: 0.82;
@@ -6769,7 +6806,7 @@ body.tabletop-delete-cursor-hidden *::after {
 }
 
 .table-shell.light-mode .table-card.is-in-deck {
-  box-shadow: 0 6px 12px rgba(46, 38, 25, 0.14);
+  box-shadow: none !important;
 }
 
 .table-shell.light-mode .table-card.is-in-discard {

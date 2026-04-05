@@ -247,6 +247,7 @@ const DRAW_TOOL_DRAG_MIN_DISTANCE = 3;
 const DELETE_FADE_DURATION_MS = 170;
 const ROOM_LINK_COPY_FEEDBACK_MS = 1300;
 const ASSET_ELEMENT_LOAD_TIMEOUT_MS = 12000;
+const ASSET_LOADING_STATUS_DELAY_MS = 500;
 const SPAWN_LOADING_INDICATOR_TIMEOUT_MS = 9000;
 const HOT_DECK_FRONT_PRELOAD_PER_DECK = 10;
 const HOT_DECK_FRONT_PRELOAD_DELAY_MS = 90;
@@ -446,8 +447,12 @@ const ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX = 0;
 const ARCADE_MANA_GAME_OVER_QUIT_INDEX = 1;
 const ARCADE_MANA_GRID_SIZE = 11;
 const ARCADE_MANA_CENTER_TILE = Math.floor(ARCADE_MANA_GRID_SIZE / 2);
-const ARCADE_MANA_STEP_MS_NORMAL = 194;
+const ARCADE_MANA_STEP_MS_NORMAL = 214;
 const ARCADE_MANA_STEP_MS_PHASE = 168;
+const ARCADE_MANA_SPEED_SCORE_INTERVAL = 100;
+const ARCADE_MANA_STEP_MS_SPEEDUP_PER_TIER = 4;
+const ARCADE_MANA_STEP_MS_NORMAL_MIN = 132;
+const ARCADE_MANA_STEP_MS_PHASE_MIN = 112;
 const ARCADE_MANA_TURN_LEEWAY_MS = 52;
 const ARCADE_MANA_REPEAT_QUEUE_INTERVAL_MS = 96;
 const ARCADE_MANA_MOTION_TICK_MS = 16;
@@ -1606,6 +1611,8 @@ let roomBadgeWidthSyncRafId = 0;
 let frontImagePendingLoadCount = 0;
 let elementAssetPendingLoadCount = 0;
 let assetElementLoadObserver = null;
+let assetLoadingStatusShowTimerId = 0;
+let assetLoadingStatusVisible = false;
 let chipLabelMeasureContext = null;
 const trackedAssetElementLoads = new WeakMap();
 const trackedAssetLoadContainerCounts = new WeakMap();
@@ -1636,6 +1643,8 @@ let cardDeckMetricsCache = {
   deckIds: [],
   metricsByDeck: new Map()
 };
+let cameraLooseRenderableCardIdsDirty = true;
+let cameraLooseRenderableCardIds = new Set();
 let monsGameState = null;
 const monsGameStatesById = new Map();
 const monsGhostBoardElementsById = new Map();
@@ -1730,8 +1739,17 @@ let selectionBoxElement = null;
 let deckShuffleFxCards = [];
 let deckShuffleFxActive = false;
 let deckShuffleFxTimerId = 0;
+let deckShuffleFxEndRenderRafId = 0;
 let deckShuffleFxDeckId = DECK_KEY;
+let deckShuffleFxRunToken = 0;
+let deckShuffleFxAnchorDeckId = '';
+let deckShuffleFxAnchorWorldX = Number.NaN;
+let deckShuffleFxAnchorWorldY = Number.NaN;
+let deckShuffleFxAnchorCardWorldWidth = CARD_WIDTH;
+let deckShuffleFxAnchorCardWorldHeight = CARD_HEIGHT;
+let deckShuffleFxBackSrc = '';
 let deckShuffleDarkenedCardId = '';
+const activelyDraggedDeckIds = new Set();
 let diceRollAnimationRafId = 0;
 let cameraRenderRafId = 0;
 let stackPointBadgeRenderRafId = 0;
@@ -2246,6 +2264,13 @@ function getViewportWorldBounds(extraScreenMarginPx = 0) {
 
 function isWorldRectLikelyVisible(centerX, centerY, width, height, extraScreenMarginPx = VIEWPORT_CULL_MARGIN_PX) {
   const bounds = getViewportWorldBounds(extraScreenMarginPx);
+  return isWorldRectVisibleWithinBounds(bounds, centerX, centerY, width, height);
+}
+
+function isWorldRectVisibleWithinBounds(bounds, centerX, centerY, width, height) {
+  if (!bounds || typeof bounds !== 'object') {
+    return false;
+  }
   const halfWidth = Math.max(0, Number(width) || 0) / 2;
   const halfHeight = Math.max(0, Number(height) || 0) / 2;
   const left = Number(centerX) - halfWidth;
@@ -2337,11 +2362,150 @@ function positionDot(dot) {
   const screen = worldToScreen(world);
   setElementStylePx(dot, 'left', screen.x);
   setElementStylePx(dot, 'top', screen.y);
+  return { world, screen };
+}
+
+function buildRemoteCursorVisibilityContext() {
+  const codegameGridBounds = [];
+  const codegameGridDimensions = getCodegameGridWorldDimensions();
+  for (const rawDeckId of getDeckIdsInRoom()) {
+    const deckId = normalizeDeckId(rawDeckId);
+    if (getDeckKind(deckId) !== DECK_KIND_CODEGAME) {
+      continue;
+    }
+    const state = getDeckStateById(deckId);
+    if (!state || state.codegameGridActive !== true) {
+      continue;
+    }
+    const center = getCodegameGridCenterPosition(deckId);
+    codegameGridBounds.push({
+      deckId,
+      left: center.x - codegameGridDimensions.width / 2,
+      right: center.x + codegameGridDimensions.width / 2,
+      top: center.y - codegameGridDimensions.height / 2,
+      bottom: center.y + codegameGridDimensions.height / 2
+    });
+  }
+
+  const keyDeckIdsByOwner = new Map();
+  for (const cardState of cards.values()) {
+    if (!isCodegameKeyCardState(cardState)) {
+      continue;
+    }
+    const ownerId = String(getCardHandOwnerId(cardState) || '').trim();
+    if (!ownerId) {
+      continue;
+    }
+    const deckId = normalizeDeckId(cardState.deckId || '');
+    if (!deckId) {
+      continue;
+    }
+    let ownerDeckIds = keyDeckIdsByOwner.get(ownerId);
+    if (!ownerDeckIds) {
+      ownerDeckIds = new Set();
+      keyDeckIdsByOwner.set(ownerId, ownerDeckIds);
+    }
+    ownerDeckIds.add(deckId);
+  }
+
+  const arcadeScreenRects = [];
+  if (tableRoot instanceof HTMLElement) {
+    const screenElements = tableRoot.querySelectorAll('.table-die.table-die-arcade .table-arcade-screen');
+    for (const screenElement of screenElements) {
+      if (!(screenElement instanceof HTMLElement)) {
+        continue;
+      }
+      const rect = screenElement.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        continue;
+      }
+      arcadeScreenRects.push(rect);
+    }
+  }
+
+  return {
+    codegameGridBounds,
+    keyDeckIdsByOwner,
+    arcadeScreenRects
+  };
+}
+
+function isWorldPointInsideCodegameGridForOwner(x, y, ownerId, context) {
+  if (!context || !ownerId) {
+    return false;
+  }
+  const ownerDeckIds = context.keyDeckIdsByOwner.get(ownerId);
+  if (!(ownerDeckIds instanceof Set) || ownerDeckIds.size === 0) {
+    return false;
+  }
+  for (const gridBounds of context.codegameGridBounds) {
+    if (!ownerDeckIds.has(gridBounds.deckId)) {
+      continue;
+    }
+    if (
+      x >= gridBounds.left &&
+      x <= gridBounds.right &&
+      y >= gridBounds.top &&
+      y <= gridBounds.bottom
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isScreenPointInsideAnyArcadeScreen(x, y, context) {
+  if (!context) {
+    return false;
+  }
+  for (const rect of context.arcadeScreenRects) {
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function applyRemoteCursorContextVisual(dot, dotPosition = null, context = null) {
+  if (!(dot instanceof HTMLElement)) {
+    return;
+  }
+  const visibilityContext = context || buildRemoteCursorVisibilityContext();
+  const cursorPosition =
+    dotPosition && dotPosition.world && dotPosition.screen
+      ? dotPosition
+      : positionDot(dot);
+  const ownerId = String(dot.dataset.playerToken || dot.dataset.clientId || '').trim();
+  const hiddenForCodegameKey =
+    ownerId &&
+    isWorldPointInsideCodegameGridForOwner(
+      cursorPosition.world.x,
+      cursorPosition.world.y,
+      ownerId,
+      visibilityContext
+    );
+  const dimmedForArcadeScreen =
+    !hiddenForCodegameKey &&
+    isScreenPointInsideAnyArcadeScreen(
+      cursorPosition.screen.x,
+      cursorPosition.screen.y,
+      visibilityContext
+    );
+  const targetOpacity = hiddenForCodegameKey ? '0' : dimmedForArcadeScreen ? '0.3' : '';
+  if (dot.dataset.contextOpacity !== targetOpacity) {
+    dot.dataset.contextOpacity = targetOpacity;
+    setElementStyleValue(dot, 'opacity', targetOpacity);
+  }
 }
 
 function renderAllDots() {
+  if (dots.size === 0) {
+    return;
+  }
+  const visibilityContext = buildRemoteCursorVisibilityContext();
   for (const dot of dots.values()) {
-    positionDot(dot);
+    const dotPosition = positionDot(dot);
+    applyRemoteCursorContextVisual(dot, dotPosition, visibilityContext);
   }
 }
 
@@ -2677,6 +2841,32 @@ function createEmptyDeckCardMetricsEntry() {
 
 function markCardDeckMetricsCacheDirty() {
   cardDeckMetricsCacheDirty = true;
+}
+
+function markCameraLooseRenderableCardIdsDirty() {
+  cameraLooseRenderableCardIdsDirty = true;
+}
+
+function getCameraLooseRenderableCardIdsCache() {
+  if (!cameraLooseRenderableCardIdsDirty) {
+    return cameraLooseRenderableCardIds;
+  }
+  const nextIds = new Set();
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!cardState || typeof cardState !== 'object') {
+      continue;
+    }
+    if (getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction) {
+      continue;
+    }
+    nextIds.add(cardId);
+  }
+  cameraLooseRenderableCardIds = nextIds;
+  cameraLooseRenderableCardIdsDirty = false;
+  return cameraLooseRenderableCardIds;
 }
 
 function didCardDeckMetricsFieldsChange(previousCardState, nextCardState) {
@@ -3259,6 +3449,7 @@ function toggleCodegameGridCardMark(cardId) {
         normalizedCardId
       );
       cards.set(normalizedCardId, nextLocalCard);
+      markCameraLooseRenderableCardIdsDirty();
       applyCodegameMarkVisualToCardElement(normalizedCardId, nextMarkedType);
       invalidateLocalCodegameKeyHighlightsCache();
       invalidateCodegameKeyPatternCache();
@@ -3995,6 +4186,7 @@ function parseArcadeDemonPath(value) {
     const dashFromY = Number.isFinite(Number(parts[7])) ? normalizeArcadeGridCoord(parts[7]) : y;
     const dashToX = Number.isFinite(Number(parts[8])) ? normalizeArcadeGridCoord(parts[8]) : x;
     const dashToY = Number.isFinite(Number(parts[9])) ? normalizeArcadeGridCoord(parts[9]) : y;
+    const comboReady = String(parts[10] || '').trim() === '0' ? false : true;
     parsed.push({
       x,
       y,
@@ -4005,7 +4197,8 @@ function parseArcadeDemonPath(value) {
       dashFromX,
       dashFromY,
       dashToX,
-      dashToY
+      dashToY,
+      comboReady
     });
     if (parsed.length >= ARCADE_MANA_DEMON_MAX) {
       break;
@@ -4038,8 +4231,9 @@ function encodeArcadeDemonPath(demons) {
     const dashToY = normalizeArcadeGridCoord(
       Number.isFinite(Number(demon?.dashToY)) ? demon.dashToY : y
     );
+    const comboReadyToken = demon?.comboReady === false ? '0' : '1';
     encodedParts.push(
-      `${x},${y},${state},${stateStartedAt},${direction.x},${direction.y},${dashFromX},${dashFromY},${dashToX},${dashToY}`
+      `${x},${y},${state},${stateStartedAt},${direction.x},${direction.y},${dashFromX},${dashFromY},${dashToX},${dashToY},${comboReadyToken}`
     );
     if (encodedParts.length >= ARCADE_MANA_DEMON_MAX) {
       break;
@@ -4414,7 +4608,12 @@ function getArcadeBombSpawnTile(excludedTiles = []) {
   return candidates[randomIndex];
 }
 
-function getArcadeDemonAttackDirectionFromTile(tileX, tileY, occupiedTargetTileKeys = null) {
+function getArcadeDemonAttackDirectionFromTile(
+  tileX,
+  tileY,
+  occupiedTargetTileKeys = null,
+  forbiddenManaTargetTileKeys = null
+) {
   const originX = normalizeArcadeGridCoord(tileX);
   const originY = normalizeArcadeGridCoord(tileY);
   const originEdgeDistance = getArcadeTileDistanceToBoardEdge(originX, originY);
@@ -4434,6 +4633,12 @@ function getArcadeDemonAttackDirectionFromTile(tileX, tileY, occupiedTargetTileK
       if (
         occupiedTargetTileKeys instanceof Set &&
         occupiedTargetTileKeys.has(potentialTargetKey)
+      ) {
+        continue;
+      }
+      if (
+        forbiddenManaTargetTileKeys instanceof Set &&
+        forbiddenManaTargetTileKeys.has(potentialTargetKey)
       ) {
         continue;
       }
@@ -4760,10 +4965,23 @@ function getArcadeManaSpawnTile(excludedTiles = []) {
 }
 
 function getArcadeManaStepMsForState(dieState) {
-  if (dieState?.arcadeMgPhaseActive === true) {
-    return ARCADE_MANA_STEP_MS_PHASE;
-  }
-  return ARCADE_MANA_STEP_MS_NORMAL;
+  const phaseActive = dieState?.arcadeMgPhaseActive === true;
+  const scoreValue = Math.max(0, Math.round(Number(dieState?.arcadeMgSquareClearScore) || 0));
+  return getArcadeManaStepMsForPhaseAndScore(phaseActive, scoreValue);
+}
+
+function getArcadeManaSpeedTierForScore(scoreValue) {
+  const normalizedScore = Math.max(0, Math.round(Number(scoreValue) || 0));
+  return Math.max(0, Math.floor(normalizedScore / ARCADE_MANA_SPEED_SCORE_INTERVAL));
+}
+
+function getArcadeManaStepMsForPhaseAndScore(phaseActive, scoreValue = 0) {
+  const isPhase = phaseActive === true;
+  const speedTier = getArcadeManaSpeedTierForScore(scoreValue);
+  const baseStepMs = isPhase ? ARCADE_MANA_STEP_MS_PHASE : ARCADE_MANA_STEP_MS_NORMAL;
+  const minStepMs = isPhase ? ARCADE_MANA_STEP_MS_PHASE_MIN : ARCADE_MANA_STEP_MS_NORMAL_MIN;
+  const reducedStepMs = baseStepMs - speedTier * ARCADE_MANA_STEP_MS_SPEEDUP_PER_TIER;
+  return Math.max(minStepMs, reducedStepMs);
 }
 
 function getArcadeManaPlayerRenderPosition(dieState, now = Date.now()) {
@@ -8183,22 +8401,40 @@ function clearNoteAttachmentFaceState(cardId) {
 }
 
 function ensureDeckShuffleFxElements() {
-  if (!cardLayer || deckShuffleFxCards.length === 2) {
+  if (!cardLayer) {
+    return;
+  }
+  if (deckShuffleFxCards.length === 1 && deckShuffleFxCards[0]?.isConnected) {
     return;
   }
 
-  deckShuffleFxCards = [];
-  for (let index = 0; index < 2; index += 1) {
-    const cardBack = document.createElement('img');
-    cardBack.className = `deck-shuffle-fx deck-shuffle-fx-${index + 1} hidden`;
-    cardBack.alt = '';
-    cardBack.draggable = false;
-    cardBack.decoding = 'async';
-    cardBack.loading = 'eager';
-    cardBack.src = CARD_BACK_IMAGE_SRC;
-    cardLayer.appendChild(cardBack);
-    deckShuffleFxCards.push(cardBack);
+  for (const existingFxCard of deckShuffleFxCards) {
+    existingFxCard.remove();
   }
+  deckShuffleFxCards = [];
+  const cardBack = document.createElement('img');
+  cardBack.className = 'deck-shuffle-fx deck-shuffle-fx-1 hidden';
+  cardBack.alt = '';
+  cardBack.draggable = false;
+  cardBack.decoding = 'async';
+  cardBack.loading = 'eager';
+  cardBack.src = CARD_BACK_IMAGE_SRC;
+  cardBack.addEventListener('animationend', (event) => {
+    if (!deckShuffleFxActive) {
+      return;
+    }
+    const animationName = String(event?.animationName || '');
+    if (!animationName.startsWith('deckShuffleSpinOne')) {
+      return;
+    }
+    const finishedToken = Number(cardBack.dataset.shuffleRunToken || 0);
+    if (!finishedToken || finishedToken !== deckShuffleFxRunToken) {
+      return;
+    }
+    setDeckShuffleFxActive(false);
+  });
+  cardLayer.appendChild(cardBack);
+  deckShuffleFxCards.push(cardBack);
 }
 
 function clearTopDeckShuffleDarkening() {
@@ -8219,6 +8455,18 @@ function clearTopDeckShuffleDarkening() {
   deckShuffleDarkenedCardId = '';
 }
 
+function scheduleDeckShuffleFxEndRender() {
+  if (deckShuffleFxEndRenderRafId) {
+    return;
+  }
+  deckShuffleFxEndRenderRafId = window.requestAnimationFrame(() => {
+    deckShuffleFxEndRenderRafId = 0;
+    if (!isTableResetting) {
+      runStateRenderSafely('deck-shuffle-fx:end-render', () => renderAllCards());
+    }
+  });
+}
+
 function markTopDeckShuffleDarkening(deckId = deckShuffleFxDeckId) {
   clearTopDeckShuffleDarkening();
   const targetDeckId = normalizeDeckId(deckId);
@@ -8227,7 +8475,12 @@ function markTopDeckShuffleDarkening(deckId = deckShuffleFxDeckId) {
     return;
   }
 
-  const topCardElement = cardElements.get(topCardId);
+  let topCardElement = cardElements.get(topCardId);
+  if (!topCardElement) {
+    const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
+    renderCardElement(topCardId, { visibleStackCardIds });
+    topCardElement = cardElements.get(topCardId);
+  }
   if (!topCardElement) {
     return;
   }
@@ -8239,16 +8492,31 @@ function markTopDeckShuffleDarkening(deckId = deckShuffleFxDeckId) {
 }
 
 function setDeckShuffleFxActive(active) {
+  const wasActive = deckShuffleFxActive;
   deckShuffleFxActive = active;
+  tableRoot?.classList.toggle('is-deck-shuffling', Boolean(active));
   if (!active) {
     window.clearTimeout(deckShuffleFxTimerId);
     deckShuffleFxTimerId = 0;
+    deckShuffleFxAnchorDeckId = '';
+    deckShuffleFxAnchorWorldX = Number.NaN;
+    deckShuffleFxAnchorWorldY = Number.NaN;
+    deckShuffleFxAnchorCardWorldWidth = CARD_WIDTH;
+    deckShuffleFxAnchorCardWorldHeight = CARD_HEIGHT;
+    deckShuffleFxBackSrc = '';
     clearTopDeckShuffleDarkening();
+    if (wasActive) {
+      scheduleDeckShuffleFxEndRender();
+    }
+  }
+  if (!active) {
+    deckShuffleFxRunToken += 1;
   }
   for (const cardBack of deckShuffleFxCards) {
     cardBack.classList.toggle('hidden', !active);
     if (!active) {
       cardBack.classList.remove('is-active');
+      delete cardBack.dataset.shuffleRunToken;
     }
   }
 }
@@ -8263,20 +8531,45 @@ function triggerDeckShuffleFx(deckId = activeDeckId) {
   window.clearTimeout(deckShuffleFxTimerId);
   deckShuffleFxTimerId = 0;
   deckShuffleFxActive = true;
+  deckShuffleFxRunToken += 1;
+  const runToken = deckShuffleFxRunToken;
+  deckShuffleFxAnchorDeckId = deckShuffleFxDeckId;
+  const shuffleDeckState = getDeckStateById(deckShuffleFxDeckId);
+  const shuffleDeckDimensions = getDeckBaseCardDimensions(deckShuffleFxDeckId);
+  deckShuffleFxAnchorWorldX = Number.isFinite(Number(shuffleDeckState?.x))
+    ? Number(shuffleDeckState.x)
+    : Number.NaN;
+  deckShuffleFxAnchorWorldY = Number.isFinite(Number(shuffleDeckState?.y))
+    ? Number(shuffleDeckState.y)
+    : Number.NaN;
+  deckShuffleFxAnchorCardWorldWidth = Math.max(1, Number(shuffleDeckDimensions?.width) || CARD_WIDTH);
+  deckShuffleFxAnchorCardWorldHeight = Math.max(1, Number(shuffleDeckDimensions?.height) || CARD_HEIGHT);
+  const topDeckCardId = getDeckMetricsEntry(deckShuffleFxDeckId)?.topDeckCardId || '';
+  const topDeckCard = topDeckCardId ? cards.get(topDeckCardId) : null;
+  deckShuffleFxBackSrc = topDeckCard
+    ? getCardBackDisplaySrc(topDeckCard)
+    : (getDeckKind(deckShuffleFxDeckId) === DECK_KIND_POKER ? POKER_CARD_BACK_IMAGE_SRC : CARD_BACK_IMAGE_SRC);
 
   for (const cardBack of deckShuffleFxCards) {
+    cardBack.dataset.shuffleRunToken = String(runToken);
     cardBack.classList.remove('hidden');
     cardBack.classList.remove('is-active');
     // Force animation restart when shuffle is triggered repeatedly.
     void cardBack.offsetWidth;
     cardBack.classList.add('is-active');
   }
-  markTopDeckShuffleDarkening(deckShuffleFxDeckId);
 
   renderDeckControls();
+  // Fallback only: primary completion is handled by animationend for stable full spins.
   deckShuffleFxTimerId = window.setTimeout(() => {
+    if (!deckShuffleFxActive) {
+      return;
+    }
+    if (runToken !== deckShuffleFxRunToken) {
+      return;
+    }
     setDeckShuffleFxActive(false);
-  }, DECK_SHUFFLE_FX_DURATION_MS);
+  }, DECK_SHUFFLE_FX_DURATION_MS * 3);
 }
 
 function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeight) {
@@ -8291,21 +8584,29 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
     setDeckShuffleFxActive(false);
     return;
   }
+  const shuffleDeckKind = getDeckKind(targetDeckId);
+  const isCodegameShuffle = shuffleDeckKind === DECK_KIND_CODEGAME;
   const preferredLayer = stackLayer || cardLayer;
+  const hasPinnedAnchor =
+    normalizeDeckId(deckShuffleFxAnchorDeckId) === targetDeckId &&
+    Number.isFinite(deckShuffleFxAnchorWorldX) &&
+    Number.isFinite(deckShuffleFxAnchorWorldY);
+  const effectiveDeckScreen = hasPinnedAnchor
+    ? worldToScreen({ x: deckShuffleFxAnchorWorldX, y: deckShuffleFxAnchorWorldY })
+    : deckScreen;
+  const effectiveCardScreenWidth = hasPinnedAnchor
+    ? snapToDevicePixel(deckShuffleFxAnchorCardWorldWidth * camera.scale)
+    : cardScreenWidth;
+  const effectiveCardScreenHeight = hasPinnedAnchor
+    ? snapToDevicePixel(deckShuffleFxAnchorCardWorldHeight * camera.scale)
+    : cardScreenHeight;
 
   const topDeckZ = getDeckTopZ(targetDeckId);
-  const topDeckCardId = getDeckMetricsEntry(targetDeckId)?.topDeckCardId || '';
-  const topDeckCard = topDeckCardId ? cards.get(topDeckCardId) : null;
-  const shuffleBackSrc = topDeckCard
-    ? getCardBackDisplaySrc(topDeckCard)
-    : (getDeckKind(targetDeckId) === DECK_KIND_POKER ? POKER_CARD_BACK_IMAGE_SRC : CARD_BACK_IMAGE_SRC);
-  const baseZ = Math.max(1, topDeckZ - 2);
-  const effectWidth = cardScreenWidth * 0.96;
-  const effectHeight = cardScreenHeight * 0.96;
-  const offsets = [
-    { x: -cardScreenWidth * 0.05, y: 0 },
-    { x: cardScreenWidth * 0.05, y: 0 }
-  ];
+  const shuffleBackSrc = deckShuffleFxBackSrc ||
+    (getDeckKind(targetDeckId) === DECK_KIND_POKER ? POKER_CARD_BACK_IMAGE_SRC : CARD_BACK_IMAGE_SRC);
+  const baseZ = Math.max(1, topDeckZ - 1);
+  const effectWidth = effectiveCardScreenWidth * 0.96;
+  const effectHeight = effectiveCardScreenHeight * 0.96;
 
   for (let index = 0; index < deckShuffleFxCards.length; index += 1) {
     const cardBack = deckShuffleFxCards[index];
@@ -8315,12 +8616,12 @@ function renderDeckShuffleFx(deckId, deckScreen, cardScreenWidth, cardScreenHeig
     if (preferredLayer && cardBack.parentElement !== preferredLayer) {
       preferredLayer.appendChild(cardBack);
     }
-    const offset = offsets[index] || offsets[offsets.length - 1];
-    cardBack.style.left = `${deckScreen.x + offset.x}px`;
-    cardBack.style.top = `${deckScreen.y + offset.y}px`;
+    cardBack.style.left = `${effectiveDeckScreen.x}px`;
+    cardBack.style.top = `${effectiveDeckScreen.y}px`;
     cardBack.style.width = `${effectWidth}px`;
     cardBack.style.height = `${effectHeight}px`;
     cardBack.style.zIndex = String(baseZ + index);
+    cardBack.classList.toggle('is-codegame-shuffle', isCodegameShuffle);
     cardBack.classList.remove('hidden');
   }
 }
@@ -9190,7 +9491,12 @@ function renderDeckControls(precomputedMetrics = null) {
     setElementStylePx(deckUi.moveButton, 'top', moveControlY);
     setElementStylePx(deckUi.moveButton, 'width', controlSize);
     setElementStylePx(deckUi.moveButton, 'height', controlSize);
-    deckUi.moveButton.classList.toggle('is-held-by-self', targetDeckState.holderClientId === localClientId);
+    const isShuffleFxActiveForDeck =
+      deckShuffleFxActive && normalizeDeckId(deckShuffleFxDeckId || activeDeckId) === deckId;
+    deckUi.moveButton.classList.toggle(
+      'is-held-by-self',
+      activelyDraggedDeckIds.has(deckId) && !isShuffleFxActiveForDeck
+    );
     deckUi.moveButton.classList.toggle('is-group-selected', selectedDeckIds.has(deckId));
 
     deckUi.optionsButton.classList.remove('hidden');
@@ -9349,8 +9655,7 @@ function renderDeckControls(precomputedMetrics = null) {
   if (deckShuffleFxActive) {
     const shuffleDeckId = normalizeDeckId(deckShuffleFxDeckId || activeDeckId);
     const shuffleDeckState = getDeckStateById(shuffleDeckId);
-    const shuffleDeckMetrics = metricsByDeck.get(shuffleDeckId);
-    if (shuffleDeckState && shuffleDeckMetrics && shuffleDeckMetrics.inDeckCount > 0) {
+    if (shuffleDeckState) {
       const shuffleDeckScreen = worldToScreen({ x: shuffleDeckState.x, y: shuffleDeckState.y });
       const shuffleDeckDimensions = getDeckBaseCardDimensions(shuffleDeckId);
       const shuffleCardScreenWidth = snapToDevicePixel(shuffleDeckDimensions.width * camera.scale);
@@ -17336,7 +17641,7 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
       tileY: manaTileY,
       dirX: 0,
       dirY: 0,
-      stepMs: ARCADE_MANA_STEP_MS_NORMAL,
+      stepMs: getArcadeManaStepMsForState(dieState),
       segmentStartedAt: now,
       renderX: manaTileX,
       renderY: manaTileY,
@@ -17387,6 +17692,7 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
       return;
     }
     const sizeScale = clamp(Number(options?.sizeScale) || 0.74, 0.2, 1.2);
+    const useSpawnFieldStyle = options?.spawnFieldStyle === true;
     const spriteWidth = Math.max(6, tileWidth * sizeScale);
     const spriteHeight = Math.max(6, tileHeight * sizeScale);
     const baseAlpha = clamp(Number(options?.alpha) || 1, 0, 1);
@@ -17404,12 +17710,16 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
       const segment = segments[index];
       const tailCenterX = boardLeft + (segment.x + 0.5) * tileWidth;
       const tailCenterY = boardTop + (segment.y + 0.5) * tileHeight;
-      const tailDrawX = tailCenterX - spriteWidth / 2;
-      const tailDrawY = tailCenterY - spriteHeight / 2;
-      drawArcadeSpriteGlow(tailCenterX, tailCenterY, spriteWidth, spriteHeight, 0.13, 0.78);
       const normalizedSegmentType = normalizeArcadeManaType(segment.type);
       let segmentScaleMultiplier = normalizedSegmentType === ARCADE_MANA_TYPE_WHITE ? 1.1 : normalizedSegmentType === ARCADE_MANA_TYPE_SUPER ? 1.02 : 1;
-      if (options?.tailPulse === true) {
+      if (useSpawnFieldStyle) {
+        const segmentBaseScale = normalizedSegmentType === ARCADE_MANA_TYPE_WHITE
+          ? 0.88
+          : normalizedSegmentType === ARCADE_MANA_TYPE_SUPER
+            ? 0.84
+            : 0.8;
+        segmentScaleMultiplier = (segmentBaseScale * manaPulseScale) / Math.max(0.0001, sizeScale);
+      } else if (options?.tailPulse === true) {
         const pulseElapsed = pickupElapsed - index * 46;
         if (pulseElapsed >= 0 && pulseElapsed <= ARCADE_MANA_PICKUP_ANIM_DURATION_MS) {
           const pulseProgress = clamp(pulseElapsed / ARCADE_MANA_PICKUP_ANIM_DURATION_MS, 0, 1);
@@ -17417,7 +17727,7 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
           segmentScaleMultiplier *= 1 + pulseBump * 0.34;
         }
       }
-      if (potionActive) {
+      if (!useSpawnFieldStyle && potionActive) {
         const t = (potionElapsed / 1000) + index * 0.47;
         const wave = 0.5 + 0.5 * Math.sin(t * 6.4);
         const randomish = 0.5 + 0.5 * Math.sin((t + index * 0.19) * 13.7);
@@ -17428,6 +17738,25 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
       const segmentSpriteHeight = spriteHeight * segmentScaleMultiplier;
       const segmentDrawX = tailCenterX - segmentSpriteWidth / 2;
       const segmentDrawY = tailCenterY - segmentSpriteHeight / 2;
+      if (useSpawnFieldStyle) {
+        const tileLeft = boardLeft + normalizeArcadeGridCoord(segment.x) * tileWidth;
+        const tileTop = boardTop + normalizeArcadeGridCoord(segment.y) * tileHeight;
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = 'rgba(38, 44, 50, 0.72)';
+        ctx.fillRect(tileLeft, tileTop, tileWidth, tileHeight);
+        ctx.restore();
+        drawArcadeSpriteGlow(
+          tailCenterX,
+          tailCenterY,
+          segmentSpriteWidth,
+          segmentSpriteHeight,
+          0.16,
+          0.8
+        );
+      } else {
+        drawArcadeSpriteGlow(tailCenterX, tailCenterY, spriteWidth, spriteHeight, 0.13, 0.78);
+      }
       const tailSpriteSrc = normalizedSegmentType === ARCADE_MANA_TYPE_BLACK
         ? MONS_PIECE_ASSET_BY_TYPE.manaB
         : normalizedSegmentType === ARCADE_MANA_TYPE_SUPER
@@ -17448,7 +17777,8 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
 
   drawManaSegments(looseManaSegments, {
     sizeScale: 0.74,
-    alpha: 0.9
+    alpha: 1,
+    spawnFieldStyle: true
   });
   drawManaSegments(tailSegments, {
     sizeScale: 0.74,
@@ -20428,6 +20758,7 @@ function buildCardRenderLogicKey(cardId, cardState) {
 
 function renderCardElement(cardId, options = {}) {
   const cameraOnly = options?.cameraOnly === true;
+  const visibleStackCardIds = options?.visibleStackCardIds instanceof Set ? options.visibleStackCardIds : null;
   let cardState = cards.get(cardId);
   if (!cardState) {
     removeHandCardElement(cardId);
@@ -20461,6 +20792,27 @@ function renderCardElement(cardId, options = {}) {
     return;
   }
 
+  const isStackedCard = Boolean(cardState.inDeck || cardState.inDiscard || cardState.inAuction);
+  if (cameraOnly && isStackedCard && visibleStackCardIds && !visibleStackCardIds.has(cardId)) {
+    const stackDeckId = normalizeDeckId(cardState.deckId);
+    const stackDeckState = getDeckStateById(stackDeckId);
+    const isDeckShuffleActiveForCard =
+      deckShuffleFxActive && normalizeDeckId(deckShuffleFxDeckId || activeDeckId) === stackDeckId;
+    const keepMountedForDeckInteraction =
+      Boolean(stackDeckState?.holderClientId && stackDeckState.holderClientId === localClientId) ||
+      selectedDeckIds.has(stackDeckId) ||
+      isDeckShuffleActiveForCard;
+    const keepStackCardMounted =
+      selectedCardIds.has(cardId) ||
+      Boolean(cardState.holderClientId) ||
+      discardReturnAnimatingCardIds.has(cardId) ||
+      (keepMountedForDeckInteraction && cardElements.has(cardId));
+    if (!keepStackCardMounted) {
+      removeTableCardElement(cardId);
+      return;
+    }
+  }
+
   const previewHandCardElement = handCardElements.get(cardId);
   const hasActiveHandPreviewForCard =
     handDropPreview?.cardId === cardId &&
@@ -20473,6 +20825,7 @@ function renderCardElement(cardId, options = {}) {
 
   const cardDeckId = normalizeDeckId(cardState.deckId);
   const cardDeckState = getDeckStateById(cardDeckId);
+  const deckMetricsEntry = getDeckMetricsEntry(cardDeckId);
   const isCoolStackCard = isCoolJpegsStackCard(cardState);
   const isSelected = selectedCardIds.has(cardId);
   const isHeld = Boolean(cardState.holderClientId);
@@ -20492,6 +20845,7 @@ function renderCardElement(cardId, options = {}) {
   ) {
     cardState = { ...cardState, x: anchoredCodegameCenter.x, y: anchoredCodegameCenter.y };
     cards.set(cardId, cardState);
+    markCameraLooseRenderableCardIdsDirty();
   }
   const cardWorldX = cardState.inDeck && cardDeckState
     ? cardDeckState.x
@@ -20606,6 +20960,35 @@ function renderCardElement(cardId, options = {}) {
       moveControl.style.removeProperty('top');
     }
   }
+  const isTopStackCard = isStackedCard
+    ? (
+      visibleStackCardIds instanceof Set
+        ? visibleStackCardIds.has(cardId)
+        : (
+          (cardState.inDeck && deckMetricsEntry?.topDeckCardId === cardId) ||
+          (cardState.inDiscard && deckMetricsEntry?.topDiscardCardId === cardId) ||
+          (cardState.inAuction && deckMetricsEntry?.topAuctionCardId === cardId)
+        )
+    )
+    : false;
+  card.classList.toggle('is-in-deck', cardState.inDeck);
+  card.classList.toggle('is-in-discard', cardState.inDiscard);
+  card.classList.toggle('is-in-auction', cardState.inAuction);
+  card.classList.toggle('is-stack-buried', isStackedCard && !isTopStackCard);
+  card.classList.toggle('is-stack-shadow-anchor', isStackedCard && isTopStackCard);
+  if (isStackedCard) {
+    card.style.setProperty('box-shadow', 'none');
+  } else {
+    card.style.removeProperty('box-shadow');
+  }
+  const codegameTopDeckCardId = isCodegameCard ? getDeckMetricsEntry(cardDeckId)?.topDeckCardId || '' : '';
+  const shouldBlurCodegameDeckTopCard = Boolean(
+    isCodegameCard &&
+      cardState.inDeck &&
+      cardDeckState?.codegameGridActive === true &&
+      codegameTopDeckCardId === cardId
+  );
+  card.classList.toggle('is-codegame-top-blurred', shouldBlurCodegameDeckTopCard);
   const logicRenderKey = buildCardRenderLogicKey(cardId, cardState);
   if (cameraOnly && cardRenderLogicKeyById.get(cardId) === logicRenderKey) {
     return;
@@ -20619,19 +21002,8 @@ function renderCardElement(cardId, options = {}) {
   card.classList.toggle('is-held-by-self', heldBySelf);
   card.classList.toggle('is-held-by-other', heldByOther);
   card.classList.toggle('is-group-selected', selectedCardIds.has(cardId));
-  card.classList.toggle('is-in-deck', cardState.inDeck);
-  card.classList.toggle('is-in-discard', cardState.inDiscard);
-  card.classList.toggle('is-in-auction', cardState.inAuction);
   card.classList.toggle('is-discard-returning', discardReturnAnimatingCardIds.has(cardId));
   card.classList.toggle('is-cover-drawings', !isHeld && !isCoolStackCard && shouldAlwaysCoverDrawings);
-  const codegameTopDeckCardId = isCodegameCard ? getDeckMetricsEntry(cardDeckId)?.topDeckCardId || '' : '';
-  const shouldBlurCodegameDeckTopCard = Boolean(
-    isCodegameCard &&
-      cardState.inDeck &&
-      cardDeckState?.codegameGridActive === true &&
-      codegameTopDeckCardId === cardId
-  );
-  card.classList.toggle('is-codegame-top-blurred', shouldBlurCodegameDeckTopCard);
   const codegameKeyOverlay =
     card._cardCodegameKeyOverlay instanceof HTMLElement
       ? card._cardCodegameKeyOverlay
@@ -21104,6 +21476,41 @@ function renderDeckCardsAndControlsForMove(deckId = activeDeckId, precomputedMet
   renderDeckControls(deckMetrics);
 }
 
+function collectCameraOnlyCardRenderIds(visibleStackCardIds = new Set()) {
+  const targetCardIds = new Set();
+  for (const visibleStackCardId of visibleStackCardIds) {
+    targetCardIds.add(visibleStackCardId);
+  }
+  for (const renderedCardId of cardElements.keys()) {
+    targetCardIds.add(renderedCardId);
+  }
+  const viewportBounds = getViewportWorldBounds(VIEWPORT_CULL_MARGIN_PX);
+  const looseCardIds = getCameraLooseRenderableCardIdsCache();
+  for (const cardId of looseCardIds) {
+    if (targetCardIds.has(cardId)) {
+      continue;
+    }
+    const cardState = cards.get(cardId);
+    if (!cardState || typeof cardState !== 'object') {
+      continue;
+    }
+    if (selectedCardIds.has(cardId) || discardReturnAnimatingCardIds.has(cardId) || Boolean(cardState.holderClientId)) {
+      targetCardIds.add(cardId);
+      continue;
+    }
+    const baseCardSize = getCardTableDimensions(cardState);
+    const worldWidth = cardState.inAuction ? baseCardSize.width * AUCTION_CARD_SCALE : baseCardSize.width;
+    const worldHeight = cardState.inAuction ? baseCardSize.height * AUCTION_CARD_SCALE : baseCardSize.height;
+    const cardWorldX = Number(cardState.x) || 0;
+    const cardWorldY = Number(cardState.y) || 0;
+    if (!isWorldRectVisibleWithinBounds(viewportBounds, cardWorldX, cardWorldY, worldWidth, worldHeight)) {
+      continue;
+    }
+    targetCardIds.add(cardId);
+  }
+  return targetCardIds;
+}
+
 function renderTableCardsAndDeckControls(options = {}) {
   const cameraOnly = options?.cameraOnly === true;
   const changedCardIds = options?.changedCardIds instanceof Set ? options.changedCardIds : null;
@@ -21120,7 +21527,9 @@ function renderTableCardsAndDeckControls(options = {}) {
     rotatingStickerCardId = '';
   }
   let targetCardIds;
-  if (cameraOnly || !changedCardIds) {
+  if (cameraOnly) {
+    targetCardIds = collectCameraOnlyCardRenderIds(visibleStackCardIds).values();
+  } else if (!changedCardIds) {
     targetCardIds = cards.keys();
   } else {
     const nextTargetIds = new Set(changedCardIds);
@@ -25112,12 +25521,41 @@ function setAssetLoadingContainerPendingDelta(container, delta) {
 
 function syncAssetLoadingStatusVisibility() {
   const totalPending = getTotalPendingAssetLoadCount();
-  if (assetLoadingStatus) {
-    assetLoadingStatus.classList.toggle('hidden', totalPending <= 0);
+  if (totalPending <= 0) {
+    if (assetLoadingStatusShowTimerId) {
+      window.clearTimeout(assetLoadingStatusShowTimerId);
+      assetLoadingStatusShowTimerId = 0;
+    }
+    assetLoadingStatusVisible = false;
+    if (assetLoadingStatus) {
+      assetLoadingStatus.classList.add('hidden');
+    }
+    return;
   }
-  if (totalPending > 0) {
+
+  if (assetLoadingStatusVisible) {
+    if (assetLoadingStatus) {
+      assetLoadingStatus.classList.remove('hidden');
+    }
     scheduleRoomBadgeWidthSync();
+    return;
   }
+
+  if (assetLoadingStatusShowTimerId) {
+    return;
+  }
+
+  assetLoadingStatusShowTimerId = window.setTimeout(() => {
+    assetLoadingStatusShowTimerId = 0;
+    if (getTotalPendingAssetLoadCount() <= 0) {
+      return;
+    }
+    assetLoadingStatusVisible = true;
+    if (assetLoadingStatus) {
+      assetLoadingStatus.classList.remove('hidden');
+    }
+    scheduleRoomBadgeWidthSync();
+  }, ASSET_LOADING_STATUS_DELAY_MS);
 }
 
 function setElementAssetPendingLoadCount(nextCount) {
@@ -25664,7 +26102,7 @@ function buildVisibleCursorEntries(allCursors, localId) {
   return Array.from(byToken.values());
 }
 
-function upsertDot(id, payload) {
+function upsertDot(id, payload, visibilityContext = null) {
   if (!cursorLayer || typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
     return;
   }
@@ -25707,7 +26145,7 @@ function upsertDot(id, payload) {
   dot.dataset.playerToken = payloadToken;
   const isDrawing = payload?.drawMode === true;
   dot.classList.toggle('is-drawing', isDrawing);
-  positionDot(dot);
+  const dotPosition = positionDot(dot);
   setElementStyleValue(dot, 'background', isDrawing ? 'transparent' : payload.color || colorFromId(payloadToken || id));
 
   const nameElement =
@@ -25718,6 +26156,8 @@ function upsertDot(id, payload) {
     nameElement.textContent = trimmedName;
     nameElement.style.display = trimmedName ? 'inline-block' : 'none';
   }
+
+  applyRemoteCursorContextVisual(dot, dotPosition, visibilityContext);
 }
 
 function renderRoomRoster(allCursors, localId) {
@@ -30764,7 +31204,7 @@ function closeNoteEditor(options = {}) {
     runStateRenderSafely('patchLocalDie', () => renderDieElement(dieId));
   }
 
-  function patchLocalCard(cardId, patch) {
+  function patchLocalCard(cardId, patch, options = {}) {
     const existingCard = cards.get(cardId);
     if (!existingCard) {
       return;
@@ -30834,12 +31274,20 @@ function closeNoteEditor(options = {}) {
       handReorderState?.cardId === cardId;
     warmCardFrontOnDeckExit(existingCard, nextCard);
     cards.set(cardId, nextCard);
+    markCameraLooseRenderableCardIdsDirty();
     invalidateLocalCodegameKeyHighlightsCache();
     invalidateCodegameKeyPatternCache();
     markSecretAreaRegionsCacheDirty();
     const secretAreaVisibilityChanged = didSecretAreaVisibilityFieldsChange(existingCard, nextCard);
     if (didCardDeckMetricsFieldsChange(existingCard, nextCard)) {
       markCardDeckMetricsCacheDirty();
+    }
+    const deferRender = options?.deferRender === true;
+    if (deferRender) {
+      return {
+        affectsLocalHand,
+        secretAreaVisibilityChanged
+      };
     }
     const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
     runStateRenderSafely('patchLocalCard:card', () => renderCardElement(cardId, { visibleStackCardIds }));
@@ -30856,6 +31304,10 @@ function closeNoteEditor(options = {}) {
       runStateRenderSafely('patchLocalCard:tafl', () => renderTaflBoards());
       runStateRenderSafely('patchLocalCard:go', () => renderGoBoards());
     }
+    return {
+      affectsLocalHand,
+      secretAreaVisibilityChanged
+    };
   }
 
   function clearQueuedFastDeckMoveRenders() {
@@ -30914,7 +31366,21 @@ function closeNoteEditor(options = {}) {
     const xUnchanged = Math.abs((Number(nextDeck.x) || 0) - (Number(baseDeck.x) || 0)) <= 0.0001;
     const yUnchanged = Math.abs((Number(nextDeck.y) || 0) - (Number(baseDeck.y) || 0)) <= 0.0001;
     const holderUnchanged = String(nextDeck.holderClientId || '') === String(baseDeck.holderClientId || '');
-    if (xUnchanged && yUnchanged && holderUnchanged) {
+    const shuffleUnchanged = (Number(nextDeck.shuffleTick) || 0) === (Number(baseDeck.shuffleTick) || 0);
+    const includeDiscardUnchanged = nextDeck.includeDiscard === baseDeck.includeDiscard;
+    const coverDrawingsUnchanged = nextDeck.coverDrawings === baseDeck.coverDrawings;
+    const kindUnchanged = nextDeck.kind === baseDeck.kind;
+    const codegameGridActiveUnchanged = nextDeck.codegameGridActive === baseDeck.codegameGridActive;
+    if (
+      xUnchanged &&
+      yUnchanged &&
+      holderUnchanged &&
+      shuffleUnchanged &&
+      includeDiscardUnchanged &&
+      coverDrawingsUnchanged &&
+      kindUnchanged &&
+      codegameGridActiveUnchanged
+    ) {
       return;
     }
     deckStatesById.set(normalizedDeckId, nextDeck);
@@ -31238,13 +31704,86 @@ function getCardDeckId(cardState) {
     );
   }
 
+function getCardNativeDeckId(cardId, cardState = null) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return '';
+  }
+  const resolvedCardState = cardState || cards.get(normalizedCardId);
+  return normalizeDeckId(
+    getCardDeckInstanceId(normalizedCardId, resolvedCardState) ||
+    getCardDeckId(resolvedCardState)
+  );
+}
+
+function canPlaceCardOnDeck(cardId, deckId = activeDeckId) {
+  const cardState = cards.get(cardId);
+  if (!cardState || !canCardUseDeckZones(cardState)) {
+    return false;
+  }
+  const targetDeckId = normalizeDeckId(deckId || getCardNativeDeckId(cardId, cardState));
+  if (!targetDeckId) {
+    return false;
+  }
+  const sourceDeckId = getCardNativeDeckId(cardId, cardState);
+  if (!sourceDeckId || targetDeckId !== sourceDeckId) {
+    return false;
+  }
+  return Boolean(getDeckStateById(targetDeckId));
+}
+
+function canPlaceCardsOnDeck(cardIds, deckId = activeDeckId) {
+  if (!Array.isArray(cardIds) || cardIds.length === 0) {
+    return false;
+  }
+  const targetDeckId = normalizeDeckId(deckId);
+  if (!targetDeckId || !getDeckStateById(targetDeckId)) {
+    return false;
+  }
+  return cardIds.every((cardId) => canPlaceCardOnDeck(cardId, targetDeckId));
+}
+
+function canPlaceCardOnDiscard(cardId, deckId = activeDeckId) {
+  const cardState = cards.get(cardId);
+  if (!cardState || !canCardUseDeckZones(cardState)) {
+    return false;
+  }
+  const targetDeckId = normalizeDeckId(deckId || getCardNativeDeckId(cardId, cardState));
+  if (!targetDeckId || !isDeckDiscardEnabled(targetDeckId)) {
+    return false;
+  }
+  const sourceDeckId = getCardNativeDeckId(cardId, cardState);
+  if (!sourceDeckId || targetDeckId !== sourceDeckId) {
+    return false;
+  }
+  return Boolean(getDeckStateById(targetDeckId));
+}
+
+function canPlaceCardsOnDiscard(cardIds, deckId = activeDeckId) {
+  if (!Array.isArray(cardIds) || cardIds.length === 0) {
+    return false;
+  }
+  const targetDeckId = normalizeDeckId(deckId);
+  if (!targetDeckId || !isDeckDiscardEnabled(targetDeckId) || !getDeckStateById(targetDeckId)) {
+    return false;
+  }
+  return cardIds.every((cardId) => canPlaceCardOnDiscard(cardId, targetDeckId));
+}
+
 function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   const cardState = cards.get(cardId);
   if (!cardState || !canCardUseDeckZones(cardState)) {
     return false;
   }
-  const targetDeckId = normalizeDeckId(deckId || getCardDeckId(cardState));
+  const targetDeckId = normalizeDeckId(deckId || getCardNativeDeckId(cardId, cardState));
   if (!deckSupportsAuction(targetDeckId)) {
+    return false;
+  }
+  if (getDeckKind(targetDeckId) !== DECK_KIND_COOL) {
+    return false;
+  }
+  const sourceDeckInstanceId = getCardDeckInstanceId(cardId, cardState);
+  if (getDeckKind(sourceDeckInstanceId) !== DECK_KIND_COOL) {
     return false;
   }
   if (getAuctionCardCount(targetDeckId) === 0) {
@@ -31257,16 +31796,30 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!Array.isArray(cardIds) || cardIds.length === 0) {
       return false;
     }
-    const targetDeckId = normalizeDeckId(deckId);
-    if (!deckSupportsAuction(targetDeckId)) {
-      return false;
-    }
-    if (getAuctionCardCount(targetDeckId) === 0) {
-      return true;
-    }
+  const targetDeckId = normalizeDeckId(deckId);
+  if (!deckSupportsAuction(targetDeckId)) {
+    return false;
+  }
+  if (getDeckKind(targetDeckId) !== DECK_KIND_COOL) {
+    return false;
+  }
+  if (getAuctionCardCount(targetDeckId) === 0) {
+    return cardIds.every((cardId) => {
+      const cardState = cards.get(cardId);
+      if (!cardState || !canCardUseDeckZones(cardState)) {
+        return false;
+      }
+      const sourceDeckInstanceId = getCardDeckInstanceId(cardId, cardState);
+      return getDeckKind(sourceDeckInstanceId) === DECK_KIND_COOL;
+    });
+  }
   return cardIds.every((cardId) => {
     const cardState = cards.get(cardId);
     if (!cardState || !canCardUseDeckZones(cardState)) {
+      return false;
+    }
+    const sourceDeckInstanceId = getCardDeckInstanceId(cardId, cardState);
+    if (getDeckKind(sourceDeckInstanceId) !== DECK_KIND_COOL) {
       return false;
     }
     return Boolean(cardState.inAuction) && normalizeDeckId(cardState.deckId) === targetDeckId;
@@ -31401,6 +31954,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!targetDeckState || !isPositionOverDeck(cardState.x, cardState.y, targetDeckId)) {
       return null;
     }
+    if (!canPlaceCardOnDeck(cardId, targetDeckId)) {
+      return null;
+    }
 
     const patch = {
       x: targetDeckState.x,
@@ -31448,6 +32004,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const targetDeckId = normalizeDeckId(preferredDeckId || getDeckIdAtPosition(cardState.x, cardState.y, 'discard') || getCardDeckId(cardState));
     const targetDeckState = getDeckStateById(targetDeckId);
     if (!targetDeckState || !isPositionOverDiscard(cardState.x, cardState.y, targetDeckId)) {
+      return null;
+    }
+    if (!canPlaceCardOnDiscard(cardId, targetDeckId)) {
       return null;
     }
     const placementPatch = buildDiscardPlacementPatch(getDiscardTopZ(targetDeckId) + 1, targetDeckId);
@@ -32765,9 +33324,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const selectedCardIdsInDrag = Array.from(groupDragState.basePositions.keys());
     const hasMovableCards = selectedCardIdsInDrag.length > 0;
     const hasDropEligibleCards = hasMovableCards && groupDragState.anchorType === 'card';
+    const deckZoneEligibleCardIdsInDrag = hasDropEligibleCards
+      ? selectedCardIdsInDrag.filter((cardId) => canCardUseDeckZones(cards.get(cardId)))
+      : [];
     const anchorAuctionDeckId = hasDropEligibleCards ? getDeckIdAtPosition(anchorNextX, anchorNextY, 'auction') : '';
     const canPlaceGroupOnAuction =
-      hasDropEligibleCards && canPlaceCardsOnAuction(selectedCardIdsInDrag, anchorAuctionDeckId);
+      deckZoneEligibleCardIdsInDrag.length > 0 && canPlaceCardsOnAuction(deckZoneEligibleCardIdsInDrag, anchorAuctionDeckId);
     const anchorHalfWidth = Math.max(1, Number(anchorBase.width) || CARD_WIDTH) / 2;
     const anchorHalfHeight = Math.max(1, Number(anchorBase.height) || CARD_HEIGHT) / 2;
     const anchorCardForHover = hasDropEligibleCards && groupDragState.anchorCardId ? cards.get(groupDragState.anchorCardId) : null;
@@ -32784,8 +33346,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const stackPointTargetDieId = hasDropEligibleCards && canAnchorUseDeckZones
       ? getStackPointIdAtPosition(anchorHoverX, anchorHoverY)
       : '';
-    const overDeck = Boolean(deckTargetDeckId);
-    const overDiscard = Boolean(discardTargetDeckId);
+    const canPlaceGroupOnDeck =
+      deckZoneEligibleCardIdsInDrag.length > 0 && canPlaceCardsOnDeck(deckZoneEligibleCardIdsInDrag, deckTargetDeckId);
+    const canPlaceGroupOnDiscard =
+      deckZoneEligibleCardIdsInDrag.length > 0 && canPlaceCardsOnDiscard(deckZoneEligibleCardIdsInDrag, discardTargetDeckId);
+    const overDeck = Boolean(deckTargetDeckId) && canPlaceGroupOnDeck;
+    const overDiscard = Boolean(discardTargetDeckId) && canPlaceGroupOnDiscard;
     let overAuction = false;
 
     for (const [selectedCardId, base] of groupDragState.basePositions.entries()) {
@@ -33241,11 +33807,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const shouldStackOnDeck =
       deckEligibleSelectedIds.length > 0 &&
       Boolean(deckTargetDeckId) &&
+      canPlaceCardsOnDeck(deckEligibleSelectedIds, deckTargetDeckId) &&
       Boolean(anchorCardState) &&
       isPositionOverDeck(anchorCardState.x, anchorCardState.y, deckTargetDeckId);
     const shouldStackOnDiscard =
       deckEligibleSelectedIds.length > 0 &&
       Boolean(discardTargetDeckId) &&
+      canPlaceCardsOnDiscard(deckEligibleSelectedIds, discardTargetDeckId) &&
       Boolean(anchorCardState) &&
       isPositionOverDiscard(anchorCardState.x, anchorCardState.y, discardTargetDeckId);
     const shouldStackOnAuction =
@@ -36805,10 +37373,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return ARCADE_MANA_COMBO_POST_CAP_BONUS;
     };
 
-    const awardArcadeScore = (basePoints, timestamp = now) => {
+    const awardArcadeScore = (basePoints, timestamp = now, options = {}) => {
       const base = Math.max(0, Math.round(Number(basePoints) || 0));
       if (base <= 0) {
         return 0;
+      }
+      const countsTowardCombo = options?.countsTowardCombo !== false;
+      if (!countsTowardCombo) {
+        squareClearScore += base;
+        changed = true;
+        return base;
       }
       const scoredAt = Math.max(0, Math.floor(Number(timestamp) || now));
       const withinWindow =
@@ -36981,7 +37555,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     };
 
     const getCurrentArcadeStepDurationMs = () => (
-      phaseActive ? ARCADE_MANA_STEP_MS_PHASE : ARCADE_MANA_STEP_MS_NORMAL
+      getArcadeManaStepMsForPhaseAndScore(phaseActive, squareClearScore)
     );
 
     const getArcadePlayerTilePositionAt = (timestamp = now) => {
@@ -37076,7 +37650,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
       const playerTileKeys = getArcadePlayerCollisionTileKeys(timestamp);
       let spunAny = false;
-      let spunCount = 0;
+      let comboEligibleSpinCount = 0;
+      let flatSpinCount = 0;
       for (const demon of demons) {
         const demonState = normalizeArcadeDemonState(demon?.state);
         if (demonState === ARCADE_MANA_DEMON_STATE_DYING || demonState === ARCADE_MANA_DEMON_STATE_SPINNING) {
@@ -37104,11 +37679,24 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         demon.dashFromY = snappedTileY;
         demon.dashToX = snappedTileX;
         demon.dashToY = snappedTileY;
+        if (demon.comboReady === false) {
+          flatSpinCount += 1;
+        } else {
+          comboEligibleSpinCount += 1;
+        }
+        demon.comboReady = false;
         spunAny = true;
-        spunCount += 1;
       }
-      if (spunCount > 0) {
-        awardArcadeScore(spunCount * ARCADE_MANA_DEMON_SPIN_SCORE_BONUS, timestamp);
+      if (comboEligibleSpinCount > 0) {
+        awardArcadeScore(comboEligibleSpinCount * ARCADE_MANA_DEMON_SPIN_SCORE_BONUS, timestamp);
+      }
+      if (flatSpinCount > 0) {
+        // Re-spinning the same demon before it attacks grants only base points and does not advance combo.
+        awardArcadeScore(
+          flatSpinCount * ARCADE_MANA_DEMON_SPIN_SCORE_BONUS,
+          timestamp,
+          { countsTowardCombo: false }
+        );
       }
       if (spunAny) {
         changed = true;
@@ -37284,7 +37872,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
             dashFromX: spawnTile.x,
             dashFromY: spawnTile.y,
             dashToX: spawnTile.x,
-            dashToY: spawnTile.y
+            dashToY: spawnTile.y,
+            comboReady: true
           });
           if (!hasSpawnedDemon) {
             hasSpawnedDemon = true;
@@ -37320,6 +37909,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         demon.dashToY = normalizeArcadeGridCoord(
           Number.isFinite(Number(demon.dashToY)) ? demon.dashToY : demon.y
         );
+        demon.comboReady = demon.comboReady !== false;
 
         if (demon.stateStartedAt <= 0) {
           demon.stateStartedAt = now;
@@ -37379,7 +37969,18 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
               }
               occupiedByOtherDemons.add(getArcadeTileKey(otherDemon.x, otherDemon.y));
             }
-            const attackDirection = getArcadeDemonAttackDirectionFromTile(demon.x, demon.y, occupiedByOtherDemons);
+            const forbiddenResourceTargets = new Set([
+              getArcadeTileKey(manaTileX, manaTileY),
+              ...looseManaSegments.map((segment) => getArcadeTileKey(segment.x, segment.y)),
+              ...clearingManaSegments.map((segment) => getArcadeTileKey(segment.x, segment.y)),
+              ...bombs.map((bomb) => getArcadeTileKey(bomb.x, bomb.y))
+            ]);
+            const attackDirection = getArcadeDemonAttackDirectionFromTile(
+              demon.x,
+              demon.y,
+              occupiedByOtherDemons,
+              forbiddenResourceTargets
+            );
             if (attackDirection.x === 0 && attackDirection.y === 0) {
               demon.stateStartedAt = now;
             } else {
@@ -37459,6 +38060,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
               demon.dashToY = currentY;
               demon.x = currentX;
               demon.y = currentY;
+              // A successful attack movement refreshes this demon for combo-eligible spin scoring.
+              demon.comboReady = true;
               demon.state = ARCADE_MANA_DEMON_STATE_DASH;
               demon.stateStartedAt = now;
             } else {
@@ -37600,7 +38203,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       if (queuedDirection.x !== 0 || queuedDirection.y !== 0) {
         const queuedNextTileX = tileX + queuedDirection.x;
         const queuedNextTileY = tileY + queuedDirection.y;
-        if (canArcadeMoveToTile(queuedNextTileX, queuedNextTileY)) {
+        const reverseReferenceDirection = getArcadeEffectiveHeadingForReverseBlock(
+          { arcadeMgTileX: tileX, arcadeMgTileY: tileY },
+          moveDirection,
+          tailSegments
+        );
+        const reverseQueuedAtWall =
+          tailSegments.length > 0 &&
+          isArcadeReverseDirection(queuedDirection, reverseReferenceDirection);
+        if (!reverseQueuedAtWall && canArcadeMoveToTile(queuedNextTileX, queuedNextTileY)) {
           moveDirection = { x: queuedDirection.x, y: queuedDirection.y };
           queuedDirection = { x: 0, y: 0 };
           moveStartedAt = now;
@@ -41295,8 +41906,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const deckTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'deck') : '';
     const discardTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'discard') : '';
     const auctionTargetId = worldPoint && canUseDeckZones ? getDeckIdAtPosition(worldPoint.x, worldPoint.y, 'auction') : '';
-    const overDeck = Boolean(deckTargetId);
-    const overDiscard = Boolean(discardTargetId);
+    const overDeck = Boolean(deckTargetId) && canPlaceCardOnDeck(handReorderState.cardId, deckTargetId);
+    const overDiscard = Boolean(discardTargetId) && canPlaceCardOnDiscard(handReorderState.cardId, discardTargetId);
     const overAuction = Boolean(auctionTargetId) && canPlaceCardOnAuction(handReorderState.cardId, auctionTargetId);
     setDeckDropIndicator(handReorderState.releaseToTable && overDeck && !overDiscard && !overAuction, deckTargetId);
     setDiscardDropIndicator(handReorderState.releaseToTable && overDiscard && !overAuction, discardTargetId);
@@ -41392,9 +42003,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
           : codegameGridPatch
             ? codegameGridPatch
-          : canUseDeckZones && Boolean(discardDeckId) && isDeckDiscardEnabled(discardDeckId)
+          : canUseDeckZones && Boolean(discardDeckId) && canPlaceCardOnDiscard(finishedState.cardId, discardDeckId)
             ? buildDiscardPlacementPatch(topZ, discardDeckId)
-            : canUseDeckZones && Boolean(mainDeckId)
+            : canUseDeckZones && Boolean(mainDeckId) && canPlaceCardOnDeck(finishedState.cardId, mainDeckId)
               ? {
                 x: getDeckStateById(mainDeckId)?.x ?? dropX,
                 y: getDeckStateById(mainDeckId)?.y ?? dropY,
@@ -41618,7 +42229,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const discardTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'discard') : '';
     const auctionTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'auction') : '';
     const deckTargetDeckId = canUseDeckZones ? getDeckIdAtPosition(nextX, nextY, 'deck') : '';
-    const overDiscard = Boolean(discardTargetDeckId);
+    const overDiscard = Boolean(discardTargetDeckId) && canPlaceCardOnDiscard(cardDragState.cardId, discardTargetDeckId);
     const overAuction = Boolean(auctionTargetDeckId) && canPlaceCardOnAuction(cardDragState.cardId, auctionTargetDeckId);
     const stackPointTargetDieId =
       canUseDeckZones && !overHandDropRegion && !overDiscard && !overAuction && !deckTargetDeckId
@@ -41627,7 +42238,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     setStackPointDropTarget(stackPointTargetDieId);
     setDiscardDropIndicator(overDiscard && !overHandDropRegion && !overAuction, discardTargetDeckId);
     setAuctionDropIndicator(overAuction && !overHandDropRegion, auctionTargetDeckId);
-    setDeckDropIndicator(Boolean(deckTargetDeckId) && !overHandDropRegion && !overDiscard && !overAuction, deckTargetDeckId);
+    setDeckDropIndicator(
+      Boolean(deckTargetDeckId) &&
+      canPlaceCardOnDeck(cardDragState.cardId, deckTargetDeckId) &&
+      !overHandDropRegion &&
+      !overDiscard &&
+      !overAuction,
+      deckTargetDeckId
+    );
 
     const dragPatchBase = {
       x: nextX,
@@ -42792,6 +43410,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       releaseDeckLock(activeDragDeckId).catch((error) => {
         console.error(error);
       });
+      if (activeDragDeckId) {
+        activelyDraggedDeckIds.delete(activeDragDeckId);
+      }
       deckDragState = null;
       deckDragLastQueuedAt = 0;
     }
@@ -42811,6 +43432,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       lastClientY: event.clientY,
       captureTarget: null
     };
+    activelyDraggedDeckIds.add(targetDeckId);
     deckDragLastQueuedAt = 0;
 
     patchLocalDeck({ holderClientId: clientId }, targetDeckId, { followCardIds: deckDragState.followCardIds });
@@ -42894,6 +43516,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       const staleFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
       deckDragState = null;
       deckDragLastQueuedAt = 0;
+      if (staleDeckId) {
+        activelyDraggedDeckIds.delete(staleDeckId);
+      }
       patchLocalDeck({ holderClientId: null }, staleDeckId, { followCardIds: staleFollowCardIds });
       queueDeckPatch({ holderClientId: null }, staleDeckId);
       releaseDeckLock(staleDeckId).catch((error) => {
@@ -42924,6 +43549,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       lastClientY: event.clientY,
       captureTarget: null
     };
+    activelyDraggedDeckIds.add(targetDeckId);
     deckDragLastQueuedAt = 0;
 
     patchLocalDeck({ holderClientId: clientId }, targetDeckId, { followCardIds: deckDragState.followCardIds });
@@ -43078,6 +43704,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const dragFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
     deckDragState = null;
     deckDragLastQueuedAt = 0;
+    if (targetDeckId) {
+      activelyDraggedDeckIds.delete(targetDeckId);
+    }
     patchLocalDeck({ holderClientId: null }, targetDeckId, { followCardIds: dragFollowCardIds });
     queueDeckPatch({ holderClientId: null }, targetDeckId);
     releaseDeckLock(targetDeckId).catch((error) => {
@@ -43176,6 +43805,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
       const updatesByPath = {};
       const startedAt = Date.now();
+      let batchSecretAreaVisibilityChanged = false;
 
       for (let index = 0; index < resetOrder.length; index += 1) {
         const [cardId] = resetOrder[index];
@@ -43198,7 +43828,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           drawLifted: false,
           updatedAt: startedAt + index
         };
-        patchLocalCard(cardId, patch);
+        const patchResult = patchLocalCard(cardId, patch, { deferRender: true });
+        if (patchResult?.secretAreaVisibilityChanged) {
+          batchSecretAreaVisibilityChanged = true;
+        }
         for (const [patchKey, patchValue] of Object.entries(patch)) {
           if (typeof patchValue === 'undefined') {
             continue;
@@ -43230,7 +43863,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           drawLifted: false,
           updatedAt: startedAt + resetOrder.length + index
         };
-        patchLocalCard(cardId, patch);
+        const patchResult = patchLocalCard(cardId, patch, { deferRender: true });
+        if (patchResult?.secretAreaVisibilityChanged) {
+          batchSecretAreaVisibilityChanged = true;
+        }
         for (const [patchKey, patchValue] of Object.entries(patch)) {
           if (typeof patchValue === 'undefined') {
             continue;
@@ -43271,7 +43907,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           updatedAt: startedAt + resetOrder.length + selectedCardIds.length + index
         };
         if (cards.has(keyCardId)) {
-          patchLocalCard(keyCardId, patch);
+          const patchResult = patchLocalCard(keyCardId, patch, { deferRender: true });
+          if (patchResult?.secretAreaVisibilityChanged) {
+            batchSecretAreaVisibilityChanged = true;
+          }
         }
         for (const [patchKey, patchValue] of Object.entries(patch)) {
           if (typeof patchValue === 'undefined') {
@@ -43287,6 +43926,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         codegameGridActive: true,
         holderClientId: clientId
       }, targetDeckId);
+      runStateRenderSafely('handleCodegamePlayShuffle:batchRender', () => renderAllCards());
+      if (batchSecretAreaVisibilityChanged) {
+        runStateRenderSafely('handleCodegamePlayShuffle:batchDice', () => renderAllDice());
+        runStateRenderSafely('handleCodegamePlayShuffle:batchChipSets', () => renderChipSets());
+        runStateRenderSafely('handleCodegamePlayShuffle:batchMons', () => renderMonsBoard());
+        runStateRenderSafely('handleCodegamePlayShuffle:batchTafl', () => renderTaflBoards());
+        runStateRenderSafely('handleCodegamePlayShuffle:batchGo', () => renderGoBoards());
+      }
       if (Object.keys(updatesByPath).length > 0) {
         await update(cardsRef, updatesByPath);
       }
@@ -43314,11 +43961,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!deckSupportsShuffle(targetDeckId)) {
       return;
     }
+    const deckDimensions = getDeckBaseCardDimensions(targetDeckId);
+    const stableDeckState = getDeckStateById(targetDeckId);
+    const stableDeckX = clamp(
+      Number.isFinite(Number(stableDeckState?.x)) ? Number(stableDeckState.x) : WORLD_WIDTH / 2,
+      deckDimensions.width / 2,
+      WORLD_WIDTH - deckDimensions.width / 2
+    );
+    const stableDeckY = clamp(
+      Number.isFinite(Number(stableDeckState?.y)) ? Number(stableDeckState.y) : WORLD_HEIGHT / 2,
+      deckDimensions.height / 2,
+      WORLD_HEIGHT - deckDimensions.height / 2
+    );
     const acquired = await acquireDeckLock(targetDeckId);
     if (!acquired) {
       return;
     }
-    patchLocalDeck({ holderClientId: clientId }, targetDeckId);
+    patchLocalDeck({ x: stableDeckX, y: stableDeckY, holderClientId: clientId }, targetDeckId);
     try {
       const deckCardIds = getDeckCardIds(targetDeckId);
       if (deckCardIds.length < 2) {
@@ -43334,25 +43993,43 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
       const updatesByPath = {};
       const updatedAtStamp = Date.now();
+      let batchSecretAreaVisibilityChanged = false;
       for (let index = 0; index < deckCardIds.length; index += 1) {
         const cardId = deckCardIds[index];
         const nextZ = index + 1;
-        patchLocalCard(cardId, { z: nextZ, deckId: targetDeckId, updatedAt: updatedAtStamp + index });
+        const patchResult = patchLocalCard(
+          cardId,
+          { z: nextZ, deckId: targetDeckId, updatedAt: updatedAtStamp + index },
+          { deferRender: true }
+        );
+        if (patchResult?.secretAreaVisibilityChanged) {
+          batchSecretAreaVisibilityChanged = true;
+        }
         updatesByPath[`${cardId}/z`] = nextZ;
         updatesByPath[`${cardId}/deckId`] = targetDeckId;
         updatesByPath[`${cardId}/updatedAt`] = serverTimestamp();
       }
+      runStateRenderSafely('handleDeckShuffle:batchRender', () => renderAllCards());
+      if (batchSecretAreaVisibilityChanged) {
+        runStateRenderSafely('handleDeckShuffle:batchDice', () => renderAllDice());
+        runStateRenderSafely('handleDeckShuffle:batchChipSets', () => renderChipSets());
+        runStateRenderSafely('handleDeckShuffle:batchMons', () => renderMonsBoard());
+        runStateRenderSafely('handleDeckShuffle:batchTafl', () => renderTaflBoards());
+        runStateRenderSafely('handleDeckShuffle:batchGo', () => renderGoBoards());
+      }
       await update(cardsRef, updatesByPath);
       const currentShuffleTick = Number(getDeckStateById(targetDeckId)?.shuffleTick) || 0;
       const nextShuffleTick = currentShuffleTick + 1;
+      setDeckPositionGuard(targetDeckId, stableDeckX, stableDeckY, DECK_POSITION_GUARD_MS * 3);
       await update(getDeckNodeRef(targetDeckId), {
+        x: stableDeckX,
+        y: stableDeckY,
         shuffleTick: nextShuffleTick,
         updatedAt: serverTimestamp()
       });
-      triggerDeckShuffleFx(targetDeckId);
     } finally {
-      patchLocalDeck({ holderClientId: null }, targetDeckId);
-      queueDeckPatch({ holderClientId: null }, targetDeckId);
+      patchLocalDeck({ x: stableDeckX, y: stableDeckY, holderClientId: null }, targetDeckId);
+      queueDeckPatch({ x: stableDeckX, y: stableDeckY, holderClientId: null }, targetDeckId);
       releaseDeckLock(targetDeckId).catch((error) => {
         console.error(error);
       });
@@ -46307,6 +46984,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     recentMouseClickByDieId.clear();
     endedPointerAtById.clear();
     endedTouchPointerIds.clear();
+    activelyDraggedDeckIds.clear();
     deckDragState = null;
     chipSetDragState = null;
     monsDragState = null;
@@ -46358,6 +47036,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (cameraRenderRafId) {
       window.cancelAnimationFrame(cameraRenderRafId);
       cameraRenderRafId = 0;
+    }
+    if (deckShuffleFxEndRenderRafId) {
+      window.cancelAnimationFrame(deckShuffleFxEndRenderRafId);
+      deckShuffleFxEndRenderRafId = 0;
     }
     clearQueuedFastDeckMoveRenders();
     if (marbleMotionRafId) {
@@ -46429,6 +47111,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     drawingStrokes.clear();
     syncDrawActionButtonsState();
     cards.clear();
+    markCameraLooseRenderableCardIdsDirty();
     codegameRevealToggleAtByCardId.clear();
     codegameDebugStatusByCardId.clear();
     markSecretAreaRegionsCacheDirty();
@@ -46582,6 +47265,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       void preloadCodegameFrontImages();
     }
 
+    const cursorVisibilityContext = buildRemoteCursorVisibilityContext();
     const activeDotIds = new Set();
     for (const entry of visibleEntries) {
       const dotId = entry.token || entry.id;
@@ -46589,7 +47273,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       upsertDot(dotId, {
         ...entry.payload,
         playerToken: entry.token
-      });
+      }, cursorVisibilityContext);
     }
 
     for (const [dotId, dot] of dots.entries()) {
@@ -46757,6 +47441,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           setDiscardReturnAnimating(cardId, true);
         }
         cards.set(cardId, nextCard);
+        markCameraLooseRenderableCardIdsDirty();
         const cardChanged =
           !previousCard ||
           previousUpdatedAt !== nextUpdatedAt ||
@@ -46828,6 +47513,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         removeTableCardElement(cardId);
         setDiscardReturnAnimating(cardId, false);
         cards.delete(cardId);
+        markCameraLooseRenderableCardIdsDirty();
         codegameRevealToggleAtByCardId.delete(cardId);
         codegameDebugStatusByCardId.delete(cardId);
         changedCardIds.add(cardId);
