@@ -55,6 +55,7 @@ const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
 const goTile = document.getElementById('goTile');
+const hexitamaTile = document.getElementById('hexitamaTile');
 const arcadeMachineTile = document.getElementById('arcadeMachineTile');
 const codegameTile = document.getElementById('codegameTile');
 const diceComponentTile = document.getElementById('diceComponentTile');
@@ -202,7 +203,8 @@ const LOW_ZOOM_PIXEL_SNAP_SCALE = 0.35;
 const CARD_SIZE_MULTIPLIER = 1.8;
 const CARD_WIDTH = 120 * CARD_SIZE_MULTIPLIER;
 const CARD_HEIGHT = 168 * CARD_SIZE_MULTIPLIER;
-const CODEGAME_CARD_SIZE = CARD_WIDTH;
+const CODEGAME_MODULE_SCALE = 0.9;
+const CODEGAME_CARD_SIZE = CARD_WIDTH * CODEGAME_MODULE_SCALE;
 const CARD_FLIP_DURATION_MS = 220;
 const NOTE_ATTACHMENT_PICKUP_SYNC_MS = 220;
 const DECK_CONTROL_SIZE = 28;
@@ -220,12 +222,12 @@ const AUCTION_STACK_OFFSET_X = CARD_WIDTH + STACK_SLOT_GAP + AUCTION_SHIFT_X;
 const DISCARD_RETURN_ANIMATION_MS = 300;
 const DECK_COUNT_OFFSET_Y = 18;
 const CODEGAME_GRID_SIZE = 5;
-const CODEGAME_GRID_GAP = 18;
-const CODEGAME_GRID_PADDING = 14;
-const CODEGAME_GRID_OFFSET_Y = 34;
+const CODEGAME_GRID_GAP = 18 * CODEGAME_MODULE_SCALE;
+const CODEGAME_GRID_PADDING = 14 * CODEGAME_MODULE_SCALE;
+const CODEGAME_GRID_OFFSET_Y = 34 * CODEGAME_MODULE_SCALE;
 const CODEGAME_GRID_SLOT_COUNT = CODEGAME_GRID_SIZE * CODEGAME_GRID_SIZE;
-const CODEGAME_KEY_CARD_OFFSET_X = 24;
-const CODEGAME_KEY_CARD_GAP_Y = 18;
+const CODEGAME_KEY_CARD_OFFSET_X = 24 * CODEGAME_MODULE_SCALE;
+const CODEGAME_KEY_CARD_GAP_Y = 18 * CODEGAME_MODULE_SCALE;
 const FRONT_IMAGE_PRELOAD_CONCURRENCY = 4;
 const DELETE_MODE_UNDO_HISTORY_LIMIT = 10;
 const TOUCH_TAP_MAX_MOVE_PX = 16;
@@ -281,6 +283,10 @@ const SECRET_AREA_PERSIST_CONFIRM_DELAY_MS = 160;
 const PATCH_FLUSH_INTERVAL_MS = 34;
 const VIEWPORT_CULL_MARGIN_PX = 320;
 const VIEWPORT_CULL_MARGIN_PX_GAMES = 420;
+const VIEWPORT_CULL_MARGIN_ACTIVE_PX = 560;
+const OFFSCREEN_UNMOUNT_GRACE_MS = 420;
+const CAMERA_INTERACTION_ACTIVE_MS = 240;
+const GRID_SCALE_EPSILON = 0.0005;
 const LEGACY_DECK_ROOT_FIELDS = Object.freeze([
   'x',
   'y',
@@ -300,6 +306,7 @@ const DECK_KIND_CODEGAME = 'codegame';
 const MONS_GAME_KEY = 'super-metal-mons';
 const TAFL_GAME_KEY = 'hnefatafl';
 const GO_GAME_KEY = 'go';
+const HEXITAMA_GAME_KEY = 'hexitama';
 const CARD_BACK_IMAGE_SRC = './assets/back.png';
 const TAFL_BOARD_IMAGE_SRC = './assets/hnefatafl-board.svg?v=20260327b';
 const MONS_BOARD_SIZE = 11;
@@ -319,6 +326,8 @@ const TAFL_THRONE_COL = 5;
 const TAFL_UNDO_HISTORY_LIMIT = 30;
 const GO_BOARD_SIZE_DEFAULT = 13;
 const GO_BOARD_SIZE_OPTIONS = Object.freeze([9, 13, 19]);
+const GO_BOARD_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH;
+const GO_BOARD_WORLD_HEIGHT = MONS_BOARD_WORLD_HEIGHT;
 const GO_BOARD_CANVAS_WIDTH = 680;
 const GO_BOARD_CANVAS_HEIGHT = 680;
 const GO_GRID_LEFT_RATIO = 48 / GO_BOARD_CANVAS_WIDTH;
@@ -356,6 +365,143 @@ const GO_STAR_POINT_COORDS_BY_SIZE = Object.freeze({
 });
 const GO_CAPTURE_FX_DURATION_MS = 440;
 const GO_PLACE_PULSE_DURATION_MS = 220;
+const HEXITAMA_WORLD_BASE_WIDTH = 680;
+const HEXITAMA_WORLD_BASE_HEIGHT = 760;
+const HEXITAMA_MODULE_SCALE = 1.08;
+const HEXITAMA_BOARD_WORLD_WIDTH = Math.round(HEXITAMA_WORLD_BASE_WIDTH * HEXITAMA_MODULE_SCALE);
+const HEXITAMA_BOARD_WORLD_HEIGHT = Math.round(HEXITAMA_WORLD_BASE_HEIGHT * HEXITAMA_MODULE_SCALE);
+const HEXITAMA_CANVAS_WIDTH = HEXITAMA_WORLD_BASE_WIDTH;
+const HEXITAMA_CANVAS_HEIGHT = HEXITAMA_WORLD_BASE_HEIGHT;
+const HEXITAMA_HEX_RADIUS = 52;
+const HEXITAMA_TILE_ROTATION_DEG = 30;
+const HEXITAMA_SLOT_ROTATION_DEG = 0;
+const HEXITAMA_HEX_COL_STEP = HEXITAMA_HEX_RADIUS * 1.5;
+const HEXITAMA_HEX_ROW_STEP = Math.sqrt(3) * HEXITAMA_HEX_RADIUS;
+const HEXITAMA_BOARD_CENTER_X = HEXITAMA_CANVAS_WIDTH / 2;
+const HEXITAMA_BOARD_TOP_Y = 168;
+const HEXITAMA_CONTROL_OFFSET_X = -120;
+const HEXITAMA_CONTROL_OFFSET_Y = -11;
+const HEXITAMA_PIECE_SIZE_PAWN = HEXITAMA_HEX_RADIUS * 1.16;
+const HEXITAMA_PIECE_SIZE_CHIEF = HEXITAMA_HEX_RADIUS * 1.24;
+const HEXITAMA_MYSTIC_BLACK_SRC = './assets/mons/mysticB.png';
+const HEXITAMA_MYSTIC_WHITE_SRC = './assets/mons/mystic.png';
+const HEXITAMA_CHIEF_SRC = './assets/ancient.png';
+const HEXITAMA_CHIEF_TEMPLE_SRC = './assets/temple icon.png';
+const HEXITAMA_CARD_ID_PREFIX = 'hexitama-card';
+const HEXITAMA_CARD_SCALE = 1.72;
+const HEXITAMA_CARD_SIZE = Math.round((HEXITAMA_HEX_RADIUS * 2 + 20) * HEXITAMA_CARD_SCALE);
+const HEXITAMA_SELECTION_RING_OPACITY = 0.7;
+const HEXITAMA_CARD_SWAP_ANIMATION_MS = 240;
+const HEXITAMA_CARD_SLOT_KEYS = Object.freeze([
+  'slot-1',
+  'slot-2',
+  'slot-3',
+  'slot-4',
+  'slot-left'
+]);
+const HEXITAMA_CARD_LAYOUT_LEFT_X = HEXITAMA_BOARD_CENTER_X - HEXITAMA_HEX_COL_STEP * 3.26 - 85;
+const HEXITAMA_CARD_LAYOUT_LEFT_Y = HEXITAMA_BOARD_TOP_Y + HEXITAMA_HEX_ROW_STEP * 2.5;
+const HEXITAMA_CARD_CELL_LAYOUT = Object.freeze([
+  Object.freeze({ index: 1, colIndex: 0, rowValue: 1 }),
+  Object.freeze({ index: 2, colIndex: 1, rowValue: 0.5 }),
+  Object.freeze({ index: 3, colIndex: 2, rowValue: 0 }),
+  Object.freeze({ index: 4, colIndex: 3, rowValue: 0.5 }),
+  Object.freeze({ index: 5, colIndex: 4, rowValue: 1 }),
+  Object.freeze({ index: 6, colIndex: 0, rowValue: 2 }),
+  Object.freeze({ index: 7, colIndex: 1, rowValue: 1.5 }),
+  Object.freeze({ index: 8, colIndex: 2, rowValue: 1 }),
+  Object.freeze({ index: 9, colIndex: 3, rowValue: 1.5 }),
+  Object.freeze({ index: 10, colIndex: 4, rowValue: 2 }),
+  Object.freeze({ index: 11, colIndex: 0, rowValue: 3 }),
+  Object.freeze({ index: 12, colIndex: 1, rowValue: 2.5 }),
+  Object.freeze({ index: 13, colIndex: 2, rowValue: 3 }),
+  Object.freeze({ index: 14, colIndex: 3, rowValue: 2.5 }),
+  Object.freeze({ index: 15, colIndex: 4, rowValue: 3 }),
+  Object.freeze({ index: 16, colIndex: 1, rowValue: 3.5 }),
+  Object.freeze({ index: 17, colIndex: 2, rowValue: 4 }),
+  Object.freeze({ index: 18, colIndex: 3, rowValue: 3.5 })
+]);
+const HEXITAMA_ACTION_CARD_PATTERNS = Object.freeze([
+  Object.freeze([7, 9, 17]),
+  Object.freeze([1, 2, 14]),
+  Object.freeze([4, 5, 12]),
+  Object.freeze([3, 11, 15]),
+  Object.freeze([5, 6, 9, 12, 16]),
+  Object.freeze([1, 7, 10, 14, 18]),
+  Object.freeze([1, 6, 8, 13, 18]),
+  Object.freeze([5, 8, 10, 13, 16]),
+  Object.freeze([2, 9, 11, 15]),
+  Object.freeze([4, 7, 11, 15]),
+  Object.freeze([1, 2, 12, 14]),
+  Object.freeze([4, 5, 12, 14]),
+  Object.freeze([5, 9, 11, 12]),
+  Object.freeze([1, 7, 14, 15]),
+  Object.freeze([2, 3, 6, 9]),
+  Object.freeze([4, 3, 7, 10]),
+  Object.freeze([8, 12, 13, 14]),
+  Object.freeze([2, 7, 14, 13, 17]),
+  Object.freeze([4, 9, 12, 13, 17]),
+  Object.freeze([4, 7, 11, 14, 16]),
+  Object.freeze([2, 9, 12, 15, 18]),
+  Object.freeze([4, 6, 7, 11]),
+  Object.freeze([2, 9, 10, 15]),
+  Object.freeze([1, 5, 8, 12, 14]),
+  Object.freeze([7, 9, 11, 15, 17]),
+  Object.freeze([3, 8, 16, 18]),
+  Object.freeze([1, 2, 8]),
+  Object.freeze([4, 5, 8]),
+  Object.freeze([3, 7, 5]),
+  Object.freeze([1, 3, 9])
+]);
+const HEXITAMA_CARD_CELL_BY_INDEX = new Map(
+  HEXITAMA_CARD_CELL_LAYOUT.map((cell) => [Number(cell.index), cell])
+);
+const HEXITAMA_CARD_CENTER_COORD = Object.freeze({ colIndex: 2, rowValue: 2 });
+const HEXITAMA_CARD_CELL_OFFSET_BY_INDEX = new Map(
+  HEXITAMA_CARD_CELL_LAYOUT.map((cell) => {
+    const index = Number(cell.index);
+    return [
+      index,
+      Object.freeze({
+        deltaCol: Number(cell.colIndex) - Number(HEXITAMA_CARD_CENTER_COORD.colIndex),
+        deltaRow: Number(cell.rowValue) - Number(HEXITAMA_CARD_CENTER_COORD.rowValue)
+      })
+    ];
+  })
+);
+const HEXITAMA_TOP_CARD_SLOT_KEYS = Object.freeze(['slot-1', 'slot-2']);
+const HEXITAMA_HAND_SLOT_KEYS_BLACK = Object.freeze(['slot-1', 'slot-2']);
+const HEXITAMA_HAND_SLOT_KEYS_WHITE = Object.freeze(['slot-3', 'slot-4']);
+const HEXITAMA_HAND_SLOT_KEYS = Object.freeze([
+  ...HEXITAMA_HAND_SLOT_KEYS_BLACK,
+  ...HEXITAMA_HAND_SLOT_KEYS_WHITE
+]);
+const HEXITAMA_A_PAWN_TILES = Object.freeze([
+  Object.freeze({ colIndex: 0, rowValue: 1 }),
+  Object.freeze({ colIndex: 1, rowValue: 0.5 }),
+  Object.freeze({ colIndex: 3, rowValue: 0.5 }),
+  Object.freeze({ colIndex: 4, rowValue: 1 })
+]);
+const HEXITAMA_B_PAWN_TILES = Object.freeze([
+  Object.freeze({ colIndex: 0, rowValue: 4 }),
+  Object.freeze({ colIndex: 1, rowValue: 4.5 }),
+  Object.freeze({ colIndex: 3, rowValue: 4.5 }),
+  Object.freeze({ colIndex: 4, rowValue: 4 })
+]);
+const HEXITAMA_A_CHIEF_TILE = Object.freeze({ colIndex: 2, rowValue: 0 });
+const HEXITAMA_B_CHIEF_TILE = Object.freeze({ colIndex: 2, rowValue: 5 });
+const HEXITAMA_TILE_ROWS_BY_COLUMN = Object.freeze([
+  Object.freeze([1, 2, 3, 4]),
+  Object.freeze([0.5, 1.5, 2.5, 3.5, 4.5]),
+  Object.freeze([0, 1, 2, 3, 4, 5]),
+  Object.freeze([0.5, 1.5, 2.5, 3.5, 4.5]),
+  Object.freeze([1, 2, 3, 4])
+]);
+const HEXITAMA_TILE_KEY_SET = new Set(
+  HEXITAMA_TILE_ROWS_BY_COLUMN.flatMap((rowValues, colIndex) =>
+    rowValues.map((rowValue) => `${colIndex}:${Number(rowValue).toFixed(1)}`)
+  )
+);
 const TAFL_HUD_MIN_HEIGHT = 24;
 const TAFL_HUD_DEFAULT_HEIGHT = 80;
 const TAFL_HUD_HEIGHT_RATIO = TAFL_HUD_DEFAULT_HEIGHT / MONS_BOARD_WORLD_HEIGHT;
@@ -1112,7 +1258,7 @@ const COOL_JPEGS_FRONT_IMAGES_LOW = COOL_JPEGS_FRONT_IMAGES.map((src) =>
 );
 const CODEGAME_FRONT_IMAGE_PREFIX = './assets/codegame/';
 const CODEGAME_FRONT_IMAGE_FIRST_ID = 1000;
-const CODEGAME_FRONT_IMAGE_LAST_ID = 1085;
+const CODEGAME_FRONT_IMAGE_LAST_ID = 1105;
 const CODEGAME_FRONT_IMAGES = Object.freeze(
   Array.from(
     { length: CODEGAME_FRONT_IMAGE_LAST_ID - CODEGAME_FRONT_IMAGE_FIRST_ID + 1 },
@@ -1482,6 +1628,136 @@ function createCodegameKeyBackSvgDataUri() {
   `);
 }
 
+function normalizeHexitamaActionPatternIndices(value) {
+  const source = Array.isArray(value) ? value : [];
+  const normalized = [];
+  const seen = new Set();
+  for (const item of source) {
+    const numeric = Number(item);
+    if (!Number.isInteger(numeric) || numeric < 1 || numeric > 18 || seen.has(numeric)) {
+      continue;
+    }
+    seen.add(numeric);
+    normalized.push(numeric);
+  }
+  return normalized;
+}
+
+const hexitamaPatternIndicesByFrontSrc = new Map();
+
+function resolveHexitamaActionPatternIndicesFromFrontSrc(frontSrc = '') {
+  const normalizedFrontSrc = String(frontSrc || '').trim();
+  if (!normalizedFrontSrc) {
+    return [];
+  }
+  if (hexitamaPatternIndicesByFrontSrc.has(normalizedFrontSrc)) {
+    const cached = hexitamaPatternIndicesByFrontSrc.get(normalizedFrontSrc);
+    return Array.isArray(cached) ? [...cached] : [];
+  }
+  for (const pattern of HEXITAMA_ACTION_CARD_PATTERNS) {
+    const normalizedPattern = normalizeHexitamaActionPatternIndices(pattern);
+    const candidateSrc = createHexitamaActionCardFaceSvgDataUri(normalizedPattern);
+    if (candidateSrc === normalizedFrontSrc) {
+      hexitamaPatternIndicesByFrontSrc.set(normalizedFrontSrc, normalizedPattern);
+      return [...normalizedPattern];
+    }
+  }
+  hexitamaPatternIndicesByFrontSrc.set(normalizedFrontSrc, []);
+  return [];
+}
+
+function getHexitamaActionPatternIndicesForCard(cardState) {
+  if (!cardState || typeof cardState !== 'object') {
+    return [];
+  }
+  const explicit = normalizeHexitamaActionPatternIndices(cardState.hexitamaPatternIndices);
+  if (explicit.length > 0) {
+    return explicit;
+  }
+  return resolveHexitamaActionPatternIndicesFromFrontSrc(cardState.frontSrc || '');
+}
+
+function createHexitamaActionCardFaceSvgDataUri(patternIndices = []) {
+  const selectedIndices = new Set(normalizeHexitamaActionPatternIndices(patternIndices));
+  const cardSize = 360;
+  const cardCenterX = cardSize / 2;
+  const cardCenterY = cardSize / 2;
+  const outerRadius = 170;
+  const innerRadius = 28;
+  const innerRotationDeg = HEXITAMA_TILE_ROTATION_DEG;
+  const bottomDotRadius = 5;
+  const bottomDotY = cardCenterY + outerRadius - 22;
+  const colStep = innerRadius * 1.5;
+  const rowStep = Math.sqrt(3) * innerRadius;
+  const topY = cardCenterY - rowStep * 2;
+  const centerHexY = topY + rowStep * 2;
+  let cellsMarkup = '';
+  for (const cell of HEXITAMA_CARD_CELL_LAYOUT) {
+    const colOffset = Number(cell.colIndex) - 2;
+    const x = cardCenterX + colOffset * colStep;
+    const y = topY + Number(cell.rowValue) * rowStep;
+    const isSelected = selectedIndices.has(Number(cell.index));
+    const fill = isSelected ? '#2a47ff' : '#f2f4fa';
+    const stroke = isSelected ? 'rgba(192, 212, 255, 0.46)' : 'rgba(20, 28, 54, 0.38)';
+    cellsMarkup += `
+      <polygon
+        points="${getHexitamaHexPolygonPoints(x, y, innerRadius * 0.98, innerRotationDeg)}"
+        fill="${fill}"
+        stroke="${stroke}"
+        stroke-width="1.85"
+        vector-effect="non-scaling-stroke"
+      />
+    `;
+  }
+  const dataUri = encodeSvgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cardSize} ${cardSize}">
+      <polygon
+        points="${getHexitamaHexPolygonPoints(cardCenterX, cardCenterY, outerRadius, HEXITAMA_SLOT_ROTATION_DEG)}"
+        fill="#4f2f20"
+        stroke="#000000"
+        stroke-width="3.1"
+        stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"
+      />
+      <polygon
+        points="${getHexitamaHexPolygonPoints(cardCenterX, centerHexY, innerRadius * 1.04, innerRotationDeg)}"
+        fill="#ef2020"
+        stroke="rgba(255, 191, 191, 0.45)"
+        stroke-width="1.9"
+        vector-effect="non-scaling-stroke"
+      />
+      ${cellsMarkup}
+      <circle
+        cx="${cardCenterX}"
+        cy="${bottomDotY}"
+        r="${bottomDotRadius}"
+        fill="rgba(248, 248, 248, 0.96)"
+      />
+    </svg>
+  `);
+  const normalizedPattern = normalizeHexitamaActionPatternIndices(patternIndices);
+  if (normalizedPattern.length > 0) {
+    hexitamaPatternIndicesByFrontSrc.set(dataUri, normalizedPattern);
+  }
+  return dataUri;
+}
+
+function pickRandomHexitamaActionPatterns(count = HEXITAMA_CARD_SLOT_KEYS.length) {
+  const limit = clamp(Math.floor(Number(count) || HEXITAMA_CARD_SLOT_KEYS.length), 1, HEXITAMA_ACTION_CARD_PATTERNS.length);
+  const indices = Array.from({ length: HEXITAMA_ACTION_CARD_PATTERNS.length }, (_, index) => index);
+  for (let index = indices.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const temp = indices[index];
+    indices[index] = indices[swapIndex];
+    indices[swapIndex] = temp;
+  }
+  const selected = [];
+  for (let index = 0; index < limit; index += 1) {
+    selected.push(HEXITAMA_ACTION_CARD_PATTERNS[indices[index]] || HEXITAMA_ACTION_CARD_PATTERNS[0]);
+  }
+  return selected;
+}
+
 const POKER_CARD_BACK_IMAGE_SRC = createPokerBackSvgDataUri();
 const POKER_FRONT_IMAGES = Object.freeze(
   POKER_SUIT_SEQUENCE.flatMap((suit) => POKER_RANK_SEQUENCE.map((rank) => createPokerFaceSvgDataUri(rank, suit)))
@@ -1587,6 +1863,7 @@ const selectedMonsGameIds = new Set();
 const selectedChipSetIds = new Set();
 const selectedTaflGameIds = new Set();
 const selectedGoGameIds = new Set();
+const selectedHexitamaGameIds = new Set();
 const frontImageLoadState = new Map();
 const frontImagePromises = new Map();
 const frontDisplayPendingByCard = new Map();
@@ -1645,6 +1922,9 @@ let cardDeckMetricsCache = {
 };
 let cameraLooseRenderableCardIdsDirty = true;
 let cameraLooseRenderableCardIds = new Set();
+const offscreenCardSinceById = new Map();
+const offscreenDieSinceById = new Map();
+let lastCameraInteractionAt = 0;
 let monsGameState = null;
 const monsGameStatesById = new Map();
 const monsGhostBoardElementsById = new Map();
@@ -1665,6 +1945,15 @@ const lastRenderedGoMoveTickById = new Map();
 const lastRenderedGoCaptureFxByGameId = new Map();
 const goPlacementPulseByGameId = new Map();
 let activeGoGameId = GO_GAME_KEY;
+let hexitamaGameState = null;
+const hexitamaGameStatesById = new Map();
+const hexitamaBoardElementsById = new Map();
+let activeHexitamaGameId = HEXITAMA_GAME_KEY;
+let hexitamaSelectedActionCardId = '';
+let hexitamaSelectedActionGameId = '';
+let hexitamaSelectedPieceId = '';
+let hexitamaSelectedPieceGameId = '';
+let hexitamaMoveTargets = [];
 let activeArcadeDieId = '';
 let arcadeManaMotionIntervalId = 0;
 let monsMoveButton = null;
@@ -1733,6 +2022,7 @@ let resizingLabelDieId = '';
 let resizingMediaDieId = '';
 let taflDragState = null;
 let goDragState = null;
+let hexitamaDragState = null;
 let latestRoomCursors = {};
 let heldCardLayer = null;
 let selectionBoxElement = null;
@@ -1819,6 +2109,9 @@ let spawnHnefataflBoard = async () => {
 let spawnGoBoard = async () => {
   showStatusMessage('Firebase connection is required before adding go.');
 };
+let spawnHexitamaBoard = async () => {
+  showStatusMessage('Firebase connection is required before adding hexitama.');
+};
 let spawnArcadeMachine = async () => {
   showStatusMessage('Firebase connection is required before adding arcade machine.');
 };
@@ -1828,17 +2121,26 @@ let resetHnefataflGame = async () => {
 let resetGoGame = async () => {
   showStatusMessage('Firebase connection is required before resetting go.');
 };
+let resetHexitamaGame = async () => {
+  showStatusMessage('Firebase connection is required before resetting hexitama.');
+};
 let putAwayHnefataflGame = async () => {
   showStatusMessage('Firebase connection is required before putting hnefatafl away.');
 };
 let putAwayGoGame = async () => {
   showStatusMessage('Firebase connection is required before putting go away.');
 };
+let putAwayHexitamaGame = async () => {
+  showStatusMessage('Firebase connection is required before putting hexitama away.');
+};
 let onDeleteTaflGameInRemoveMode = async () => {
   showStatusMessage('Firebase connection is required before removing hnefatafl.');
 };
 let onDeleteGoGameInRemoveMode = async () => {
   showStatusMessage('Firebase connection is required before removing go.');
+};
+let onDeleteHexitamaGameInRemoveMode = async () => {
+  showStatusMessage('Firebase connection is required before removing hexitama.');
 };
 let resetCoolJpegsGame = async () => {
   showStatusMessage('Firebase connection is required before resetting this deck.');
@@ -1941,6 +2243,7 @@ let shuffleCoolJpegsDeck = async () => {};
 let dealOneCardEach = async () => {};
 let reclaimDiscardToDeck = async () => {};
 let handleCodegamePlayShuffle = async () => {};
+let handleHexitamaPlayShuffle = async () => {};
 let onCardPointerDown = () => {};
 let onSecretAreaMovePointerDown = () => {};
 let onCardResizePointerDown = () => {};
@@ -1968,6 +2271,11 @@ let onTaflDragEnd = () => {};
 let onGoMovePointerDown = () => {};
 let onGoDragMove = () => {};
 let onGoDragEnd = () => {};
+let onHexitamaMovePointerDown = () => {};
+let onHexitamaPlayButtonClick = () => {};
+let onHexitamaDragMove = () => {};
+let onHexitamaDragEnd = () => {};
+let onHexitamaBoardPointerDown = () => {};
 let onTaflPiecePointerDown = () => {};
 let onTaflBoardTilePointerDown = () => {};
 let onTaflSideClaimClick = () => {};
@@ -2278,6 +2586,37 @@ function isWorldRectVisibleWithinBounds(bounds, centerX, centerY, width, height)
   const top = Number(centerY) - halfHeight;
   const bottom = Number(centerY) + halfHeight;
   return !(right < bounds.minX || left > bounds.maxX || bottom < bounds.minY || top > bounds.maxY);
+}
+
+function markCameraInteractionActive() {
+  lastCameraInteractionAt = Date.now();
+}
+
+function isCameraInteractionActive(now = Date.now()) {
+  return now - lastCameraInteractionAt <= CAMERA_INTERACTION_ACTIVE_MS;
+}
+
+function getViewportCullMarginPx() {
+  return isCameraInteractionActive() ? VIEWPORT_CULL_MARGIN_ACTIVE_PX : VIEWPORT_CULL_MARGIN_PX;
+}
+
+function shouldKeepMountedDuringOffscreenGrace(offscreenSinceById, itemId, now = Date.now()) {
+  if (!(offscreenSinceById instanceof Map)) {
+    return false;
+  }
+  const normalizedItemId = String(itemId || '').trim();
+  if (!normalizedItemId) {
+    return false;
+  }
+  const previousSince = Number(offscreenSinceById.get(normalizedItemId) || 0);
+  if (!previousSince) {
+    offscreenSinceById.set(normalizedItemId, now);
+    return true;
+  }
+  if (isCameraInteractionActive(now)) {
+    return true;
+  }
+  return now - previousSince < OFFSCREEN_UNMOUNT_GRACE_MS;
 }
 
 function clampCameraToViewport() {
@@ -2633,6 +2972,147 @@ function normalizeGoGameId(rawGoGameId) {
   return normalized;
 }
 
+function normalizeHexitamaGameId(rawHexitamaGameId) {
+  const normalized = String(rawHexitamaGameId || '').trim().toLowerCase();
+  if (!normalized) {
+    return HEXITAMA_GAME_KEY;
+  }
+  return normalized;
+}
+
+function getHexitamaCardDeckId(gameId = activeHexitamaGameId) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  return `${HEXITAMA_CARD_ID_PREFIX}-${normalizedGameId}`;
+}
+
+function getHexitamaActionCardIds(gameId = activeHexitamaGameId) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  return HEXITAMA_CARD_SLOT_KEYS.map((slotKey) => `${HEXITAMA_CARD_ID_PREFIX}-${normalizedGameId}-${slotKey}`);
+}
+
+function getHexitamaCardSlotKeyFromCardId(cardId = '') {
+  const normalizedCardId = String(cardId || '').trim().toLowerCase();
+  if (!normalizedCardId.startsWith(`${HEXITAMA_CARD_ID_PREFIX}-`)) {
+    return '';
+  }
+  for (const slotKey of HEXITAMA_CARD_SLOT_KEYS) {
+    if (normalizedCardId.endsWith(`-${slotKey}`)) {
+      return slotKey;
+    }
+  }
+  return '';
+}
+
+function getHexitamaCardGameIdFromCardId(cardId = '') {
+  const normalizedCardId = String(cardId || '').trim().toLowerCase();
+  const prefix = `${HEXITAMA_CARD_ID_PREFIX}-`;
+  if (!normalizedCardId.startsWith(prefix)) {
+    return '';
+  }
+  const slotKey = getHexitamaCardSlotKeyFromCardId(normalizedCardId);
+  if (!slotKey) {
+    return '';
+  }
+  const suffix = `-${slotKey}`;
+  const rawGameId = normalizedCardId.slice(prefix.length, -suffix.length);
+  return rawGameId ? normalizeHexitamaGameId(rawGameId) : '';
+}
+
+function getHexitamaActionCardIdsForGame(gameId = activeHexitamaGameId) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const ids = new Set(getHexitamaActionCardIds(normalizedGameId));
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isHexitamaActionCardState(cardState, cardId)) {
+      continue;
+    }
+    const cardGameId = normalizeHexitamaGameId(
+      String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId)
+    );
+    if (cardGameId !== normalizedGameId) {
+      continue;
+    }
+    ids.add(cardId);
+  }
+  return Array.from(ids);
+}
+
+function getHexitamaCardSlotKey(cardState, cardId = '', options = {}) {
+  if (!isHexitamaActionCardState(cardState, cardId)) {
+    return '';
+  }
+  const rawSlotKey = String(cardState?.hexitamaSlotKey || '').trim().toLowerCase();
+  if (HEXITAMA_CARD_SLOT_KEYS.includes(rawSlotKey)) {
+    return rawSlotKey;
+  }
+  if (options?.allowInfer !== true) {
+    return '';
+  }
+  const inferredSlotKey = getHexitamaCardSlotKeyFromCardId(cardId);
+  return HEXITAMA_CARD_SLOT_KEYS.includes(inferredSlotKey) ? inferredSlotKey : '';
+}
+
+function getHexitamaActionCardIdForSlot(gameId = activeHexitamaGameId, slotKey = '', excludedCardId = '') {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const normalizedSlotKey = String(slotKey || '').trim().toLowerCase();
+  const normalizedExcludedCardId = String(excludedCardId || '').trim();
+  if (!HEXITAMA_CARD_SLOT_KEYS.includes(normalizedSlotKey)) {
+    return '';
+  }
+  let matchedCardId = '';
+  let matchedRank = 0;
+  let topZ = Number.NEGATIVE_INFINITY;
+  const slotCenter = getHexitamaActionCardWorldPosition(normalizedGameId, normalizedSlotKey);
+  const slotProximityThreshold = Math.max(8, HEXITAMA_CARD_SIZE * 0.58);
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isHexitamaActionCardState(cardState, cardId)) {
+      continue;
+    }
+    if (normalizedExcludedCardId && cardId === normalizedExcludedCardId) {
+      continue;
+    }
+    const cardGameId = normalizeHexitamaGameId(
+      String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId)
+    );
+    if (cardGameId !== normalizedGameId) {
+      continue;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    const explicitSlotKey = getHexitamaCardSlotKey(cardState, cardId);
+    const inferredSlotKey = getHexitamaCardSlotKey(cardState, cardId, { allowInfer: true });
+    let slotMatchRank = 0;
+    if (explicitSlotKey === normalizedSlotKey) {
+      slotMatchRank = 3;
+    } else if (inferredSlotKey === normalizedSlotKey) {
+      slotMatchRank = 2;
+    } else if (slotCenter) {
+      const cardX = Number(cardState?.x);
+      const cardY = Number(cardState?.y);
+      if (Number.isFinite(cardX) && Number.isFinite(cardY)) {
+        const distance = Math.hypot(cardX - slotCenter.x, cardY - slotCenter.y);
+        if (distance <= slotProximityThreshold) {
+          slotMatchRank = 1;
+        }
+      }
+    }
+    if (slotMatchRank <= 0) {
+      continue;
+    }
+    const cardZ = Number(cardState?.z) || 0;
+    if (
+      !matchedCardId ||
+      slotMatchRank > matchedRank ||
+      (slotMatchRank === matchedRank && cardZ >= topZ)
+    ) {
+      matchedCardId = cardId;
+      matchedRank = slotMatchRank;
+      topZ = cardZ;
+    }
+  }
+  return matchedCardId;
+}
+
 function isMonsGameId(rawGameId) {
   const normalized = normalizeMonsGameId(rawGameId);
   return normalized === MONS_GAME_KEY || normalized.startsWith(`${MONS_GAME_KEY}-copy-`);
@@ -2646,6 +3126,11 @@ function isTaflGameId(rawGameId) {
 function isGoGameId(rawGameId) {
   const normalized = normalizeGoGameId(rawGameId);
   return normalized === GO_GAME_KEY || normalized.startsWith(`${GO_GAME_KEY}-copy-`);
+}
+
+function isHexitamaGameId(rawGameId) {
+  const normalized = normalizeHexitamaGameId(rawGameId);
+  return normalized === HEXITAMA_GAME_KEY || normalized.startsWith(`${HEXITAMA_GAME_KEY}-copy-`);
 }
 
 function setActiveDeckId(nextDeckId) {
@@ -2685,6 +3170,22 @@ function setActiveGoGameId(nextGoGameId) {
   const normalizedGoGameId = normalizeGoGameId(nextGoGameId);
   activeGoGameId = normalizedGoGameId;
   goGameState = goGameStatesById.get(normalizedGoGameId) || null;
+}
+
+function setActiveHexitamaGameId(nextHexitamaGameId) {
+  const previousHexitamaGameId = normalizeHexitamaGameId(activeHexitamaGameId);
+  const normalizedHexitamaGameId = normalizeHexitamaGameId(nextHexitamaGameId);
+  activeHexitamaGameId = normalizedHexitamaGameId;
+  hexitamaGameState = hexitamaGameStatesById.get(normalizedHexitamaGameId) || null;
+  if (normalizedHexitamaGameId !== previousHexitamaGameId) {
+    hexitamaSelectedPieceId = '';
+    hexitamaSelectedPieceGameId = '';
+    hexitamaMoveTargets = [];
+    if (hexitamaSelectedActionGameId && normalizeHexitamaGameId(hexitamaSelectedActionGameId) !== normalizedHexitamaGameId) {
+      hexitamaSelectedActionCardId = '';
+      hexitamaSelectedActionGameId = '';
+    }
+  }
 }
 
 function getDeckStateById(deckId = activeDeckId) {
@@ -2756,6 +3257,11 @@ function getGoGameStateById(gameId = activeGoGameId) {
   return goGameStatesById.get(normalizedGoGameId) || null;
 }
 
+function getHexitamaGameStateById(gameId = activeHexitamaGameId) {
+  const normalizedHexitamaGameId = normalizeHexitamaGameId(gameId);
+  return hexitamaGameStatesById.get(normalizedHexitamaGameId) || null;
+}
+
 function patchTouchesPosition(patch) {
   if (!patch || typeof patch !== 'object') {
     return false;
@@ -2794,6 +3300,10 @@ function isGoCoverDrawingsEnabled(gameId = activeGoGameId) {
   return Boolean(getGoGameStateById(gameId)?.coverDrawings === true);
 }
 
+function isHexitamaCoverDrawingsEnabled(gameId = activeHexitamaGameId) {
+  return Boolean(getHexitamaGameStateById(gameId)?.coverDrawings === true);
+}
+
 function hasAnyCoverDrawingsGames() {
   for (const deckState of deckStatesById.values()) {
     if (deckState?.coverDrawings === true) {
@@ -2811,6 +3321,11 @@ function hasAnyCoverDrawingsGames() {
     }
   }
   for (const gameState of goGameStatesById.values()) {
+    if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
+      return true;
+    }
+  }
+  for (const gameState of hexitamaGameStatesById.values()) {
     if (gameState?.enabled !== false && gameState?.coverDrawings === true) {
       return true;
     }
@@ -3025,16 +3540,22 @@ function getDeckBaseCardDimensions(deckId = activeDeckId) {
   };
 }
 
+function getDeckControlScale(deckId = activeDeckId) {
+  return getDeckKind(deckId) === DECK_KIND_CODEGAME ? CODEGAME_MODULE_SCALE : 1;
+}
+
 function getDeckModuleWorldDimensions(deckId = activeDeckId, deckStateOverride = null) {
   const normalizedDeckId = normalizeDeckId(deckId);
   const deckState = deckStateOverride && typeof deckStateOverride === 'object'
     ? deckStateOverride
     : getDeckStateById(normalizedDeckId);
   const deckDimensions = getDeckBaseCardDimensions(normalizedDeckId);
+  const controlScale = getDeckControlScale(normalizedDeckId);
+  const controlSize = DECK_CONTROL_SIZE * controlScale;
   const supportsAuction = deckSupportsAuction(normalizedDeckId);
   let deckWorldWidth = supportsAuction
-    ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
-    : deckDimensions.width + DECK_CONTROL_SIZE * 2.6;
+    ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + controlSize * 2.6
+    : deckDimensions.width + controlSize * 2.6;
   const isCodegameDeck = getDeckKind(normalizedDeckId) === DECK_KIND_CODEGAME;
   const codegameGridActive = isCodegameDeck && deckState?.codegameGridActive === true;
   let codegameGridDimensions = null;
@@ -3045,8 +3566,8 @@ function getDeckModuleWorldDimensions(deckId = activeDeckId, deckStateOverride =
     }
   }
   const deckWorldHeight = codegameGridActive && codegameGridDimensions
-    ? deckDimensions.height + DECK_CONTROL_SIZE * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
-    : deckDimensions.height + DECK_CONTROL_SIZE * 3.2;
+    ? deckDimensions.height + controlSize * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
+    : deckDimensions.height + controlSize * 3.2;
   return {
     width: Math.max(deckDimensions.width, deckWorldWidth),
     height: Math.max(deckDimensions.height, deckWorldHeight)
@@ -3350,6 +3871,17 @@ function getCodegameRevealColorForCard(cardState, cardId = '') {
   return getCodegameSharedMarkTypeForCard(cardState, cardId);
 }
 
+function isCodegameGridPlayableCardState(cardState, cardId = '') {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId || !isCodegameCardState(cardState) || isCodegameKeyCardState(cardState)) {
+    return false;
+  }
+  if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || Boolean(getCardHandOwnerId(cardState))) {
+    return false;
+  }
+  return getCodegameEffectiveGridSlotIndex(normalizedCardId, cardState) >= 0;
+}
+
 function applyCodegameMarkVisualToCardElement(cardId, markType) {
   const normalizedCardId = String(cardId || '').trim();
   if (!normalizedCardId) {
@@ -3383,6 +3915,17 @@ function applyCodegameMarkVisualToCardElement(cardId, markType) {
   card.classList.toggle('is-codegame-mark-red', normalizedMarkType === 'red');
   card.classList.toggle('is-codegame-mark-assassin', normalizedMarkType === 'assassin');
   card.classList.toggle('is-codegame-mark-neutral', normalizedMarkType === 'neutral');
+}
+
+function runRenderSafely(stepName, renderFn) {
+  if (typeof renderFn !== 'function') {
+    return;
+  }
+  try {
+    renderFn();
+  } catch (error) {
+    console.error(`[state-render] ${stepName}`, error);
+  }
 }
 
 function toggleCodegameGridCardMark(cardId) {
@@ -3454,7 +3997,7 @@ function toggleCodegameGridCardMark(cardId) {
       invalidateLocalCodegameKeyHighlightsCache();
       invalidateCodegameKeyPatternCache();
       markCardDeckMetricsCacheDirty();
-      runStateRenderSafely('codegame-toggle:card', () => {
+      runRenderSafely('codegame-toggle:card', () => {
         const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
         renderCardElement(normalizedCardId, { visibleStackCardIds });
       });
@@ -3624,6 +4167,20 @@ function isCodegameCardState(cardState) {
     return false;
   }
   return getDeckKind(normalizeDeckId(cardState.deckId || '')) === DECK_KIND_CODEGAME;
+}
+
+function isHexitamaActionCardState(cardState, cardId = '') {
+  if (!cardState || typeof cardState !== 'object') {
+    return false;
+  }
+  if (cardState.hexitamaCard === true) {
+    return true;
+  }
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    return false;
+  }
+  return Boolean(getHexitamaCardGameIdFromCardId(normalizedCardId));
 }
 
 function getCodegameGridSlotIndex(cardState) {
@@ -3842,6 +4399,57 @@ function getCodegameGridSlotAtPosition(x, y, preferredDeckId = '') {
           deckId: normalizedDeckId,
           slotIndex,
           center: slotWorld
+        };
+      }
+    }
+  }
+  return bestMatch;
+}
+
+function getHexitamaActionCardSlotAtPosition(x, y, preferredGameId = '', excludedCardId = '') {
+  const targetX = Number(x);
+  const targetY = Number(y);
+  if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+    return null;
+  }
+  const normalizedPreferredGameId = normalizeHexitamaGameId(preferredGameId);
+  const allGameIds = Array.from(hexitamaGameStatesById.keys()).map((gameId) => normalizeHexitamaGameId(gameId));
+  const candidateGameIds = normalizedPreferredGameId
+    ? [normalizedPreferredGameId, ...allGameIds.filter((gameId) => gameId !== normalizedPreferredGameId)]
+    : allGameIds;
+  let bestMatch = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const gameId of candidateGameIds) {
+    const gameState = getHexitamaGameStateById(gameId);
+    if (!gameState || gameState.enabled === false) {
+      continue;
+    }
+    const slotLayout = getHexitamaActionCardSlotLayout();
+    for (const slot of slotLayout) {
+      if (!slot || !slot.slotKey) {
+        continue;
+      }
+      const slotCenter = getHexitamaCardWorldPositionFromCanvas(gameState, slot.x, slot.y);
+      if (isWorldPointHiddenBySecretAreaForLocalViewer(slotCenter.x, slotCenter.y)) {
+        continue;
+      }
+      const insideSlotBounds =
+        Math.abs(targetX - slotCenter.x) <= HEXITAMA_CARD_SIZE / 2 &&
+        Math.abs(targetY - slotCenter.y) <= HEXITAMA_CARD_SIZE / 2;
+      if (!insideSlotBounds) {
+        continue;
+      }
+      const occupiedCardId = getHexitamaActionCardIdForSlot(gameId, slot.slotKey, excludedCardId);
+      if (occupiedCardId) {
+        continue;
+      }
+      const distance = Math.hypot(targetX - slotCenter.x, targetY - slotCenter.y);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = {
+          gameId,
+          slotKey: slot.slotKey,
+          center: slotCenter
         };
       }
     }
@@ -6553,9 +7161,13 @@ function normalizeDeckPayload(payload, deckId = '') {
   const coverDrawings = payload?.coverDrawings === true;
   const kind = normalizeDeckKind(payload?.kind, deckId);
   const codegameGridActive = kind === DECK_KIND_CODEGAME ? payload?.codegameGridActive === true : false;
+  const minX = kind === DECK_KIND_CODEGAME ? CODEGAME_CARD_SIZE / 2 : CARD_WIDTH / 2;
+  const maxX = WORLD_WIDTH - minX;
+  const minY = kind === DECK_KIND_CODEGAME ? CODEGAME_CARD_SIZE / 2 : CARD_HEIGHT / 2;
+  const maxY = WORLD_HEIGHT - minY;
   return {
-    x: Number.isFinite(nextX) ? clamp(nextX, CARD_WIDTH / 2, WORLD_WIDTH - CARD_WIDTH / 2) : WORLD_WIDTH / 2,
-    y: Number.isFinite(nextY) ? clamp(nextY, CARD_HEIGHT / 2, WORLD_HEIGHT - CARD_HEIGHT / 2) : WORLD_HEIGHT / 2,
+    x: Number.isFinite(nextX) ? clamp(nextX, minX, maxX) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, minY, maxY) : WORLD_HEIGHT / 2,
     shuffleTick: Number.isFinite(nextShuffleTick) ? nextShuffleTick : 0,
     holderClientId,
     includeDiscard,
@@ -7802,6 +8414,633 @@ function buildFreshGoGamePayload(options = {}) {
   };
 }
 
+function normalizeHexitamaPieceSide(value) {
+  if (value === 'white') {
+    return 'white';
+  }
+  if (value === 'black') {
+    return 'black';
+  }
+  return '';
+}
+
+function normalizeHexitamaPieceKind(value) {
+  if (value === 'chief') {
+    return 'chief';
+  }
+  if (value === 'pawn') {
+    return 'pawn';
+  }
+  return '';
+}
+
+function normalizeHexitamaTileColIndex(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return NaN;
+  }
+  return Math.round(numeric);
+}
+
+function normalizeHexitamaTileRowValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return NaN;
+  }
+  return Math.round(numeric * 2) / 2;
+}
+
+function getHexitamaTileKey(colIndex, rowValue) {
+  const normalizedColIndex = normalizeHexitamaTileColIndex(colIndex);
+  const normalizedRowValue = normalizeHexitamaTileRowValue(rowValue);
+  if (!Number.isFinite(normalizedColIndex) || !Number.isFinite(normalizedRowValue)) {
+    return '';
+  }
+  return `${normalizedColIndex}:${normalizedRowValue.toFixed(1)}`;
+}
+
+function isHexitamaValidTileCoordinate(colIndex, rowValue) {
+  const tileKey = getHexitamaTileKey(colIndex, rowValue);
+  if (!tileKey) {
+    return false;
+  }
+  return HEXITAMA_TILE_KEY_SET.has(tileKey);
+}
+
+function isHexitamaChiefStartTile(colIndex, rowValue) {
+  const normalizedColIndex = normalizeHexitamaTileColIndex(colIndex);
+  const normalizedRowValue = normalizeHexitamaTileRowValue(rowValue);
+  if (!isHexitamaValidTileCoordinate(normalizedColIndex, normalizedRowValue)) {
+    return false;
+  }
+  const aChiefCol = normalizeHexitamaTileColIndex(HEXITAMA_A_CHIEF_TILE.colIndex);
+  const aChiefRow = normalizeHexitamaTileRowValue(HEXITAMA_A_CHIEF_TILE.rowValue);
+  const bChiefCol = normalizeHexitamaTileColIndex(HEXITAMA_B_CHIEF_TILE.colIndex);
+  const bChiefRow = normalizeHexitamaTileRowValue(HEXITAMA_B_CHIEF_TILE.rowValue);
+  if (
+    normalizedColIndex === aChiefCol &&
+    Math.abs(normalizedRowValue - aChiefRow) <= 0.001
+  ) {
+    return true;
+  }
+  return (
+    normalizedColIndex === bChiefCol &&
+    Math.abs(normalizedRowValue - bChiefRow) <= 0.001
+  );
+}
+
+function buildFreshHexitamaPiecesPayload() {
+  const pieces = {};
+  let nextBlackPawnIndex = 0;
+  let nextWhitePawnIndex = 0;
+  for (const tile of HEXITAMA_A_PAWN_TILES) {
+    nextBlackPawnIndex += 1;
+    const pieceId = `black-pawn-${nextBlackPawnIndex}`;
+    pieces[pieceId] = {
+      id: pieceId,
+      side: 'black',
+      kind: 'pawn',
+      colIndex: Math.round(Number(tile.colIndex) || 0),
+      rowValue: normalizeHexitamaTileRowValue(tile.rowValue)
+    };
+  }
+  for (const tile of HEXITAMA_B_PAWN_TILES) {
+    nextWhitePawnIndex += 1;
+    const pieceId = `white-pawn-${nextWhitePawnIndex}`;
+    pieces[pieceId] = {
+      id: pieceId,
+      side: 'white',
+      kind: 'pawn',
+      colIndex: Math.round(Number(tile.colIndex) || 0),
+      rowValue: normalizeHexitamaTileRowValue(tile.rowValue)
+    };
+  }
+  pieces['black-chief'] = {
+    id: 'black-chief',
+    side: 'black',
+    kind: 'chief',
+    colIndex: Math.round(Number(HEXITAMA_A_CHIEF_TILE.colIndex) || 0),
+    rowValue: normalizeHexitamaTileRowValue(HEXITAMA_A_CHIEF_TILE.rowValue)
+  };
+  pieces['white-chief'] = {
+    id: 'white-chief',
+    side: 'white',
+    kind: 'chief',
+    colIndex: Math.round(Number(HEXITAMA_B_CHIEF_TILE.colIndex) || 0),
+    rowValue: normalizeHexitamaTileRowValue(HEXITAMA_B_CHIEF_TILE.rowValue)
+  };
+  return pieces;
+}
+
+function normalizeHexitamaPiecePayload(payload, pieceId = '') {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+  const id = String(payload.id || pieceId || '').trim();
+  const side = normalizeHexitamaPieceSide(payload.side);
+  const kind = normalizeHexitamaPieceKind(payload.kind);
+  const colIndex = normalizeHexitamaTileColIndex(payload.colIndex);
+  const rowValue = normalizeHexitamaTileRowValue(payload.rowValue);
+  if (!id || !side || !kind || !isHexitamaValidTileCoordinate(colIndex, rowValue)) {
+    return null;
+  }
+  return {
+    id,
+    side,
+    kind,
+    colIndex,
+    rowValue
+  };
+}
+
+function normalizeHexitamaPiecesPayload(payload) {
+  if (payload === null || typeof payload === 'undefined') {
+    return buildFreshHexitamaPiecesPayload();
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {};
+  }
+  const normalizedPieces = {};
+  const occupiedTiles = new Set();
+  for (const [pieceId, rawPiece] of Object.entries(payload)) {
+    const piece = normalizeHexitamaPiecePayload(rawPiece, pieceId);
+    if (!piece) {
+      continue;
+    }
+    const tileKey = getHexitamaTileKey(piece.colIndex, piece.rowValue);
+    if (!tileKey || occupiedTiles.has(tileKey)) {
+      continue;
+    }
+    occupiedTiles.add(tileKey);
+    normalizedPieces[piece.id] = piece;
+  }
+  return normalizedPieces;
+}
+
+function isHexitamaHandSlotKey(slotKey = '') {
+  const normalizedSlotKey = String(slotKey || '').trim().toLowerCase();
+  return HEXITAMA_HAND_SLOT_KEYS.includes(normalizedSlotKey);
+}
+
+function getHexitamaCardSlotSide(slotKey = '') {
+  const normalizedSlotKey = String(slotKey || '').trim().toLowerCase();
+  if (HEXITAMA_HAND_SLOT_KEYS_BLACK.includes(normalizedSlotKey)) {
+    return 'black';
+  }
+  if (HEXITAMA_HAND_SLOT_KEYS_WHITE.includes(normalizedSlotKey)) {
+    return 'white';
+  }
+  return '';
+}
+
+function isHexitamaTopSlotKey(slotKey = '') {
+  const normalizedSlotKey = String(slotKey || '').trim().toLowerCase();
+  return HEXITAMA_TOP_CARD_SLOT_KEYS.includes(normalizedSlotKey);
+}
+
+function getHexitamaPieceAtTileFromPayload(piecesPayload, colIndex, rowValue, excludedPieceId = '') {
+  if (!piecesPayload || typeof piecesPayload !== 'object') {
+    return null;
+  }
+  const normalizedExcludedPieceId = String(excludedPieceId || '').trim();
+  const normalizedColIndex = normalizeHexitamaTileColIndex(colIndex);
+  const normalizedRowValue = normalizeHexitamaTileRowValue(rowValue);
+  if (!Number.isFinite(normalizedColIndex) || !Number.isFinite(normalizedRowValue)) {
+    return null;
+  }
+  for (const piece of Object.values(piecesPayload)) {
+    if (!piece || typeof piece !== 'object') {
+      continue;
+    }
+    if (normalizedExcludedPieceId && String(piece.id || '').trim() === normalizedExcludedPieceId) {
+      continue;
+    }
+    const pieceColIndex = normalizeHexitamaTileColIndex(piece.colIndex);
+    const pieceRowValue = normalizeHexitamaTileRowValue(piece.rowValue);
+    if (!Number.isFinite(pieceColIndex) || !Number.isFinite(pieceRowValue)) {
+      continue;
+    }
+    if (pieceColIndex === normalizedColIndex && Math.abs(pieceRowValue - normalizedRowValue) <= 0.001) {
+      return piece;
+    }
+  }
+  return null;
+}
+
+function isHexitamaActionCardSelectable(cardState, cardId = '') {
+  if (!isHexitamaActionCardState(cardState, cardId)) {
+    return false;
+  }
+  if (!cardState || typeof cardState !== 'object') {
+    return false;
+  }
+  if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || Boolean(getCardHandOwnerId(cardState))) {
+    return false;
+  }
+  const holderClientId =
+    typeof cardState?.holderClientId === 'string' && cardState.holderClientId
+      ? cardState.holderClientId
+      : '';
+  if (holderClientId && holderClientId !== clientId) {
+    return false;
+  }
+  const slotKey = getHexitamaCardSlotKey(cardState, cardId, { allowInfer: true });
+  if (!isHexitamaHandSlotKey(slotKey)) {
+    return false;
+  }
+  const gameId = normalizeHexitamaGameId(
+    String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId)
+  );
+  const gameState = getHexitamaGameStateById(gameId);
+  if (!gameState || gameState.enabled === false) {
+    return false;
+  }
+  return true;
+}
+
+function forceHexitamaSelectionVisualCommit() {
+  const selectedOpacity = `${HEXITAMA_SELECTION_RING_OPACITY}`;
+  syncHexitamaSelectionVisuals();
+  for (const cardElement of cardElements.values()) {
+    if (!(cardElement instanceof HTMLElement) || !cardElement.isConnected) {
+      continue;
+    }
+    if (!cardElement.classList.contains('is-hexitama-card')) {
+      continue;
+    }
+    void cardElement.offsetWidth;
+    const overlay =
+      cardElement._cardHexitamaSelectionOverlay instanceof HTMLElement
+        ? cardElement._cardHexitamaSelectionOverlay
+        : cardElement.querySelector('.table-card-hexitama-selection-overlay');
+    if (overlay instanceof HTMLElement) {
+      const visible = overlay.classList.contains('is-visible');
+      overlay.style.opacity = visible ? selectedOpacity : '0';
+      void overlay.offsetWidth;
+    }
+  }
+  for (const hexitamaUi of hexitamaBoardElementsById.values()) {
+    if (!(hexitamaUi?.pieceElementsById instanceof Map)) {
+      continue;
+    }
+    for (const pieceElement of hexitamaUi.pieceElementsById.values()) {
+      if (!(pieceElement instanceof SVGImageElement) || !pieceElement.isConnected) {
+        continue;
+      }
+      void pieceElement.getBoundingClientRect();
+    }
+  }
+  if (tableRoot instanceof HTMLElement) {
+    void tableRoot.offsetWidth;
+  }
+}
+
+function waitForNextPaintFrame() {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve();
+      return;
+    }
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+    window.setTimeout(resolve, 0);
+  });
+}
+
+function clearHexitamaActionSelection(options = {}) {
+  const previousCardId = hexitamaSelectedActionCardId;
+  const shouldRender = options?.skipRender !== true;
+  hexitamaSelectedActionCardId = '';
+  hexitamaSelectedActionGameId = '';
+  hexitamaSelectedPieceId = '';
+  hexitamaSelectedPieceGameId = '';
+  hexitamaMoveTargets = [];
+  if (!shouldRender) {
+    return;
+  }
+  if (previousCardId) {
+    runRenderSafely('hexitama-selection:clear-card', () => renderCardElement(previousCardId));
+  }
+  runRenderSafely('hexitama-selection:clear-board', () => renderHexitamaBoards());
+  forceHexitamaSelectionVisualCommit();
+  applyCamera();
+}
+
+function clearHexitamaPieceSelection(options = {}) {
+  const shouldRender = options?.skipRender !== true;
+  const hadSelection = Boolean(hexitamaSelectedPieceId) || (Array.isArray(hexitamaMoveTargets) && hexitamaMoveTargets.length > 0);
+  hexitamaSelectedPieceId = '';
+  hexitamaSelectedPieceGameId = '';
+  hexitamaMoveTargets = [];
+  if (!shouldRender || !hadSelection) {
+    return;
+  }
+  runRenderSafely('hexitama-selection:clear-piece', () => renderHexitamaBoards());
+  forceHexitamaSelectionVisualCommit();
+  applyCamera();
+}
+
+function setHexitamaActionSelection(cardId, cardState) {
+  const normalizedCardId = String(cardId || '').trim();
+  if (!normalizedCardId) {
+    clearHexitamaActionSelection();
+    return false;
+  }
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isHexitamaActionCardSelectable(resolvedCardState, normalizedCardId)) {
+    clearHexitamaActionSelection();
+    return false;
+  }
+  const nextGameId = normalizeHexitamaGameId(
+    String(resolvedCardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(normalizedCardId)
+  );
+  const previousCardId = hexitamaSelectedActionCardId;
+  if (previousCardId === normalizedCardId && hexitamaSelectedActionGameId === nextGameId) {
+    clearHexitamaActionSelection();
+    return false;
+  }
+  hexitamaSelectedActionCardId = normalizedCardId;
+  hexitamaSelectedActionGameId = nextGameId;
+  hexitamaSelectedPieceId = '';
+  hexitamaSelectedPieceGameId = '';
+  hexitamaMoveTargets = [];
+  if (normalizeHexitamaGameId(activeHexitamaGameId) !== nextGameId) {
+    setActiveHexitamaGameId(nextGameId);
+  }
+  if (previousCardId && previousCardId !== normalizedCardId) {
+    runRenderSafely('hexitama-selection:set-prev-card', () => renderCardElement(previousCardId));
+  }
+  runRenderSafely('hexitama-selection:set-card', () => renderCardElement(normalizedCardId));
+  runRenderSafely('hexitama-selection:set-board', () => renderHexitamaBoards());
+  forceHexitamaSelectionVisualCommit();
+  applyCamera();
+  return true;
+}
+
+function applyHexitamaActionCardSelectionVisual(cardElement, isSelected) {
+  if (!(cardElement instanceof HTMLElement)) {
+    return;
+  }
+  const selected = isSelected === true;
+  cardElement.classList.toggle('is-hexitama-action-selected', selected);
+  cardElement.dataset.hexitamaActionSelected = selected ? '1' : '0';
+  const overlay =
+    cardElement._cardHexitamaSelectionOverlay instanceof HTMLElement
+      ? cardElement._cardHexitamaSelectionOverlay
+      : cardElement.querySelector('.table-card-hexitama-selection-overlay');
+  if (overlay instanceof HTMLElement) {
+    overlay.classList.toggle('is-visible', selected);
+    overlay.setAttribute('aria-hidden', selected ? 'false' : 'true');
+  }
+}
+
+function getHexitamaPieceSelectionFilter(pieceElement, isSelected) {
+  if (!(pieceElement instanceof SVGImageElement)) {
+    return '';
+  }
+  const selected = isSelected === true;
+  const isChief = pieceElement.classList.contains('is-chief');
+  const isInverted = pieceElement.classList.contains('is-inverted');
+  if (isChief && isInverted) {
+    return selected
+      ? 'invert(1) brightness(1.08) drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))'
+      : 'invert(1) brightness(1.08) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))';
+  }
+  if (isChief) {
+    return selected
+      ? 'drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))'
+      : 'drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))';
+  }
+  return selected
+    ? 'drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45))'
+    : 'drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45))';
+}
+
+function applyHexitamaPieceSelectionVisual(pieceElement, isSelected) {
+  if (!(pieceElement instanceof SVGImageElement)) {
+    return;
+  }
+  const selected = isSelected === true;
+  pieceElement.classList.toggle('is-selected', selected);
+  pieceElement.dataset.hexitamaSelected = selected ? '1' : '0';
+  pieceElement.style.filter = getHexitamaPieceSelectionFilter(pieceElement, selected);
+}
+
+function syncHexitamaSelectionVisuals() {
+  const selectedCardId = String(hexitamaSelectedActionCardId || '').trim();
+  const selectedCardGameId = normalizeHexitamaGameId(
+    String(hexitamaSelectedActionGameId || '').trim() || activeHexitamaGameId
+  );
+  for (const [cardId, cardElement] of cardElements.entries()) {
+    if (!(cardElement instanceof HTMLElement)) {
+      continue;
+    }
+    const cardState = cards.get(cardId);
+    if (!isHexitamaActionCardState(cardState, cardId)) {
+      applyHexitamaActionCardSelectionVisual(cardElement, false);
+      continue;
+    }
+    const cardGameId = normalizeHexitamaGameId(
+      String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId)
+    );
+    const isSelectedCard =
+      Boolean(selectedCardId) &&
+      String(cardId) === selectedCardId &&
+      cardGameId === selectedCardGameId;
+    applyHexitamaActionCardSelectionVisual(cardElement, isSelectedCard);
+  }
+
+  const selectedPieceId = String(hexitamaSelectedPieceId || '').trim();
+  const selectedPieceGameId = normalizeHexitamaGameId(
+    String(hexitamaSelectedPieceGameId || '').trim() || activeHexitamaGameId
+  );
+  for (const [gameId, hexitamaUi] of hexitamaBoardElementsById.entries()) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId);
+    if (!(hexitamaUi?.pieceElementsById instanceof Map)) {
+      continue;
+    }
+    for (const [pieceId, pieceElement] of hexitamaUi.pieceElementsById.entries()) {
+      if (!(pieceElement instanceof SVGImageElement)) {
+        continue;
+      }
+      const isSelectedPiece =
+        Boolean(selectedPieceId) &&
+        String(pieceId || '').trim() === selectedPieceId &&
+        normalizedGameId === selectedPieceGameId;
+      applyHexitamaPieceSelectionVisual(pieceElement, isSelectedPiece);
+    }
+  }
+
+  // Force a synchronous style invalidation so selection visuals never wait on camera motion.
+  if (tableRoot instanceof HTMLElement) {
+    void tableRoot.offsetWidth;
+  }
+}
+
+function computeHexitamaMoveTargets(gameState, actionCardState, actionCardId, piecePayload) {
+  if (!gameState || typeof gameState !== 'object' || !piecePayload || typeof piecePayload !== 'object') {
+    return [];
+  }
+  const slotKey = getHexitamaCardSlotKey(actionCardState, actionCardId, { allowInfer: true });
+  const cardSide = getHexitamaCardSlotSide(slotKey);
+  if (!isHexitamaHandSlotKey(slotKey) || !cardSide) {
+    return [];
+  }
+  if (piecePayload.side !== cardSide) {
+    return [];
+  }
+  const patternIndices = getHexitamaActionPatternIndicesForCard(actionCardState);
+  if (patternIndices.length === 0) {
+    return [];
+  }
+  const tileCenters = getHexitamaTileCenters();
+  const pieceCenter = getHexitamaTileCenter(tileCenters, piecePayload.colIndex, piecePayload.rowValue);
+  if (!pieceCenter) {
+    return [];
+  }
+  const direction = isHexitamaTopSlotKey(slotKey) ? -1 : 1;
+  const distanceThreshold = Math.max(0.01, HEXITAMA_HEX_RADIUS * 0.64);
+  const seenTileKeys = new Set();
+  const targets = [];
+  for (const patternIndex of patternIndices) {
+    const offset = HEXITAMA_CARD_CELL_OFFSET_BY_INDEX.get(Number(patternIndex));
+    if (!offset) {
+      continue;
+    }
+    const expectedX = pieceCenter.x + Number(offset.deltaCol) * HEXITAMA_HEX_COL_STEP * direction;
+    const expectedY = pieceCenter.y + Number(offset.deltaRow) * HEXITAMA_HEX_ROW_STEP * direction;
+
+    let nearestCenter = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const center of tileCenters) {
+      if (!center || typeof center !== 'object') {
+        continue;
+      }
+      const dx = Number(center.x) - expectedX;
+      const dy = Number(center.y) - expectedY;
+      const distance = Math.hypot(dx, dy);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestCenter = center;
+      }
+    }
+    if (!nearestCenter || nearestDistance > distanceThreshold) {
+      continue;
+    }
+    const targetColIndex = normalizeHexitamaTileColIndex(nearestCenter.colIndex);
+    const targetRowValue = normalizeHexitamaTileRowValue(nearestCenter.rowValue);
+    if (!isHexitamaValidTileCoordinate(targetColIndex, targetRowValue)) {
+      continue;
+    }
+    const occupyingPiece = getHexitamaPieceAtTileFromPayload(gameState.pieces, targetColIndex, targetRowValue, piecePayload.id);
+    let canCapture = false;
+    let capturePieceId = '';
+    if (occupyingPiece) {
+      const occupyingSide = normalizeHexitamaPieceSide(occupyingPiece.side);
+      if (!occupyingSide || occupyingSide === normalizeHexitamaPieceSide(piecePayload.side)) {
+        continue;
+      }
+      canCapture = true;
+      capturePieceId = String(occupyingPiece.id || '').trim();
+    }
+    const tileKey = getHexitamaTileKey(targetColIndex, targetRowValue);
+    if (!tileKey || seenTileKeys.has(tileKey)) {
+      continue;
+    }
+    seenTileKeys.add(tileKey);
+    targets.push({
+      gameId: normalizeHexitamaGameId(actionCardState?.hexitamaGameId || activeHexitamaGameId),
+      pieceId: String(piecePayload.id || '').trim(),
+      colIndex: targetColIndex,
+      rowValue: targetRowValue,
+      tileKey,
+      capture: canCapture,
+      capturePieceId
+    });
+  }
+  return targets;
+}
+
+function getHexitamaMoveTargetAtTile(gameId, colIndex, rowValue) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const targetTileKey = getHexitamaTileKey(colIndex, rowValue);
+  if (!targetTileKey) {
+    return null;
+  }
+  for (const target of hexitamaMoveTargets) {
+    if (!target || typeof target !== 'object') {
+      continue;
+    }
+    if (normalizeHexitamaGameId(target.gameId || '') !== normalizedGameId) {
+      continue;
+    }
+    if (String(target.tileKey || '') === targetTileKey) {
+      return target;
+    }
+  }
+  return null;
+}
+
+function normalizeHexitamaGamePayload(payload) {
+  const nextWidth = Number(payload?.width);
+  const nextHeight = Number(payload?.height);
+  const rawWidth = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : HEXITAMA_BOARD_WORLD_WIDTH;
+  const rawHeight = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : HEXITAMA_BOARD_WORLD_HEIGHT;
+  const shouldScaleLegacyDimensions =
+    rawWidth <= HEXITAMA_WORLD_BASE_WIDTH + 0.5 &&
+    rawHeight <= HEXITAMA_WORLD_BASE_HEIGHT + 0.5;
+  const width = shouldScaleLegacyDimensions ? clamp(rawWidth * HEXITAMA_MODULE_SCALE, 560, WORLD_WIDTH) : rawWidth;
+  const height = shouldScaleLegacyDimensions ? clamp(rawHeight * HEXITAMA_MODULE_SCALE, 620, WORLD_HEIGHT) : rawHeight;
+  const nextX = Number(payload?.x);
+  const nextY = Number(payload?.y);
+  const nextMoveTick = Number(payload?.moveTick);
+  const holderClientId =
+    typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
+  const neutralSlotFacesBlack = payload?.neutralSlotFacesBlack === true;
+  return {
+    enabled: payload?.enabled !== false,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    pieces: normalizeHexitamaPiecesPayload(payload?.pieces),
+    moveTick: Number.isFinite(nextMoveTick) ? nextMoveTick : 0,
+    holderClientId,
+    coverDrawings: payload?.coverDrawings === true,
+    cardsDealt: payload?.cardsDealt === true,
+    neutralSlotFacesBlack
+  };
+}
+
+function buildFreshHexitamaGamePayload(options = {}) {
+  const nextWidth = Number(options?.width);
+  const nextHeight = Number(options?.height);
+  const width = Number.isFinite(nextWidth) ? clamp(nextWidth, 560, WORLD_WIDTH) : HEXITAMA_BOARD_WORLD_WIDTH;
+  const height = Number.isFinite(nextHeight) ? clamp(nextHeight, 620, WORLD_HEIGHT) : HEXITAMA_BOARD_WORLD_HEIGHT;
+  const nextX = Number(options?.x);
+  const nextY = Number(options?.y);
+  const coverDrawings = options?.coverDrawings === true;
+  return {
+    enabled: true,
+    x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    width,
+    height,
+    pieces: buildFreshHexitamaPiecesPayload(),
+    moveTick: 0,
+    holderClientId: null,
+    coverDrawings,
+    cardsDealt: false,
+    neutralSlotFacesBlack: false,
+    updatedAt: Date.now()
+  };
+}
+
 function buildGoUndoSnapshotPayloadFromGame(gamePayload, actorPlayerToken = '', actorClientId = '') {
   if (!gamePayload || typeof gamePayload !== 'object') {
     return null;
@@ -8462,7 +9701,7 @@ function scheduleDeckShuffleFxEndRender() {
   deckShuffleFxEndRenderRafId = window.requestAnimationFrame(() => {
     deckShuffleFxEndRenderRafId = 0;
     if (!isTableResetting) {
-      runStateRenderSafely('deck-shuffle-fx:end-render', () => renderAllCards());
+      runRenderSafely('deck-shuffle-fx:end-render', () => renderAllCards());
     }
   });
 }
@@ -8677,6 +9916,26 @@ function setCodegamePlayButtonMode(playButton, mode = 'play') {
     return;
   }
   playButton.setAttribute('aria-label', 'play codegame');
+  playButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 6.5V17.5L17 12L8 6.5Z" fill="currentColor"/></svg>';
+}
+
+function setHexitamaPlayButtonMode(playButton, mode = 'play') {
+  if (!(playButton instanceof HTMLElement)) {
+    return;
+  }
+  const nextMode = mode === 'shuffle' ? 'shuffle' : 'play';
+  if (playButton.dataset.hexitamaMode === nextMode) {
+    return;
+  }
+  playButton.dataset.hexitamaMode = nextMode;
+  if (nextMode === 'shuffle') {
+    playButton.setAttribute('aria-label', 'shuffle hexitama cards');
+    playButton.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 7C5.2 5.1 7.4 4 10 4C13.8 4 16.8 6.7 17.6 10.2M20 8V12H16M20 17C18.8 18.9 16.6 20 14 20C10.2 20 7.2 17.3 6.4 13.8M4 16V12H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return;
+  }
+  playButton.setAttribute('aria-label', 'deal hexitama cards');
   playButton.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 6.5V17.5L17 12L8 6.5Z" fill="currentColor"/></svg>';
 }
@@ -9292,10 +10551,7 @@ function renderDeckControls(precomputedMetrics = null) {
   const renderedDeckIds = new Set();
   let hasVisibleDeck = false;
   let deckSelectionChanged = false;
-  const controlSize = DECK_CONTROL_SIZE;
-  const controlGap = DECK_CONTROL_GAP;
   const dealTargetCount = getActivePlayerTokensForDeal().length;
-  const controlsXOffset = controlSize + controlGap;
   let handDropIndicatorScreen = null;
   if (handReorderState?.releaseToTable) {
     const activeHandCard = handReorderState.cardId ? handCardElements.get(handReorderState.cardId) : null;
@@ -9319,6 +10575,12 @@ function renderDeckControls(precomputedMetrics = null) {
   for (const deckId of deckIds) {
     const targetDeckState = getDeckStateById(deckId);
     const isCodegameDeck = getDeckKind(deckId) === DECK_KIND_CODEGAME;
+    const deckControlScale = getDeckControlScale(deckId);
+    const controlSize = DECK_CONTROL_SIZE * deckControlScale;
+    const controlGap = DECK_CONTROL_GAP * deckControlScale;
+    const controlsXOffset = controlSize + controlGap;
+    const controlsInset = 15 * deckControlScale;
+    const deckCountOffset = DECK_COUNT_OFFSET_Y * deckControlScale;
     const codegameGridDimensions = isCodegameDeck ? getCodegameGridWorldDimensions() : null;
     const codegameGridWorldCenter = isCodegameDeck ? getCodegameGridCenterPosition(deckId) : null;
     const deckDimensions = getDeckBaseCardDimensions(deckId);
@@ -9365,14 +10627,14 @@ function renderDeckControls(precomputedMetrics = null) {
     }
     hasVisibleDeck = true;
     let deckWorldWidth = supportsAuction
-      ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + DECK_CONTROL_SIZE * 2.6
-      : deckDimensions.width + DECK_CONTROL_SIZE * 2.6;
+      ? Math.abs(AUCTION_STACK_OFFSET_X) + deckDimensions.width + AUCTION_SLOT_EXTRA_SIZE + controlSize * 2.6
+      : deckDimensions.width + controlSize * 2.6;
     if (codegameGridActive && codegameGridDimensions) {
       deckWorldWidth = Math.max(deckWorldWidth, codegameGridDimensions.width);
     }
     const deckWorldHeight = codegameGridActive && codegameGridDimensions
-      ? deckDimensions.height + DECK_CONTROL_SIZE * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
-      : deckDimensions.height + DECK_CONTROL_SIZE * 3.2;
+      ? deckDimensions.height + controlSize * 3.2 + CODEGAME_GRID_OFFSET_Y + codegameGridDimensions.height
+      : deckDimensions.height + controlSize * 3.2;
     const deckVisible = isWorldRectLikelyVisible(
       targetDeckState.x,
       targetDeckState.y,
@@ -9394,7 +10656,7 @@ function renderDeckControls(precomputedMetrics = null) {
     const deckScreen = worldToScreen({ x: targetDeckState.x, y: targetDeckState.y });
     const discardScreen = worldToScreen(getDiscardCenterPosition(deckId));
     const auctionScreen = supportsAuction ? worldToScreen(getAuctionCenterPosition(deckId)) : null;
-    const controlsY = deckScreen.y + cardScreenHeight / 2 + DECK_COUNT_OFFSET_Y;
+    const controlsY = deckScreen.y + cardScreenHeight / 2 + deckCountOffset;
     const deckHovered = deckDropIndicatorVisible && deckDropIndicatorDeckId === deckId;
 
     deckUi.deckSlot.classList.toggle('hidden', inDeckCount > 0);
@@ -9481,8 +10743,8 @@ function renderDeckControls(precomputedMetrics = null) {
     }
 
     const moveControlX = supportsAuction
-      ? auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + 15
-      : deckScreen.x + cardScreenWidth / 2 + controlGap + controlSize / 2 + 15;
+      ? auctionScreen.x + auctionSlotScreenWidth / 2 + controlGap + controlSize / 2 + controlsInset
+      : deckScreen.x + cardScreenWidth / 2 + controlGap + controlSize / 2 + controlsInset;
     const moveControlY = supportsAuction
       ? auctionScreen.y + auctionSlotScreenHeight / 2 - controlSize / 2
       : deckScreen.y + cardScreenHeight / 2 - controlSize / 2;
@@ -9547,7 +10809,7 @@ function renderDeckControls(precomputedMetrics = null) {
       setElementStyleCustomProperty(
         deckUi.auctionSlot,
         '--auction-icon-occupied-top',
-        `${auctionSlotScreenHeight / 2 + auctionCardScreenHeight / 2 + DECK_COUNT_OFFSET_Y}px`
+        `${auctionSlotScreenHeight / 2 + auctionCardScreenHeight / 2 + deckCountOffset}px`
       );
       setElementStyleCustomProperty(deckUi.auctionSlot, '--auction-icon-occupied-size', `${auctionIconOccupiedSize}px`);
       deckUi.auctionSlot.classList.toggle('is-empty', inAuctionCount === 0);
@@ -15249,6 +16511,960 @@ function renderGoBoards(options = {}) {
   }
 }
 
+function getHexitamaHexPolygonPoints(
+  centerX,
+  centerY,
+  radius = HEXITAMA_HEX_RADIUS,
+  rotationDeg = HEXITAMA_TILE_ROTATION_DEG
+) {
+  const points = [];
+  const safeRadius = Math.max(1, Number(radius) || HEXITAMA_HEX_RADIUS);
+  const safeRotation = Number.isFinite(Number(rotationDeg)) ? Number(rotationDeg) : HEXITAMA_TILE_ROTATION_DEG;
+  for (let index = 0; index < 6; index += 1) {
+    const angleRad = ((60 * index - 90 + safeRotation) * Math.PI) / 180;
+    const x = centerX + safeRadius * Math.cos(angleRad);
+    const y = centerY + safeRadius * Math.sin(angleRad);
+    points.push(`${x.toFixed(3)},${y.toFixed(3)}`);
+  }
+  return points.join(' ');
+}
+
+function getHexitamaTileCenters() {
+  const centers = [];
+  for (let colIndex = 0; colIndex < HEXITAMA_TILE_ROWS_BY_COLUMN.length; colIndex += 1) {
+    const rowValues = HEXITAMA_TILE_ROWS_BY_COLUMN[colIndex];
+    const colOffset = colIndex - Math.floor(HEXITAMA_TILE_ROWS_BY_COLUMN.length / 2);
+    const centerX = HEXITAMA_BOARD_CENTER_X + colOffset * HEXITAMA_HEX_COL_STEP;
+    for (const rowValue of rowValues) {
+      const centerY = HEXITAMA_BOARD_TOP_Y + Number(rowValue) * HEXITAMA_HEX_ROW_STEP;
+      centers.push({
+        colIndex,
+        rowValue: Number(rowValue),
+        x: centerX,
+        y: centerY
+      });
+    }
+  }
+  return centers;
+}
+
+function getHexitamaSlotLayout() {
+  const xOffset = HEXITAMA_HEX_COL_STEP * 2.5;
+  const topY = HEXITAMA_BOARD_TOP_Y - HEXITAMA_HEX_ROW_STEP * 1.02;
+  const bottomY = HEXITAMA_BOARD_TOP_Y + HEXITAMA_HEX_ROW_STEP * 6.22;
+  return [
+    { label: '1', x: HEXITAMA_BOARD_CENTER_X - xOffset, y: topY },
+    { label: '2', x: HEXITAMA_BOARD_CENTER_X + xOffset, y: topY },
+    { label: '3', x: HEXITAMA_BOARD_CENTER_X - xOffset, y: bottomY },
+    { label: '4', x: HEXITAMA_BOARD_CENTER_X + xOffset, y: bottomY }
+  ];
+}
+
+function getHexitamaActionCardSlotLayout() {
+  const cornerSlots = getHexitamaSlotLayout();
+  return [
+    { slotKey: 'slot-1', x: cornerSlots[0].x, y: cornerSlots[0].y },
+    { slotKey: 'slot-2', x: cornerSlots[1].x, y: cornerSlots[1].y },
+    { slotKey: 'slot-3', x: cornerSlots[2].x, y: cornerSlots[2].y },
+    { slotKey: 'slot-4', x: cornerSlots[3].x, y: cornerSlots[3].y },
+    { slotKey: 'slot-left', x: HEXITAMA_CARD_LAYOUT_LEFT_X, y: HEXITAMA_CARD_LAYOUT_LEFT_Y }
+  ];
+}
+
+function getHexitamaCardWorldPositionFromCanvas(gameState, canvasX = HEXITAMA_BOARD_CENTER_X, canvasY = HEXITAMA_CANVAS_HEIGHT / 2) {
+  const targetState = gameState && typeof gameState === 'object' ? gameState : null;
+  const boardWidth = Math.max(1, Number(targetState?.width) || HEXITAMA_BOARD_WORLD_WIDTH);
+  const boardHeight = Math.max(1, Number(targetState?.height) || HEXITAMA_BOARD_WORLD_HEIGHT);
+  const boardCenterX = Number.isFinite(Number(targetState?.x)) ? Number(targetState.x) : WORLD_WIDTH / 2;
+  const boardCenterY = Number.isFinite(Number(targetState?.y)) ? Number(targetState.y) : WORLD_HEIGHT / 2;
+  const boardLeft = boardCenterX - boardWidth / 2;
+  const boardTop = boardCenterY - boardHeight / 2;
+  const normalizedCanvasX = clamp(Number(canvasX) || HEXITAMA_BOARD_CENTER_X, 0, HEXITAMA_CANVAS_WIDTH);
+  const normalizedCanvasY = clamp(Number(canvasY) || HEXITAMA_CANVAS_HEIGHT / 2, 0, HEXITAMA_CANVAS_HEIGHT);
+  const rawWorldX = boardLeft + (normalizedCanvasX / HEXITAMA_CANVAS_WIDTH) * boardWidth;
+  const rawWorldY = boardTop + (normalizedCanvasY / HEXITAMA_CANVAS_HEIGHT) * boardHeight;
+  return {
+    x: clamp(rawWorldX, HEXITAMA_CARD_SIZE / 2, WORLD_WIDTH - HEXITAMA_CARD_SIZE / 2),
+    y: clamp(rawWorldY, HEXITAMA_CARD_SIZE / 2, WORLD_HEIGHT - HEXITAMA_CARD_SIZE / 2)
+  };
+}
+
+function getHexitamaActionCardWorldPosition(gameId = activeHexitamaGameId, slotKey = '') {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const targetState = getHexitamaGameStateById(normalizedGameId);
+  const targetSlotKey = String(slotKey || '').trim().toLowerCase();
+  const layout = getHexitamaActionCardSlotLayout();
+  const slot = layout.find((entry) => entry.slotKey === targetSlotKey) || layout[0];
+  return getHexitamaCardWorldPositionFromCanvas(targetState, slot?.x, slot?.y);
+}
+
+function getHexitamaActionCardSlotWorldCenter(cardId = '', cardState = null, options = {}) {
+  const normalizedCardId = String(cardId || '').trim();
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isHexitamaActionCardState(resolvedCardState, normalizedCardId)) {
+    return null;
+  }
+  if (
+    resolvedCardState.inDeck ||
+    resolvedCardState.inDiscard ||
+    resolvedCardState.inAuction ||
+    Boolean(getCardHandOwnerId(resolvedCardState))
+  ) {
+    return null;
+  }
+  if (options?.allowHeld !== true && resolvedCardState.holderClientId) {
+    return null;
+  }
+  const slotKey = getHexitamaCardSlotKey(resolvedCardState, normalizedCardId, {
+    allowInfer: options?.allowInfer === true
+  });
+  if (!slotKey) {
+    return null;
+  }
+  const gameId = normalizeHexitamaGameId(
+    String(resolvedCardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(normalizedCardId)
+  );
+  const gameState = getHexitamaGameStateById(gameId);
+  if (!gameState || gameState.enabled === false) {
+    return null;
+  }
+  const slot = getHexitamaActionCardSlotLayout().find((entry) => entry.slotKey === slotKey);
+  if (!slot) {
+    return null;
+  }
+  const center = getHexitamaCardWorldPositionFromCanvas(gameState, slot.x, slot.y);
+  return {
+    x: center.x,
+    y: center.y,
+    gameId,
+    slotKey
+  };
+}
+
+function getHexitamaActionCardRotationDegrees(cardId = '', cardState = null) {
+  const normalizedCardId = String(cardId || '').trim();
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isHexitamaActionCardState(resolvedCardState, normalizedCardId)) {
+    return 0;
+  }
+  const slotKey = getHexitamaCardSlotKey(resolvedCardState, normalizedCardId, { allowInfer: true });
+  if (slotKey === 'slot-1' || slotKey === 'slot-2') {
+    return 180;
+  }
+  if (slotKey === 'slot-left') {
+    const gameId = normalizeHexitamaGameId(
+      String(resolvedCardState?.hexitamaGameId || '').trim() ||
+        getHexitamaCardGameIdFromCardId(normalizedCardId) ||
+        activeHexitamaGameId
+    );
+    const gameState = getHexitamaGameStateById(gameId);
+    return gameState?.neutralSlotFacesBlack === true ? 180 : 0;
+  }
+  return 0;
+}
+
+function getHexitamaCardScreenSide(cardId = '', cardState = null) {
+  const normalizedCardId = String(cardId || '').trim();
+  const resolvedCardState =
+    cardState && typeof cardState === 'object'
+      ? cardState
+      : cards.get(normalizedCardId);
+  if (!isHexitamaActionCardState(resolvedCardState, normalizedCardId)) {
+    return NaN;
+  }
+  return Math.max(1, HEXITAMA_CARD_SIZE * camera.scale);
+}
+
+function getHexitamaTileCenter(tileCenters, colIndex, rowValue) {
+  const targetCol = Math.max(0, Number(colIndex) || 0);
+  const targetRow = Number(rowValue);
+  for (const center of tileCenters) {
+    if (!center || typeof center !== 'object') {
+      continue;
+    }
+    if (Number(center.colIndex) !== targetCol) {
+      continue;
+    }
+    if (Math.abs(Number(center.rowValue) - targetRow) > 0.001) {
+      continue;
+    }
+    return center;
+  }
+  return null;
+}
+
+function appendHexitamaPiece(boardSvg, center, src, size, options = {}) {
+  if (!(boardSvg instanceof SVGElement) || !center || typeof center !== 'object') {
+    return null;
+  }
+  const pieceSize = Math.max(1, Number(size) || HEXITAMA_PIECE_SIZE_PAWN);
+  const piece = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+  piece.classList.add('hexitama-piece');
+  if (options?.isChief) {
+    piece.classList.add('is-chief');
+  }
+  if (options?.invert) {
+    piece.classList.add('is-inverted');
+  }
+  piece.setAttribute('href', src);
+  piece.setAttributeNS('http://www.w3.org/1999/xlink', 'href', src);
+  piece.setAttribute('x', (center.x - pieceSize / 2).toFixed(3));
+  piece.setAttribute('y', (center.y - pieceSize / 2).toFixed(3));
+  piece.setAttribute('width', pieceSize.toFixed(3));
+  piece.setAttribute('height', pieceSize.toFixed(3));
+  piece.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  piece.setAttribute('pointer-events', options?.interactive === true ? 'auto' : 'none');
+  const pieceId = String(options?.pieceId || '').trim();
+  if (pieceId) {
+    piece.dataset.hexitamaPieceId = pieceId;
+  }
+  if (options?.side) {
+    piece.dataset.hexitamaPieceSide = String(options.side);
+  }
+  if (options?.kind) {
+    piece.dataset.hexitamaPieceKind = String(options.kind);
+  }
+  const colIndex = normalizeHexitamaTileColIndex(options?.colIndex);
+  const rowValue = normalizeHexitamaTileRowValue(options?.rowValue);
+  if (Number.isFinite(colIndex)) {
+    piece.dataset.hexitamaColIndex = String(colIndex);
+  }
+  if (Number.isFinite(rowValue)) {
+    piece.dataset.hexitamaRowValue = String(rowValue);
+  }
+  piece.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(piece);
+  return piece;
+}
+
+function getHexitamaPieceSpriteSource(piecePayload) {
+  if (!piecePayload || typeof piecePayload !== 'object') {
+    return '';
+  }
+  const side = normalizeHexitamaPieceSide(piecePayload.side);
+  const kind = normalizeHexitamaPieceKind(piecePayload.kind);
+  if (!side || !kind) {
+    return '';
+  }
+  if (kind === 'chief') {
+    return HEXITAMA_CHIEF_SRC;
+  }
+  return side === 'black' ? HEXITAMA_MYSTIC_BLACK_SRC : HEXITAMA_MYSTIC_WHITE_SRC;
+}
+
+function shouldHexitamaPieceInvertColors(piecePayload) {
+  if (!piecePayload || typeof piecePayload !== 'object') {
+    return false;
+  }
+  return normalizeHexitamaPieceKind(piecePayload.kind) === 'chief' && normalizeHexitamaPieceSide(piecePayload.side) === 'black';
+}
+
+function isHexitamaSelectionValidForGame(gameState, gameId) {
+  if (!gameState || typeof gameState !== 'object') {
+    return false;
+  }
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  if (normalizeHexitamaGameId(hexitamaSelectedActionGameId) !== normalizedGameId) {
+    return false;
+  }
+  const selectedCardId = String(hexitamaSelectedActionCardId || '').trim();
+  if (!selectedCardId) {
+    return false;
+  }
+  const selectedCardState = cards.get(selectedCardId);
+  if (!isHexitamaActionCardSelectable(selectedCardState, selectedCardId)) {
+    return false;
+  }
+  const selectedCardGameId = normalizeHexitamaGameId(
+    String(selectedCardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(selectedCardId)
+  );
+  if (selectedCardGameId !== normalizedGameId) {
+    return false;
+  }
+  const selectedSlotKey = getHexitamaCardSlotKey(selectedCardState, selectedCardId, { allowInfer: true });
+  if (!isHexitamaHandSlotKey(selectedSlotKey)) {
+    return false;
+  }
+  const selectedCardSide = getHexitamaCardSlotSide(selectedSlotKey);
+  if (!selectedCardSide) {
+    return false;
+  }
+  const selectedPieceId = String(hexitamaSelectedPieceId || '').trim();
+  if (!selectedPieceId) {
+    hexitamaMoveTargets = [];
+    return true;
+  }
+  const selectedPiece = gameState?.pieces?.[selectedPieceId];
+  if (!selectedPiece || normalizeHexitamaPieceSide(selectedPiece.side) !== selectedCardSide) {
+    return false;
+  }
+  return true;
+}
+
+function getHexitamaSelectedCardSideForGame(gameId = activeHexitamaGameId) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const selectedCardId = String(hexitamaSelectedActionCardId || '').trim();
+  if (!selectedCardId) {
+    return '';
+  }
+  const selectedCardGameId = normalizeHexitamaGameId(
+    String(hexitamaSelectedActionGameId || '').trim() || activeHexitamaGameId
+  );
+  if (selectedCardGameId !== normalizedGameId) {
+    return '';
+  }
+  const selectedCardState = cards.get(selectedCardId);
+  if (!isHexitamaActionCardState(selectedCardState, selectedCardId)) {
+    return '';
+  }
+  const selectedCardStateGameId = normalizeHexitamaGameId(
+    String(selectedCardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(selectedCardId)
+  );
+  if (selectedCardStateGameId !== normalizedGameId) {
+    return '';
+  }
+  const slotKey = getHexitamaCardSlotKey(selectedCardState, selectedCardId, { allowInfer: true });
+  if (!isHexitamaHandSlotKey(slotKey)) {
+    return '';
+  }
+  return getHexitamaCardSlotSide(slotKey);
+}
+
+function getHexitamaActivePieceIdsForSelectedCard(gameState, gameId = activeHexitamaGameId) {
+  const activePieceIds = new Set();
+  if (!gameState || typeof gameState !== 'object' || gameState.enabled === false) {
+    return activePieceIds;
+  }
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const selectedCardId = String(hexitamaSelectedActionCardId || '').trim();
+  if (!selectedCardId) {
+    return activePieceIds;
+  }
+  const selectedCardGameId = normalizeHexitamaGameId(
+    String(hexitamaSelectedActionGameId || '').trim() || activeHexitamaGameId
+  );
+  if (selectedCardGameId !== normalizedGameId) {
+    return activePieceIds;
+  }
+  const selectedCardState = cards.get(selectedCardId);
+  if (!isHexitamaActionCardSelectable(selectedCardState, selectedCardId)) {
+    return activePieceIds;
+  }
+  const selectedSlotKey = getHexitamaCardSlotKey(selectedCardState, selectedCardId, { allowInfer: true });
+  if (!isHexitamaHandSlotKey(selectedSlotKey)) {
+    return activePieceIds;
+  }
+  const selectedCardSide = getHexitamaCardSlotSide(selectedSlotKey);
+  if (!selectedCardSide) {
+    return activePieceIds;
+  }
+  const piecesPayload = gameState?.pieces && typeof gameState.pieces === 'object' ? gameState.pieces : {};
+  for (const [pieceId, rawPiecePayload] of Object.entries(piecesPayload)) {
+    const piecePayload = normalizeHexitamaPiecePayload(rawPiecePayload, pieceId);
+    if (!piecePayload) {
+      continue;
+    }
+    if (normalizeHexitamaPieceSide(piecePayload.side) !== selectedCardSide) {
+      continue;
+    }
+    const targets = computeHexitamaMoveTargets(gameState, selectedCardState, selectedCardId, piecePayload);
+    if (!Array.isArray(targets) || targets.length === 0) {
+      continue;
+    }
+    activePieceIds.add(String(piecePayload.id || '').trim());
+  }
+  return activePieceIds;
+}
+
+function renderHexitamaPieceAndMoveLayers(hexitamaUi, gameState, gameId) {
+  if (!hexitamaUi || typeof hexitamaUi !== 'object' || !(hexitamaUi.boardSvg instanceof SVGElement)) {
+    return;
+  }
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const boardSvg = hexitamaUi.boardSvg;
+  if (!(hexitamaUi.pieceLayer instanceof SVGElement)) {
+    const pieceLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    pieceLayer.classList.add('hexitama-piece-layer');
+    pieceLayer.setAttribute('aria-hidden', 'true');
+    boardSvg.appendChild(pieceLayer);
+    hexitamaUi.pieceLayer = pieceLayer;
+  }
+  if (!(hexitamaUi.moveDotLayer instanceof SVGElement)) {
+    const moveDotLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    moveDotLayer.classList.add('hexitama-move-dot-layer');
+    moveDotLayer.setAttribute('aria-hidden', 'true');
+    boardSvg.appendChild(moveDotLayer);
+    hexitamaUi.moveDotLayer = moveDotLayer;
+  }
+  if (!(hexitamaUi.pieceElementsById instanceof Map)) {
+    hexitamaUi.pieceElementsById = new Map();
+  }
+  if (!(hexitamaUi.moveDotElementsByTileKey instanceof Map)) {
+    hexitamaUi.moveDotElementsByTileKey = new Map();
+  }
+  const pieceLayer = hexitamaUi.pieceLayer;
+  const moveDotLayer = hexitamaUi.moveDotLayer;
+  const pieceElementsById = hexitamaUi.pieceElementsById;
+  const moveDotElementsByTileKey = hexitamaUi.moveDotElementsByTileKey;
+  const activePieceIdsForSelectedCard = getHexitamaActivePieceIdsForSelectedCard(gameState, normalizedGameId);
+  const tileCenters = Array.isArray(hexitamaUi.tileCenters) ? hexitamaUi.tileCenters : getHexitamaTileCenters();
+  hexitamaUi.tileCenters = tileCenters;
+
+  const activePieceIds = new Set();
+  const piecesPayload = gameState?.pieces && typeof gameState.pieces === 'object' ? gameState.pieces : {};
+  for (const [pieceId, piecePayload] of Object.entries(piecesPayload)) {
+    const normalizedPiece = normalizeHexitamaPiecePayload(piecePayload, pieceId);
+    if (!normalizedPiece) {
+      continue;
+    }
+    const center = getHexitamaTileCenter(tileCenters, normalizedPiece.colIndex, normalizedPiece.rowValue);
+    if (!center) {
+      continue;
+    }
+    activePieceIds.add(normalizedPiece.id);
+    let pieceElement = pieceElementsById.get(normalizedPiece.id);
+    if (!(pieceElement instanceof SVGImageElement) || !pieceElement.isConnected) {
+      const pieceSize = normalizedPiece.kind === 'chief' ? HEXITAMA_PIECE_SIZE_CHIEF : HEXITAMA_PIECE_SIZE_PAWN;
+      pieceElement = appendHexitamaPiece(pieceLayer, center, getHexitamaPieceSpriteSource(normalizedPiece), pieceSize, {
+        isChief: normalizedPiece.kind === 'chief',
+        invert: shouldHexitamaPieceInvertColors(normalizedPiece),
+        interactive: true,
+        pieceId: normalizedPiece.id,
+        side: normalizedPiece.side,
+        kind: normalizedPiece.kind,
+        colIndex: normalizedPiece.colIndex,
+        rowValue: normalizedPiece.rowValue
+      });
+      if (!(pieceElement instanceof SVGImageElement)) {
+        continue;
+      }
+      pieceElementsById.set(normalizedPiece.id, pieceElement);
+    }
+    const pieceSize = normalizedPiece.kind === 'chief' ? HEXITAMA_PIECE_SIZE_CHIEF : HEXITAMA_PIECE_SIZE_PAWN;
+    const pieceSrc = getHexitamaPieceSpriteSource(normalizedPiece);
+    if (pieceElement.getAttribute('href') !== pieceSrc) {
+      pieceElement.setAttribute('href', pieceSrc);
+      pieceElement.setAttributeNS('http://www.w3.org/1999/xlink', 'href', pieceSrc);
+    }
+    pieceElement.classList.toggle('is-chief', normalizedPiece.kind === 'chief');
+    pieceElement.classList.toggle('is-inverted', shouldHexitamaPieceInvertColors(normalizedPiece));
+    const isCardSideActivePiece = activePieceIdsForSelectedCard.has(normalizedPiece.id);
+    pieceElement.classList.toggle('is-card-side-active', isCardSideActivePiece);
+    pieceElement.dataset.hexitamaCardSideActive = isCardSideActivePiece ? '1' : '0';
+    pieceElement.style.cursor = isCardSideActivePiece ? 'pointer' : 'default';
+    applyHexitamaPieceSelectionVisual(
+      pieceElement,
+      String(hexitamaSelectedPieceId || '').trim() === normalizedPiece.id &&
+        normalizeHexitamaGameId(hexitamaSelectedPieceGameId) === normalizedGameId
+    );
+    pieceElement.dataset.hexitamaPieceId = normalizedPiece.id;
+    pieceElement.dataset.hexitamaPieceSide = normalizedPiece.side;
+    pieceElement.dataset.hexitamaPieceKind = normalizedPiece.kind;
+    pieceElement.dataset.hexitamaColIndex = String(normalizedPiece.colIndex);
+    pieceElement.dataset.hexitamaRowValue = String(normalizedPiece.rowValue);
+    pieceElement.setAttribute('x', (center.x - pieceSize / 2).toFixed(3));
+    pieceElement.setAttribute('y', (center.y - pieceSize / 2).toFixed(3));
+    pieceElement.setAttribute('width', pieceSize.toFixed(3));
+    pieceElement.setAttribute('height', pieceSize.toFixed(3));
+    pieceElement.setAttribute('pointer-events', 'auto');
+    pieceElement.setAttribute('aria-hidden', 'true');
+  }
+
+  for (const [pieceId, pieceElement] of Array.from(pieceElementsById.entries())) {
+    if (activePieceIds.has(pieceId)) {
+      continue;
+    }
+    pieceElement?.remove();
+    pieceElementsById.delete(pieceId);
+  }
+
+  const activeMoveTileKeys = new Set();
+  for (const target of hexitamaMoveTargets) {
+    if (!target || typeof target !== 'object') {
+      continue;
+    }
+    if (normalizeHexitamaGameId(target.gameId || '') !== normalizedGameId) {
+      continue;
+    }
+    const targetColIndex = normalizeHexitamaTileColIndex(target.colIndex);
+    const targetRowValue = normalizeHexitamaTileRowValue(target.rowValue);
+    if (!isHexitamaValidTileCoordinate(targetColIndex, targetRowValue)) {
+      continue;
+    }
+    const tileKey = getHexitamaTileKey(targetColIndex, targetRowValue);
+    if (!tileKey) {
+      continue;
+    }
+    const center = getHexitamaTileCenter(tileCenters, targetColIndex, targetRowValue);
+    if (!center) {
+      continue;
+    }
+    activeMoveTileKeys.add(tileKey);
+    const isCaptureTarget = target.capture === true;
+    let markerElement = moveDotElementsByTileKey.get(tileKey);
+    const hasExpectedShape =
+      (isCaptureTarget && markerElement instanceof SVGPolygonElement) ||
+      (!isCaptureTarget && markerElement instanceof SVGCircleElement);
+    if (!hasExpectedShape || !markerElement?.isConnected) {
+      markerElement?.remove();
+      if (isCaptureTarget) {
+        markerElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        markerElement.classList.add('hexitama-capture-target');
+      } else {
+        markerElement = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        markerElement.classList.add('hexitama-move-dot');
+        markerElement.setAttribute('r', Math.max(10, HEXITAMA_HEX_RADIUS * 0.17).toFixed(3));
+      }
+      markerElement.setAttribute('pointer-events', 'auto');
+      markerElement.style.cursor = 'pointer';
+      moveDotLayer.appendChild(markerElement);
+      moveDotElementsByTileKey.set(tileKey, markerElement);
+    }
+    markerElement.dataset.hexitamaMoveCol = String(targetColIndex);
+    markerElement.dataset.hexitamaMoveRow = String(targetRowValue);
+    markerElement.dataset.hexitamaMoveTileKey = tileKey;
+    markerElement.setAttribute('aria-hidden', 'true');
+    if (isCaptureTarget && markerElement instanceof SVGPolygonElement) {
+      markerElement.classList.add('hexitama-capture-target');
+      markerElement.classList.remove('hexitama-move-dot');
+      markerElement.setAttribute(
+        'points',
+        getHexitamaHexPolygonPoints(center.x, center.y, HEXITAMA_HEX_RADIUS * 0.82, HEXITAMA_TILE_ROTATION_DEG)
+      );
+    } else if (!isCaptureTarget && markerElement instanceof SVGCircleElement) {
+      markerElement.classList.add('hexitama-move-dot');
+      markerElement.classList.remove('hexitama-capture-target');
+      markerElement.setAttribute('cx', center.x.toFixed(3));
+      markerElement.setAttribute('cy', center.y.toFixed(3));
+    }
+  }
+
+  for (const [tileKey, dotElement] of Array.from(moveDotElementsByTileKey.entries())) {
+    if (activeMoveTileKeys.has(tileKey)) {
+      continue;
+    }
+    dotElement?.remove();
+    moveDotElementsByTileKey.delete(tileKey);
+  }
+
+  const boardTilesLayer = hexitamaUi.boardTilesLayer;
+  if (boardTilesLayer instanceof SVGElement) {
+    const tileElements = boardTilesLayer.querySelectorAll('[data-hexitama-col-index][data-hexitama-row-value]');
+    for (const tileElement of tileElements) {
+      if (!(tileElement instanceof SVGElement)) {
+        continue;
+      }
+      const tileColIndex = normalizeHexitamaTileColIndex(tileElement.getAttribute('data-hexitama-col-index'));
+      const tileRowValue = normalizeHexitamaTileRowValue(tileElement.getAttribute('data-hexitama-row-value'));
+      const tileKey = getHexitamaTileKey(tileColIndex, tileRowValue);
+      const isMoveTargetTile = Boolean(tileKey && activeMoveTileKeys.has(tileKey));
+      tileElement.style.cursor = isMoveTargetTile ? 'pointer' : 'default';
+    }
+  }
+}
+
+function removeHexitamaBoardUi(hexitamaUi) {
+  if (!hexitamaUi || typeof hexitamaUi !== 'object') {
+    return;
+  }
+  hexitamaUi.shell?.remove();
+  hexitamaUi.playButton?.remove();
+  hexitamaUi.moveButton?.remove();
+  hexitamaUi.optionsButton?.remove();
+}
+
+function removeHexitamaBoardElements() {
+  for (const hexitamaUi of hexitamaBoardElementsById.values()) {
+    removeHexitamaBoardUi(hexitamaUi);
+  }
+  hexitamaBoardElementsById.clear();
+  clearHexitamaActionSelection({ skipRender: true });
+  if (activeGameOptionsTarget.startsWith('hexitama:')) {
+    closeGameOptionsMenu();
+  }
+}
+
+function ensureHexitamaBoardUi(gameId) {
+  if (!tableRoot || !gameLayer) {
+    return null;
+  }
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  let hexitamaUi = hexitamaBoardElementsById.get(normalizedGameId) || null;
+  if (
+    hexitamaUi?.shell?.isConnected &&
+    hexitamaUi?.boardSurface?.isConnected &&
+    hexitamaUi?.boardSvg?.isConnected &&
+    hexitamaUi?.playButton?.isConnected &&
+    hexitamaUi?.moveButton?.isConnected &&
+    hexitamaUi?.optionsButton?.isConnected
+  ) {
+    return hexitamaUi;
+  }
+
+  removeHexitamaBoardUi(hexitamaUi);
+
+  const shell = document.createElement('div');
+  shell.className = 'mons-game-shell tafl-game-shell hexitama-game-shell hidden';
+  shell.dataset.hexitamaGameId = normalizedGameId;
+  shell.dataset.drawPassthrough = 'true';
+  shell.setAttribute('aria-label', 'Hexitama board');
+  shieldPointerEvents(shell, { allowDrawPassthrough: true, allowMiddleMousePan: true });
+  shell.addEventListener('pointerdown', (event) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      onDeleteHexitamaGameInRemoveMode(normalizedGameId).catch((error) => {
+        console.error(error);
+        setRealtimeStatus('firebase: write blocked');
+      });
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (normalizeHexitamaGameId(activeHexitamaGameId) === normalizedGameId) {
+      return;
+    }
+    setActiveHexitamaGameId(normalizedGameId);
+    renderHexitamaBoards();
+  });
+
+  const boardSurface = document.createElement('div');
+  boardSurface.className = 'hexitama-board-surface';
+  shell.appendChild(boardSurface);
+
+  const boardSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  boardSvg.classList.add('hexitama-board-svg');
+  boardSvg.setAttribute('aria-hidden', 'false');
+  boardSvg.setAttribute('focusable', 'false');
+  boardSvg.setAttribute('viewBox', `0 0 ${HEXITAMA_CANVAS_WIDTH} ${HEXITAMA_CANVAS_HEIGHT}`);
+  boardSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  boardSvg.addEventListener('pointerdown', (event) => {
+    onHexitamaBoardPointerDown(event, normalizedGameId);
+  });
+  boardSurface.appendChild(boardSvg);
+
+  const tileCenters = getHexitamaTileCenters();
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const safePaintIdPrefix = `hexitama-${normalizedGameId.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  const tileLinearGradientId = `${safePaintIdPrefix}-tile-linear`;
+  const tileLinearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  tileLinearGradient.setAttribute('id', tileLinearGradientId);
+  tileLinearGradient.setAttribute('x1', '0');
+  tileLinearGradient.setAttribute('y1', '0');
+  tileLinearGradient.setAttribute('x2', '0');
+  tileLinearGradient.setAttribute('y2', '1');
+  const tileLinearStopTop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  tileLinearStopTop.setAttribute('offset', '0%');
+  tileLinearStopTop.setAttribute('stop-color', 'rgb(220, 178, 124)');
+  tileLinearStopTop.setAttribute('stop-opacity', '1');
+  const tileLinearStopBottom = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  tileLinearStopBottom.setAttribute('offset', '100%');
+  tileLinearStopBottom.setAttribute('stop-color', 'rgb(198, 153, 104)');
+  tileLinearStopBottom.setAttribute('stop-opacity', '1');
+  tileLinearGradient.appendChild(tileLinearStopTop);
+  tileLinearGradient.appendChild(tileLinearStopBottom);
+  defs.appendChild(tileLinearGradient);
+  boardSvg.appendChild(defs);
+
+  const boardTilesBaseLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  boardTilesBaseLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(boardTilesBaseLayer);
+
+  const chiefTempleLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  chiefTempleLayer.classList.add('hexitama-chief-temple-layer');
+  chiefTempleLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(chiefTempleLayer);
+
+  const boardTilesOutlineLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  boardTilesOutlineLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(boardTilesOutlineLayer);
+
+  const chiefTempleIconHref = encodeURI(HEXITAMA_CHIEF_TEMPLE_SRC);
+  for (const center of tileCenters) {
+    const tilePoints = getHexitamaHexPolygonPoints(center.x, center.y, HEXITAMA_HEX_RADIUS, HEXITAMA_TILE_ROTATION_DEG);
+
+    const tileBasePolygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    tileBasePolygon.classList.add('hexitama-board-hex-base');
+    tileBasePolygon.dataset.hexitamaColIndex = String(center.colIndex);
+    tileBasePolygon.dataset.hexitamaRowValue = String(center.rowValue);
+    tileBasePolygon.setAttribute('points', tilePoints);
+    tileBasePolygon.setAttribute('fill', `url(#${tileLinearGradientId})`);
+    boardTilesBaseLayer.appendChild(tileBasePolygon);
+
+    if (isHexitamaChiefStartTile(center.colIndex, center.rowValue)) {
+      const templeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+      const templeSize = HEXITAMA_HEX_RADIUS * 1.14;
+      templeIcon.classList.add('hexitama-chief-temple-icon');
+      templeIcon.setAttribute('x', (center.x - templeSize / 2).toFixed(3));
+      templeIcon.setAttribute('y', (center.y - templeSize / 2).toFixed(3));
+      templeIcon.setAttribute('width', templeSize.toFixed(3));
+      templeIcon.setAttribute('height', templeSize.toFixed(3));
+      templeIcon.setAttribute('href', chiefTempleIconHref);
+      templeIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'href', chiefTempleIconHref);
+      templeIcon.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      templeIcon.setAttribute('pointer-events', 'none');
+      templeIcon.setAttribute('aria-hidden', 'true');
+      chiefTempleLayer.appendChild(templeIcon);
+    }
+
+    const tileOutlinePolygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    tileOutlinePolygon.classList.add('hexitama-board-hex-outline');
+    tileOutlinePolygon.setAttribute('points', tilePoints);
+    boardTilesOutlineLayer.appendChild(tileOutlinePolygon);
+  }
+
+  const pieceLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  pieceLayer.classList.add('hexitama-piece-layer');
+  pieceLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(pieceLayer);
+
+  const moveDotLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  moveDotLayer.classList.add('hexitama-move-dot-layer');
+  moveDotLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(moveDotLayer);
+
+  const slotLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  slotLayer.setAttribute('aria-hidden', 'true');
+  boardSvg.appendChild(slotLayer);
+  for (const slot of getHexitamaSlotLayout()) {
+    const slotPolygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    slotPolygon.classList.add('hexitama-card-slot');
+    slotPolygon.setAttribute(
+      'points',
+      getHexitamaHexPolygonPoints(slot.x, slot.y, HEXITAMA_HEX_RADIUS * 0.98, HEXITAMA_SLOT_ROTATION_DEG)
+    );
+    slotLayer.appendChild(slotPolygon);
+  }
+
+  gameLayer.appendChild(shell);
+
+  const playButton = document.createElement('button');
+  playButton.type = 'button';
+  playButton.className = 'deck-control-button deck-play-button hexitama-play-button hidden';
+  playButton.dataset.stackScope = 'hexitama';
+  playButton.dataset.hexitamaGameId = normalizedGameId;
+  setHexitamaPlayButtonMode(playButton, 'play');
+  playButton.addEventListener('click', (event) => {
+    onHexitamaPlayButtonClick(event, normalizedGameId);
+  });
+  shieldPointerEvents(playButton);
+  tableRoot.appendChild(playButton);
+
+  const moveButton = document.createElement('button');
+  moveButton.type = 'button';
+  moveButton.className = 'deck-control-button deck-move-button mons-move-button go-move-button hexitama-move-button hidden';
+  moveButton.dataset.stackScope = 'hexitama';
+  moveButton.dataset.hexitamaGameId = normalizedGameId;
+  moveButton.setAttribute('aria-label', 'move hexitama board');
+  moveButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 8H19M5 12H19M5 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  moveButton.addEventListener('pointerdown', (event) => {
+    onHexitamaMovePointerDown(event, normalizedGameId);
+  });
+  shieldPointerEvents(moveButton);
+  tableRoot.appendChild(moveButton);
+
+  const optionsButton = document.createElement('button');
+  optionsButton.type = 'button';
+  optionsButton.className = 'deck-control-button deck-options-button mons-options-button go-options-button hexitama-options-button hidden';
+  optionsButton.dataset.stackScope = 'hexitama';
+  optionsButton.dataset.hexitamaGameId = normalizedGameId;
+  optionsButton.setAttribute('aria-label', 'hexitama options');
+  optionsButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="6.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17.5" cy="12" r="1.7"/></svg>';
+  optionsButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (deleteModeEnabled) {
+      return;
+    }
+    openGameOptionsMenu(HEXITAMA_GAME_KEY, normalizedGameId);
+  });
+  shieldPointerEvents(optionsButton);
+  tableRoot.appendChild(optionsButton);
+
+  hexitamaUi = {
+    gameId: normalizedGameId,
+    shell,
+    boardSurface,
+    boardSvg,
+    boardTilesLayer: boardTilesBaseLayer,
+    tileCenters,
+    pieceLayer,
+    moveDotLayer,
+    pieceElementsById: new Map(),
+    moveDotElementsByTileKey: new Map(),
+    playButton,
+    moveButton,
+    optionsButton
+  };
+  hexitamaBoardElementsById.set(normalizedGameId, hexitamaUi);
+  return hexitamaUi;
+}
+
+function setHexitamaBoardDragFloating(gameId, shouldFloat) {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  const hexitamaUi = ensureHexitamaBoardUi(normalizedGameId);
+  if (!hexitamaUi?.shell) {
+    return;
+  }
+  const shouldCoverDrawings = isHexitamaCoverDrawingsEnabled(normalizedGameId);
+  if (shouldFloat) {
+    if (hexitamaUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(hexitamaUi.shell);
+    }
+    hexitamaUi.shell.classList.toggle('is-cover-drawings', shouldCoverDrawings);
+    hexitamaUi.shell.classList.add('is-drag-floating');
+    return;
+  }
+  if (shouldCoverDrawings) {
+    if (hexitamaUi.shell.parentElement !== tableRoot) {
+      tableRoot.appendChild(hexitamaUi.shell);
+    }
+    hexitamaUi.shell.classList.add('is-cover-drawings');
+  } else {
+    if (hexitamaUi.shell.parentElement !== gameLayer) {
+      gameLayer.appendChild(hexitamaUi.shell);
+    }
+    hexitamaUi.shell.classList.remove('is-cover-drawings');
+  }
+  hexitamaUi.shell.classList.remove('is-drag-floating');
+}
+
+function renderHexitamaBoards(options = {}) {
+  if (!tableRoot || !gameLayer) {
+    return;
+  }
+  if (hexitamaSelectedActionCardId) {
+    const selectedGameId = normalizeHexitamaGameId(hexitamaSelectedActionGameId || activeHexitamaGameId);
+    const selectedGameState = getHexitamaGameStateById(selectedGameId);
+    if (!isHexitamaSelectionValidForGame(selectedGameState, selectedGameId)) {
+      const staleCardId = hexitamaSelectedActionCardId;
+      clearHexitamaActionSelection({ skipRender: true });
+      if (staleCardId) {
+        runRenderSafely('hexitama-selection:stale-card', () => renderCardElement(staleCardId));
+      }
+    }
+  }
+  const activeId = normalizeHexitamaGameId(activeHexitamaGameId);
+  const usePixelatedPieces = camera.scale >= MONS_PIECE_PIXELATE_SCALE;
+  const controlSize = MONS_MOVE_CONTROL_SIZE;
+  const controlGap = DECK_CONTROL_GAP;
+  const visibleIds = new Set();
+  let hexitamaSelectionChanged = false;
+
+  for (const [gameId, gameState] of hexitamaGameStatesById.entries()) {
+    if (!gameState || gameState.enabled === false) {
+      continue;
+    }
+    const normalizedGameId = normalizeHexitamaGameId(gameId);
+    const hexitamaUi = ensureHexitamaBoardUi(normalizedGameId);
+    if (!hexitamaUi?.shell || !hexitamaUi.playButton || !hexitamaUi.moveButton || !hexitamaUi.optionsButton) {
+      continue;
+    }
+    hexitamaUi.shell.classList.toggle('is-piece-pixelated', usePixelatedPieces);
+    visibleIds.add(normalizedGameId);
+    if (isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+      hexitamaUi.shell.classList.add('hidden');
+      hexitamaUi.playButton.classList.add('hidden');
+      hexitamaUi.moveButton.classList.add('hidden');
+      hexitamaUi.optionsButton.classList.add('hidden');
+      if (selectedHexitamaGameIds.delete(normalizedGameId)) {
+        hexitamaSelectionChanged = true;
+      }
+      continue;
+    }
+    const boardShouldCoverDrawings = gameState.coverDrawings === true;
+    if (hexitamaUi.shell.classList.contains('is-drag-floating')) {
+      hexitamaUi.shell.classList.toggle('is-cover-drawings', boardShouldCoverDrawings);
+    } else if (boardShouldCoverDrawings) {
+      if (hexitamaUi.shell.parentElement !== tableRoot) {
+        tableRoot.appendChild(hexitamaUi.shell);
+      }
+      hexitamaUi.shell.classList.add('is-cover-drawings');
+    } else {
+      if (hexitamaUi.shell.parentElement !== gameLayer) {
+        gameLayer.appendChild(hexitamaUi.shell);
+      }
+      hexitamaUi.shell.classList.remove('is-cover-drawings');
+    }
+
+    const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
+    const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
+    const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    hexitamaUi.shell.classList.remove('hidden');
+    setElementStylePx(hexitamaUi.shell, 'left', boardScreen.x);
+    setElementStylePx(hexitamaUi.shell, 'top', boardScreen.y);
+    setElementStylePx(hexitamaUi.shell, 'width', boardScreenWidth);
+    setElementStylePx(hexitamaUi.shell, 'height', boardScreenHeight);
+    renderHexitamaPieceAndMoveLayers(hexitamaUi, gameState, normalizedGameId);
+
+    const moveButtonX = boardScreen.x + boardScreenWidth / 2 + controlGap + controlSize / 2;
+    const moveButtonY = boardScreen.y + boardScreenHeight / 2 - controlSize / 2;
+    const optionsButtonY = moveButtonY - controlSize - controlGap;
+    const playButtonY = optionsButtonY - controlSize - controlGap;
+
+    hexitamaUi.playButton.classList.remove('hidden');
+    setHexitamaPlayButtonMode(hexitamaUi.playButton, gameState.cardsDealt === true ? 'shuffle' : 'play');
+    setElementStylePx(hexitamaUi.playButton, 'left', moveButtonX);
+    setElementStylePx(hexitamaUi.playButton, 'top', playButtonY);
+    setElementStylePx(hexitamaUi.playButton, 'width', controlSize);
+    setElementStylePx(hexitamaUi.playButton, 'height', controlSize);
+
+    hexitamaUi.moveButton.classList.remove('hidden');
+    setElementStylePx(hexitamaUi.moveButton, 'left', moveButtonX);
+    setElementStylePx(hexitamaUi.moveButton, 'top', moveButtonY);
+    setElementStylePx(hexitamaUi.moveButton, 'width', controlSize);
+    setElementStylePx(hexitamaUi.moveButton, 'height', controlSize);
+    hexitamaUi.moveButton.classList.toggle('is-held-by-self', gameState.holderClientId === localClientId);
+    hexitamaUi.moveButton.classList.toggle('is-group-selected', selectedHexitamaGameIds.has(normalizedGameId));
+
+    hexitamaUi.optionsButton.classList.remove('hidden');
+    setElementStylePx(hexitamaUi.optionsButton, 'left', moveButtonX);
+    setElementStylePx(hexitamaUi.optionsButton, 'top', optionsButtonY);
+    setElementStylePx(hexitamaUi.optionsButton, 'width', controlSize);
+    setElementStylePx(hexitamaUi.optionsButton, 'height', controlSize);
+
+    if (normalizedGameId === activeId) {
+      const shellParent = boardShouldCoverDrawings ? tableRoot : gameLayer;
+      if (hexitamaUi.shell.parentElement === shellParent) {
+        shellParent.appendChild(hexitamaUi.shell);
+      }
+      tableRoot.appendChild(hexitamaUi.playButton);
+      tableRoot.appendChild(hexitamaUi.optionsButton);
+      tableRoot.appendChild(hexitamaUi.moveButton);
+    }
+  }
+
+  for (const [gameId, hexitamaUi] of Array.from(hexitamaBoardElementsById.entries())) {
+    if (visibleIds.has(gameId)) {
+      continue;
+    }
+    if (activeGameOptionsTarget === `hexitama:${gameId}`) {
+      closeGameOptionsMenu();
+    }
+    removeHexitamaBoardUi(hexitamaUi);
+    hexitamaBoardElementsById.delete(gameId);
+  }
+  if (hexitamaSelectionChanged) {
+    syncSelectionDeleteButtonUi();
+  }
+}
+
 function getCardHandOwnerId(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return null;
@@ -15965,6 +18181,9 @@ function isCardFlippable(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return false;
   }
+  if (isHexitamaActionCardState(cardState)) {
+    return false;
+  }
   if (getDeckKind(normalizeDeckId(cardState.deckId || '')) === DECK_KIND_CODEGAME && cardState.codegameKeyCard !== true) {
     return false;
   }
@@ -15978,6 +18197,9 @@ function isCardFlippable(cardState) {
 }
 
 function canCardUseDeckZones(cardState) {
+  if (isHexitamaActionCardState(cardState)) {
+    return false;
+  }
   if (isNoteComponentCard(cardState)) {
     return true;
   }
@@ -15988,12 +18210,18 @@ function isCoolJpegsStackCard(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return false;
   }
+  if (isHexitamaActionCardState(cardState)) {
+    return false;
+  }
   return !isVisualImageComponentCard(cardState);
 }
 
 function canCardEnterHand(cardState) {
   if (!cardState) {
     return false;
+  }
+  if (isHexitamaActionCardState(cardState)) {
+    return true;
   }
   if (isNoteComponentCard(cardState)) {
     return true;
@@ -16625,6 +18853,9 @@ function getCardTableDimensions(cardState) {
   if (!cardState || typeof cardState !== 'object') {
     return { width: CARD_WIDTH, height: CARD_HEIGHT };
   }
+  if (isHexitamaActionCardState(cardState)) {
+    return { width: HEXITAMA_CARD_SIZE, height: HEXITAMA_CARD_SIZE };
+  }
   const deckKind = getDeckKind(normalizeDeckId(cardState.deckId || ''));
   if (!isVisualImageComponentCard(cardState) && deckKind === DECK_KIND_CODEGAME) {
     return { width: CODEGAME_CARD_SIZE, height: CODEGAME_CARD_SIZE };
@@ -16728,7 +18959,38 @@ function normalizeCardPayload(payload, cardId = '') {
     : '';
   const explicitDeckId = normalizeOptionalDeckId(payload?.deckId);
   const inferredDeckId = componentType ? '' : inferDeckIdFromCardId(cardId);
-  const deckId = normalizeDeckId(inferredDeckId || explicitDeckId || DECK_KEY);
+  let deckId = normalizeDeckId(inferredDeckId || explicitDeckId || DECK_KEY);
+  const inferredHexitamaGameId = getHexitamaCardGameIdFromCardId(cardId);
+  const hasExplicitHexitamaSlotKey = Object.prototype.hasOwnProperty.call(payload || {}, 'hexitamaSlotKey');
+  const rawHexitamaSlotKey = String(payload?.hexitamaSlotKey || '').trim().toLowerCase();
+  const inferredHexitamaSlotKey = getHexitamaCardSlotKeyFromCardId(cardId);
+  const hexitamaCard = !isImageComponent && (
+    payload?.hexitamaCard === true ||
+    Boolean(inferredHexitamaGameId)
+  );
+  const hexitamaGameId = hexitamaCard
+    ? normalizeHexitamaGameId(
+      String(payload?.hexitamaGameId || '').trim() || inferredHexitamaGameId || HEXITAMA_GAME_KEY
+    )
+    : '';
+  const hexitamaSlotKey = hexitamaCard
+    ? (
+      hasExplicitHexitamaSlotKey
+        ? (HEXITAMA_CARD_SLOT_KEYS.includes(rawHexitamaSlotKey) ? rawHexitamaSlotKey : '')
+        : (
+          HEXITAMA_CARD_SLOT_KEYS.includes(inferredHexitamaSlotKey)
+            ? inferredHexitamaSlotKey
+            : (HEXITAMA_CARD_SLOT_KEYS.includes(rawHexitamaSlotKey) ? rawHexitamaSlotKey : '')
+        )
+    )
+    : '';
+  const hexitamaPatternIndices = hexitamaCard
+    ? getHexitamaActionPatternIndicesForCard(payload)
+    : [];
+  if (hexitamaCard) {
+    deckId = getHexitamaCardDeckId(hexitamaGameId);
+  }
+  const deckKind = getDeckKind(deckId);
   const codegameKeyCard = payload?.codegameKeyCard === true;
   const codegameKeyBlueIndices = codegameKeyCard
     ? normalizeCodegameKeyIndexList(payload?.codegameKeyBlueIndices, CODEGAME_KEY_BLUE_COUNT)
@@ -16814,7 +19076,7 @@ function normalizeCardPayload(payload, cardId = '') {
       ? NaN
       : Number(rawCodegameMarkedSlotValue);
   const canApplyCodegameMark =
-    getDeckKind(deckId) === DECK_KIND_CODEGAME &&
+    deckKind === DECK_KIND_CODEGAME &&
     !codegameKeyCard &&
     !inDeck &&
     !inDiscard &&
@@ -16832,13 +19094,19 @@ function normalizeCardPayload(payload, cardId = '') {
   const codegameRevealColor = canApplyCodegameMark
     ? normalizeCodegameMarkedType(payload?.codegameRevealColor || '')
     : '';
-  const face = inAuction || isStickerComponent || (isImageComponent && !componentTwoSided)
+  const face = hexitamaCard || inAuction || isStickerComponent || (isImageComponent && !componentTwoSided)
     ? 'front'
     : payload?.face === 'front'
       ? 'front'
       : 'back';
-  const boundsWidth = inAuction || inDeck || inDiscard ? CARD_WIDTH : componentSize.width;
-  const boundsHeight = inAuction || inDeck || inDiscard ? CARD_HEIGHT : componentSize.height;
+  const baseCardWidth = hexitamaCard ? HEXITAMA_CARD_SIZE : CARD_WIDTH;
+  const baseCardHeight = hexitamaCard ? HEXITAMA_CARD_SIZE : CARD_HEIGHT;
+  const boundsWidth = hexitamaCard
+    ? baseCardWidth
+    : (inAuction || inDeck || inDiscard ? baseCardWidth : componentSize.width);
+  const boundsHeight = hexitamaCard
+    ? baseCardHeight
+    : (inAuction || inDeck || inDiscard ? baseCardHeight : componentSize.height);
   const overflow = isStickerComponent && !inDeck && !inDiscard && !inAuction ? STICKER_EDGE_OVERFLOW : 0;
   const minX = boundsWidth / 2 - overflow;
   const maxX = WORLD_WIDTH - boundsWidth / 2 + overflow;
@@ -16871,6 +19139,10 @@ function normalizeCardPayload(payload, cardId = '') {
     componentHeight: componentSize.height,
     deckBackSrc,
     deckId,
+    hexitamaCard,
+    hexitamaGameId,
+    hexitamaSlotKey,
+    hexitamaPatternIndices,
     inDeck,
     inDiscard,
     inAuction,
@@ -16900,12 +19172,14 @@ function removeDieElement(dieId) {
   if (!die) {
     dieRenderLogicKeyById.delete(dieId);
     clearMediaPlaybackTrackingForDie(dieId);
+    offscreenDieSinceById.delete(dieId);
     return;
   }
   die.remove();
   diceElements.delete(dieId);
   dieRenderLogicKeyById.delete(dieId);
   clearMediaPlaybackTrackingForDie(dieId);
+  offscreenDieSinceById.delete(dieId);
 }
 
 function ensureDieElement(dieId) {
@@ -19246,17 +21520,25 @@ function renderDieElement(dieId, options = {}) {
     return false;
   }
   const dimensions = getDieWorldDimensions(dieState);
+  const cullMarginPx = getViewportCullMarginPx();
   const isVisibleInViewport = isWorldRectLikelyVisible(
     dieState.x,
     dieState.y,
     dimensions.width,
     dimensions.height,
-    VIEWPORT_CULL_MARGIN_PX
+    cullMarginPx
   );
   const keepMountedWhenOffscreen = dieType === 'media';
-  if (!isVisibleInViewport && !keepMountedWhenOffscreen && !dieState.holderClientId && !selectedDiceIds.has(dieId)) {
-    removeDieElement(dieId);
-    return false;
+  const hasDieElement = diceElements.has(dieId);
+  if (isVisibleInViewport || keepMountedWhenOffscreen || dieState.holderClientId || selectedDiceIds.has(dieId)) {
+    offscreenDieSinceById.delete(dieId);
+  } else if (!isVisibleInViewport && !keepMountedWhenOffscreen) {
+    const keepByGrace = hasDieElement && shouldKeepMountedDuringOffscreenGrace(offscreenDieSinceById, dieId);
+    if (!keepByGrace) {
+      offscreenDieSinceById.delete(dieId);
+      removeDieElement(dieId);
+      return false;
+    }
   }
   const die = ensureDieElement(dieId);
   if (!die) {
@@ -19797,6 +22079,13 @@ function ensureCardElement(cardId) {
     });
     card.appendChild(image);
     card._cardImage = image;
+
+    const hexitamaSelectionOverlay = document.createElement('div');
+    hexitamaSelectionOverlay.className = 'table-card-hexitama-selection-overlay';
+    hexitamaSelectionOverlay.setAttribute('aria-hidden', 'true');
+    card.appendChild(hexitamaSelectionOverlay);
+    card._cardHexitamaSelectionOverlay = hexitamaSelectionOverlay;
+    card.classList.add('has-hexitama-selection-overlay');
 
     const codegameKeyOverlay = document.createElement('div');
     codegameKeyOverlay.className = 'table-card-codegame-key-overlay';
@@ -20431,6 +22720,7 @@ function removeTableCardElement(cardId) {
   frontDisplayPendingByCard.delete(cardId);
   noteAttachmentRenderKeyByCardId.delete(cardId);
   cardRenderLogicKeyById.delete(cardId);
+  offscreenCardSinceById.delete(cardId);
 }
 
 function renderLocalHandCards() {
@@ -20526,6 +22816,7 @@ function renderLocalHandCards() {
     const isPreviewCard = previewCardId === cardId;
     const handDimensions = getHandCardDisplayDimensions(cardState);
     const isNoteHandCard = isNoteComponentCard(cardState);
+    const isHexitamaHandCard = isHexitamaActionCardState(cardState, cardId);
 
     let left = startX + fanStep * index;
     let bottom = handDimensions.baseBottomOffset;
@@ -20555,6 +22846,7 @@ function renderLocalHandCards() {
     handCard.classList.toggle('is-preview', isPreviewCard);
     handCard.classList.toggle('is-hovered', !isActiveReorderCard && !isPreviewCard && hoveredHandCardId === cardId);
     handCard.classList.toggle('is-note-component', isNoteHandCard);
+    handCard.classList.toggle('is-hexitama-card', isHexitamaHandCard);
     const handNoteDrawingLayer = getHandNoteDrawingLayer(cardId);
     if (handNoteDrawingLayer instanceof SVGElement) {
       if (isNoteHandCard) {
@@ -20748,6 +23040,7 @@ function buildCardRenderLogicKey(cardId, cardState) {
     resizingImageCardId === cardId ? '1' : '0',
     rotatingStickerCardId === cardId ? '1' : '0',
     cardState?.drawLifted === true ? '1' : '0',
+    cardId === hexitamaSelectedActionCardId ? 'hx1' : 'hx0',
     cardState?.codegameTinted === true ? '1' : '0',
     cardState?.codegameRevealColor || '',
     cardState?.codegameMarkedType || '',
@@ -20831,19 +23124,26 @@ function renderCardElement(cardId, options = {}) {
   const isHeld = Boolean(cardState.holderClientId);
   const isNoteComponent = isNoteComponentCard(cardState);
   const isCodegameCard = isCodegameCardState(cardState);
+  const isHexitamaCard = isHexitamaActionCardState(cardState, cardId);
+  const isHexitamaActionSelected =
+    isHexitamaCard &&
+    String(hexitamaSelectedActionCardId || '').trim() === String(cardId || '').trim() &&
+    normalizeHexitamaGameId(hexitamaSelectedActionGameId || '') ===
+      normalizeHexitamaGameId(String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId));
   const discardCenter = cardState.inDiscard && cardDeckState ? getDiscardCenterPosition(cardDeckId) : null;
   const auctionCenter = cardState.inAuction && cardDeckState ? getAuctionCenterPosition(cardDeckId) : null;
   const baseCardSize = getCardTableDimensions(cardState);
   const codegameSlotCenter = isCodegameCard ? getCodegameCardSlotWorldCenter(cardId, cardState) : null;
   const codegameKeyAnchorCenter =
     isCodegameCard && !codegameSlotCenter ? getCodegameKeyCardWorldCenter(cardId, cardState) : null;
-  const anchoredCodegameCenter = codegameSlotCenter || codegameKeyAnchorCenter;
+  const hexitamaSlotCenter = isHexitamaCard ? getHexitamaActionCardSlotWorldCenter(cardId, cardState) : null;
+  const anchoredCardCenter = codegameSlotCenter || codegameKeyAnchorCenter || hexitamaSlotCenter;
   if (
-    anchoredCodegameCenter &&
-    (Math.abs((Number(cardState.x) || 0) - anchoredCodegameCenter.x) > 0.01 ||
-      Math.abs((Number(cardState.y) || 0) - anchoredCodegameCenter.y) > 0.01)
+    anchoredCardCenter &&
+    (Math.abs((Number(cardState.x) || 0) - anchoredCardCenter.x) > 0.01 ||
+      Math.abs((Number(cardState.y) || 0) - anchoredCardCenter.y) > 0.01)
   ) {
-    cardState = { ...cardState, x: anchoredCodegameCenter.x, y: anchoredCodegameCenter.y };
+    cardState = { ...cardState, x: anchoredCardCenter.x, y: anchoredCardCenter.y };
     cards.set(cardId, cardState);
     markCameraLooseRenderableCardIdsDirty();
   }
@@ -20853,37 +23153,45 @@ function renderCardElement(cardId, options = {}) {
       ? discardCenter.x
       : auctionCenter
         ? auctionCenter.x
-        : anchoredCodegameCenter
-          ? anchoredCodegameCenter.x
+        : anchoredCardCenter
+          ? anchoredCardCenter.x
           : cardState.x;
   const cardWorldY = cardState.inDeck && cardDeckState
-    ? cardDeckState.y
-    : discardCenter
-      ? discardCenter.y
-      : auctionCenter
-        ? auctionCenter.y
-        : anchoredCodegameCenter
-          ? anchoredCodegameCenter.y
+      ? cardDeckState.y
+      : discardCenter
+        ? discardCenter.y
+        : auctionCenter
+          ? auctionCenter.y
+        : anchoredCardCenter
+          ? anchoredCardCenter.y
           : cardState.y;
   const auctionCardWorldWidth = baseCardSize.width * AUCTION_CARD_SCALE;
   const auctionCardWorldHeight = baseCardSize.height * AUCTION_CARD_SCALE;
   const cardWorldWidth = cardState.inAuction ? auctionCardWorldWidth : baseCardSize.width;
   const cardWorldHeight = cardState.inAuction ? auctionCardWorldHeight : baseCardSize.height;
+  const cullMarginPx = getViewportCullMarginPx();
   const isVisibleInViewport = isWorldRectLikelyVisible(
     cardWorldX,
     cardWorldY,
     cardWorldWidth,
     cardWorldHeight,
-    VIEWPORT_CULL_MARGIN_PX
+    cullMarginPx
   );
   const shouldKeepMountedWhenOffscreen =
     isHeld ||
     isSelected ||
     hasActiveHandPreviewForCard ||
     discardReturnAnimatingCardIds.has(cardId);
-  if (!isVisibleInViewport && !shouldKeepMountedWhenOffscreen) {
-    removeTableCardElement(cardId);
-    return;
+  const hasCardElement = cardElements.has(cardId);
+  if (isVisibleInViewport || shouldKeepMountedWhenOffscreen) {
+    offscreenCardSinceById.delete(cardId);
+  } else if (!isVisibleInViewport && !shouldKeepMountedWhenOffscreen) {
+    const keepByGrace = hasCardElement && shouldKeepMountedDuringOffscreenGrace(offscreenCardSinceById, cardId);
+    if (!keepByGrace) {
+      offscreenCardSinceById.delete(cardId);
+      removeTableCardElement(cardId);
+      return;
+    }
   }
   const card = ensureCardElement(cardId);
   if (!card) {
@@ -20896,12 +23204,19 @@ function renderCardElement(cardId, options = {}) {
   const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
   setElementStylePx(card, 'left', screen.x);
   setElementStylePx(card, 'top', screen.y);
-  const cardScreenWidth = cardState.inAuction
+  let cardScreenWidth = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldWidth * camera.scale)
     : snapToDevicePixel(baseCardSize.width * camera.scale);
-  const cardScreenHeight = cardState.inAuction
+  let cardScreenHeight = cardState.inAuction
     ? snapToDevicePixel(auctionCardWorldHeight * camera.scale)
     : snapToDevicePixel(baseCardSize.height * camera.scale);
+  if (isHexitamaCard && !cardState.inAuction) {
+    const hexitamaCardScreenSide = getHexitamaCardScreenSide(cardId, cardState);
+    if (Number.isFinite(hexitamaCardScreenSide) && hexitamaCardScreenSide > 0) {
+      cardScreenWidth = hexitamaCardScreenSide;
+      cardScreenHeight = hexitamaCardScreenSide;
+    }
+  }
   setElementStylePx(card, 'width', cardScreenWidth);
   setElementStylePx(card, 'height', cardScreenHeight);
   const heldBySelf = Boolean(localClientId) && cardState.holderClientId === localClientId;
@@ -21087,7 +23402,11 @@ function renderCardElement(cardId, options = {}) {
   const isComponentLocked = isNativeImageComponentLocked(cardState);
   const isStickerLocked = isStickerComponent && isComponentLocked;
   const noteCardFace = cardState.face === 'back' ? 'back' : 'front';
-  const componentRotationDeg = isNativeImageComponentCard(cardState) ? normalizeStickerRotationDegrees(cardState.componentRotation) : 0;
+  const hexitamaRotationDeg = isHexitamaCard ? getHexitamaActionCardRotationDegrees(cardId, cardState) : 0;
+  const componentRotationDeg = normalizeStickerRotationDegrees(
+    (isNativeImageComponentCard(cardState) ? normalizeStickerRotationDegrees(cardState.componentRotation) : 0) +
+      hexitamaRotationDeg
+  );
   const isImageComponentCardMode = isImageComponent && cardState.componentCardSized !== false;
   const isImageComponentNativeMode = isImageComponent && cardState.componentCardSized === false;
   const isStickerComponentNativeMode = isStickerComponent && cardState.componentCardSized === false;
@@ -21107,6 +23426,8 @@ function renderCardElement(cardId, options = {}) {
   card.classList.toggle('is-sticker-component', isStickerComponent);
   card.classList.toggle('is-secret-area-component', isSecretAreaComponent);
   card.classList.toggle('is-note-component', isNoteComponent);
+  card.classList.toggle('is-hexitama-card', isHexitamaCard);
+  applyHexitamaActionCardSelectionVisual(card, isHexitamaActionSelected);
   card.classList.toggle('is-sticker-locked', isStickerLocked);
   card.classList.toggle('is-component-locked', isComponentLocked);
   card.classList.toggle('is-image-component-card', isImageComponentCardMode);
@@ -21484,7 +23805,7 @@ function collectCameraOnlyCardRenderIds(visibleStackCardIds = new Set()) {
   for (const renderedCardId of cardElements.keys()) {
     targetCardIds.add(renderedCardId);
   }
-  const viewportBounds = getViewportWorldBounds(VIEWPORT_CULL_MARGIN_PX);
+  const viewportBounds = getViewportWorldBounds(getViewportCullMarginPx());
   const looseCardIds = getCameraLooseRenderableCardIdsCache();
   for (const cardId of looseCardIds) {
     if (targetCardIds.has(cardId)) {
@@ -22192,9 +24513,9 @@ function applyCamera() {
     camera.panX = snapScreenTranslation(camera.panX);
     camera.panY = snapScreenTranslation(camera.panY);
   }
-  const cameraTransform = `translate(${camera.panX}px, ${camera.panY}px) scale(${camera.scale})`;
+  const cameraTransform = `translate3d(${camera.panX}px, ${camera.panY}px, 0) scale(${camera.scale})`;
   if (playspaceLayer) {
-    if (camera.scale !== lastAppliedGridScale) {
+    if (!Number.isFinite(lastAppliedGridScale) || Math.abs(camera.scale - lastAppliedGridScale) > GRID_SCALE_EPSILON) {
       const gridLineSize = getGridLineSizeForScale(camera.scale);
       const gridCellSize = getGridCellSizeForScale(camera.scale);
       const gridDotOpacityFactor = getGridDotOpacityFactorForScale(camera.scale);
@@ -22217,6 +24538,7 @@ function applyCamera() {
   runCameraRenderStep('mons-board', () => renderMonsBoard({ cameraOnly: true }));
   runCameraRenderStep('tafl-boards', () => renderTaflBoards({ cameraOnly: true }));
   runCameraRenderStep('go-boards', () => renderGoBoards({ cameraOnly: true }));
+  runCameraRenderStep('hexitama-boards', () => renderHexitamaBoards({ cameraOnly: true }));
   runCameraRenderStep('dice', () => renderAllDice({ cameraOnly: true }));
   renderChipSets();
   runCameraRenderStep('cards-and-decks', () => renderTableCardsAndDeckControls({ cameraOnly: true }));
@@ -22262,6 +24584,7 @@ function setZoomAtClient(clientX, clientY, nextScale) {
   camera.scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
   camera.panX = screen.x - worldX * camera.scale;
   camera.panY = screen.y - worldY * camera.scale;
+  markCameraInteractionActive();
   scheduleApplyCamera();
 }
 
@@ -22347,6 +24670,7 @@ function setLightMode(enabled, options = {}) {
   setModeIcon(nextEnabled);
   renderTaflBoards();
   renderGoBoards();
+  renderHexitamaBoards();
 
   if (!shouldAnimate) {
     return;
@@ -23419,8 +25743,19 @@ function isTabletopCompletelyEmpty() {
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasHexitamaBoards = Array.from(hexitamaGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return !hasCards && !hasDice && !hasDecks && !hasChipSets && !hasMonsBoards && !hasTaflBoards && !hasGoBoards && !hasDrawings;
+  return (
+    !hasCards &&
+    !hasDice &&
+    !hasDecks &&
+    !hasChipSets &&
+    !hasMonsBoards &&
+    !hasTaflBoards &&
+    !hasGoBoards &&
+    !hasHexitamaBoards &&
+    !hasDrawings
+  );
 }
 
 function hasRemovableDeleteTargets() {
@@ -23431,8 +25766,9 @@ function hasRemovableDeleteTargets() {
   const hasMonsBoards = Array.from(monsGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasTaflBoards = Array.from(taflGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasGoBoards = Array.from(goGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
+  const hasHexitamaBoards = Array.from(hexitamaGameStatesById.values()).some((gameState) => gameState && gameState.enabled !== false);
   const hasDrawings = drawingStrokes.size > 0;
-  return hasCards || hasDice || hasDecks || hasChipSets || hasMonsBoards || hasTaflBoards || hasGoBoards || hasDrawings;
+  return hasCards || hasDice || hasDecks || hasChipSets || hasMonsBoards || hasTaflBoards || hasGoBoards || hasHexitamaBoards || hasDrawings;
 }
 
 function syncRemoveComponentsButtonState() {
@@ -23493,6 +25829,9 @@ function resolveGameOptionsTitle(targetKey) {
   if (targetKey === GO_GAME_KEY || String(targetKey || '').startsWith('go:')) {
     return 'go';
   }
+  if (targetKey === HEXITAMA_GAME_KEY || String(targetKey || '').startsWith('hexitama:')) {
+    return 'hexitama';
+  }
   const targetDeckId = getDeckIdFromGameOptionsTarget(targetKey);
   if (targetDeckId) {
     const deckKind = getDeckKind(targetDeckId);
@@ -23543,6 +25882,14 @@ function getGoGameIdFromGameOptionsTarget(target) {
   return normalizeGoGameId(raw.slice('go:'.length));
 }
 
+function getHexitamaGameIdFromGameOptionsTarget(target) {
+  const raw = String(target || '');
+  if (!raw.startsWith('hexitama:')) {
+    return '';
+  }
+  return normalizeHexitamaGameId(raw.slice('hexitama:'.length));
+}
+
 function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTarget) {
   const targetMonsGameId = getMonsGameIdFromGameOptionsTarget(target);
   if (targetMonsGameId) {
@@ -23555,6 +25902,10 @@ function isCoverDrawingsEnabledForGameOptionsTarget(target = activeGameOptionsTa
   const targetGoGameId = getGoGameIdFromGameOptionsTarget(target);
   if (targetGoGameId) {
     return isGoCoverDrawingsEnabled(targetGoGameId);
+  }
+  const targetHexitamaGameId = getHexitamaGameIdFromGameOptionsTarget(target);
+  if (targetHexitamaGameId) {
+    return isHexitamaCoverDrawingsEnabled(targetHexitamaGameId);
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(target);
   if (targetDeckId) {
@@ -23689,6 +26040,9 @@ function openGameOptionsMenu(targetKey, targetId = '') {
   } else if (targetKey === GO_GAME_KEY) {
     const normalizedGoGameId = normalizeGoGameId(targetId || activeGoGameId || GO_GAME_KEY);
     activeGameOptionsTarget = `go:${normalizedGoGameId}`;
+  } else if (targetKey === HEXITAMA_GAME_KEY) {
+    const normalizedHexitamaGameId = normalizeHexitamaGameId(targetId || activeHexitamaGameId || HEXITAMA_GAME_KEY);
+    activeGameOptionsTarget = `hexitama:${normalizedHexitamaGameId}`;
   } else {
     activeGameOptionsTarget = `deck:${normalizeDeckId(targetId || activeDeckId || DECK_KEY)}`;
   }
@@ -23872,6 +26226,11 @@ async function handleGameOptionsReset() {
     await resetGoGame(targetGoGameId);
     return;
   }
+  const targetHexitamaGameId = getHexitamaGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetHexitamaGameId) {
+    await resetHexitamaGame(targetHexitamaGameId);
+    return;
+  }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
   await resetCoolJpegsGame(targetDeckId || activeDeckId);
 }
@@ -23893,6 +26252,11 @@ async function handleGameOptionsPutAway() {
   const targetGoGameId = getGoGameIdFromGameOptionsTarget(activeGameOptionsTarget);
   if (targetGoGameId) {
     await putAwayGoGame(targetGoGameId);
+    return;
+  }
+  const targetHexitamaGameId = getHexitamaGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+  if (targetHexitamaGameId) {
+    await putAwayHexitamaGame(targetHexitamaGameId);
     return;
   }
   const targetDeckId = getDeckIdFromGameOptionsTarget(activeGameOptionsTarget);
@@ -24094,6 +26458,14 @@ hnefataflTile?.addEventListener('click', () => {
 goTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnGoBoard().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+
+hexitamaTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnHexitamaBoard().catch((error) => {
     console.error(error);
     setRealtimeStatus('firebase: write blocked');
   });
@@ -25273,6 +27645,7 @@ initializeTileTilt(coolJpegsTile);
 initializeTileTilt(superMetalMonsTile);
 initializeTileTilt(hnefataflTile);
 initializeTileTilt(goTile);
+initializeTileTilt(hexitamaTile);
 initializeTileTilt(arcadeMachineTile);
 initializeTileTilt(codegameTile);
 initializeTileTilt(diceComponentTile);
@@ -26787,19 +29160,9 @@ async function startRealtimeSession() {
     labelRotateState ||
     monsDragState ||
     taflDragState ||
-    goDragState
+    goDragState ||
+    hexitamaDragState
   );
-
-  function runStateRenderSafely(stepName, renderFn) {
-    if (typeof renderFn !== 'function') {
-      return;
-    }
-    try {
-      renderFn();
-    } catch (error) {
-      console.error(`[state-render] ${stepName}`, error);
-    }
-  }
 
   function isLegacyDeckRootPayload(payload) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -26885,10 +29248,15 @@ async function startRealtimeSession() {
     return ref(db, `${roomPath}/games/${normalizedGameId}`);
   }
 
-  function getGoGameRef(gameId = activeGoGameId) {
-    const normalizedGameId = normalizeGoGameId(gameId);
-    return ref(db, `${roomPath}/games/${normalizedGameId}`);
-  }
+function getGoGameRef(gameId = activeGoGameId) {
+  const normalizedGameId = normalizeGoGameId(gameId);
+  return ref(db, `${roomPath}/games/${normalizedGameId}`);
+}
+
+function getHexitamaGameRef(gameId = activeHexitamaGameId) {
+  const normalizedGameId = normalizeHexitamaGameId(gameId);
+  return ref(db, `${roomPath}/games/${normalizedGameId}`);
+}
 
   function getUniqueConnectedElements(elements) {
     const uniqueElements = [];
@@ -27101,6 +29469,16 @@ async function startRealtimeSession() {
       return;
     }
 
+    if (kind === 'hexitama-game') {
+      const gameId = normalizeHexitamaGameId(entry.gameId || activeHexitamaGameId);
+      const gamePayload = cloneDeleteUndoPayload(entry.gamePayload);
+      if (!gameId || !gamePayload) {
+        return;
+      }
+      await set(ref(db, `${roomPath}/games/${gameId}`), gamePayload);
+      return;
+    }
+
     if (kind === 'mons-piece') {
       const gameId = normalizeMonsGameId(entry.gameId || activeMonsGameId);
       const pieceId = String(entry.pieceId || '').trim();
@@ -27216,6 +29594,19 @@ async function startRealtimeSession() {
     }
     return getUniqueConnectedElements([goUi.shell, goUi.moveButton, goUi.optionsButton]);
   }
+
+function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
+  const targetGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+  const hexitamaUi = hexitamaBoardElementsById.get(targetGameId);
+  const elements = [];
+  if (hexitamaUi) {
+    elements.push(hexitamaUi.shell, hexitamaUi.playButton, hexitamaUi.moveButton, hexitamaUi.optionsButton);
+  }
+  for (const cardId of getHexitamaActionCardIdsForGame(targetGameId)) {
+    elements.push(cardElements.get(cardId), handCardElements.get(cardId));
+  }
+  return getUniqueConnectedElements(elements);
+}
 
   function getMonsPieceDeleteFadeElement(pieceId, gameId = activeMonsGameId) {
     const targetPieceId = String(pieceId || '').trim();
@@ -27421,6 +29812,25 @@ async function startRealtimeSession() {
     }
   }
 
+  async function deleteHexitamaGameInRemoveMode(gameId = activeHexitamaGameId) {
+    const targetGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const gameSnapshot = cloneDeleteUndoPayload(getHexitamaGameStateById(targetGameId));
+    const didDelete = await runDeleteWithFade(
+      `hexitama-game:${targetGameId}`,
+      getHexitamaGameDeleteFadeElements(targetGameId),
+      async () => {
+        await putAwayHexitamaGame(targetGameId);
+      }
+    );
+    if (didDelete && gameSnapshot) {
+      pushDeleteModeUndoEntry({
+        kind: 'hexitama-game',
+        gameId: targetGameId,
+        gamePayload: gameSnapshot
+      });
+    }
+  }
+
   async function deleteMonsPieceInRemoveMode(pieceId, gameId = activeMonsGameId) {
     const targetPieceId = String(pieceId || '').trim();
     if (!targetPieceId) {
@@ -27502,6 +29912,7 @@ async function startRealtimeSession() {
     const selectedChipSetIdList = Array.from(selectedChipSetIds).map((chipSetId) => String(chipSetId || '').trim());
     const selectedTaflGameIdList = Array.from(selectedTaflGameIds).map((gameId) => normalizeTaflGameId(gameId));
     const selectedGoGameIdList = Array.from(selectedGoGameIds).map((gameId) => normalizeGoGameId(gameId));
+    const selectedHexitamaGameIdList = Array.from(selectedHexitamaGameIds).map((gameId) => normalizeHexitamaGameId(gameId));
 
     releaseAllSelectedObjects();
     syncSelectionDeleteButtonUi();
@@ -27527,6 +29938,9 @@ async function startRealtimeSession() {
     }
     for (const gameId of selectedGoGameIdList) {
       deleteJobs.push(onDeleteGoGameInRemoveMode(gameId));
+    }
+    for (const gameId of selectedHexitamaGameIdList) {
+      deleteJobs.push(onDeleteHexitamaGameInRemoveMode(gameId));
     }
 
     if (deleteJobs.length === 0) {
@@ -28386,6 +30800,7 @@ function closeNoteEditor(options = {}) {
       monsDragState ||
       taflDragState ||
       goDragState ||
+      hexitamaDragState ||
       selectionBoxState
     );
   }
@@ -28513,7 +30928,8 @@ function closeNoteEditor(options = {}) {
       labelRotateState ||
       groupDragState ||
       taflDragState ||
-      goDragState
+      goDragState ||
+      hexitamaDragState
     );
     const hasSelectedObjects = hasAnyGroupSelection();
     const hasMarbleFlick = Boolean(marbleFlickState);
@@ -28601,6 +31017,8 @@ function closeNoteEditor(options = {}) {
     taflDragState = null;
     const cancelledGoDragState = goDragState;
     goDragState = null;
+    const cancelledHexitamaDragState = hexitamaDragState;
+    hexitamaDragState = null;
     selectionBoxState = null;
     setDeckDropIndicator(false);
     setDiscardDropIndicator(false);
@@ -28658,6 +31076,7 @@ function closeNoteEditor(options = {}) {
     releaseSelectedChipSets();
     releaseSelectedTaflBoards();
     releaseSelectedGoBoards();
+    releaseSelectedHexitamaBoards();
     if (cancelledTaflDragState?.gameId) {
       const cancelledTaflGameId = normalizeTaflGameId(cancelledTaflDragState.gameId);
       setTaflBoardDragFloating(cancelledTaflGameId, false);
@@ -28676,6 +31095,15 @@ function closeNoteEditor(options = {}) {
         console.error(error);
       });
     }
+    if (cancelledHexitamaDragState?.gameId) {
+      const cancelledHexitamaGameId = normalizeHexitamaGameId(cancelledHexitamaDragState.gameId);
+      setHexitamaBoardDragFloating(cancelledHexitamaGameId, false);
+      patchLocalHexitamaGame({ holderClientId: null }, cancelledHexitamaGameId);
+      queueMonsPatch({ holderClientId: null }, cancelledHexitamaGameId);
+      releaseMonsBoardLock(cancelledHexitamaGameId).catch((error) => {
+        console.error(error);
+      });
+    }
   }
 
   function releaseUnexpectedLocalCardLocks() {
@@ -28689,6 +31117,7 @@ function closeNoteEditor(options = {}) {
     const movableSelectedChipSetIds = new Set(getMovableSelectedChipSetIds());
     const movableSelectedTaflIds = new Set(getMovableSelectedTaflGameIds());
     const movableSelectedGoIds = new Set(getMovableSelectedGoGameIds());
+    const movableSelectedHexitamaIds = new Set(getMovableSelectedHexitamaGameIds());
     for (const [cardId, cardState] of cards.entries()) {
       if (!cardState || cardState.holderClientId !== clientId) {
         continue;
@@ -28793,6 +31222,20 @@ function closeNoteEditor(options = {}) {
         continue;
       }
       patchLocalGoGame({ holderClientId: null }, normalizedGameId);
+      queueMonsPatch({ holderClientId: null }, normalizedGameId);
+      releaseMonsBoardLock(normalizedGameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const [gameId, gameState] of hexitamaGameStatesById.entries()) {
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      const normalizedGameId = normalizeHexitamaGameId(gameId);
+      if (hexitamaDragState?.gameId === normalizedGameId || movableSelectedHexitamaIds.has(normalizedGameId)) {
+        continue;
+      }
+      patchLocalHexitamaGame({ holderClientId: null }, normalizedGameId);
       queueMonsPatch({ holderClientId: null }, normalizedGameId);
       releaseMonsBoardLock(normalizedGameId).catch((error) => {
         console.error(error);
@@ -29984,6 +32427,16 @@ function closeNoteEditor(options = {}) {
           : null,
       handOwnerPlayerToken: getCardHandOwnerId(currentCard) || null
     };
+    if (isHexitamaActionCardState(currentCard, normalizedCardId)) {
+      const hexitamaGameId = normalizeHexitamaGameId(
+        String(currentCard.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(normalizedCardId)
+      );
+      nextPatch.hexitamaCard = true;
+      nextPatch.hexitamaGameId = hexitamaGameId;
+      nextPatch.hexitamaSlotKey = getHexitamaCardSlotKey(currentCard, normalizedCardId);
+      nextPatch.deckId = getHexitamaCardDeckId(hexitamaGameId);
+      nextPatch.face = 'front';
+    }
     if (isCodegameCardState(currentCard) && !isCodegameKeyCardState(currentCard)) {
       const rawMarkedSlot = Number(currentCard.codegameMarkedSlot);
       const markedSlot = Number.isInteger(rawMarkedSlot) ? clamp(rawMarkedSlot, 0, CODEGAME_GRID_SLOT_COUNT - 1) : -1;
@@ -31201,7 +33654,7 @@ function closeNoteEditor(options = {}) {
         : patch;
     const nextState = normalizeDicePayload({ ...existingDie, ...nextPatch });
     diceById.set(dieId, nextState);
-    runStateRenderSafely('patchLocalDie', () => renderDieElement(dieId));
+    runRenderSafely('patchLocalDie', () => renderDieElement(dieId));
   }
 
   function patchLocalCard(cardId, patch, options = {}) {
@@ -31290,19 +33743,20 @@ function closeNoteEditor(options = {}) {
       };
     }
     const visibleStackCardIds = getVisibleStackCardIdsFromMetrics(getCardDeckMetricsCache().metricsByDeck);
-    runStateRenderSafely('patchLocalCard:card', () => renderCardElement(cardId, { visibleStackCardIds }));
+    runRenderSafely('patchLocalCard:card', () => renderCardElement(cardId, { visibleStackCardIds }));
     scheduleStackPointCountBadgesRender();
     if (affectsLocalHand) {
-      runStateRenderSafely('patchLocalCard:hand', () => renderLocalHandCards());
-      runStateRenderSafely('patchLocalCard:handCount', () => setLocalHandCountLabel());
+      runRenderSafely('patchLocalCard:hand', () => renderLocalHandCards());
+      runRenderSafely('patchLocalCard:handCount', () => setLocalHandCountLabel());
     }
     if (secretAreaVisibilityChanged) {
-      runStateRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
-      runStateRenderSafely('patchLocalCard:dice', () => renderAllDice());
-      runStateRenderSafely('patchLocalCard:chipSets', () => renderChipSets());
-      runStateRenderSafely('patchLocalCard:mons', () => renderMonsBoard());
-      runStateRenderSafely('patchLocalCard:tafl', () => renderTaflBoards());
-      runStateRenderSafely('patchLocalCard:go', () => renderGoBoards());
+      runRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
+      runRenderSafely('patchLocalCard:dice', () => renderAllDice());
+      runRenderSafely('patchLocalCard:chipSets', () => renderChipSets());
+      runRenderSafely('patchLocalCard:mons', () => renderMonsBoard());
+      runRenderSafely('patchLocalCard:tafl', () => renderTaflBoards());
+      runRenderSafely('patchLocalCard:go', () => renderGoBoards());
+      runRenderSafely('patchLocalCard:hexitama', () => renderHexitamaBoards());
     }
     return {
       affectsLocalHand,
@@ -31330,13 +33784,13 @@ function closeNoteEditor(options = {}) {
     if (deckIds.length === 1) {
       const followCardIds = pendingFastDeckMoveFollowerCardIdsByDeck.get(deckIds[0]) || null;
       pendingFastDeckMoveFollowerCardIdsByDeck.delete(deckIds[0]);
-      runStateRenderSafely('patchLocalDeck:fast-queued-single', () => {
+      runRenderSafely('patchLocalDeck:fast-queued-single', () => {
         renderDeckCardsAndControlsForMove(deckIds[0], deckMetrics, { followCardIds });
       });
       return;
     }
     pendingFastDeckMoveFollowerCardIdsByDeck.clear();
-    runStateRenderSafely('patchLocalDeck:fast-queued-multi', () => {
+    runRenderSafely('patchLocalDeck:fast-queued-multi', () => {
       renderTableCardsAndDeckControls({ deckMetrics });
     });
   }
@@ -31398,7 +33852,7 @@ function closeNoteEditor(options = {}) {
       return;
     }
     clearQueuedFastDeckMoveRenders();
-    runStateRenderSafely('patchLocalDeck', () => renderAllCards());
+    runRenderSafely('patchLocalDeck', () => renderAllCards());
   }
 
   function patchLocalChipSet(patch, chipSetId) {
@@ -31409,7 +33863,7 @@ function closeNoteEditor(options = {}) {
     const baseChipSet = chipSetsById.get(normalizedChipSetId) || normalizeChipSetPayload({});
     const nextChipSet = normalizeChipSetPayload({ ...baseChipSet, ...patch });
     chipSetsById.set(normalizedChipSetId, nextChipSet);
-    runStateRenderSafely('patchLocalChipSet', () => renderChipSets());
+    runRenderSafely('patchLocalChipSet', () => renderChipSets());
     syncClearTableButtonState();
   }
 
@@ -31422,7 +33876,7 @@ function closeNoteEditor(options = {}) {
       monsGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    runStateRenderSafely('patchLocalMonsGame', () => renderMonsBoard());
+    runRenderSafely('patchLocalMonsGame', () => renderMonsBoard());
   }
 
   function patchLocalTaflGame(patch, gameId = activeTaflGameId) {
@@ -31434,7 +33888,7 @@ function closeNoteEditor(options = {}) {
       taflGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    runStateRenderSafely('patchLocalTaflGame', () => renderTaflBoards());
+    runRenderSafely('patchLocalTaflGame', () => renderTaflBoards());
   }
 
   function patchLocalGoGame(patch, gameId = activeGoGameId) {
@@ -31446,7 +33900,52 @@ function closeNoteEditor(options = {}) {
       goGameState = nextGame;
     }
     syncCoverDrawingsGamesLayerState();
-    runStateRenderSafely('patchLocalGoGame', () => renderGoBoards());
+    runRenderSafely('patchLocalGoGame', () => renderGoBoards());
+  }
+
+  function renderHexitamaSlottedCardsForGame(gameId = activeHexitamaGameId, options = {}) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId);
+    const cameraOnly = options?.cameraOnly === true;
+    for (const [cardId, cardState] of cards.entries()) {
+      if (!isHexitamaActionCardState(cardState, cardId)) {
+        continue;
+      }
+      const cardGameId = normalizeHexitamaGameId(
+        String(cardState?.hexitamaGameId || '').trim() || getHexitamaCardGameIdFromCardId(cardId)
+      );
+      if (cardGameId !== normalizedGameId) {
+        continue;
+      }
+      if (
+        cardState.inDeck ||
+        cardState.inDiscard ||
+        cardState.inAuction ||
+        Boolean(getCardHandOwnerId(cardState)) ||
+        Boolean(cardState.holderClientId)
+      ) {
+        continue;
+      }
+      const slotKey = getHexitamaCardSlotKey(cardState, cardId);
+      if (!slotKey) {
+        continue;
+      }
+      renderCardElement(cardId, { cameraOnly });
+    }
+  }
+
+  function patchLocalHexitamaGame(patch, gameId = activeHexitamaGameId) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId);
+    const baseGame = getHexitamaGameStateById(normalizedGameId) || normalizeHexitamaGamePayload({});
+    const nextGame = normalizeHexitamaGamePayload({ ...baseGame, ...patch });
+    hexitamaGameStatesById.set(normalizedGameId, nextGame);
+    if (normalizeHexitamaGameId(activeHexitamaGameId) === normalizedGameId) {
+      hexitamaGameState = nextGame;
+    }
+    syncCoverDrawingsGamesLayerState();
+    runRenderSafely('patchLocalHexitamaGame', () => {
+      renderHexitamaBoards();
+      renderHexitamaSlottedCardsForGame(normalizedGameId);
+    });
   }
 
   function getTopCardZ() {
@@ -31618,6 +34117,9 @@ function getCardDeckId(cardState) {
         continue;
       }
       if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+        continue;
+      }
+      if (!canCardUseDeckZones(cardState)) {
         continue;
       }
       if (!includeHeldCards && cardState.holderClientId) {
@@ -31878,15 +34380,56 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return patch;
     }
     const cardState = cards.get(normalizedCardId);
-    if (!isCodegameKeyCardState(cardState)) {
-      return patch;
+    let nextPatch = patch;
+    if (isCodegameKeyCardState(cardState)) {
+      nextPatch = { ...nextPatch };
+      if (nextPatch.codegameKeyAnchored !== false) {
+        nextPatch.codegameKeyAnchored = false;
+      }
+      nextPatch.codegameKeyMoved = true;
+      nextPatch.codegameGridSlot = -1;
     }
-    const nextPatch = { ...patch };
-    if (nextPatch.codegameKeyAnchored !== false) {
-      nextPatch.codegameKeyAnchored = false;
+    if (isHexitamaActionCardState(cardState, normalizedCardId)) {
+      const isInitialPickup =
+        Object.prototype.hasOwnProperty.call(nextPatch, 'holderClientId') &&
+        String(nextPatch.holderClientId || '') === String(clientId || '') &&
+        String(cardState?.holderClientId || '') !== String(clientId || '');
+      const shouldDetachSlot =
+        !isInitialPickup &&
+        !Object.prototype.hasOwnProperty.call(nextPatch, 'hexitamaSlotKey') &&
+        (
+          patchTouchesPosition(nextPatch) ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'holderClientId') ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'handOwnerClientId') ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'handOwnerPlayerToken') ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'inDeck') ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'inDiscard') ||
+          Object.prototype.hasOwnProperty.call(nextPatch, 'inAuction')
+        );
+      const needsHexitamaDefaults =
+        !Object.prototype.hasOwnProperty.call(nextPatch, 'hexitamaCard') ||
+        !Object.prototype.hasOwnProperty.call(nextPatch, 'hexitamaGameId') ||
+        !Object.prototype.hasOwnProperty.call(nextPatch, 'deckId');
+      if (shouldDetachSlot || needsHexitamaDefaults) {
+        nextPatch = { ...nextPatch };
+      }
+      const hexitamaGameId = normalizeHexitamaGameId(
+        String(nextPatch.hexitamaGameId || cardState?.hexitamaGameId || '').trim() ||
+        getHexitamaCardGameIdFromCardId(normalizedCardId)
+      );
+      if (!Object.prototype.hasOwnProperty.call(nextPatch, 'hexitamaCard')) {
+        nextPatch.hexitamaCard = true;
+      }
+      if (!Object.prototype.hasOwnProperty.call(nextPatch, 'hexitamaGameId')) {
+        nextPatch.hexitamaGameId = hexitamaGameId;
+      }
+      if (!Object.prototype.hasOwnProperty.call(nextPatch, 'deckId')) {
+        nextPatch.deckId = getHexitamaCardDeckId(hexitamaGameId);
+      }
+      if (shouldDetachSlot) {
+        nextPatch.hexitamaSlotKey = '';
+      }
     }
-    nextPatch.codegameKeyMoved = true;
-    nextPatch.codegameGridSlot = -1;
     return nextPatch;
   }
 
@@ -31941,6 +34484,333 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return null;
     }
     return buildCodegameGridDropPatchAtPosition(cardId, cardState.x, cardState.y, preferredDeckId);
+  }
+
+  function buildHexitamaActionCardSlotDropPatch(cardId, preferredGameId = '', x = Number.NaN, y = Number.NaN) {
+    const normalizedCardId = String(cardId || '').trim();
+    const cardState = cards.get(normalizedCardId);
+    if (!isHexitamaActionCardState(cardState, normalizedCardId)) {
+      return null;
+    }
+    if (cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      return null;
+    }
+    const targetGameId = normalizeHexitamaGameId(
+      preferredGameId ||
+      cardState?.hexitamaGameId ||
+      getHexitamaCardGameIdFromCardId(normalizedCardId)
+    );
+    const targetX = Number.isFinite(Number(x)) ? Number(x) : (Number(cardState.x) || 0);
+    const targetY = Number.isFinite(Number(y)) ? Number(y) : (Number(cardState.y) || 0);
+    const slotTarget = getHexitamaActionCardSlotAtPosition(
+      targetX,
+      targetY,
+      targetGameId,
+      normalizedCardId
+    );
+    if (!slotTarget || !slotTarget.center) {
+      return null;
+    }
+    const slotGameId = normalizeHexitamaGameId(slotTarget.gameId || targetGameId);
+    const slotKey = String(slotTarget.slotKey || '').trim().toLowerCase();
+    if (!HEXITAMA_CARD_SLOT_KEYS.includes(slotKey)) {
+      return null;
+    }
+    const patch = {
+      x: slotTarget.center.x,
+      y: slotTarget.center.y,
+      z: Math.max(1, Number(cardState.z) || 1),
+      face: 'front',
+      deckId: getHexitamaCardDeckId(slotGameId),
+      hexitamaCard: true,
+      hexitamaGameId: slotGameId,
+      hexitamaSlotKey: slotKey,
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      codegameGridSlot: -1,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    return withCodegameKeyCardUnanchoredPatch(normalizedCardId, patch);
+  }
+
+  function handleHexitamaActionCardSelectionClick(cardId) {
+    const normalizedCardId = String(cardId || '').trim();
+    if (!normalizedCardId) {
+      return false;
+    }
+    const cardState = cards.get(normalizedCardId);
+    if (!isHexitamaActionCardState(cardState, normalizedCardId)) {
+      if (hexitamaSelectedActionCardId) {
+        clearHexitamaActionSelection();
+      }
+      return false;
+    }
+    if (!isHexitamaActionCardSelectable(cardState, normalizedCardId)) {
+      if (hexitamaSelectedActionCardId) {
+        clearHexitamaActionSelection();
+      }
+      return false;
+    }
+    const handled = setHexitamaActionSelection(normalizedCardId, cardState);
+    if (handled) {
+      forceHexitamaSelectionVisualCommit();
+      applyCamera();
+    }
+    return handled;
+  }
+
+  function handleHexitamaPieceSelectionClick(gameId, pieceId) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const normalizedPieceId = String(pieceId || '').trim();
+    if (!normalizedPieceId) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    if (!hexitamaSelectedActionCardId || normalizeHexitamaGameId(hexitamaSelectedActionGameId) !== normalizedGameId) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const gameState = getHexitamaGameStateById(normalizedGameId);
+    if (!gameState || gameState.enabled === false) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const selectedCardState = cards.get(hexitamaSelectedActionCardId);
+    if (!isHexitamaActionCardSelectable(selectedCardState, hexitamaSelectedActionCardId)) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const piecePayload = gameState.pieces?.[normalizedPieceId];
+    if (!piecePayload) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const slotKey = getHexitamaCardSlotKey(selectedCardState, hexitamaSelectedActionCardId, { allowInfer: true });
+    const cardSide = getHexitamaCardSlotSide(slotKey);
+    if (!cardSide || normalizeHexitamaPieceSide(piecePayload.side) !== cardSide) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    if (
+      normalizeHexitamaGameId(hexitamaSelectedPieceGameId) === normalizedGameId &&
+      String(hexitamaSelectedPieceId || '').trim() === normalizedPieceId
+    ) {
+      clearHexitamaPieceSelection();
+      return true;
+    }
+    const nextTargets = computeHexitamaMoveTargets(
+      gameState,
+      selectedCardState,
+      hexitamaSelectedActionCardId,
+      piecePayload
+    ).map((target) => ({
+      ...target,
+      gameId: normalizedGameId,
+      pieceId: normalizedPieceId
+    }));
+    hexitamaSelectedPieceId = normalizedPieceId;
+    hexitamaSelectedPieceGameId = normalizedGameId;
+    hexitamaMoveTargets = nextTargets;
+    runRenderSafely('hexitama-piece-selection:on', () => renderHexitamaBoards());
+    forceHexitamaSelectionVisualCommit();
+    applyCamera();
+    return true;
+  }
+
+  async function swapHexitamaUsedActionCardWithNeutral(gameId, usedCardId) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const normalizedUsedCardId = String(usedCardId || '').trim();
+    if (!normalizedUsedCardId) {
+      return false;
+    }
+    const usedCardState = cards.get(normalizedUsedCardId);
+    if (!isHexitamaActionCardState(usedCardState, normalizedUsedCardId)) {
+      return false;
+    }
+    const usedSlotKey = getHexitamaCardSlotKey(usedCardState, normalizedUsedCardId, { allowInfer: true });
+    if (!isHexitamaHandSlotKey(usedSlotKey)) {
+      return false;
+    }
+    const neutralCardId = getHexitamaActionCardIdForSlot(normalizedGameId, 'slot-left', normalizedUsedCardId);
+    if (!neutralCardId) {
+      return false;
+    }
+    const neutralCardState = cards.get(neutralCardId);
+    if (!isHexitamaActionCardState(neutralCardState, neutralCardId)) {
+      return false;
+    }
+    const usedSlotCenter = getHexitamaActionCardWorldPosition(normalizedGameId, usedSlotKey);
+    const neutralSlotCenter = getHexitamaActionCardWorldPosition(normalizedGameId, 'slot-left');
+    const updatesByPath = {};
+    runRenderSafely('hexitama-card-swap:prep-used', () => renderCardElement(normalizedUsedCardId));
+    runRenderSafely('hexitama-card-swap:prep-neutral', () => renderCardElement(neutralCardId));
+    const usedCardElement = cardElements.get(normalizedUsedCardId);
+    const neutralCardElement = cardElements.get(neutralCardId);
+    if (usedCardElement instanceof HTMLElement) {
+      applyHexitamaActionCardSelectionVisual(usedCardElement, false);
+      usedCardElement.classList.add('is-hexitama-swapping');
+      void usedCardElement.offsetWidth;
+    }
+    if (neutralCardElement instanceof HTMLElement) {
+      applyHexitamaActionCardSelectionVisual(neutralCardElement, false);
+      neutralCardElement.classList.add('is-hexitama-swapping');
+      void neutralCardElement.offsetWidth;
+    }
+    await waitForNextPaintFrame();
+
+    const usedPatch = {
+      x: neutralSlotCenter.x,
+      y: neutralSlotCenter.y,
+      hexitamaGameId: normalizedGameId,
+      hexitamaSlotKey: 'slot-left',
+      deckId: getHexitamaCardDeckId(normalizedGameId),
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    const neutralPatch = {
+      x: usedSlotCenter.x,
+      y: usedSlotCenter.y,
+      hexitamaGameId: normalizedGameId,
+      hexitamaSlotKey: usedSlotKey,
+      deckId: getHexitamaCardDeckId(normalizedGameId),
+      inDeck: false,
+      inDiscard: false,
+      inAuction: false,
+      holderClientId: null,
+      handOwnerClientId: null,
+      handOwnerPlayerToken: null
+    };
+    patchLocalCard(normalizedUsedCardId, usedPatch, { deferRender: true });
+    patchLocalCard(neutralCardId, neutralPatch, { deferRender: true });
+
+    for (const [patchKey, patchValue] of Object.entries(usedPatch)) {
+      updatesByPath[`${normalizedUsedCardId}/${patchKey}`] = patchValue;
+    }
+    updatesByPath[`${normalizedUsedCardId}/updatedAt`] = serverTimestamp();
+    for (const [patchKey, patchValue] of Object.entries(neutralPatch)) {
+      updatesByPath[`${neutralCardId}/${patchKey}`] = patchValue;
+    }
+    updatesByPath[`${neutralCardId}/updatedAt`] = serverTimestamp();
+
+    queueCardPatch(normalizedUsedCardId, usedPatch);
+    queueCardPatch(neutralCardId, neutralPatch);
+    persistCardStateImmediately(normalizedUsedCardId);
+    persistCardStateImmediately(neutralCardId);
+    runRenderSafely('hexitama-card-swap:render-used', () => renderCardElement(normalizedUsedCardId));
+    runRenderSafely('hexitama-card-swap:render-neutral', () => renderCardElement(neutralCardId));
+    try {
+      await Promise.all([
+        update(cardsRef, updatesByPath),
+        new Promise((resolve) => window.setTimeout(resolve, HEXITAMA_CARD_SWAP_ANIMATION_MS))
+      ]);
+    } finally {
+      if (usedCardElement instanceof HTMLElement) {
+        usedCardElement.classList.remove('is-hexitama-swapping');
+      }
+      if (neutralCardElement instanceof HTMLElement) {
+        neutralCardElement.classList.remove('is-hexitama-swapping');
+      }
+    }
+    return true;
+  }
+
+  async function moveHexitamaPieceUsingSelectedCard(gameId, pieceId, targetColIndex, targetRowValue) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const normalizedPieceId = String(pieceId || '').trim();
+    if (!normalizedPieceId) {
+      return false;
+    }
+    if (!hexitamaSelectedActionCardId || normalizeHexitamaGameId(hexitamaSelectedActionGameId) !== normalizedGameId) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const selectedCardId = String(hexitamaSelectedActionCardId || '').trim();
+    const selectedCardState = cards.get(selectedCardId);
+    if (!isHexitamaActionCardSelectable(selectedCardState, selectedCardId)) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const neutralCardId = getHexitamaActionCardIdForSlot(normalizedGameId, 'slot-left', selectedCardId);
+    if (!neutralCardId) {
+      clearHexitamaActionSelection();
+      return false;
+    }
+    const selectedSlotKey = getHexitamaCardSlotKey(selectedCardState, selectedCardId, { allowInfer: true });
+    const selectedCardSide = getHexitamaCardSlotSide(selectedSlotKey);
+    const targetCol = normalizeHexitamaTileColIndex(targetColIndex);
+    const targetRow = normalizeHexitamaTileRowValue(targetRowValue);
+    if (!selectedCardSide || !isHexitamaValidTileCoordinate(targetCol, targetRow)) {
+      return false;
+    }
+    const moveResult = await runTransaction(
+      getHexitamaGameRef(normalizedGameId),
+      (currentGame) => {
+        if (!currentGame || typeof currentGame !== 'object') {
+          return;
+        }
+        const normalized = normalizeHexitamaGamePayload(currentGame || {});
+        if (!normalized || normalized.enabled === false) {
+          return;
+        }
+        const movingPiece = normalized.pieces?.[normalizedPieceId];
+        if (!movingPiece || normalizeHexitamaPieceSide(movingPiece.side) !== selectedCardSide) {
+          return;
+        }
+        const recomputedTargets = computeHexitamaMoveTargets(normalized, selectedCardState, selectedCardId, movingPiece);
+        const selectedMoveTarget = recomputedTargets.find(
+          (target) => target.colIndex === targetCol && Math.abs(target.rowValue - targetRow) <= 0.001
+        );
+        if (!selectedMoveTarget) {
+          return;
+        }
+        const nextPieces = { ...normalized.pieces };
+        if (selectedMoveTarget.capture === true) {
+          const capturePieceId = String(selectedMoveTarget.capturePieceId || '').trim();
+          if (capturePieceId && nextPieces[capturePieceId]) {
+            delete nextPieces[capturePieceId];
+          } else {
+            const occupantPiece = getHexitamaPieceAtTileFromPayload(nextPieces, targetCol, targetRow, normalizedPieceId);
+            const occupantSide = normalizeHexitamaPieceSide(occupantPiece?.side);
+            if (occupantPiece && occupantSide && occupantSide !== selectedCardSide) {
+              delete nextPieces[String(occupantPiece.id || '').trim()];
+            }
+          }
+        }
+        nextPieces[normalizedPieceId] = {
+          ...movingPiece,
+          colIndex: targetCol,
+          rowValue: targetRow
+        };
+        return {
+          ...normalized,
+          pieces: normalizeHexitamaPiecesPayload(nextPieces),
+          moveTick: (Number(normalized.moveTick) || 0) + 1,
+          neutralSlotFacesBlack: selectedCardSide === 'white',
+          updatedAt: Date.now()
+        };
+      },
+      { applyLocally: false }
+    );
+    if (!moveResult?.committed) {
+      return false;
+    }
+    const committedPayload = moveResult.snapshot?.val();
+    if (committedPayload && typeof committedPayload === 'object') {
+      patchLocalHexitamaGame(committedPayload, normalizedGameId);
+    }
+    // On successful move, immediately clear card/piece selection highlights and targets.
+    clearHexitamaActionSelection();
+    // Ensure selection visuals are gone before the action card swap animation starts.
+    await waitForNextPaintFrame();
+    await swapHexitamaUsedActionCardWithNeutral(normalizedGameId, selectedCardId);
+    return true;
   }
 
   function buildDeckDropPatch(cardId, preferredDeckId = '') {
@@ -32279,6 +35149,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     });
   }
 
+  function getMovableSelectedHexitamaGameIds() {
+    return Array.from(selectedHexitamaGameIds).filter((gameId) => {
+      const gameState = getHexitamaGameStateById(gameId);
+      return Boolean(gameState) && gameState.enabled !== false && gameState.holderClientId === clientId;
+    });
+  }
+
   function hasAnyGroupSelection() {
     return (
       selectedCardIds.size > 0 ||
@@ -32287,7 +35164,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       selectedMonsGameIds.size > 0 ||
       selectedChipSetIds.size > 0 ||
       selectedTaflGameIds.size > 0 ||
-      selectedGoGameIds.size > 0
+      selectedGoGameIds.size > 0 ||
+      selectedHexitamaGameIds.size > 0
     );
   }
 
@@ -32464,6 +35342,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     syncSelectionDeleteButtonUi();
   }
 
+  function releaseSelectedHexitamaBoards() {
+    const selectedIds = Array.from(selectedHexitamaGameIds);
+    selectedHexitamaGameIds.clear();
+    let shouldRender = selectedIds.length > 0;
+    for (const gameId of selectedIds) {
+      const gameState = getHexitamaGameStateById(gameId);
+      if (gameState?.holderClientId === clientId) {
+        patchLocalHexitamaGame({ holderClientId: null }, gameId);
+        queueMonsPatch({ holderClientId: null }, gameId);
+        releaseMonsBoardLock(gameId).catch((error) => {
+          console.error(error);
+        });
+      } else {
+        shouldRender = true;
+      }
+    }
+    if (shouldRender) {
+      renderHexitamaBoards();
+    }
+    syncSelectionDeleteButtonUi();
+  }
+
   function releaseAllSelectedObjects() {
     releaseSelectedCards();
     releaseSelectedDice();
@@ -32472,6 +35372,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     releaseSelectedChipSets();
     releaseSelectedTaflBoards();
     releaseSelectedGoBoards();
+    releaseSelectedHexitamaBoards();
     syncSelectionDeleteButtonUi();
   }
 
@@ -32488,6 +35389,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const chipSetCandidates = [];
     const taflCandidates = [];
     const goCandidates = [];
+    const hexitamaCandidates = [];
     const overlapsSelectionRect = (centerX, centerY, width, height) => {
       const halfWidth = Math.max(0, Number(width) || 0) / 2;
       const halfHeight = Math.max(0, Number(height) || 0) / 2;
@@ -32654,6 +35556,22 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
     }
 
+    for (const [rawGameId, gameState] of hexitamaGameStatesById.entries()) {
+      const normalizedGameId = normalizeHexitamaGameId(rawGameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      if (!bypassSecretAreaOcclusion && isWorldPointHiddenBySecretAreaForLocalViewer(gameState.x, gameState.y)) {
+        continue;
+      }
+      if (gameState.holderClientId && gameState.holderClientId !== clientId) {
+        continue;
+      }
+      if (overlapsSelectionRect(gameState.x, gameState.y, gameState.width, gameState.height)) {
+        hexitamaCandidates.push(normalizedGameId);
+      }
+    }
+
     releaseAllSelectedObjects();
     if (
       cardCandidates.length === 0 &&
@@ -32662,7 +35580,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       monsCandidates.length === 0 &&
       chipSetCandidates.length === 0 &&
       taflCandidates.length === 0 &&
-      goCandidates.length === 0
+      goCandidates.length === 0 &&
+      hexitamaCandidates.length === 0
     ) {
       return;
     }
@@ -32761,6 +35680,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       patchLocalGoGame({ holderClientId: clientId }, gameId);
       queueMonsPatch({ holderClientId: clientId }, gameId);
     }
+
+    for (const gameId of hexitamaCandidates) {
+      const acquired = await acquireMonsBoardLock(gameId);
+      if (!acquired) {
+        continue;
+      }
+      selectedHexitamaGameIds.add(gameId);
+      patchLocalHexitamaGame({ holderClientId: clientId }, gameId);
+      queueMonsPatch({ holderClientId: clientId }, gameId);
+    }
     syncSelectionDeleteButtonUi();
   }
 
@@ -32772,6 +35701,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const baseChipSetPositions = new Map();
     const baseTaflPositions = new Map();
     const baseGoPositions = new Map();
+    const baseHexitamaPositions = new Map();
 
     for (const cardId of getMovableSelectedIds()) {
       const cardState = cards.get(cardId);
@@ -32830,6 +35760,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
       baseGoPositions.set(gameId, { x: gameState.x, y: gameState.y });
     }
+    for (const gameId of getMovableSelectedHexitamaGameIds()) {
+      const gameState = getHexitamaGameStateById(gameId);
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      baseHexitamaPositions.set(gameId, { x: gameState.x, y: gameState.y });
+    }
 
     return {
       basePositions,
@@ -32838,7 +35775,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       baseMonsPositions,
       baseChipSetPositions,
       baseTaflPositions,
-      baseGoPositions
+      baseGoPositions,
+      baseHexitamaPositions
     };
   }
 
@@ -33060,6 +35998,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       taflDragState ||
       monsDragState ||
       goDragState ||
+      hexitamaDragState ||
       cardDragState ||
       cardResizeState ||
       cardRotateState ||
@@ -33113,6 +36052,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       goDragState ||
       monsDragState ||
       taflDragState ||
+      hexitamaDragState ||
       cardDragState ||
       cardResizeState ||
       cardRotateState ||
@@ -33147,6 +36087,60 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       anchorOffsetX: worldPoint.x - anchorGameState.x,
       anchorOffsetY: worldPoint.y - anchorGameState.y,
       anchorType: 'go',
+      anchorId: normalizedGameId,
+      anchorCardId: '',
+      anchorWidth: anchorGameState.width,
+      anchorHeight: anchorGameState.height,
+      ...groupBase,
+      moved: false
+    };
+    syncHandHoverDragLock();
+    bringSelectedDeckStacksToFront(groupBase.baseDeckPositions);
+    return true;
+  }
+
+  function beginGroupDragFromHexitama(event, gameId) {
+    const normalizedGameId = normalizeHexitamaGameId(gameId);
+    if (
+      !selectedHexitamaGameIds.has(normalizedGameId) ||
+      hexitamaDragState ||
+      goDragState ||
+      monsDragState ||
+      taflDragState ||
+      cardDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      labelResizeState ||
+      labelRotateState ||
+      groupDragState ||
+      handReorderState
+    ) {
+      return false;
+    }
+    const worldPoint = screenToWorldFromClient(event.clientX, event.clientY);
+    if (!worldPoint) {
+      return false;
+    }
+    const groupBase = buildGroupDragBase();
+    const anchorGameState = getHexitamaGameStateById(normalizedGameId);
+    const anchorBase = groupBase.baseHexitamaPositions.get(normalizedGameId);
+    if (!anchorGameState || !anchorBase) {
+      releaseAllSelectedObjects();
+      return false;
+    }
+
+    groupDragState = {
+      pointerId: event.pointerId,
+      pointerType: getEffectivePointerType(event),
+      startedAt: Date.now(),
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      lastClientX: event.clientX,
+      lastClientY: event.clientY,
+      lastMotionAt: 0,
+      anchorOffsetX: worldPoint.x - anchorGameState.x,
+      anchorOffsetY: worldPoint.y - anchorGameState.y,
+      anchorType: 'hexitama',
       anchorId: normalizedGameId,
       anchorCardId: '',
       anchorWidth: anchorGameState.width,
@@ -33257,6 +36251,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       anchorBase = groupDragState.baseTaflPositions.get(groupDragState.anchorId);
     } else if (groupDragState.anchorType === 'go') {
       anchorBase = groupDragState.baseGoPositions.get(groupDragState.anchorId);
+    } else if (groupDragState.anchorType === 'hexitama') {
+      anchorBase = groupDragState.baseHexitamaPositions.get(groupDragState.anchorId);
     } else if (groupDragState.anchorType === 'die') {
       anchorBase = groupDragState.baseDiePositions.get(groupDragState.anchorId);
     } else {
@@ -33470,6 +36466,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       queueMonsPatch(patch, selectedGameId);
     }
 
+    for (const [selectedGameId, base] of groupDragState.baseHexitamaPositions.entries()) {
+      const targetGameState = getHexitamaGameStateById(selectedGameId);
+      const halfWidth = Math.max(1, Number(targetGameState?.width) || HEXITAMA_BOARD_WORLD_WIDTH) / 2;
+      const halfHeight = Math.max(1, Number(targetGameState?.height) || HEXITAMA_BOARD_WORLD_HEIGHT) / 2;
+      const nextX = clamp(base.x + deltaX, halfWidth, WORLD_WIDTH - halfWidth);
+      const nextY = clamp(base.y + deltaY, halfHeight, WORLD_HEIGHT - halfHeight);
+      const patch = {
+        x: nextX,
+        y: nextY,
+        holderClientId: clientId
+      };
+      patchLocalHexitamaGame(patch, selectedGameId);
+      queueMonsPatch(patch, selectedGameId);
+    }
+
     if (hasDropEligibleCards) {
       setHandDropGlow(overHandDropRegion);
       setHandDropPreview(null);
@@ -33564,6 +36575,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         continue;
       }
       patchLocalGoGame({ holderClientId: null }, gameId);
+      queueMonsPatch({ holderClientId: null }, gameId);
+      releaseMonsBoardLock(gameId).catch((error) => {
+        console.error(error);
+      });
+    }
+    for (const gameId of groupState.baseHexitamaPositions.keys()) {
+      const gameState = getHexitamaGameStateById(gameId);
+      if (!gameState || gameState.holderClientId !== clientId) {
+        continue;
+      }
+      patchLocalHexitamaGame({ holderClientId: null }, gameId);
       queueMonsPatch({ holderClientId: null }, gameId);
       releaseMonsBoardLock(gameId).catch((error) => {
         console.error(error);
@@ -33773,7 +36795,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         if (!currentCard) {
           continue;
         }
-        const patch = withCodegameKeyCardUnanchoredPatch(cardId, {
+        const hexitamaSlotPatch = buildHexitamaActionCardSlotDropPatch(
+          cardId,
+          String(currentCard?.hexitamaGameId || '')
+        );
+        const patch = hexitamaSlotPatch || withCodegameKeyCardUnanchoredPatch(cardId, {
           holderClientId: null,
           inDeck: false,
           inDiscard: false,
@@ -40124,14 +43150,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         suppressNextCardContextMenu = true;
         if (CODEGAME_TINT_DEBUG) {
           codegameDebugStatusByCardId.set(completedSelection.targetCardId, 'event:selection-rightclick');
-          runStateRenderSafely('codegame-debug:selection-rightclick', () => renderCardElement(completedSelection.targetCardId));
+          runRenderSafely('codegame-debug:selection-rightclick', () => renderCardElement(completedSelection.targetCardId));
         }
         const toggledMark = toggleCodegameGridCardReveal(completedSelection.targetCardId);
         if (CODEGAME_TINT_DEBUG) {
           const statusCardId = completedSelection.targetCardId;
           const priorStatus = codegameDebugStatusByCardId.get(statusCardId) || '-';
           codegameDebugStatusByCardId.set(statusCardId, `${priorStatus} -> ${toggledMark ? 'toggle:1' : 'toggle:0'}`);
-          runStateRenderSafely('codegame-debug:selection-rightclick-result', () => renderCardElement(statusCardId));
+          runRenderSafely('codegame-debug:selection-rightclick-result', () => renderCardElement(statusCardId));
         }
         if (!toggledMark) {
           await handleRightClickFlipIntent(completedSelection.targetCardId);
@@ -41633,10 +44659,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
     }
-    if (event.pointerType === 'mouse' && event.button === 2) {
+    const existingCard = cards.get(cardId);
+    if (!existingCard) {
       return;
     }
-    if (event.pointerType === 'mouse' && event.button !== 0) {
+    const isCodegameGridCard = isCodegameGridPlayableCardState(existingCard, cardId);
+    const isHexitamaActionCard = isHexitamaActionCardState(existingCard, cardId);
+    const isRightMouseHexitamaDrag =
+      event.pointerType === 'mouse' &&
+      event.button === 2 &&
+      isHexitamaActionCard;
+    if (event.pointerType === 'mouse' && event.button === 2 && !isRightMouseHexitamaDrag) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0 && !isRightMouseHexitamaDrag) {
       return;
     }
     const effectivePointerType = getEffectivePointerType(event);
@@ -41652,10 +44688,6 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     setHandDropGlow(false);
     setHandDropPreview(null);
 
-    const existingCard = cards.get(cardId);
-    if (!existingCard) {
-      return;
-    }
     const allowSecretAreaDrag = options?.allowSecretAreaDrag === true;
     if (isSecretAreaComponentCard(existingCard) && !allowSecretAreaDrag) {
       return;
@@ -41664,12 +44696,21 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
+    if (event.pointerType === 'mouse' && event.button === 0 && isHexitamaActionCard) {
+      if (hasAnyGroupSelection()) {
+        releaseAllSelectedObjects();
+      }
+      handleHexitamaActionCardSelectionClick(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
     const consumedDoubleTap = consumeDoubleTapIfPresent(cardId, event);
     const consumedDoubleClick = consumeDoubleClickIfPresent(cardId, event);
     if (consumedDoubleTap || consumedDoubleClick) {
       if (CODEGAME_TINT_DEBUG) {
         codegameDebugStatusByCardId.set(cardId, consumedDoubleClick ? 'event:pointer-doubleclick' : 'event:pointer-doubletap');
-        runStateRenderSafely('codegame-debug:pointer-double', () => renderCardElement(cardId));
+        runRenderSafely('codegame-debug:pointer-double', () => renderCardElement(cardId));
       }
       if (isNoteComponentCard(existingCard)) {
         const pointerId = Number(event.pointerId);
@@ -41690,6 +44731,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         // Defer opening until the double-click/tap press has settled so the
         // editor does not immediately blur/close on the same pointer sequence.
         window.setTimeout(openNoteEditor, 0);
+      } else if (isCodegameGridCard) {
+        // Left-click / tap interactions on Codegame grid cards should never
+        // toggle reveal tint state. Tinting is handled by right-click only.
       } else if (!toggleCodegameGridCardReveal(cardId)) {
         handleCardFlipIntent(cardId).catch((error) => {
           console.error(error);
@@ -41697,12 +44741,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         if (CODEGAME_TINT_DEBUG) {
           const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
           codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
-          runStateRenderSafely('codegame-debug:pointer-double-result-false', () => renderCardElement(cardId));
+          runRenderSafely('codegame-debug:pointer-double-result-false', () => renderCardElement(cardId));
         }
       } else if (CODEGAME_TINT_DEBUG) {
         const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
         codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
-        runStateRenderSafely('codegame-debug:pointer-double-result-true', () => renderCardElement(cardId));
+        runRenderSafely('codegame-debug:pointer-double-result-true', () => renderCardElement(cardId));
       }
       schedulePublishFromClient(event.clientX, event.clientY);
       return;
@@ -41801,6 +44845,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       offsetX: Number.isFinite(worldPoint.x - cardStartX) ? worldPoint.x - cardStartX : 0,
       offsetY: Number.isFinite(worldPoint.y - cardStartY) ? worldPoint.y - cardStartY : 0,
       pointerType: effectivePointerType,
+      mouseButtonMask: event.pointerType === 'mouse' && event.button === 2 ? 2 : 1,
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -41808,6 +44853,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       lastMotionAt: 0,
       moved: false
     };
+    if (isRightMouseHexitamaDrag) {
+      suppressNextCardContextMenu = true;
+    }
     syncHandHoverDragLock();
 
     const topZ = getTopCardZ() + 1;
@@ -41998,8 +45046,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         const codegameGridPatch = canUseDeckZones
           ? buildCodegameGridDropPatchAtPosition(finishedState.cardId, dropX, dropY)
           : null;
+        const hexitamaSlotPatch = buildHexitamaActionCardSlotDropPatch(
+          finishedState.cardId,
+          String(droppedCard?.hexitamaGameId || ''),
+          dropX,
+          dropY
+        );
         const stackPointDieId = canUseDeckZones ? getStackPointIdAtPosition(dropX, dropY) : '';
-        const releasePatch = canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
+        const releasePatch = hexitamaSlotPatch
+          ? hexitamaSlotPatch
+          : canUseDeckZones && canPlaceCardOnAuction(finishedState.cardId, auctionDeckId) && Boolean(auctionDeckId)
           ? buildAuctionPlacementPatch(topZ, auctionDeckId)
           : codegameGridPatch
             ? codegameGridPatch
@@ -42154,7 +45210,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (!cardDragState || event.pointerId !== cardDragState.pointerId) {
       return;
     }
-    if (cardDragState.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+    const dragMouseButtonMask =
+      cardDragState.pointerType === 'mouse' ? (Number(cardDragState.mouseButtonMask) || 1) : 0;
+    if (cardDragState.pointerType === 'mouse' && (event.buttons & dragMouseButtonMask) === 0) {
       handleCardDragEnd({
         type: 'pointercancel',
         pointerId: event.pointerId,
@@ -42212,6 +45270,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
     if (!wasMoved && cardDragState.moved) {
       markCodegameKeyCardAsTouched(cardDragState.cardId);
+      if (String(hexitamaSelectedActionCardId || '').trim() === String(cardDragState.cardId || '').trim()) {
+        clearHexitamaActionSelection({ skipRender: true });
+      }
     }
     if (!wasMoved && cardDragState.moved && (cardDragState.pointerType === 'touch' || cardDragState.pointerType === 'pen')) {
       recentTouchTapByCardId.delete(cardDragState.cardId);
@@ -42307,6 +45368,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       finalPatch =
         buildAuctionDropPatch(finishedDrag.cardId, auctionDropIndicatorDeckId) ||
         buildCodegameGridDropPatch(finishedDrag.cardId) ||
+        buildHexitamaActionCardSlotDropPatch(
+          finishedDrag.cardId,
+          String(draggedCardState?.hexitamaGameId || '')
+        ) ||
         buildDiscardDropPatch(finishedDrag.cardId, discardDropIndicatorDeckId) ||
         buildDeckDropPatch(finishedDrag.cardId, deckDropIndicatorDeckId) ||
         buildStackPointDropPatch(finishedDrag.cardId, stackPointDropTargetDieId) || {
@@ -42358,6 +45423,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       });
     }
 
+    if (event.type === 'pointerup' && !finishedDrag.moved) {
+      const handledHexitamaActionCardClick = handleHexitamaActionCardSelectionClick(finishedDrag.cardId);
+      if (
+        !handledHexitamaActionCardClick &&
+        hexitamaSelectedActionCardId &&
+        String(hexitamaSelectedActionCardId || '').trim() !== String(finishedDrag.cardId || '').trim()
+      ) {
+        clearHexitamaActionSelection();
+      }
+    }
+
     if (event.type === 'pointerup' && finishedDrag.pointerType === 'mouse' && event.button === 0 && !finishedDrag.moved) {
       pruneRecentMouseClicks();
       recentMouseClickByCardId.set(finishedDrag.cardId, {
@@ -42400,7 +45476,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     event.stopPropagation();
     if (CODEGAME_TINT_DEBUG) {
       codegameDebugStatusByCardId.set(cardId, 'event:contextmenu');
-      runStateRenderSafely('codegame-debug:contextmenu', () => renderCardElement(cardId));
+      runRenderSafely('codegame-debug:contextmenu', () => renderCardElement(cardId));
     }
     if (suppressNextCardContextMenu) {
       suppressNextCardContextMenu = false;
@@ -42412,18 +45488,22 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (drawModeEnabled) {
       return;
     }
+    const contextCardState = cards.get(cardId);
+    if (isHexitamaActionCardState(contextCardState, cardId)) {
+      return;
+    }
     if (toggleCodegameGridCardReveal(cardId)) {
       if (CODEGAME_TINT_DEBUG) {
         const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
         codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
-        runStateRenderSafely('codegame-debug:contextmenu-result-true', () => renderCardElement(cardId));
+        runRenderSafely('codegame-debug:contextmenu-result-true', () => renderCardElement(cardId));
       }
       return;
     }
     if (CODEGAME_TINT_DEBUG) {
       const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
       codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
-      runStateRenderSafely('codegame-debug:contextmenu-result-false', () => renderCardElement(cardId));
+      runRenderSafely('codegame-debug:contextmenu-result-false', () => renderCardElement(cardId));
     }
     const canFlipWhileHeldIdle =
       (Boolean(cardDragState) && cardDragState.cardId === cardId && hasDragPointerComeToRest(cardDragState)) ||
@@ -42441,25 +45521,31 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   onCardDoubleClick = (event, cardId) => {
     if (CODEGAME_TINT_DEBUG) {
       codegameDebugStatusByCardId.set(cardId, 'event:dblclick');
-      runStateRenderSafely('codegame-debug:dblclick', () => renderCardElement(cardId));
+      runRenderSafely('codegame-debug:dblclick', () => renderCardElement(cardId));
     }
     if (drawModeEnabled || deleteModeEnabled) {
       return;
     }
     const cardState = cards.get(cardId);
+    const isCodegameGridCard = isCodegameGridPlayableCardState(cardState, cardId);
     if (!isNoteComponentCard(cardState)) {
+      if (isCodegameGridCard) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (toggleCodegameGridCardReveal(cardId)) {
         event.preventDefault();
         event.stopPropagation();
         if (CODEGAME_TINT_DEBUG) {
           const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
           codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:1`);
-          runStateRenderSafely('codegame-debug:dblclick-result-true', () => renderCardElement(cardId));
+          runRenderSafely('codegame-debug:dblclick-result-true', () => renderCardElement(cardId));
         }
       } else if (CODEGAME_TINT_DEBUG) {
         const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
         codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:0`);
-        runStateRenderSafely('codegame-debug:dblclick-result-false', () => renderCardElement(cardId));
+        runRenderSafely('codegame-debug:dblclick-result-false', () => renderCardElement(cardId));
       }
       return;
     }
@@ -43926,13 +47012,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         codegameGridActive: true,
         holderClientId: clientId
       }, targetDeckId);
-      runStateRenderSafely('handleCodegamePlayShuffle:batchRender', () => renderAllCards());
+      runRenderSafely('handleCodegamePlayShuffle:batchRender', () => renderAllCards());
       if (batchSecretAreaVisibilityChanged) {
-        runStateRenderSafely('handleCodegamePlayShuffle:batchDice', () => renderAllDice());
-        runStateRenderSafely('handleCodegamePlayShuffle:batchChipSets', () => renderChipSets());
-        runStateRenderSafely('handleCodegamePlayShuffle:batchMons', () => renderMonsBoard());
-        runStateRenderSafely('handleCodegamePlayShuffle:batchTafl', () => renderTaflBoards());
-        runStateRenderSafely('handleCodegamePlayShuffle:batchGo', () => renderGoBoards());
+        runRenderSafely('handleCodegamePlayShuffle:batchDice', () => renderAllDice());
+        runRenderSafely('handleCodegamePlayShuffle:batchChipSets', () => renderChipSets());
+        runRenderSafely('handleCodegamePlayShuffle:batchMons', () => renderMonsBoard());
+        runRenderSafely('handleCodegamePlayShuffle:batchTafl', () => renderTaflBoards());
+        runRenderSafely('handleCodegamePlayShuffle:batchGo', () => renderGoBoards());
       }
       if (Object.keys(updatesByPath).length > 0) {
         await update(cardsRef, updatesByPath);
@@ -43954,6 +47040,128 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         console.error(error);
       });
     }
+  };
+
+  handleHexitamaPlayShuffle = async (gameId = activeHexitamaGameId) => {
+    const targetGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const targetGameState = getHexitamaGameStateById(targetGameId);
+    if (!targetGameState || targetGameState.enabled === false) {
+      return;
+    }
+    const slotLayout = getHexitamaActionCardSlotLayout();
+    if (slotLayout.length === 0) {
+      return;
+    }
+
+    const selectedPatterns = pickRandomHexitamaActionPatterns(slotLayout.length);
+    const trackedCardIds = new Set();
+    const updatesByPath = {};
+    const updatedAtStamp = Date.now();
+    let batchSecretAreaVisibilityChanged = false;
+    const baseZ = Math.max(getTopObjectZ() + 8, 14);
+    const targetDeckId = getHexitamaCardDeckId(targetGameId);
+
+    for (let index = 0; index < slotLayout.length; index += 1) {
+      const slot = slotLayout[index];
+      const cardId = `${HEXITAMA_CARD_ID_PREFIX}-${targetGameId}-${slot.slotKey}`;
+      trackedCardIds.add(cardId);
+      const pattern = selectedPatterns[index] || HEXITAMA_ACTION_CARD_PATTERNS[0] || [];
+      const position = getHexitamaActionCardWorldPosition(targetGameId, slot.slotKey);
+      const patch = {
+        x: position.x,
+        y: position.y,
+        z: baseZ + index,
+        face: 'front',
+        frontSrc: createHexitamaActionCardFaceSvgDataUri(pattern),
+        backSrc: '',
+        componentType: '',
+        componentSubtype: '',
+        componentCardSized: true,
+        componentTwoSided: false,
+        componentFrontBlank: false,
+        componentBackBlank: false,
+        componentFrontColor: '#ffffff',
+        componentBackColor: '#ffffff',
+        noteFrontText: '',
+        noteBackText: '',
+        componentOwnerPlayerToken: '',
+        componentOwnerName: '',
+        componentOwnerColor: '',
+        componentLocked: false,
+        componentRotation: 0,
+        componentAspectRatio: 0,
+        componentWidth: HEXITAMA_CARD_SIZE,
+        componentHeight: HEXITAMA_CARD_SIZE,
+        deckBackSrc: '',
+        deckId: targetDeckId,
+        hexitamaCard: true,
+        hexitamaGameId: targetGameId,
+        hexitamaSlotKey: slot.slotKey,
+        hexitamaPatternIndices: normalizeHexitamaActionPatternIndices(pattern),
+        inDeck: false,
+        inDiscard: false,
+        inAuction: false,
+        codegameGridSlot: -1,
+        codegameTinted: false,
+        codegameRevealColor: '',
+        codegameMarkedType: '',
+        codegameMarkedSlot: -1,
+        codegameKeyCard: false,
+        codegameKeyBlueIndices: [],
+        codegameKeyRedIndices: [],
+        codegameKeyAssassinIndex: -1,
+        codegameKeyAnchored: false,
+        codegameKeyMoved: false,
+        drawLifted: false,
+        holderClientId: null,
+        handOwnerClientId: null,
+        handOwnerPlayerToken: null,
+        updatedAt: updatedAtStamp + index
+      };
+      const patchResult = patchLocalCard(cardId, patch, { deferRender: true });
+      if (patchResult?.secretAreaVisibilityChanged) {
+        batchSecretAreaVisibilityChanged = true;
+      }
+      for (const [patchKey, patchValue] of Object.entries(patch)) {
+        updatesByPath[`${cardId}/${patchKey}`] = patchKey === 'updatedAt' ? serverTimestamp() : patchValue;
+      }
+    }
+
+    for (const staleCardId of getHexitamaActionCardIdsForGame(targetGameId)) {
+      if (trackedCardIds.has(staleCardId)) {
+        continue;
+      }
+      updatesByPath[staleCardId] = null;
+      selectedCardIds.delete(staleCardId);
+      removeTableCardElement(staleCardId);
+      removeHandCardElement(staleCardId);
+      cards.delete(staleCardId);
+    }
+    syncSelectionDeleteButtonUi();
+
+    if (normalizeHexitamaGameId(hexitamaSelectedActionGameId || '') === targetGameId) {
+      clearHexitamaActionSelection({ skipRender: true });
+    }
+
+    patchLocalHexitamaGame({ cardsDealt: true }, targetGameId);
+    queueMonsPatch({ cardsDealt: true }, targetGameId);
+    runRenderSafely('handleHexitamaPlayShuffle:batchRender', () => renderAllCards());
+    if (batchSecretAreaVisibilityChanged) {
+      runRenderSafely('handleHexitamaPlayShuffle:batchDice', () => renderAllDice());
+      runRenderSafely('handleHexitamaPlayShuffle:batchChipSets', () => renderChipSets());
+      runRenderSafely('handleHexitamaPlayShuffle:batchMons', () => renderMonsBoard());
+      runRenderSafely('handleHexitamaPlayShuffle:batchTafl', () => renderTaflBoards());
+      runRenderSafely('handleHexitamaPlayShuffle:batchGo', () => renderGoBoards());
+      runRenderSafely('handleHexitamaPlayShuffle:batchHexitama', () => renderHexitamaBoards());
+    }
+
+    if (Object.keys(updatesByPath).length > 0) {
+      await update(cardsRef, updatesByPath);
+    }
+    await update(getHexitamaGameRef(targetGameId), {
+      cardsDealt: true,
+      updatedAt: serverTimestamp()
+    });
   };
 
   async function handleDeckShuffle(deckId = activeDeckId) {
@@ -44009,13 +47217,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         updatesByPath[`${cardId}/deckId`] = targetDeckId;
         updatesByPath[`${cardId}/updatedAt`] = serverTimestamp();
       }
-      runStateRenderSafely('handleDeckShuffle:batchRender', () => renderAllCards());
+      runRenderSafely('handleDeckShuffle:batchRender', () => renderAllCards());
       if (batchSecretAreaVisibilityChanged) {
-        runStateRenderSafely('handleDeckShuffle:batchDice', () => renderAllDice());
-        runStateRenderSafely('handleDeckShuffle:batchChipSets', () => renderChipSets());
-        runStateRenderSafely('handleDeckShuffle:batchMons', () => renderMonsBoard());
-        runStateRenderSafely('handleDeckShuffle:batchTafl', () => renderTaflBoards());
-        runStateRenderSafely('handleDeckShuffle:batchGo', () => renderGoBoards());
+        runRenderSafely('handleDeckShuffle:batchDice', () => renderAllDice());
+        runRenderSafely('handleDeckShuffle:batchChipSets', () => renderChipSets());
+        runRenderSafely('handleDeckShuffle:batchMons', () => renderMonsBoard());
+        runRenderSafely('handleDeckShuffle:batchTafl', () => renderTaflBoards());
+        runRenderSafely('handleDeckShuffle:batchGo', () => renderGoBoards());
       }
       await update(cardsRef, updatesByPath);
       const currentShuffleTick = Number(getDeckStateById(targetDeckId)?.shuffleTick) || 0;
@@ -44444,7 +47652,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         releaseAllSelectedObjects();
       }
     }
-    if (taflDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState) {
+    if (
+      taflDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState ||
+      monsDragState ||
+      hexitamaDragState
+    ) {
       return;
     }
     const targetTaflGameState = getTaflGameStateById(targetTaflGameId);
@@ -45183,7 +48399,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         releaseAllSelectedObjects();
       }
     }
-    if (goDragState || cardResizeState || cardRotateState || groupDragState || handReorderState || monsDragState || taflDragState) {
+    if (
+      goDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState ||
+      monsDragState ||
+      taflDragState ||
+      hexitamaDragState
+    ) {
       return;
     }
     const targetGoGameState = getGoGameStateById(targetGoGameId);
@@ -45328,6 +48553,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       goDragState ||
       monsDragState ||
       taflDragState ||
+      hexitamaDragState ||
       cardDragState ||
       cardResizeState ||
       cardRotateState ||
@@ -45417,6 +48643,300 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   };
   onDeleteGoGameInRemoveMode = async (gameId = activeGoGameId) => {
     await deleteGoGameInRemoveMode(gameId);
+  };
+
+  const handleHexitamaBoardPointerDownLocal = async (event, gameId = activeHexitamaGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const targetHexitamaGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    if (normalizeHexitamaGameId(activeHexitamaGameId) !== targetHexitamaGameId) {
+      setActiveHexitamaGameId(targetHexitamaGameId);
+      renderHexitamaBoards();
+    }
+    if (hasAnyGroupSelection()) {
+      releaseAllSelectedObjects();
+    }
+    const targetElement = event.target instanceof Element ? event.target : null;
+    const consumeHexitamaMoveTarget = async (moveTarget) => {
+      if (!moveTarget || typeof moveTarget !== 'object') {
+        return false;
+      }
+      const targetColIndex = normalizeHexitamaTileColIndex(moveTarget.colIndex);
+      const targetRowValue = normalizeHexitamaTileRowValue(moveTarget.rowValue);
+      if (!isHexitamaValidTileCoordinate(targetColIndex, targetRowValue)) {
+        return false;
+      }
+      // Hide move dots immediately on click, but keep card-selection state intact
+      // until the move transaction resolves.
+      hexitamaMoveTargets = [];
+      runRenderSafely('hexitama-piece-selection:consume-dot', () => renderHexitamaBoards());
+      forceHexitamaSelectionVisualCommit();
+      await moveHexitamaPieceUsingSelectedCard(
+        targetHexitamaGameId,
+        String(moveTarget.pieceId || hexitamaSelectedPieceId || '').trim(),
+        targetColIndex,
+        targetRowValue
+      );
+      return true;
+    };
+
+    const moveDotTarget = targetElement?.closest('[data-hexitama-move-col][data-hexitama-move-row]');
+    if (moveDotTarget) {
+      const targetColIndex = normalizeHexitamaTileColIndex(moveDotTarget.getAttribute('data-hexitama-move-col'));
+      const targetRowValue = normalizeHexitamaTileRowValue(moveDotTarget.getAttribute('data-hexitama-move-row'));
+      const moveTarget = getHexitamaMoveTargetAtTile(targetHexitamaGameId, targetColIndex, targetRowValue);
+      if (moveTarget) {
+        await consumeHexitamaMoveTarget(moveTarget);
+      } else {
+        clearHexitamaActionSelection();
+      }
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    const pieceTarget = targetElement?.closest('[data-hexitama-piece-id]');
+    if (pieceTarget) {
+      const pieceColIndex = normalizeHexitamaTileColIndex(pieceTarget.getAttribute('data-hexitama-col-index'));
+      const pieceRowValue = normalizeHexitamaTileRowValue(pieceTarget.getAttribute('data-hexitama-row-value'));
+      if (isHexitamaValidTileCoordinate(pieceColIndex, pieceRowValue)) {
+        const captureTarget = getHexitamaMoveTargetAtTile(targetHexitamaGameId, pieceColIndex, pieceRowValue);
+        if (captureTarget?.capture === true) {
+          hexitamaMoveTargets = [];
+          runRenderSafely('hexitama-piece-selection:consume-capture', () => renderHexitamaBoards());
+          forceHexitamaSelectionVisualCommit();
+          await moveHexitamaPieceUsingSelectedCard(
+            targetHexitamaGameId,
+            String(captureTarget.pieceId || hexitamaSelectedPieceId || '').trim(),
+            pieceColIndex,
+            pieceRowValue
+          );
+          schedulePublishFromClient(event.clientX, event.clientY);
+          return;
+        }
+      }
+      handleHexitamaPieceSelectionClick(targetHexitamaGameId, pieceTarget.getAttribute('data-hexitama-piece-id'));
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
+    const tileTarget = targetElement?.closest('[data-hexitama-col-index][data-hexitama-row-value]');
+    if (tileTarget) {
+      const tileColIndex = normalizeHexitamaTileColIndex(tileTarget.getAttribute('data-hexitama-col-index'));
+      const tileRowValue = normalizeHexitamaTileRowValue(tileTarget.getAttribute('data-hexitama-row-value'));
+      const moveTarget = getHexitamaMoveTargetAtTile(targetHexitamaGameId, tileColIndex, tileRowValue);
+      if (await consumeHexitamaMoveTarget(moveTarget)) {
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+    }
+
+    clearHexitamaActionSelection();
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+
+  const handleHexitamaMovePointerDownLocal = async (event, gameId = activeHexitamaGameId) => {
+    if (drawModeEnabled) {
+      return;
+    }
+    if (deleteModeEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      await onDeleteHexitamaGameInRemoveMode(gameId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+      endedTouchPointerIds.delete(event.pointerId);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const targetHexitamaGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    if (normalizeHexitamaGameId(activeHexitamaGameId) !== targetHexitamaGameId) {
+      setActiveHexitamaGameId(targetHexitamaGameId);
+    }
+    if (hasAnyGroupSelection()) {
+      if (selectedHexitamaGameIds.has(targetHexitamaGameId) && beginGroupDragFromHexitama(event, targetHexitamaGameId)) {
+        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        schedulePublishFromClient(event.clientX, event.clientY);
+        return;
+      }
+      if (!selectedHexitamaGameIds.has(targetHexitamaGameId)) {
+        releaseAllSelectedObjects();
+      }
+    }
+    if (
+      hexitamaDragState ||
+      cardResizeState ||
+      cardRotateState ||
+      groupDragState ||
+      handReorderState ||
+      monsDragState ||
+      taflDragState ||
+      goDragState
+    ) {
+      return;
+    }
+    const targetHexitamaGameState = getHexitamaGameStateById(targetHexitamaGameId);
+    if (!targetHexitamaGameState) {
+      return;
+    }
+    if (targetHexitamaGameState.holderClientId && targetHexitamaGameState.holderClientId !== clientId) {
+      return;
+    }
+
+    let acquired = false;
+    try {
+      acquired = await acquireMonsBoardLock(targetHexitamaGameId);
+    } catch (error) {
+      console.error(error);
+    }
+    if (!acquired) {
+      const latestHexitamaGame = getHexitamaGameStateById(targetHexitamaGameId);
+      const latestHolder = typeof latestHexitamaGame?.holderClientId === 'string' ? latestHexitamaGame.holderClientId : '';
+      if (latestHolder && latestHolder !== clientId && isClientSessionLikelyActive(latestHolder, Date.now())) {
+        return;
+      }
+      if (latestHolder && latestHolder !== clientId) {
+        patchLocalHexitamaGame({ holderClientId: null }, targetHexitamaGameId);
+      }
+    }
+    if (wasTouchPointerReleased(event.pointerType, event.pointerId)) {
+      await releaseMonsBoardLock(targetHexitamaGameId);
+      return;
+    }
+
+    hexitamaDragState = {
+      gameId: targetHexitamaGameId,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: targetHexitamaGameState.x,
+      startY: targetHexitamaGameState.y,
+      width: targetHexitamaGameState.width,
+      height: targetHexitamaGameState.height
+    };
+
+    patchLocalHexitamaGame({ holderClientId: clientId }, targetHexitamaGameId);
+    queueMonsPatch({ holderClientId: clientId }, targetHexitamaGameId);
+    setHexitamaBoardDragFloating(targetHexitamaGameId, true);
+
+    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+
+  const handleHexitamaDragMoveLocal = (event) => {
+    if (!hexitamaDragState || event.pointerId !== hexitamaDragState.pointerId) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      handleHexitamaDragEndLocal({
+        type: 'pointercancel',
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        button: 0
+      });
+      return;
+    }
+
+    const targetHexitamaGameId = normalizeHexitamaGameId(hexitamaDragState.gameId || activeHexitamaGameId);
+    const deltaX = (event.clientX - hexitamaDragState.startClientX) / camera.scale;
+    const deltaY = (event.clientY - hexitamaDragState.startClientY) / camera.scale;
+    const nextX = clamp(
+      hexitamaDragState.startX + deltaX,
+      hexitamaDragState.width / 2,
+      WORLD_WIDTH - hexitamaDragState.width / 2
+    );
+    const nextY = clamp(
+      hexitamaDragState.startY + deltaY,
+      hexitamaDragState.height / 2,
+      WORLD_HEIGHT - hexitamaDragState.height / 2
+    );
+
+    const patch = {
+      x: nextX,
+      y: nextY,
+      holderClientId: clientId
+    };
+    patchLocalHexitamaGame(patch, targetHexitamaGameId);
+    queueMonsPatch(patch, targetHexitamaGameId);
+    schedulePublishFromClient(event.clientX, event.clientY);
+    event.preventDefault();
+  };
+
+  const handleHexitamaDragEndLocal = (event) => {
+    if (!hexitamaDragState || event.pointerId !== hexitamaDragState.pointerId) {
+      return;
+    }
+    if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
+      return;
+    }
+
+    const targetHexitamaGameId = normalizeHexitamaGameId(hexitamaDragState.gameId || activeHexitamaGameId);
+    hexitamaDragState = null;
+    setHexitamaBoardDragFloating(targetHexitamaGameId, false);
+    patchLocalHexitamaGame({ holderClientId: null }, targetHexitamaGameId);
+    queueMonsPatch({ holderClientId: null }, targetHexitamaGameId);
+    releaseMonsBoardLock(targetHexitamaGameId).catch((error) => {
+      console.error(error);
+    });
+    schedulePublishFromClient(event.clientX, event.clientY);
+  };
+
+  onHexitamaMovePointerDown = (event, gameId = activeHexitamaGameId) => {
+    handleHexitamaMovePointerDownLocal(event, gameId).catch((error) => {
+      console.error(error);
+    });
+  };
+  onHexitamaPlayButtonClick = (event, gameId = activeHexitamaGameId) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (deleteModeEnabled) {
+      return;
+    }
+    const targetHexitamaGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    if (normalizeHexitamaGameId(activeHexitamaGameId) !== targetHexitamaGameId) {
+      setActiveHexitamaGameId(targetHexitamaGameId);
+      renderHexitamaBoards();
+    }
+    handleHexitamaPlayShuffle(targetHexitamaGameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onHexitamaDragMove = (event) => {
+    handleHexitamaDragMoveLocal(event);
+  };
+  onHexitamaDragEnd = (event) => {
+    handleHexitamaDragEndLocal(event);
+  };
+  onHexitamaBoardPointerDown = (event, gameId = activeHexitamaGameId) => {
+    handleHexitamaBoardPointerDownLocal(event, gameId).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
+  };
+  onDeleteHexitamaGameInRemoveMode = async (gameId = activeHexitamaGameId) => {
+    await deleteHexitamaGameInRemoveMode(gameId);
   };
 
   onMonsUndoButtonClick = (event, gameId = activeMonsGameId) => {
@@ -46536,6 +50056,67 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     }
   };
 
+  spawnHexitamaBoard = async () => {
+    const viewportCenter = getViewportWorldCenter();
+    const spawnX = clamp(viewportCenter.x, HEXITAMA_BOARD_WORLD_WIDTH / 2, WORLD_WIDTH - HEXITAMA_BOARD_WORLD_WIDTH / 2);
+    const spawnY = clamp(viewportCenter.y, HEXITAMA_BOARD_WORLD_HEIGHT / 2, WORLD_HEIGHT - HEXITAMA_BOARD_WORLD_HEIGHT / 2);
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnX,
+      worldY: spawnY,
+      worldWidth: HEXITAMA_BOARD_WORLD_WIDTH,
+      worldHeight: HEXITAMA_BOARD_WORLD_HEIGHT
+    });
+    let createdHexitamaGameId = '';
+    try {
+      const result = await runTransaction(
+        gamesRef,
+        (currentGames) => {
+          const baseGames = currentGames && typeof currentGames === 'object' ? { ...currentGames } : {};
+          const existingHexitamaIds = Object.keys(baseGames).filter((rawGameId) => {
+            if (!isHexitamaGameId(rawGameId)) {
+              return false;
+            }
+            const payload = baseGames[rawGameId];
+            return Boolean(payload && typeof payload === 'object' && payload.enabled !== false);
+          });
+          let nextHexitamaGameId =
+            existingHexitamaIds.length === 0 && !baseGames[HEXITAMA_GAME_KEY]
+              ? HEXITAMA_GAME_KEY
+              : `${HEXITAMA_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          while (Object.prototype.hasOwnProperty.call(baseGames, nextHexitamaGameId)) {
+            nextHexitamaGameId = `${HEXITAMA_GAME_KEY}-copy-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          }
+          createdHexitamaGameId = nextHexitamaGameId;
+          return {
+            ...baseGames,
+            [nextHexitamaGameId]: buildFreshHexitamaGamePayload({
+              x: spawnX,
+              y: spawnY,
+              width: HEXITAMA_BOARD_WORLD_WIDTH,
+              height: HEXITAMA_BOARD_WORLD_HEIGHT
+            })
+          };
+        },
+        { applyLocally: false }
+      );
+      if (!result.committed) {
+        failSpawnLoadingIndicator(indicatorId);
+        return;
+      }
+      finalizeSpawnLoadingIndicator(
+        indicatorId,
+        () => Boolean(createdHexitamaGameId) && hexitamaGameStatesById.has(createdHexitamaGameId)
+      );
+      if (createdHexitamaGameId) {
+        setActiveHexitamaGameId(createdHexitamaGameId);
+        renderHexitamaBoards();
+      }
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
+  };
+
   resetHnefataflGame = async (gameId = activeTaflGameId) => {
     const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     await runTransaction(
@@ -46587,6 +50168,58 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     renderGoBoards();
   };
 
+  resetHexitamaGame = async (gameId = activeHexitamaGameId) => {
+    const targetHexitamaGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const cardIdsToClear = getHexitamaActionCardIdsForGame(targetHexitamaGameId);
+    await runTransaction(
+      getHexitamaGameRef(targetHexitamaGameId),
+      (currentGame) => {
+        const normalized =
+          currentGame && typeof currentGame === 'object'
+            ? normalizeHexitamaGamePayload(currentGame)
+            : normalizeHexitamaGamePayload({ enabled: true });
+        return buildFreshHexitamaGamePayload({
+          x: normalized.x,
+          y: normalized.y,
+          width: normalized.width,
+          height: normalized.height,
+          coverDrawings: normalized.coverDrawings === true
+        });
+      },
+      { applyLocally: false }
+    );
+    if (cardIdsToClear.length > 0) {
+      const updatesByPath = {};
+      for (const cardId of cardIdsToClear) {
+        updatesByPath[`cards/${cardId}`] = null;
+      }
+      await update(ref(db, roomPath), updatesByPath);
+      let removedAnyLocalCard = false;
+      for (const cardId of cardIdsToClear) {
+        if (!cards.has(cardId)) {
+          continue;
+        }
+        removedAnyLocalCard = true;
+        selectedCardIds.delete(cardId);
+        cards.delete(cardId);
+        removeTableCardElement(cardId);
+        removeHandCardElement(cardId);
+      }
+      if (removedAnyLocalCard) {
+        markCameraLooseRenderableCardIdsDirty();
+        markCardDeckMetricsCacheDirty();
+      }
+    }
+    syncSelectionDeleteButtonUi();
+    if (normalizeHexitamaGameId(hexitamaSelectedActionGameId || '') === targetHexitamaGameId) {
+      clearHexitamaActionSelection({ skipRender: true });
+    }
+    patchLocalHexitamaGame({ cardsDealt: false }, targetHexitamaGameId);
+    setActiveHexitamaGameId(targetHexitamaGameId);
+    renderHexitamaBoards();
+    renderAllCards();
+  };
+
   putAwayHnefataflGame = async (gameId = activeTaflGameId) => {
     const targetTaflGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     await update(gamesRef, {
@@ -46599,6 +50232,32 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     await update(gamesRef, {
       [targetGoGameId]: null
     });
+  };
+
+  putAwayHexitamaGame = async (gameId = activeHexitamaGameId) => {
+    const targetHexitamaGameId = normalizeHexitamaGameId(gameId || activeHexitamaGameId);
+    const updatesByPath = {
+      [`games/${targetHexitamaGameId}`]: null
+    };
+    const cardIdsToClear = getHexitamaActionCardIdsForGame(targetHexitamaGameId);
+    for (const cardId of cardIdsToClear) {
+      updatesByPath[`cards/${cardId}`] = null;
+      if (!cards.has(cardId)) {
+        continue;
+      }
+      selectedCardIds.delete(cardId);
+      cards.delete(cardId);
+      removeTableCardElement(cardId);
+      removeHandCardElement(cardId);
+    }
+    syncSelectionDeleteButtonUi();
+    if (normalizeHexitamaGameId(hexitamaSelectedActionGameId || '') === targetHexitamaGameId) {
+      clearHexitamaActionSelection({ skipRender: true });
+    }
+    await update(ref(db, roomPath), updatesByPath);
+    markCameraLooseRenderableCardIdsDirty();
+    markCardDeckMetricsCacheDirty();
+    renderAllCards();
   };
 
   resetCoolJpegsGame = async (deckId = activeDeckId) => {
@@ -46725,6 +50384,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       patchLocalGoGame({ coverDrawings: shouldCoverDrawings }, targetGoGameId);
       queueMonsPatch({ coverDrawings: shouldCoverDrawings }, targetGoGameId);
       renderGoBoards();
+      return;
+    }
+    const targetHexitamaGameId = getHexitamaGameIdFromGameOptionsTarget(target);
+    if (targetHexitamaGameId) {
+      if (!getHexitamaGameStateById(targetHexitamaGameId)) {
+        return;
+      }
+      patchLocalHexitamaGame({ coverDrawings: shouldCoverDrawings }, targetHexitamaGameId);
+      queueMonsPatch({ coverDrawings: shouldCoverDrawings }, targetHexitamaGameId);
+      renderHexitamaBoards();
       return;
     }
     const targetDeckId = getDeckIdFromGameOptionsTarget(target) || activeDeckId;
@@ -46936,6 +50605,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     selectedChipSetIds.clear();
     selectedTaflGameIds.clear();
     selectedGoGameIds.clear();
+    selectedHexitamaGameIds.clear();
     syncSelectionDeleteButtonUi();
     pendingCardWrites.clear();
     pendingDieWrites.clear();
@@ -46990,6 +50660,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     monsDragState = null;
     taflDragState = null;
     goDragState = null;
+    hexitamaDragState = null;
     handReorderState = null;
     handDropPreview = null;
     syncHandHoverDragLock();
@@ -47018,6 +50689,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     removeMonsBoardElements();
     removeTaflBoardElements();
     removeGoBoardElements();
+    removeHexitamaBoardElements();
     clearSpawnLoadingIndicators();
     closeDiceAddModal();
     closeChipsAddModal();
@@ -47147,6 +50819,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     goBoardElementsById.clear();
     goHoverByGameId.clear();
     activeGoGameId = GO_GAME_KEY;
+    hexitamaGameState = null;
+    hexitamaGameStatesById.clear();
+    activeHexitamaGameId = HEXITAMA_GAME_KEY;
     syncCoverDrawingsGamesLayerState();
     setLocalHandCountLabel();
     setHandHoverDragLock(false);
@@ -47547,6 +51222,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         renderMonsBoard();
         renderTaflBoards();
         renderGoBoards();
+        renderHexitamaBoards();
       }
       refreshVisibleCursorState();
       scheduleHandReclaimCheck();
@@ -47905,8 +51581,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       const nextMonsEntries = [];
       const nextTaflEntries = [];
       const nextGoEntries = [];
+      const nextHexitamaEntries = [];
       if (nextGamesRaw && typeof nextGamesRaw === 'object') {
         for (const [rawGameId, rawGamePayload] of Object.entries(nextGamesRaw)) {
+          if (isHexitamaGameId(rawGameId)) {
+            if (!rawGamePayload || typeof rawGamePayload !== 'object' || rawGamePayload.enabled === false) {
+              continue;
+            }
+            nextHexitamaEntries.push([normalizeHexitamaGameId(rawGameId), normalizeHexitamaGamePayload(rawGamePayload)]);
+            continue;
+          }
           if (isGoGameId(rawGameId)) {
             if (!rawGamePayload || typeof rawGamePayload !== 'object' || rawGamePayload.enabled === false) {
               continue;
@@ -47964,6 +51648,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         }
         goGameStatesById.delete(existingGoGameId);
       }
+      const nextHexitamaIds = new Set();
+      for (const [nextHexitamaGameId, nextHexitamaGameState] of nextHexitamaEntries) {
+        hexitamaGameStatesById.set(nextHexitamaGameId, nextHexitamaGameState);
+        nextHexitamaIds.add(nextHexitamaGameId);
+      }
+      for (const existingHexitamaGameId of Array.from(hexitamaGameStatesById.keys())) {
+        if (nextHexitamaIds.has(existingHexitamaGameId)) {
+          continue;
+        }
+        hexitamaGameStatesById.delete(existingHexitamaGameId);
+      }
       let monsSelectionChanged = false;
       for (const selectedMonsGameId of Array.from(selectedMonsGameIds)) {
         if (nextMonsIds.has(selectedMonsGameId)) {
@@ -47991,6 +51686,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
           goSelectionChanged = true;
         }
       }
+      let hexitamaSelectionChanged = false;
+      for (const selectedHexitamaGameId of Array.from(selectedHexitamaGameIds)) {
+        if (nextHexitamaIds.has(selectedHexitamaGameId)) {
+          continue;
+        }
+        if (selectedHexitamaGameIds.delete(selectedHexitamaGameId)) {
+          hexitamaSelectionChanged = true;
+        }
+      }
 
       const optionsMonsGameId = getMonsGameIdFromGameOptionsTarget(activeGameOptionsTarget);
       if (optionsMonsGameId && !nextMonsIds.has(optionsMonsGameId)) {
@@ -48002,6 +51706,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       }
       const optionsGoGameId = getGoGameIdFromGameOptionsTarget(activeGameOptionsTarget);
       if (optionsGoGameId && !nextGoIds.has(optionsGoGameId)) {
+        closeGameOptionsMenu();
+      }
+      const optionsHexitamaGameId = getHexitamaGameIdFromGameOptionsTarget(activeGameOptionsTarget);
+      if (optionsHexitamaGameId && !nextHexitamaIds.has(optionsHexitamaGameId)) {
         closeGameOptionsMenu();
       }
       syncGameOptionsCoverDrawingsToggleState();
@@ -48048,6 +51756,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         setActiveGoGameId(fallbackGoGameId);
       }
 
+      if (nextHexitamaIds.size === 0) {
+        setActiveHexitamaGameId(HEXITAMA_GAME_KEY);
+        hexitamaGameState = null;
+      } else {
+        let fallbackHexitamaGameId = normalizeHexitamaGameId(activeHexitamaGameId);
+        if (!nextHexitamaIds.has(fallbackHexitamaGameId)) {
+          fallbackHexitamaGameId =
+            nextHexitamaIds.has(HEXITAMA_GAME_KEY)
+              ? HEXITAMA_GAME_KEY
+              : nextHexitamaEntries[0]?.[0] || HEXITAMA_GAME_KEY;
+        }
+        setActiveHexitamaGameId(fallbackHexitamaGameId);
+      }
+
       if (!hasLoadedInitialCardsSnapshot) {
         return;
       }
@@ -48055,7 +51777,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       renderMonsBoard();
       renderTaflBoards();
       renderGoBoards();
-      if (monsSelectionChanged || taflSelectionChanged || goSelectionChanged) {
+      renderHexitamaBoards();
+      for (const hexitamaGameId of nextHexitamaIds) {
+        renderHexitamaSlottedCardsForGame(hexitamaGameId);
+      }
+      if (monsSelectionChanged || taflSelectionChanged || goSelectionChanged || hexitamaSelectionChanged) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
@@ -48140,6 +51866,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
   window.addEventListener('pointermove', onGoDragMove);
   window.addEventListener('pointerup', onGoDragEnd);
   window.addEventListener('pointercancel', onGoDragEnd);
+  window.addEventListener('pointermove', onHexitamaDragMove);
+  window.addEventListener('pointerup', onHexitamaDragEnd);
+  window.addEventListener('pointercancel', onHexitamaDragEnd);
   window.addEventListener('keydown', handleArcadeKeyboardDown, true);
   window.addEventListener('keyup', handleArcadeKeyboardUp, true);
 
@@ -48285,6 +52014,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
 
     camera.panX = midpointScreen.x - pinchState.worldX * camera.scale;
     camera.panY = midpointScreen.y - pinchState.worldY * camera.scale;
+    markCameraInteractionActive();
     scheduleApplyCamera();
   }
 
@@ -48313,6 +52043,35 @@ function isEventOnInteractivePlayspaceElement(event) {
       '.table-card, .table-die, .deck-control-button, .chip-stack-slot, .chip-stack-move-button, .mons-game-shell, .tafl-game-shell, .go-game-shell, .table-drawing-layer, [data-mons-piece-id], [data-tafl-piece-id], [data-go-stone]'
     )
   );
+}
+
+function maybeClearHexitamaSelectionFromGlobalPointerDown(event) {
+  if (!hexitamaSelectedActionCardId) {
+    return;
+  }
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) {
+    clearHexitamaActionSelection();
+    return;
+  }
+  if (target.closest('[data-hexitama-piece-id], [data-hexitama-move-col][data-hexitama-move-row]')) {
+    return;
+  }
+  const clickedCard = target.closest('.table-card');
+  if (clickedCard instanceof HTMLElement) {
+    const clickedCardId = String(clickedCard.dataset.cardId || '').trim();
+    if (clickedCardId && clickedCardId === String(hexitamaSelectedActionCardId || '').trim()) {
+      return;
+    }
+    const clickedCardState = clickedCardId ? cards.get(clickedCardId) : null;
+    if (isHexitamaActionCardState(clickedCardState, clickedCardId)) {
+      return;
+    }
+  }
+  if (target.closest('.hexitama-game-shell')) {
+    return;
+  }
+  clearHexitamaActionSelection();
 }
 
 function getMovingMarbleFlickTargetAtClient(clientX, clientY) {
@@ -48456,6 +52215,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   );
 
   const dismissInlineEditorsOnPointerDown = (event) => {
+    maybeClearHexitamaSelectionFromGlobalPointerDown(event);
     const targetElement = event.target instanceof Element ? event.target : null;
     const activeNoteEditor = noteEditState?.editor instanceof HTMLElement ? noteEditState.editor : null;
     const pointerInsideActiveNoteEditor = Boolean(
@@ -48525,6 +52285,10 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     const isMiddleMouseDown = event.pointerType === 'mouse' && event.button === 1;
     if (shouldIgnorePointerEvent(event) && !isMiddleMouseDown) {
       return;
+    }
+
+    if (event.pointerType !== 'mouse' || event.button === 0) {
+      maybeClearHexitamaSelectionFromGlobalPointerDown(event);
     }
 
     activePointers.add(event.pointerId);
@@ -48660,6 +52424,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = mousePanState.startPanX + deltaX;
         camera.panY = mousePanState.startPanY + deltaY;
+        markCameraInteractionActive();
         scheduleApplyCamera();
         event.preventDefault();
         return;
@@ -48704,6 +52469,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = mousePanState.startPanX + deltaX;
         camera.panY = mousePanState.startPanY + deltaY;
+        markCameraInteractionActive();
         scheduleApplyCamera();
         return;
       }
@@ -48731,6 +52497,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
         }
         camera.panX = touchPanState.startPanX + deltaX;
         camera.panY = touchPanState.startPanY + deltaY;
+        markCameraInteractionActive();
         scheduleApplyCamera();
       }
     }

@@ -302,6 +302,8 @@ input[type="color"]::-webkit-color-swatch {
   background-size: var(--grid-cell-size, 42px) var(--grid-cell-size, 42px);
   transform-origin: 0 0;
   will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -819,6 +821,8 @@ input[type="color"]::-webkit-color-swatch {
   height: 4320px;
   transform-origin: 0 0;
   will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   pointer-events: none;
   z-index: 10;
 }
@@ -1926,6 +1930,181 @@ input[type="color"]::-webkit-color-swatch {
   text-transform: uppercase;
 }
 
+.hexitama-game-shell {
+  --inline-loader-size: 34px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: block;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  pointer-events: auto;
+  padding: 0;
+}
+
+.hexitama-board-surface {
+  position: absolute;
+  inset: 0;
+  background: none;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.34));
+  transition: filter 180ms ease;
+}
+
+.hexitama-board-surface::before {
+  content: none;
+}
+
+.hexitama-board-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: auto;
+  overflow: visible;
+}
+
+.hexitama-board-hex-base {
+}
+
+.hexitama-board-hex-outline {
+  fill: none;
+  stroke: rgba(245, 248, 255, 0.92);
+  stroke-width: 3;
+}
+
+.hexitama-chief-temple-icon {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.hexitama-card-slot {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
+  opacity: 0;
+  vector-effect: non-scaling-stroke;
+}
+
+.hexitama-card-slot-label {
+  fill: transparent;
+  font-size: 40px;
+  font-weight: 900;
+  text-anchor: middle;
+  dominant-baseline: central;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+}
+
+.table-shell.light-mode .hexitama-board-hex-outline {
+  stroke: rgba(8, 10, 12, 0.92);
+}
+
+.table-shell.light-mode .hexitama-board-surface {
+  filter: drop-shadow(0 12px 22px rgba(43, 35, 21, 0.2));
+}
+
+.table-shell.light-mode .hexitama-card-slot {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0;
+  opacity: 0;
+}
+
+.hexitama-piece {
+  pointer-events: auto;
+  user-select: none;
+  image-rendering: auto;
+  filter: drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45));
+  cursor: default;
+  transform-box: fill-box;
+  transform-origin: center center;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.hexitama-piece.is-card-side-active,
+.hexitama-piece[data-hexitama-card-side-active='1'] {
+  transform: translateY(-1.5%) scale(1.075);
+}
+
+.hexitama-game-shell.is-piece-pixelated .hexitama-piece {
+  image-rendering: pixelated;
+}
+
+.hexitama-piece.is-chief {
+  filter: drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52));
+}
+
+.hexitama-piece.is-chief.is-inverted {
+  filter: invert(1) brightness(1.08) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52));
+}
+
+.hexitama-piece.is-selected,
+.hexitama-piece[data-hexitama-selected='1'] {
+  filter: drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45));
+}
+
+.hexitama-piece.is-chief.is-selected,
+.hexitama-piece.is-chief[data-hexitama-selected='1'] {
+  filter: drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52));
+}
+
+.hexitama-piece.is-chief.is-inverted.is-selected,
+.hexitama-piece.is-chief.is-inverted[data-hexitama-selected='1'] {
+  filter: invert(1) brightness(1.08) drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52));
+}
+
+.hexitama-move-dot {
+  fill: rgba(66, 130, 255, 0.82);
+  stroke: rgba(210, 234, 255, 0.95);
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 10px rgba(82, 142, 255, 0.8));
+  opacity: 0.95;
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: hexitamaMoveDotPulse 1.05s ease-in-out infinite;
+  transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
+}
+
+.hexitama-move-dot:hover {
+  opacity: 1;
+  filter: drop-shadow(0 0 14px rgba(104, 162, 255, 0.92));
+}
+
+@keyframes hexitamaMoveDotPulse {
+  0% {
+    transform: scale(0.88);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.88);
+    opacity: 0.72;
+  }
+}
+
+.hexitama-capture-target {
+  fill: rgba(255, 78, 78, 0.06);
+  stroke: rgba(255, 92, 92, 0.98);
+  stroke-width: 3.2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 8px rgba(255, 74, 74, 0.62));
+  opacity: 0.96;
+  transition: opacity 120ms ease, filter 120ms ease, fill 120ms ease;
+}
+
+.hexitama-capture-target:hover {
+  fill: rgba(255, 78, 78, 0.11);
+  opacity: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 74, 74, 0.82));
+}
+
 .mons-board-ghost {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -2331,6 +2510,23 @@ input[type="color"]::-webkit-color-swatch {
   height: 100%;
   margin: 0;
   object-fit: cover;
+}
+
+.hand-card.is-hexitama-card {
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+  -webkit-clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hand-card.is-hexitama-card img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: fill;
 }
 
 .hand-card.is-front-pending img {
@@ -4381,6 +4577,16 @@ input[type="color"]::-webkit-color-swatch {
     background-color 180ms ease;
 }
 
+.table-card.is-hexitama-swapping {
+  transition:
+    left 240ms cubic-bezier(0.2, 0.74, 0.24, 1),
+    top 240ms cubic-bezier(0.2, 0.74, 0.24, 1),
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease,
+    background-color 180ms ease;
+}
+
 .table-card.is-flipping {
   animation: cardFlip3d 220ms cubic-bezier(0.28, 0.72, 0.25, 1);
 }
@@ -4398,6 +4604,103 @@ input[type="color"]::-webkit-color-swatch {
   transform: none;
   pointer-events: none;
   transition: filter 120ms ease;
+}
+
+.table-card.is-hexitama-card {
+  --hexitama-selection-ring-size: 132%;
+  --hexitama-selection-ring-opacity: 0.7;
+  --hexitama-selected-scale: 1;
+  --hexitama-selection-ring-scale-compensate: 1;
+  --hexitama-selection-ring-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,2 91.6,26 91.6,74 50,98 8.4,74 8.4,26' fill='none' stroke='%230b0b0b' stroke-width='5.2' stroke-linejoin='round'/%3E%3C/svg%3E");
+  border-radius: 0;
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  clip-path: none;
+  -webkit-clip-path: none;
+  overflow: visible;
+  isolation: isolate;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.table-card.is-hexitama-card.is-hexitama-action-selected,
+.table-card.is-hexitama-card[data-hexitama-action-selected='1'] {
+  --hexitama-selected-scale: 1.078;
+  --hexitama-selection-ring-scale-compensate: calc(1 / var(--hexitama-selected-scale));
+  transform: translate(-50%, -50%) rotate(var(--card-rotation-deg))
+    scale(calc(var(--card-scale) * var(--hexitama-selected-scale)));
+}
+
+.table-shell:not(.light-mode) .table-card.is-hexitama-card {
+  --hexitama-selection-ring-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,2 91.6,26 91.6,74 50,98 8.4,74 8.4,26' fill='none' stroke='%23ffffff' stroke-width='5.2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.table-card.is-hexitama-card:not(.has-hexitama-selection-overlay).is-hexitama-action-selected::after,
+.table-card.is-hexitama-card:not(.has-hexitama-selection-overlay)[data-hexitama-action-selected='1']::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--hexitama-selection-ring-size, 132%);
+  height: var(--hexitama-selection-ring-size, 132%);
+  transform: translate(-50%, -50%) scale(var(--hexitama-selection-ring-scale-compensate, 1));
+  background-image: var(--hexitama-selection-ring-image);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: var(--hexitama-selection-ring-opacity, 0.7);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.table-shell:not(.light-mode) .table-card.is-hexitama-card:not(.has-hexitama-selection-overlay).is-hexitama-action-selected::after,
+.table-shell:not(.light-mode) .table-card.is-hexitama-card:not(.has-hexitama-selection-overlay)[data-hexitama-action-selected='1']::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,2 91.6,26 91.6,74 50,98 8.4,74 8.4,26' fill='none' stroke='%23ffffff' stroke-width='5.2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.table-card-hexitama-selection-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--hexitama-selection-ring-size, 132%);
+  height: var(--hexitama-selection-ring-size, 132%);
+  transform: translate(-50%, -50%) scale(var(--hexitama-selection-ring-scale-compensate, 1));
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+  background-image: var(--hexitama-selection-ring-image);
+  transition: opacity 40ms linear;
+}
+
+.table-shell:not(.light-mode) .table-card.is-hexitama-card .table-card-hexitama-selection-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,2 91.6,26 91.6,74 50,98 8.4,74 8.4,26' fill='none' stroke='%23ffffff' stroke-width='5.2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.table-card-hexitama-selection-overlay.is-visible {
+  opacity: var(--hexitama-selection-ring-opacity, 0.7);
+}
+
+.table-card.is-hexitama-card img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  object-fit: fill;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.34));
+  clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+  -webkit-clip-path: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+}
+
+.table-shell.light-mode .table-card.is-hexitama-card img {
+  filter: drop-shadow(0 7px 13px rgba(45, 36, 20, 0.26));
+}
+
+.table-card.is-hexitama-card.is-front-pending::before,
+.table-card.is-hexitama-card.is-front-pending::after {
+  display: none;
 }
 
 .table-card-codegame-key-overlay {
@@ -9159,6 +9462,57 @@ body.tabletop-delete-cursor-hidden *::after {
   filter: saturate(0.98) brightness(0.96);
 }
 
+.asset-preview-box-hexitama {
+  display: grid;
+  place-items: center;
+  background-image: none;
+  background-color: #163f31;
+}
+
+#hexitamaTile .asset-placeholder-box.asset-preview-box-hexitama {
+  background-image: none;
+  background-color: #163f31;
+}
+
+.asset-hexitama-preview-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  shape-rendering: geometricPrecision;
+}
+
+.asset-hexitama-preview-hex-fill {
+  fill: url(#assetHexitamaTileGradient);
+}
+
+.asset-hexitama-preview-hex-outline {
+  fill: none;
+  stroke: rgba(245, 248, 255, 0.92);
+  stroke-width: 2.25;
+  vector-effect: non-scaling-stroke;
+}
+
+.asset-hexitama-preview-temple {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.asset-hexitama-preview-piece {
+  filter: drop-shadow(0 1px 1.1px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+  image-rendering: auto;
+  image-rendering: smooth;
+  shape-rendering: auto;
+}
+
+.asset-hexitama-preview-piece-chief {
+  filter: drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.52));
+}
+
+.asset-hexitama-preview-piece-chief-black {
+  filter: invert(1) brightness(1.08) drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.52));
+}
+
 #arcadeMachineTile .asset-preview-box {
   background: #fff;
 }
@@ -9198,6 +9552,20 @@ body.tabletop-delete-cursor-hidden *::after {
   background:
     radial-gradient(circle at 50% 24%, rgba(74, 132, 228, 0.22), rgba(74, 132, 228, 0) 48%),
     linear-gradient(180deg, rgba(244, 247, 252, 0.95) 0%, rgba(226, 233, 244, 0.95) 100%);
+}
+
+.table-shell.light-mode .asset-preview-box-hexitama {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+.table-shell.light-mode #hexitamaTile .asset-placeholder-box.asset-preview-box-hexitama {
+  background-image: none;
+  background-color: #ffffff;
+}
+
+.table-shell.light-mode .asset-hexitama-preview-hex-outline {
+  stroke: rgba(8, 10, 12, 0.92);
 }
 
 .table-shell.light-mode .asset-arcade-tile-icon {
@@ -9886,6 +10254,11 @@ body.tabletop-delete-cursor-hidden *::after {
     repeating-linear-gradient(45deg, rgba(34, 29, 23, 0.07) 0 9px, rgba(34, 29, 23, 0.03) 9px 18px);
 }
 
+.table-shell.light-mode #hexitamaTile .asset-placeholder-box.asset-preview-box-hexitama {
+  background-image: none;
+  background-color: #ffffff;
+}
+
 .table-shell[data-playspace-pattern="greenscreen"] .playspace-layer,
 .table-shell[data-playspace-pattern="greenscreen"] .game-layer *,
 .table-shell[data-playspace-pattern="greenscreen"] .cards-layer *,
@@ -10083,6 +10456,58 @@ body.tabletop-delete-cursor-hidden *::after {
 
   .auction-bid-input {
     width: min(37.2vw, 126px);
+  }
+}
+
+@media (max-width: 768px) {
+  #diceComponentTile .asset-component-icon-dice,
+  #coinComponentTile .asset-component-icon-coin,
+  #marbleComponentTile .asset-component-icon-marble,
+  #stackPointComponentTile .asset-component-icon-stack-point,
+  #secretAreaComponentTile .asset-component-icon-secret-area,
+  #imageComponentTile .asset-component-icon-image,
+  #chipsComponentTile .asset-component-icon-chips,
+  #mediaComponentTile .asset-component-icon-media,
+  #labelComponentTile .asset-component-icon-label {
+    transform: translateY(36%);
+  }
+
+  #spinnerComponentTile .asset-component-icon-spinner {
+    transform: translateY(36%) scale(1.14);
+  }
+
+  #pokerDeckComponentTile .asset-component-icon-poker {
+    transform: translateY(36%) scale(1.04);
+  }
+
+  #counterComponentTile .asset-component-icon-counter {
+    transform: translateY(34%) scale(1.18);
+  }
+
+  #timerComponentTile .asset-component-icon-timer {
+    transform: translateY(34%) scale(1.12);
+  }
+
+  #noteComponentTile .asset-component-icon-note {
+    transform: translateY(34%) scale(1.06);
+  }
+
+  .asset-gallery-item.is-asset-loading .asset-preview-box::after,
+  .hand-card.is-front-pending::after,
+  .hand-card.is-asset-loading:not(.is-front-pending)::after,
+  .table-card.is-front-pending::after,
+  .table-card.is-asset-loading:not(.is-front-pending)::after,
+  .table-die.is-asset-loading::after,
+  .mons-game-shell.is-asset-loading::after,
+  .tafl-game-shell.is-asset-loading::after,
+  .go-game-shell.is-asset-loading::after,
+  .chip-stack-slot.is-asset-loading::after {
+    inset: 0;
+    margin: auto;
+    left: auto;
+    top: auto;
+    transform: none;
+    box-sizing: border-box;
   }
 }
 
