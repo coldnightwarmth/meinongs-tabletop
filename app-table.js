@@ -596,7 +596,6 @@ const ARCADE_MANA_MENU_CLOSE_INDEX = 2;
 const ARCADE_MANA_GAME_OVER_OPTION_LABELS = Object.freeze(['play again', 'quit']);
 const ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX = 0;
 const ARCADE_MANA_GAME_OVER_QUIT_INDEX = 1;
-const ARCADE_MANA_FORCE_SHOW_NEW_HIGH_SCORE_TEXT = true;
 const ARCADE_MANA_GRID_SIZE = 11;
 const ARCADE_MANA_CENTER_TILE = Math.floor(ARCADE_MANA_GRID_SIZE / 2);
 const ARCADE_MANA_STEP_MS_NORMAL = 214;
@@ -20687,8 +20686,7 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     const centerY = Math.floor(height / 2);
     const gameOverTextOffsetY = -25;
     const gameOverBodyOffsetY = gameOverTextOffsetY + 15;
-    const showNewHighScoreText = isNewHighScore || ARCADE_MANA_FORCE_SHOW_NEW_HIGH_SCORE_TEXT;
-    if (showNewHighScoreText) {
+    if (isNewHighScore) {
       const rainbowHue = Math.floor((now / 8) % 360);
       const flash = 0.5 + Math.sin(now / 95) * 0.5;
       ctx.fillStyle = `hsla(${rainbowHue}, 100%, ${58 + flash * 12}%, ${0.82 + flash * 0.18})`;
