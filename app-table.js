@@ -200,6 +200,10 @@ const MIN_SCREEN_GRID_CELL_SIZE = 14;
 const MIN_WORLD_GRID_LINE_SIZE = 0.25;
 const MAX_WORLD_GRID_LINE_SIZE = 7;
 const LOW_ZOOM_PIXEL_SNAP_SCALE = 0.35;
+const LOW_ZOOM_STABILITY_SCALE = 0.26;
+const LOW_ZOOM_GRID_SCALE_EPSILON = 0.0035;
+const LOW_ZOOM_CULL_MARGIN_PX = 3400;
+const LOW_ZOOM_CULL_MARGIN_PX_GAMES = 4200;
 const CARD_SIZE_MULTIPLIER = 1.8;
 const CARD_WIDTH = 120 * CARD_SIZE_MULTIPLIER;
 const CARD_HEIGHT = 168 * CARD_SIZE_MULTIPLIER;
@@ -591,6 +595,7 @@ const ARCADE_MANA_MENU_CLOSE_INDEX = 2;
 const ARCADE_MANA_GAME_OVER_OPTION_LABELS = Object.freeze(['play again', 'quit']);
 const ARCADE_MANA_GAME_OVER_PLAY_AGAIN_INDEX = 0;
 const ARCADE_MANA_GAME_OVER_QUIT_INDEX = 1;
+const ARCADE_MANA_FORCE_SHOW_NEW_HIGH_SCORE_TEXT = true;
 const ARCADE_MANA_GRID_SIZE = 11;
 const ARCADE_MANA_CENTER_TILE = Math.floor(ARCADE_MANA_GRID_SIZE / 2);
 const ARCADE_MANA_STEP_MS_NORMAL = 214;
@@ -2596,8 +2601,23 @@ function isCameraInteractionActive(now = Date.now()) {
   return now - lastCameraInteractionAt <= CAMERA_INTERACTION_ACTIVE_MS;
 }
 
+function isLowZoomStabilityActive(scale = camera.scale) {
+  const numericScale = Number(scale);
+  return Number.isFinite(numericScale) && numericScale <= LOW_ZOOM_STABILITY_SCALE;
+}
+
 function getViewportCullMarginPx() {
+  if (isLowZoomStabilityActive()) {
+    return Math.max(LOW_ZOOM_CULL_MARGIN_PX, VIEWPORT_CULL_MARGIN_ACTIVE_PX);
+  }
   return isCameraInteractionActive() ? VIEWPORT_CULL_MARGIN_ACTIVE_PX : VIEWPORT_CULL_MARGIN_PX;
+}
+
+function getViewportGameCullMarginPx() {
+  if (isLowZoomStabilityActive()) {
+    return Math.max(LOW_ZOOM_CULL_MARGIN_PX_GAMES, VIEWPORT_CULL_MARGIN_ACTIVE_PX);
+  }
+  return Math.max(VIEWPORT_CULL_MARGIN_PX_GAMES, getViewportCullMarginPx());
 }
 
 function shouldKeepMountedDuringOffscreenGrace(offscreenSinceById, itemId, now = Date.now()) {
@@ -2611,6 +2631,9 @@ function shouldKeepMountedDuringOffscreenGrace(offscreenSinceById, itemId, now =
   const previousSince = Number(offscreenSinceById.get(normalizedItemId) || 0);
   if (!previousSince) {
     offscreenSinceById.set(normalizedItemId, now);
+    return true;
+  }
+  if (isLowZoomStabilityActive()) {
     return true;
   }
   if (isCameraInteractionActive(now)) {
@@ -10640,7 +10663,7 @@ function renderDeckControls(precomputedMetrics = null) {
       targetDeckState.y,
       deckWorldWidth,
       deckWorldHeight,
-      VIEWPORT_CULL_MARGIN_PX_GAMES
+      getViewportGameCullMarginPx()
     );
     const keepDeckVisible =
       selectedDeckIds.has(deckId) ||
@@ -20650,21 +20673,24 @@ function drawArcadeManaCanvas(dieId, dieState, now = Date.now()) {
     ctx.textBaseline = 'middle';
     const centerX = Math.floor(width / 2);
     const centerY = Math.floor(height / 2);
-    if (isNewHighScore) {
+    const gameOverTextOffsetY = -25;
+    const gameOverBodyOffsetY = gameOverTextOffsetY + 15;
+    const showNewHighScoreText = isNewHighScore || ARCADE_MANA_FORCE_SHOW_NEW_HIGH_SCORE_TEXT;
+    if (showNewHighScoreText) {
       const rainbowHue = Math.floor((now / 8) % 360);
       const flash = 0.5 + Math.sin(now / 95) * 0.5;
       ctx.fillStyle = `hsla(${rainbowHue}, 100%, ${58 + flash * 12}%, ${0.82 + flash * 0.18})`;
-      drawArcadePixelText('NEW HIGH SCORE!', centerX, centerY - 54);
+      drawArcadePixelText('NEW HIGH SCORE!', centerX, centerY - 54 + gameOverTextOffsetY);
     }
     ctx.fillStyle = '#f1ffe8';
-    drawArcadePixelText('game over', centerX, centerY - 18);
+    drawArcadePixelText('game over', centerX, centerY - 38 + gameOverBodyOffsetY);
     ctx.fillStyle = '#a8ffd8';
-    drawArcadePixelText(String(currentScore), centerX, centerY + 12);
+    drawArcadePixelText(String(currentScore), centerX, centerY - 8 + gameOverBodyOffsetY);
     ctx.fillStyle = '#f1ffe8';
     for (let index = 0; index < ARCADE_MANA_GAME_OVER_OPTION_LABELS.length; index += 1) {
       const selected = index === selectedIndex;
       const isPressed = selected && jPressed;
-      const y = centerY + 48 + index * 24;
+      const y = centerY + 48 + index * 24 + gameOverBodyOffsetY;
       ctx.globalAlpha = selected ? (isPressed ? 0.52 : 1) : 0.6;
       drawArcadePixelText(ARCADE_MANA_GAME_OVER_OPTION_LABELS[index], centerX, y);
     }
@@ -20933,7 +20959,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
 
     const shell = document.createElement('div');
     shell.className = 'table-arcade-shell';
-    const showControllerOwner = screenMode === ARCADE_SCREEN_MANA_PLAY && Boolean(controllerDisplayName);
+    const showControllerOwner = isArcadeOwnerVisibleOnCabinet(dieState);
     shell.classList.toggle('has-owner', showControllerOwner);
 
     const screen = document.createElement('div');
@@ -24509,13 +24535,22 @@ function applyCamera() {
     cameraRenderRafId = 0;
   }
   clampCameraToViewport();
+  const lowZoomStabilityActive = isLowZoomStabilityActive(camera.scale);
+  if (tableRoot) {
+    const hadLowZoomStabilityClass = tableRoot.classList.contains('is-low-zoom-stability');
+    if (hadLowZoomStabilityClass !== lowZoomStabilityActive) {
+      tableRoot.classList.toggle('is-low-zoom-stability', lowZoomStabilityActive);
+      lastAppliedGridScale = Number.NaN;
+    }
+  }
   if (camera.scale <= LOW_ZOOM_PIXEL_SNAP_SCALE) {
     camera.panX = snapScreenTranslation(camera.panX);
     camera.panY = snapScreenTranslation(camera.panY);
   }
   const cameraTransform = `translate3d(${camera.panX}px, ${camera.panY}px, 0) scale(${camera.scale})`;
   if (playspaceLayer) {
-    if (!Number.isFinite(lastAppliedGridScale) || Math.abs(camera.scale - lastAppliedGridScale) > GRID_SCALE_EPSILON) {
+    const gridScaleEpsilon = lowZoomStabilityActive ? LOW_ZOOM_GRID_SCALE_EPSILON : GRID_SCALE_EPSILON;
+    if (!Number.isFinite(lastAppliedGridScale) || Math.abs(camera.scale - lastAppliedGridScale) > gridScaleEpsilon) {
       const gridLineSize = getGridLineSizeForScale(camera.scale);
       const gridCellSize = getGridCellSizeForScale(camera.scale);
       const gridDotOpacityFactor = getGridDotOpacityFactorForScale(camera.scale);
@@ -39448,8 +39483,46 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     return controllerToken === localToken;
   }
 
+  function isArcadeOwnerVisibleOnCabinet(dieState) {
+    if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
+    const controllerName = String(dieState?.arcadeControllerName || '').trim().slice(0, 24);
+    const controllerDisplayName = controllerName || (controllerClientId ? 'anon' : '');
+    return Boolean(controllerDisplayName);
+  }
+
+  function clearArcadeControllerIdentityIfOwnerHidden(dieId, dieState) {
+    if (!isArcadeDieState(dieState)) {
+      return false;
+    }
+    if (isArcadeOwnerVisibleOnCabinet(dieState)) {
+      return false;
+    }
+    const hasControllerIdentity =
+      Boolean(String(dieState?.arcadeControllerClientId || '').trim()) ||
+      Boolean(normalizeArcadePlayerToken(dieState?.arcadeControllerPlayerToken)) ||
+      Boolean(String(dieState?.arcadeControllerName || '').trim());
+    if (!hasControllerIdentity) {
+      return false;
+    }
+    const patch = {
+      arcadeControllerClientId: '',
+      arcadeControllerPlayerToken: '',
+      arcadeControllerName: '',
+      arcadeControllerColor: '#ff7a59'
+    };
+    patchLocalDie(dieId, patch);
+    queueDiePatch(dieId, patch);
+    return true;
+  }
+
   function isArcadePlayControlledByOtherClient(dieState) {
     if (normalizeArcadeScreen(dieState?.arcadeScreen) !== ARCADE_SCREEN_MANA_PLAY) {
+      return false;
+    }
+    if (!isArcadeOwnerVisibleOnCabinet(dieState)) {
       return false;
     }
     const controllerClientId = String(dieState?.arcadeControllerClientId || '').trim();
@@ -45667,6 +45740,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     let targetDieState = diceById.get(dieId);
     const targetDieType = normalizeDieType(targetDieState?.type);
     if (targetDieType === 'arcade') {
+      clearArcadeControllerIdentityIfOwnerHidden(dieId, targetDieState);
+      targetDieState = diceById.get(dieId) || targetDieState;
       setActiveArcadeDieFocus(dieId);
     } else if (activeArcadeDieId && activeArcadeDieId !== dieId) {
       setActiveArcadeDieFocus('');
@@ -52023,9 +52098,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     return Boolean(target?.closest('.table-card'));
   }
 
-function isEventOnMonsBoardUi(event) {
+function isEventOnZoomPermittedPlayspaceUi(event) {
   const target = event.target instanceof Element ? event.target : null;
-  return Boolean(target?.closest('#monsGameShell, .mons-game-shell, #monsMoveButton, #monsOptionsButton, .mons-move-button, .mons-options-button'));
+  return Boolean(
+    target?.closest(
+      '#monsGameShell, .mons-game-shell, #monsMoveButton, #monsOptionsButton, .mons-move-button, .mons-options-button, .deck-control-button[data-stack-scope="deck"]'
+    )
+  );
 }
 
 function isEventOnTimerSplits(event) {
@@ -52204,7 +52283,7 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       if (isEventOnTimerSplits(event)) {
         return;
       }
-      if (shouldIgnorePointerEvent(event) && !isEventOnMonsBoardUi(event)) {
+      if (shouldIgnorePointerEvent(event) && !isEventOnZoomPermittedPlayspaceUi(event)) {
         return;
       }
       event.preventDefault();
@@ -52338,20 +52417,6 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
       }
 
       if (event.button === 0 && hasAnyGroupSelection() && !isEventOnCard(event)) {
-        const movableSelectedDeckIds = getMovableSelectedDeckIds();
-        const hasOnlyDeckSelection =
-          movableSelectedDeckIds.length > 0 &&
-          getMovableSelectedIds().length === 0 &&
-          getMovableSelectedDieIds().length === 0 &&
-          getMovableSelectedMonsGameIds().length === 0 &&
-          getMovableSelectedChipSetIds().length === 0 &&
-          getMovableSelectedTaflGameIds().length === 0 &&
-          getMovableSelectedGoGameIds().length === 0;
-        if (hasOnlyDeckSelection && beginGroupDragFromDeck(event, movableSelectedDeckIds[0])) {
-          event.preventDefault();
-          schedulePublishFromEvent(event);
-          return;
-        }
         event.preventDefault();
         releaseAllSelectedObjects();
         schedulePublishFromEvent(event);
