@@ -200,10 +200,11 @@ const MIN_SCREEN_GRID_CELL_SIZE = 14;
 const MIN_WORLD_GRID_LINE_SIZE = 0.25;
 const MAX_WORLD_GRID_LINE_SIZE = 7;
 const LOW_ZOOM_PIXEL_SNAP_SCALE = 0.35;
-const LOW_ZOOM_STABILITY_SCALE = 0.26;
-const LOW_ZOOM_GRID_SCALE_EPSILON = 0.0035;
-const LOW_ZOOM_CULL_MARGIN_PX = 3400;
-const LOW_ZOOM_CULL_MARGIN_PX_GAMES = 4200;
+const LOW_ZOOM_STABILITY_ENTER_SCALE = 0.62;
+const LOW_ZOOM_STABILITY_EXIT_SCALE = 0.7;
+const LOW_ZOOM_GRID_SCALE_EPSILON = 0.008;
+const LOW_ZOOM_CULL_MARGIN_PX = 5200;
+const LOW_ZOOM_CULL_MARGIN_PX_GAMES = 6200;
 const CARD_SIZE_MULTIPLIER = 1.8;
 const CARD_WIDTH = 120 * CARD_SIZE_MULTIPLIER;
 const CARD_HEIGHT = 168 * CARD_SIZE_MULTIPLIER;
@@ -287,9 +288,9 @@ const SECRET_AREA_PERSIST_CONFIRM_DELAY_MS = 160;
 const PATCH_FLUSH_INTERVAL_MS = 34;
 const VIEWPORT_CULL_MARGIN_PX = 320;
 const VIEWPORT_CULL_MARGIN_PX_GAMES = 420;
-const VIEWPORT_CULL_MARGIN_ACTIVE_PX = 560;
-const OFFSCREEN_UNMOUNT_GRACE_MS = 420;
-const CAMERA_INTERACTION_ACTIVE_MS = 240;
+const VIEWPORT_CULL_MARGIN_ACTIVE_PX = 1400;
+const OFFSCREEN_UNMOUNT_GRACE_MS = 1200;
+const CAMERA_INTERACTION_ACTIVE_MS = 900;
 const GRID_SCALE_EPSILON = 0.0005;
 const LEGACY_DECK_ROOT_FIELDS = Object.freeze([
   'x',
@@ -2360,6 +2361,7 @@ const camera = {
   panY: 0
 };
 let lastAppliedGridScale = Number.NaN;
+let lowZoomStabilityModeActive = false;
 
 function getMonsPieceImageRendering() {
   return camera.scale >= MONS_PIECE_PIXELATE_SCALE ? 'pixelated' : 'auto';
@@ -2603,7 +2605,17 @@ function isCameraInteractionActive(now = Date.now()) {
 
 function isLowZoomStabilityActive(scale = camera.scale) {
   const numericScale = Number(scale);
-  return Number.isFinite(numericScale) && numericScale <= LOW_ZOOM_STABILITY_SCALE;
+  if (!Number.isFinite(numericScale)) {
+    return lowZoomStabilityModeActive;
+  }
+  if (lowZoomStabilityModeActive) {
+    if (numericScale >= LOW_ZOOM_STABILITY_EXIT_SCALE) {
+      lowZoomStabilityModeActive = false;
+    }
+  } else if (numericScale <= LOW_ZOOM_STABILITY_ENTER_SCALE) {
+    lowZoomStabilityModeActive = true;
+  }
+  return lowZoomStabilityModeActive;
 }
 
 function getViewportCullMarginPx() {
@@ -20959,7 +20971,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
 
     const shell = document.createElement('div');
     shell.className = 'table-arcade-shell';
-    const showControllerOwner = isArcadeOwnerVisibleOnCabinet(dieState);
+    const showControllerOwner = screenMode === ARCADE_SCREEN_MANA_PLAY && Boolean(controllerDisplayName);
     shell.classList.toggle('has-owner', showControllerOwner);
 
     const screen = document.createElement('div');

@@ -392,6 +392,10 @@ input[type="color"]::-webkit-color-swatch {
 .table-shell.is-low-zoom-stability .table-die,
 .table-shell.is-low-zoom-stability .mons-game-shell,
 .table-shell.is-low-zoom-stability .tafl-game-shell,
+.table-shell.is-low-zoom-stability .go-game-shell,
+.table-shell.is-low-zoom-stability .hexitama-game-shell,
+.table-shell.is-low-zoom-stability .chip-stack-slot,
+.table-shell.is-low-zoom-stability .hand-card,
 .table-shell.is-low-zoom-stability .deck-slot,
 .table-shell.is-low-zoom-stability .codegame-grid-frame {
   will-change: auto !important;
