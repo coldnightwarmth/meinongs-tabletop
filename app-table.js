@@ -44788,6 +44788,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
 
+    if (effectivePointerType === 'touch' && isHexitamaActionCard) {
+      if (hasAnyGroupSelection()) {
+        releaseAllSelectedObjects();
+      }
+      handleHexitamaActionCardSelectionClick(cardId);
+      schedulePublishFromClient(event.clientX, event.clientY);
+      return;
+    }
+
     const consumedDoubleTap = consumeDoubleTapIfPresent(cardId, event);
     const consumedDoubleClick = consumeDoubleClickIfPresent(cardId, event);
     if (consumedDoubleTap || consumedDoubleClick) {
@@ -44815,8 +44824,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
         // editor does not immediately blur/close on the same pointer sequence.
         window.setTimeout(openNoteEditor, 0);
       } else if (isCodegameGridCard) {
-        // Left-click / tap interactions on Codegame grid cards should never
-        // toggle reveal tint state. Tinting is handled by right-click only.
+        const toggledMark = toggleCodegameGridCardReveal(cardId);
+        if (CODEGAME_TINT_DEBUG) {
+          const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+          codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:${toggledMark ? '1' : '0'}`);
+          runRenderSafely('codegame-debug:pointer-double-result-grid', () => renderCardElement(cardId));
+        }
       } else if (!toggleCodegameGridCardReveal(cardId)) {
         handleCardFlipIntent(cardId).catch((error) => {
           console.error(error);
@@ -45613,8 +45626,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     const isCodegameGridCard = isCodegameGridPlayableCardState(cardState, cardId);
     if (!isNoteComponentCard(cardState)) {
       if (isCodegameGridCard) {
+        const toggledMark = toggleCodegameGridCardReveal(cardId);
         event.preventDefault();
         event.stopPropagation();
+        if (CODEGAME_TINT_DEBUG) {
+          const priorStatus = codegameDebugStatusByCardId.get(cardId) || '-';
+          codegameDebugStatusByCardId.set(cardId, `${priorStatus} -> toggle:${toggledMark ? '1' : '0'}`);
+          runRenderSafely('codegame-debug:dblclick-result-grid', () => renderCardElement(cardId));
+        }
         return;
       }
       if (toggleCodegameGridCardReveal(cardId)) {
