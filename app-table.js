@@ -1958,6 +1958,8 @@ let hexitamaSelectedActionCardId = '';
 let hexitamaSelectedActionGameId = '';
 let hexitamaSelectedPieceId = '';
 let hexitamaSelectedPieceGameId = '';
+let hexitamaBlockedPieceId = '';
+let hexitamaBlockedPieceGameId = '';
 let hexitamaMoveTargets = [];
 let activeArcadeDieId = '';
 let arcadeManaMotionIntervalId = 0;
@@ -3214,6 +3216,8 @@ function setActiveHexitamaGameId(nextHexitamaGameId) {
   if (normalizedHexitamaGameId !== previousHexitamaGameId) {
     hexitamaSelectedPieceId = '';
     hexitamaSelectedPieceGameId = '';
+    hexitamaBlockedPieceId = '';
+    hexitamaBlockedPieceGameId = '';
     hexitamaMoveTargets = [];
     if (hexitamaSelectedActionGameId && normalizeHexitamaGameId(hexitamaSelectedActionGameId) !== normalizedHexitamaGameId) {
       hexitamaSelectedActionCardId = '';
@@ -8750,6 +8754,8 @@ function clearHexitamaActionSelection(options = {}) {
   hexitamaSelectedActionGameId = '';
   hexitamaSelectedPieceId = '';
   hexitamaSelectedPieceGameId = '';
+  hexitamaBlockedPieceId = '';
+  hexitamaBlockedPieceGameId = '';
   hexitamaMoveTargets = [];
   if (!shouldRender) {
     return;
@@ -8767,6 +8773,8 @@ function clearHexitamaPieceSelection(options = {}) {
   const hadSelection = Boolean(hexitamaSelectedPieceId) || (Array.isArray(hexitamaMoveTargets) && hexitamaMoveTargets.length > 0);
   hexitamaSelectedPieceId = '';
   hexitamaSelectedPieceGameId = '';
+  hexitamaBlockedPieceId = '';
+  hexitamaBlockedPieceGameId = '';
   hexitamaMoveTargets = [];
   if (!shouldRender || !hadSelection) {
     return;
@@ -8802,6 +8810,8 @@ function setHexitamaActionSelection(cardId, cardState) {
   hexitamaSelectedActionGameId = nextGameId;
   hexitamaSelectedPieceId = '';
   hexitamaSelectedPieceGameId = '';
+  hexitamaBlockedPieceId = '';
+  hexitamaBlockedPieceGameId = '';
   hexitamaMoveTargets = [];
   if (normalizeHexitamaGameId(activeHexitamaGameId) !== nextGameId) {
     setActiveHexitamaGameId(nextGameId);
@@ -8833,36 +8843,41 @@ function applyHexitamaActionCardSelectionVisual(cardElement, isSelected) {
   }
 }
 
-function getHexitamaPieceSelectionFilter(pieceElement, isSelected) {
+function getHexitamaPieceSelectionFilter(pieceElement, isSelected, isBlocked = false) {
   if (!(pieceElement instanceof SVGImageElement)) {
     return '';
   }
   const selected = isSelected === true;
+  const blocked = selected && isBlocked === true;
+  const selectionGlow = blocked ? 'rgba(255, 89, 89, 0.82)' : 'rgba(108, 170, 255, 0.78)';
   const isChief = pieceElement.classList.contains('is-chief');
   const isInverted = pieceElement.classList.contains('is-inverted');
   if (isChief && isInverted) {
     return selected
-      ? 'invert(1) brightness(1.08) drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))'
+      ? `invert(1) brightness(1.08) drop-shadow(0 0 8px ${selectionGlow}) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))`
       : 'invert(1) brightness(1.08) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))';
   }
   if (isChief) {
     return selected
-      ? 'drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))'
+      ? `drop-shadow(0 0 8px ${selectionGlow}) drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))`
       : 'drop-shadow(0 1px 1.6px rgba(0, 0, 0, 0.52))';
   }
   return selected
-    ? 'drop-shadow(0 0 8px rgba(108, 170, 255, 0.78)) drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45))'
+    ? `drop-shadow(0 0 8px ${selectionGlow}) drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45))`
     : 'drop-shadow(0 1px 1.3px rgba(0, 0, 0, 0.45))';
 }
 
-function applyHexitamaPieceSelectionVisual(pieceElement, isSelected) {
+function applyHexitamaPieceSelectionVisual(pieceElement, isSelected, isBlocked = false) {
   if (!(pieceElement instanceof SVGImageElement)) {
     return;
   }
   const selected = isSelected === true;
+  const blocked = selected && isBlocked === true;
   pieceElement.classList.toggle('is-selected', selected);
+  pieceElement.classList.toggle('is-selection-blocked', blocked);
   pieceElement.dataset.hexitamaSelected = selected ? '1' : '0';
-  pieceElement.style.filter = getHexitamaPieceSelectionFilter(pieceElement, selected);
+  pieceElement.dataset.hexitamaSelectionBlocked = blocked ? '1' : '0';
+  pieceElement.style.filter = getHexitamaPieceSelectionFilter(pieceElement, selected, blocked);
 }
 
 function syncHexitamaSelectionVisuals() {
@@ -8893,6 +8908,10 @@ function syncHexitamaSelectionVisuals() {
   const selectedPieceGameId = normalizeHexitamaGameId(
     String(hexitamaSelectedPieceGameId || '').trim() || activeHexitamaGameId
   );
+  const blockedPieceId = String(hexitamaBlockedPieceId || '').trim();
+  const blockedPieceGameId = normalizeHexitamaGameId(
+    String(hexitamaBlockedPieceGameId || '').trim() || activeHexitamaGameId
+  );
   for (const [gameId, hexitamaUi] of hexitamaBoardElementsById.entries()) {
     const normalizedGameId = normalizeHexitamaGameId(gameId);
     if (!(hexitamaUi?.pieceElementsById instanceof Map)) {
@@ -8906,7 +8925,11 @@ function syncHexitamaSelectionVisuals() {
         Boolean(selectedPieceId) &&
         String(pieceId || '').trim() === selectedPieceId &&
         normalizedGameId === selectedPieceGameId;
-      applyHexitamaPieceSelectionVisual(pieceElement, isSelectedPiece);
+      const isBlockedPiece =
+        Boolean(blockedPieceId) &&
+        String(pieceId || '').trim() === blockedPieceId &&
+        normalizedGameId === blockedPieceGameId;
+      applyHexitamaPieceSelectionVisual(pieceElement, isSelectedPiece, isBlockedPiece);
     }
   }
 
@@ -16995,7 +17018,9 @@ function renderHexitamaPieceAndMoveLayers(hexitamaUi, gameState, gameId) {
     applyHexitamaPieceSelectionVisual(
       pieceElement,
       String(hexitamaSelectedPieceId || '').trim() === normalizedPiece.id &&
-        normalizeHexitamaGameId(hexitamaSelectedPieceGameId) === normalizedGameId
+        normalizeHexitamaGameId(hexitamaSelectedPieceGameId) === normalizedGameId,
+      String(hexitamaBlockedPieceId || '').trim() === normalizedPiece.id &&
+        normalizeHexitamaGameId(hexitamaBlockedPieceGameId) === normalizedGameId
     );
     pieceElement.dataset.hexitamaPieceId = normalizedPiece.id;
     pieceElement.dataset.hexitamaPieceSide = normalizedPiece.side;
@@ -17209,6 +17234,25 @@ function ensureHexitamaBoardUi(gameId) {
   tileLinearGradient.appendChild(tileLinearStopTop);
   tileLinearGradient.appendChild(tileLinearStopBottom);
   defs.appendChild(tileLinearGradient);
+
+  const tileChiefLinearGradientId = `${safePaintIdPrefix}-tile-chief-linear`;
+  const tileChiefLinearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  tileChiefLinearGradient.setAttribute('id', tileChiefLinearGradientId);
+  tileChiefLinearGradient.setAttribute('x1', '0');
+  tileChiefLinearGradient.setAttribute('y1', '0');
+  tileChiefLinearGradient.setAttribute('x2', '0');
+  tileChiefLinearGradient.setAttribute('y2', '1');
+  const tileChiefLinearStopTop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  tileChiefLinearStopTop.setAttribute('offset', '0%');
+  tileChiefLinearStopTop.setAttribute('stop-color', 'rgb(198, 160, 112)');
+  tileChiefLinearStopTop.setAttribute('stop-opacity', '1');
+  const tileChiefLinearStopBottom = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  tileChiefLinearStopBottom.setAttribute('offset', '100%');
+  tileChiefLinearStopBottom.setAttribute('stop-color', 'rgb(176, 137, 95)');
+  tileChiefLinearStopBottom.setAttribute('stop-opacity', '1');
+  tileChiefLinearGradient.appendChild(tileChiefLinearStopTop);
+  tileChiefLinearGradient.appendChild(tileChiefLinearStopBottom);
+  defs.appendChild(tileChiefLinearGradient);
   boardSvg.appendChild(defs);
 
   const boardTilesBaseLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -17227,16 +17271,18 @@ function ensureHexitamaBoardUi(gameId) {
   const chiefTempleIconHref = encodeURI(HEXITAMA_CHIEF_TEMPLE_SRC);
   for (const center of tileCenters) {
     const tilePoints = getHexitamaHexPolygonPoints(center.x, center.y, HEXITAMA_HEX_RADIUS, HEXITAMA_TILE_ROTATION_DEG);
+    const isChiefStart = isHexitamaChiefStartTile(center.colIndex, center.rowValue);
 
     const tileBasePolygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     tileBasePolygon.classList.add('hexitama-board-hex-base');
+    tileBasePolygon.classList.toggle('is-chief-start', isChiefStart);
     tileBasePolygon.dataset.hexitamaColIndex = String(center.colIndex);
     tileBasePolygon.dataset.hexitamaRowValue = String(center.rowValue);
     tileBasePolygon.setAttribute('points', tilePoints);
-    tileBasePolygon.setAttribute('fill', `url(#${tileLinearGradientId})`);
+    tileBasePolygon.setAttribute('fill', `url(#${isChiefStart ? tileChiefLinearGradientId : tileLinearGradientId})`);
     boardTilesBaseLayer.appendChild(tileBasePolygon);
 
-    if (isHexitamaChiefStartTile(center.colIndex, center.rowValue)) {
+    if (isChiefStart) {
       const templeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'image');
       const templeSize = HEXITAMA_HEX_RADIUS * 1.14;
       templeIcon.classList.add('hexitama-chief-temple-icon');
@@ -31766,6 +31812,32 @@ function closeNoteEditor(options = {}) {
     return isTouchLikePointerEvent(event) ? 'touch' : event.pointerType;
   }
 
+  function shouldPrioritizeMultiTouchCameraGesture(event, options = {}) {
+    const pointerEvent = event instanceof PointerEvent ? event : null;
+    if (!pointerEvent) {
+      return false;
+    }
+    const effectivePointerType = getEffectivePointerType(pointerEvent);
+    if (effectivePointerType !== 'touch') {
+      return false;
+    }
+    const pointerId = Number(pointerEvent.pointerId);
+    if (Number.isFinite(pointerId)) {
+      touchPointers.set(pointerId, { x: pointerEvent.clientX, y: pointerEvent.clientY });
+      activePointers.add(pointerId);
+    }
+    if (touchPointers.size < 2) {
+      return false;
+    }
+    if (options.cancelInteractions !== false) {
+      cancelActiveCardInteractions();
+      mousePanState = null;
+    }
+    pinchState = capturePinchState();
+    touchPanState = null;
+    return true;
+  }
+
   function pruneRecentTouchTaps(now = Date.now()) {
     for (const [cardId, tap] of recentTouchTapByCardId.entries()) {
       if (now - tap.time > TOUCH_DOUBLE_TAP_MS) {
@@ -34656,8 +34728,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       gameId: normalizedGameId,
       pieceId: normalizedPieceId
     }));
+    const hasMoveTargets = nextTargets.length > 0;
     hexitamaSelectedPieceId = normalizedPieceId;
     hexitamaSelectedPieceGameId = normalizedGameId;
+    hexitamaBlockedPieceId = hasMoveTargets ? '' : normalizedPieceId;
+    hexitamaBlockedPieceGameId = hasMoveTargets ? '' : normalizedGameId;
     hexitamaMoveTargets = nextTargets;
     runRenderSafely('hexitama-piece-selection:on', () => renderHexitamaBoards());
     forceHexitamaSelectionVisualCommit();
@@ -37208,6 +37283,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -38970,6 +39048,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     if (!Number.isFinite(row) || !Number.isFinite(col)) {
@@ -44759,6 +44840,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     const effectivePointerType = getEffectivePointerType(event);
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (effectivePointerType === 'touch') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -45259,6 +45343,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
@@ -45764,6 +45851,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (isLabelDieEditing(dieId)) {
       event.preventDefault();
       event.stopPropagation();
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     let targetDieState = diceById.get(dieId);
@@ -46414,6 +46504,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -46659,6 +46752,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
@@ -47736,6 +47832,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -48005,6 +48104,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
     if (deleteModeEnabled) {
       event.preventDefault();
@@ -48055,6 +48157,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     const targetGameId = normalizeTaflGameId(gameId || activeTaflGameId);
@@ -48483,6 +48588,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -48640,6 +48748,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     const targetGameId = normalizeGoGameId(gameId || activeGoGameId);
     if (deleteModeEnabled) {
       event.preventDefault();
@@ -48759,6 +48870,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
     if (event.pointerType === 'mouse' && event.button !== 0) {
       return;
     }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
+      return;
+    }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {
       endedTouchPointerIds.delete(event.pointerId);
     }
@@ -48863,6 +48977,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId) {
       return;
     }
     if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+    if (shouldPrioritizeMultiTouchCameraGesture(event)) {
       return;
     }
     if (event.pointerType === 'touch' || event.pointerType === 'pen') {

@@ -4734,9 +4734,16 @@ input[type="color"]::-webkit-color-swatch {
   filter: drop-shadow(0 7px 13px rgba(45, 36, 20, 0.26));
 }
 
+.table-card.is-hexitama-card.is-front-pending img,
+.table-card.is-hexitama-card.is-asset-loading img {
+  opacity: 1 !important;
+}
+
 .table-card.is-hexitama-card.is-front-pending::before,
-.table-card.is-hexitama-card.is-front-pending::after {
-  display: none;
+.table-card.is-hexitama-card.is-front-pending::after,
+.table-card.is-hexitama-card.is-asset-loading::before,
+.table-card.is-hexitama-card.is-asset-loading::after {
+  display: none !important;
 }
 
 .table-card-codegame-key-overlay {
