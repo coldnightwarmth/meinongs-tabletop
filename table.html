@@ -136,10 +136,20 @@
       <div id="coverCardLayer" class="cover-cards-layer" aria-hidden="true"></div>
       <div id="cardLayer" class="cards-layer" aria-hidden="true"></div>
       <div id="cursorLayer" class="cursor-layer" aria-hidden="true"></div>
+      <div id="auctionTypeBadge" class="auction-type-badge hidden" aria-hidden="true">
+        <img
+          id="auctionTypeBadgeImage"
+          class="auction-type-badge-image"
+          src=""
+          alt=""
+          decoding="async"
+          draggable="false"
+        />
+      </div>
       <div id="auctionBidBoard" class="auction-bid-board hidden" aria-live="polite"></div>
       <div id="auctionBidEntry" class="auction-bid-entry hidden">
-        <span class="auction-bid-label">bid:</span>
-        <div class="auction-bid-row">
+        <span id="auctionBidLabel" class="auction-bid-label">bid:</span>
+        <div id="auctionBidRow" class="auction-bid-row">
           <input
             id="auctionBidInput"
             class="auction-bid-input"
@@ -162,7 +172,78 @@
               <path d="M7 11L12 6L17 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
+          <button id="auctionBidPassButton" class="auction-bid-pass-button hidden" type="button" aria-label="pass on bid">
+            x
+          </button>
         </div>
+        <div id="auctionNamedPriceActions" class="auction-named-price-actions hidden">
+          <button
+            id="auctionNamedPriceAcceptButton"
+            class="auction-named-price-action-button is-accept"
+            type="button"
+            aria-label="accept named price"
+          >
+            $
+          </button>
+          <button
+            id="auctionNamedPriceRejectButton"
+            class="auction-named-price-action-button is-reject"
+            type="button"
+            aria-label="reject named price"
+          >
+            x
+          </button>
+        </div>
+      </div>
+      <button id="auctionEndButton" class="auction-end-button hidden" type="button" aria-label="end auction" aria-hidden="true">
+        <img src="./assets/auction.svg" alt="" decoding="async" draggable="false" />
+      </button>
+      <div id="auctionArtistBadge" class="auction-artist-badge hidden" aria-hidden="true">
+        <img
+          id="auctionArtistIcon"
+          class="auction-artist-icon"
+          src=""
+          alt=""
+          decoding="async"
+          draggable="false"
+        />
+        <img
+          id="auctionArtistIconSecondary"
+          class="auction-artist-icon auction-artist-icon-secondary hidden"
+          src=""
+          alt=""
+          decoding="async"
+          draggable="false"
+        />
+      </div>
+      <div id="coolJpegsHud" class="cool-jpegs-hud hidden" aria-hidden="true">
+        <div id="coolJpegsHudPreview" class="cool-jpegs-hud-preview hidden" aria-hidden="true">
+          <img
+            id="coolJpegsHudPreviewImage"
+            class="cool-jpegs-hud-preview-image"
+            src=""
+            alt=""
+            decoding="async"
+            draggable="false"
+          />
+        </div>
+        <div id="coolJpegsHudWonCards" class="cool-jpegs-hud-won-cards hidden" aria-hidden="true"></div>
+        <div class="cool-jpegs-hud-money">
+          <span id="coolJpegsHudMoneyValue" class="cool-jpegs-hud-money-value">$100,000</span>
+        </div>
+      </div>
+      <div id="coolJpegsRoundLiquidationLayer" class="cool-jpegs-round-liquidation-layer hidden" aria-hidden="true">
+        <div id="coolJpegsRoundLiquidationCard" class="cool-jpegs-round-liquidation-card hidden" aria-hidden="true">
+          <img
+            id="coolJpegsRoundLiquidationCardImage"
+            class="cool-jpegs-round-liquidation-card-image"
+            src=""
+            alt=""
+            decoding="async"
+            draggable="false"
+          />
+        </div>
+        <div id="coolJpegsRoundLiquidationValue" class="cool-jpegs-round-liquidation-value hidden" aria-hidden="true"></div>
       </div>
       <div id="bottomLeftControls" class="bottom-left-controls">
         <a id="homeButton" class="home-link-button" href="./index.html" aria-label="home" title="home">
