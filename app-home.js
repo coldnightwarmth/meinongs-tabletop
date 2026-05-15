@@ -1,3 +1,5 @@
+import { buildDedicatedRoomUrl, installSwagStudioShortcut } from './app-special-rooms.js';
+
 const createRoomButton = document.getElementById('createRoomButton');
 const playerNameInput = document.getElementById('playerName');
 const playerColorInput = document.getElementById('playerColor');
@@ -8,6 +10,7 @@ const LAST_GAME_URL_KEY = 'tabletop-last-room-url';
 
 const savedName = localStorage.getItem('tabletop-player-name');
 const savedColor = localStorage.getItem('tabletop-player-color');
+installSwagStudioShortcut();
 if (savedName) {
   playerNameInput.value = savedName;
 }
@@ -48,6 +51,10 @@ function getHomeBasePath() {
 function getTableUrlForRoom(roomId) {
   if (!roomId) {
     return null;
+  }
+  const dedicatedRoomUrl = buildDedicatedRoomUrl(roomId);
+  if (dedicatedRoomUrl) {
+    return dedicatedRoomUrl.toString();
   }
   if (shouldUseCleanRoomPaths()) {
     const cleanUrl = new URL(window.location.origin);

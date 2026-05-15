@@ -1,3 +1,4 @@
+import { buildDedicatedRoomUrl, installSwagStudioShortcut } from './app-special-rooms.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
   getDatabase,
@@ -11,6 +12,12 @@ import {
   set,
   update
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js';
+import {
+  getDownloadURL,
+  getStorage,
+  ref as storageRef,
+  uploadBytesResumable
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 import { firebaseConfig } from './firebase-config.js';
 
 const tableRoot = document.getElementById('tableRoot');
@@ -69,10 +76,18 @@ const deleteSelectionButton = document.getElementById('deleteSelectionButton');
 const assetMenuButton = document.getElementById('assetMenuButton');
 const assetMenuModal = document.getElementById('assetMenuModal');
 const assetMenuCloseButton = document.getElementById('assetMenuCloseButton');
+const assetMenuTabStudioButton = document.getElementById('assetMenuTabStudioButton');
 const assetMenuTabGameButton = document.getElementById('assetMenuTabGameButton');
 const assetMenuTabComponentButton = document.getElementById('assetMenuTabComponentButton');
+const assetStudioGallery = document.getElementById('assetStudioGallery');
 const assetGameGallery = document.getElementById('assetGameGallery');
 const assetComponentGallery = document.getElementById('assetComponentGallery');
+const studioAudioTile = document.getElementById('studioAudioTile');
+const studioVideoTile = document.getElementById('studioVideoTile');
+const studioEmbedTile = document.getElementById('studioEmbedTile');
+const studioHeadingTile = document.getElementById('studioHeadingTile');
+const studioTextTile = document.getElementById('studioTextTile');
+const studioImageTile = document.getElementById('studioImageTile');
 const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
@@ -146,6 +161,27 @@ const mediaAddCloseButton = document.getElementById('mediaAddCloseButton');
 const mediaAddInput = document.getElementById('mediaAddInput');
 const mediaAddError = document.getElementById('mediaAddError');
 const mediaAddConfirmButton = document.getElementById('mediaAddConfirmButton');
+const studioUploadModal = document.getElementById('studioUploadModal');
+const studioUploadBackButton = document.getElementById('studioUploadBackButton');
+const studioUploadCloseButton = document.getElementById('studioUploadCloseButton');
+const studioUploadTitle = document.getElementById('studioUploadTitle');
+const studioUploadLabel = document.getElementById('studioUploadLabel');
+const studioUploadDropzone = document.getElementById('studioUploadDropzone');
+const studioUploadDropzoneHint = document.getElementById('studioUploadDropzoneHint');
+const studioUploadSelectedFile = document.getElementById('studioUploadSelectedFile');
+const studioUploadClearButton = document.getElementById('studioUploadClearButton');
+const studioUploadSelectedFileName = document.getElementById('studioUploadSelectedFileName');
+const studioUploadInput = document.getElementById('studioUploadInput');
+const studioUploadCoverField = document.getElementById('studioUploadCoverField');
+const studioUploadCoverLabel = document.getElementById('studioUploadCoverLabel');
+const studioUploadCoverDropzone = document.getElementById('studioUploadCoverDropzone');
+const studioUploadCoverDropzoneHint = document.getElementById('studioUploadCoverDropzoneHint');
+const studioUploadCoverSelectedFile = document.getElementById('studioUploadCoverSelectedFile');
+const studioUploadCoverClearButton = document.getElementById('studioUploadCoverClearButton');
+const studioUploadCoverSelectedFileName = document.getElementById('studioUploadCoverSelectedFileName');
+const studioUploadCoverInput = document.getElementById('studioUploadCoverInput');
+const studioUploadError = document.getElementById('studioUploadError');
+const studioUploadConfirmButton = document.getElementById('studioUploadConfirmButton');
 const removeComponentsButton = document.getElementById('removeComponentsButton');
 const tableResetRow = document.getElementById('tableResetRow');
 const clearTableButton = document.getElementById('clearTableButton');
@@ -211,11 +247,25 @@ const ROOM_BACKGROUND_PATTERN_DOTS = 'dots';
 const ROOM_BACKGROUND_PATTERN_NOISE = 'noise';
 const ROOM_BACKGROUND_PATTERN_GREENSCREEN = 'greenscreen';
 const ROOM_BACKGROUND_PATTERN_PLAIN = 'plain';
+const SWAG_STUDIO_ROOM_ID = 'swagstudio';
+const ASSET_MENU_VIEW_STUDIO = 'studio';
+const ASSET_MENU_VIEW_GAME = 'game';
+const ASSET_MENU_VIEW_COMPONENT = 'component';
+const dedicatedRoomId = String(tableRoot?.dataset?.dedicatedRoomId || '').trim().toLowerCase();
+const isSwagStudioRoom = dedicatedRoomId === SWAG_STUDIO_ROOM_ID;
+installSwagStudioShortcut();
 
-const WORLD_WIDTH = 7680;
-const WORLD_HEIGHT = 4320;
+const SWAG_STUDIO_ROOM_CACHE_VERSION = 1;
+const SWAG_STUDIO_ROOM_CACHE_KEY_PREFIX = 'tabletop-swagstudio-room-cache';
+const SWAG_STUDIO_ROOM_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const SWAG_STUDIO_ROOM_CACHE_WRITE_DELAY_MS = 240;
+const SWAG_STUDIO_ROOM_CACHE_MAX_CHARS = 3_600_000;
+const SWAG_STUDIO_ROOM_CACHE_INLINE_DATA_MAX_CHARS = 260_000;
+
+const WORLD_WIDTH = isSwagStudioRoom ? 7680 * 2 : 7680;
+const WORLD_HEIGHT = isSwagStudioRoom ? 4320 * 4 : 4320;
 const WORLD_PAN_MARGIN = 500;
-const MIN_SCALE = 0.2;
+const MIN_SCALE = isSwagStudioRoom ? 0.04 : 0.2;
 const MAX_SCALE = 2.4;
 const BASE_GRID_CELL_SIZE = 42;
 const MIN_SCREEN_GRID_CELL_SIZE = 14;
@@ -831,7 +881,16 @@ const MARBLE_SYNC_INTERVAL_MS = 38;
 const STUCK_INTERACTION_RECOVERY_MS = 3200;
 const MEDIA_DEFAULT_WIDTH = 560;
 const MEDIA_DEFAULT_HEIGHT_YOUTUBE = 315;
-const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = 166;
+const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = isSwagStudioRoom ? 132 : 166;
+const MEDIA_DEFAULT_WIDTH_UPLOADED_AUDIO = 400;
+const MEDIA_DEFAULT_HEIGHT_UPLOADED_AUDIO = 500;
+const MEDIA_DEFAULT_WIDTH_UPLOADED_VIDEO = 640;
+const MEDIA_DEFAULT_HEIGHT_UPLOADED_VIDEO = 436;
+const UPLOADED_MEDIA_LOOP_RANGE_MAX = 1000;
+const UPLOADED_MEDIA_LOOP_MODE_OFF = 'off';
+const UPLOADED_MEDIA_LOOP_MODE_ALL = 'all';
+const UPLOADED_MEDIA_LOOP_MODE_SECTION = 'section';
+const UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP = 1;
 const MEDIA_MIN_WORLD_WIDTH = 220;
 const MEDIA_MIN_WORLD_HEIGHT = 124;
 const MEDIA_MAX_WORLD_WIDTH = MONS_BOARD_WORLD_WIDTH * 3.2;
@@ -850,6 +909,7 @@ const DIE_ROLL_DURATION_MS = 850;
 const DIE_ROLL_STEP_MS = 72;
 const DICE_SPAWN_GAP = 108;
 const LABEL_DEFAULT_TEXT = 'double click\nto type';
+const LABEL_HEADING_DEFAULT_TEXT = 'heading';
 const LABEL_MIN_WORLD_WIDTH = 110;
 const LABEL_MIN_WORLD_HEIGHT = 34;
 const LABEL_MAX_WORLD_WIDTH = 3600;
@@ -862,9 +922,22 @@ const LABEL_PADDING_WORLD_Y = 0;
 const LABEL_TEXT_MAX_LENGTH = 1200;
 const LABEL_TEXT_SCALE_DEFAULT = 1;
 const LABEL_TEXT_SCALE_SPAWN = 3;
+const LABEL_TEXT_SCALE_HEADING_SPAWN = 4.25;
 const LABEL_TEXT_SCALE_MIN = 0.58;
 const LABEL_TEXT_SCALE_MAX = 24;
 const LABEL_FONT_SIZE_FACTOR = 0.58;
+const STUDIO_UPLOAD_KIND_AUDIO = 'audio';
+const STUDIO_UPLOAD_KIND_VIDEO = 'video';
+const STUDIO_UPLOAD_AUDIO_ACCEPT = '.mp3,.wav,audio/mpeg,audio/wav,audio/x-wav';
+const STUDIO_UPLOAD_VIDEO_ACCEPT = '.mp4,.mov,.m4v,.webm,video/mp4,video/quicktime,video/webm';
+const STUDIO_UPLOAD_IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,image/png,image/jpeg,image/webp,image/gif';
+const STUDIO_UPLOAD_STORAGE_NO_PROGRESS_TIMEOUT_MS = 15000;
+const STUDIO_UPLOAD_STORAGE_TOTAL_TIMEOUT_MS = 180000;
+const STUDIO_UPLOAD_DATABASE_FALLBACK_MAX_BYTES = 8 * 1024 * 1024;
+const STUDIO_UPLOAD_DATABASE_COVER_FALLBACK_MAX_BYTES = 2 * 1024 * 1024;
+const LABEL_VARIANT_DEFAULT = 'default';
+const LABEL_VARIANT_HEADING = 'heading';
+const HEADING_LABEL_TEXT_COLOR = '#111111';
 const LABEL_TEXT_LINE_HEIGHT = 1.2;
 const LABEL_DEFAULT_SPAWN_WIDTH = 332;
 const LABEL_MEASURE_BUFFER_X = 8;
@@ -2097,6 +2170,15 @@ function buildRoomShareUrl(roomValue) {
   if (!room) {
     return new URL(window.location.href);
   }
+  if (dedicatedRoomId && room.toLowerCase() === dedicatedRoomId) {
+    const dedicatedRoomUrl = buildDedicatedRoomUrl(room, {
+      pathname: window.location.pathname,
+      origin: window.location.origin
+    });
+    if (dedicatedRoomUrl) {
+      return dedicatedRoomUrl;
+    }
+  }
   if (shouldUseCleanRoomPaths()) {
     return new URL(`${getRoomBasePath()}${encodeURIComponent(room)}`, window.location.origin);
   }
@@ -2106,7 +2188,7 @@ function buildRoomShareUrl(roomValue) {
 }
 
 const query = new URLSearchParams(window.location.search);
-const roomId = String(query.get('room') || getRoomIdFromPath(window.location.pathname) || '').trim();
+const roomId = String(dedicatedRoomId || query.get('room') || getRoomIdFromPath(window.location.pathname) || '').trim();
 if (!roomId) {
   window.location.replace('./index.html');
   throw new Error('Missing room id in URL');
@@ -2165,6 +2247,7 @@ const discardReturnAnimationTimers = new Map();
 const drawingStrokes = new Map();
 const drawingStrokeElements = new Map();
 const mediaControllerByDieId = new Map();
+const uploadedMediaControllerByDieId = new Map();
 const mediaSignalKeyByDieId = new Map();
 const mediaStartBroadcastInFlight = new Set();
 let youtubeIframeApiPromise = null;
@@ -2355,7 +2438,23 @@ let gameOptionsShowCoordinatesToggleSyncing = false;
 let gameOptionsBoardSizeButtonsSyncing = false;
 let gameOptionsIncludeDiscardToggleSyncing = false;
 let gameOptionsCoverDrawingsToggleSyncing = false;
-let activeAssetMenuView = localStorage.getItem(ASSET_MENU_VIEW_KEY) === 'component' ? 'component' : 'game';
+function normalizeAssetMenuView(view) {
+  const normalizedView = String(view || '').trim().toLowerCase();
+  if (normalizedView === ASSET_MENU_VIEW_COMPONENT) {
+    return ASSET_MENU_VIEW_COMPONENT;
+  }
+  if (normalizedView === ASSET_MENU_VIEW_STUDIO && isSwagStudioRoom && assetStudioGallery && assetMenuTabStudioButton) {
+    return ASSET_MENU_VIEW_STUDIO;
+  }
+  return ASSET_MENU_VIEW_GAME;
+}
+
+const defaultAssetMenuView =
+  isSwagStudioRoom && assetStudioGallery && assetMenuTabStudioButton ? ASSET_MENU_VIEW_STUDIO : ASSET_MENU_VIEW_GAME;
+let activeAssetMenuView = isSwagStudioRoom
+  ? defaultAssetMenuView
+  : normalizeAssetMenuView(localStorage.getItem(ASSET_MENU_VIEW_KEY) || defaultAssetMenuView);
+let assetMenuSubviewReturnView = activeAssetMenuView;
 let clearTableWarningResolver = null;
 let drawClearWarningResolver = null;
 let goBoardResizeWarningResolver = null;
@@ -2370,6 +2469,12 @@ let activeChipAddLabels = [];
 let activeSpinnerAddSegments = SPINNER_DEFAULT_SEGMENTS;
 let spinnerAddTextEnabled = false;
 let activeSpinnerAddLabels = [];
+let activeStudioUploadKind = '';
+let activeStudioUploadFile = null;
+let activeStudioUploadCoverFile = null;
+let activeStudioUploadPreviewUrl = '';
+let activeStudioUploadCoverPreviewUrl = '';
+let studioUploadSubmitting = false;
 let stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
 let stickerManifestLoaded = false;
 let stickerManifestLoadPromise = null;
@@ -2377,6 +2482,8 @@ const stickerTilePreloadStatusBySrc = new Map();
 const stickerTilePreloadQueuedSources = new Set();
 const stickerTilePreloadQueue = [];
 let stickerTilePreloadPumpTimerId = 0;
+let swagStudioRoomCacheWriteTimerId = 0;
+let swagStudioRoomCacheApplied = false;
 let activeStickerPackKey = STICKER_PACK_PLAY_THINGS;
 let activeStickerCategoryFiltersByPack = {
   [STICKER_PACK_SWAG]: new Set(getStickerAvailableCategoriesForPack(STICKER_PACK_SWAG)),
@@ -2506,6 +2613,17 @@ let spawnNoteComponent = async () => {
 };
 let spawnMediaComponent = async () => {
   showStatusMessage('Firebase connection is required before adding media.');
+};
+let uploadStudioMediaFile = async () => {
+  throw new Error('Firebase connection is required before uploading media.');
+};
+let uploadStudioCoverImageFile = async () => {
+  throw new Error('Firebase connection is required before uploading cover art.');
+};
+let resolveStudioUploadedMediaSpawnDimensions = async (kind) => {
+  return getDefaultMediaDimensions(
+    normalizeStudioUploadKind(kind) === STUDIO_UPLOAD_KIND_VIDEO ? 'uploaded-video' : 'uploaded-audio'
+  );
 };
 let announceMediaStartForRoom = async () => false;
 let publishCoolJpegsDeckPlayerJoin = async () => {
@@ -8237,6 +8355,12 @@ function getDieSize(type) {
 
 function getDefaultMediaDimensions(provider = '') {
   const normalizedProvider = normalizeMediaProvider(provider);
+  if (normalizedProvider === 'uploaded-audio') {
+    return { width: MEDIA_DEFAULT_WIDTH_UPLOADED_AUDIO, height: MEDIA_DEFAULT_HEIGHT_UPLOADED_AUDIO };
+  }
+  if (normalizedProvider === 'uploaded-video') {
+    return { width: MEDIA_DEFAULT_WIDTH_UPLOADED_VIDEO, height: MEDIA_DEFAULT_HEIGHT_UPLOADED_VIDEO };
+  }
   if (normalizedProvider === 'soundcloud') {
     return { width: 500, height: MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD };
   }
@@ -8435,6 +8559,9 @@ function setTimerControlLabel(controlElement, action, isRunning = false, elapsed
 
 function clampMediaDimensions(widthValue, heightValue, provider = '') {
   const defaultDimensions = getDefaultMediaDimensions(provider);
+  if (isFixedSizeMediaProvider(provider)) {
+    return defaultDimensions;
+  }
   let width = Number(widthValue);
   let height = Number(heightValue);
   if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
@@ -8455,6 +8582,26 @@ function clampMediaDimensions(widthValue, heightValue, provider = '') {
 function normalizeLabelText(value) {
   const raw = String(value ?? '').replace(/\r\n?/g, '\n').slice(0, LABEL_TEXT_MAX_LENGTH);
   return raw;
+}
+
+function normalizeLabelVariant(value) {
+  return String(value || '').trim().toLowerCase() === LABEL_VARIANT_HEADING
+    ? LABEL_VARIANT_HEADING
+    : LABEL_VARIANT_DEFAULT;
+}
+
+function isHeadingLabelState(value) {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  return normalizeLabelVariant(value.labelVariant) === LABEL_VARIANT_HEADING;
+}
+
+function getLabelDefaultTextForVariant(value) {
+  const variantSource = value && typeof value === 'object' ? value.labelVariant : value;
+  return normalizeLabelVariant(variantSource) === LABEL_VARIANT_HEADING
+    ? LABEL_HEADING_DEFAULT_TEXT
+    : LABEL_DEFAULT_TEXT;
 }
 
 function getLabelTextScale(valueOrState, fallback = LABEL_TEXT_SCALE_DEFAULT) {
@@ -8796,7 +8943,10 @@ function normalizeDicePayload(payload) {
     Boolean(holderClientId) &&
     Math.hypot(velocityX, velocityY) > MARBLE_FORCE_STOP_SPEED;
   const marbleHue = type === 'marble' ? normalizeMarbleHue(payload?.marbleHue) : MARBLE_DEFAULT_HUE;
-  const textColor = normalizeHexColor(payload?.textColor || '#ff7a59');
+  const labelVariant = type === 'label' ? normalizeLabelVariant(payload?.labelVariant) : LABEL_VARIANT_DEFAULT;
+  const textColor = labelVariant === LABEL_VARIANT_HEADING
+    ? HEADING_LABEL_TEXT_COLOR
+    : normalizeHexColor(payload?.textColor || '#ff7a59');
   const text = normalizeLabelText(payload?.text);
   const chipColor = type === 'chip' ? normalizeHexColor(payload?.chipColor || '#ffffff') : '#ffffff';
   const chipLabel = type === 'chip'
@@ -8821,8 +8971,11 @@ function normalizeDicePayload(payload) {
   const labelLocked = type === 'label' ? payload?.labelLocked === true : false;
   const labelRotation = type === 'label' ? normalizeStickerRotationDegrees(payload?.labelRotation) : 0;
   let mediaProvider = type === 'media' ? normalizeMediaProvider(payload?.mediaProvider) : '';
-  let mediaSourceUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaSourceUrl) : '';
+  let mediaSourceUrl = type === 'media' ? normalizeUploadedMediaSourceUrl(payload?.mediaSourceUrl, mediaProvider) : '';
   let mediaEmbedUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaEmbedUrl) : '';
+  const mediaTitle = type === 'media' ? normalizeMediaTitle(payload?.mediaTitle) : '';
+  const mediaMimeType = type === 'media' ? String(payload?.mediaMimeType || '').trim().slice(0, 120) : '';
+  const mediaPosterUrl = type === 'media' ? normalizeUploadedMediaPosterUrl(payload?.mediaPosterUrl) : '';
   if (type === 'media' && mediaSourceUrl) {
     const parsedFromSource = parseEmbeddableMediaUrl(mediaSourceUrl);
     if (parsedFromSource) {
@@ -8879,6 +9032,7 @@ function normalizeDicePayload(payload) {
     value: normalizedValue,
     text,
     textColor,
+    labelVariant,
     chipColor,
     chipLabel,
     chipValue,
@@ -8897,6 +9051,9 @@ function normalizeDicePayload(payload) {
     mediaProvider,
     mediaSourceUrl,
     mediaEmbedUrl,
+    mediaTitle,
+    mediaMimeType,
+    mediaPosterUrl,
     mediaStartedAt,
     mediaStartNonce,
     mediaWidth: dimensions.width,
@@ -15288,6 +15445,63 @@ function buildGhostMonsRenderKey(gameId, gameState, pieceImageRendering, showHud
   ].join('|');
 }
 
+function resolveStudioGameLayoutMetrics(gameState, boardScreenWidth, boardScreenHeight, gameKind = '') {
+  const normalizedKind = String(gameKind || '').trim().toLowerCase();
+  const renderScale = isSwagStudioRoom ? Math.max(0.001, Number(camera.scale) || 1) : 1;
+  const designWidth = isSwagStudioRoom
+    ? Math.max(1, Number(gameState?.width) || Number(boardScreenWidth) / renderScale || 1)
+    : Math.max(1, Number(boardScreenWidth) || 1);
+  const designHeight = isSwagStudioRoom
+    ? Math.max(1, Number(gameState?.height) || Number(boardScreenHeight) / renderScale || 1)
+    : Math.max(1, Number(boardScreenHeight) || 1);
+  const hudHeight = normalizedKind === 'mons'
+    ? snapToDevicePixel(Math.max(24, designHeight - designWidth), 24)
+    : snapToDevicePixel(
+        Math.max(
+          TAFL_HUD_MIN_HEIGHT,
+          designHeight - designWidth,
+          designHeight * TAFL_HUD_HEIGHT_RATIO
+        ),
+        TAFL_HUD_MIN_HEIGHT
+      );
+  const boardHeight = normalizedKind === 'mons'
+    ? designWidth
+    : Math.max(1, designHeight - hudHeight);
+  return {
+    designWidth,
+    designHeight,
+    boardHeight,
+    hudHeight,
+    renderScale
+  };
+}
+
+function syncStudioGameRasterScale(shell, metrics) {
+  if (!(shell instanceof HTMLElement)) {
+    return;
+  }
+  if (!isSwagStudioRoom || !metrics) {
+    shell.classList.remove('is-studio-raster-scale');
+    shell.style.removeProperty('--studio-game-design-width');
+    shell.style.removeProperty('--studio-game-design-height');
+    shell.style.removeProperty('--studio-game-design-board-height');
+    shell.style.removeProperty('--studio-game-design-hud-height');
+    shell.style.removeProperty('--studio-game-board-screen-height');
+    shell.style.removeProperty('--studio-game-render-scale');
+    return;
+  }
+  shell.classList.add('is-studio-raster-scale');
+  shell.style.setProperty('--studio-game-design-width', `${metrics.designWidth.toFixed(4)}px`);
+  shell.style.setProperty('--studio-game-design-height', `${metrics.designHeight.toFixed(4)}px`);
+  shell.style.setProperty('--studio-game-design-board-height', `${metrics.boardHeight.toFixed(4)}px`);
+  shell.style.setProperty('--studio-game-design-hud-height', `${metrics.hudHeight.toFixed(4)}px`);
+  shell.style.setProperty(
+    '--studio-game-board-screen-height',
+    `${(metrics.boardHeight * metrics.renderScale).toFixed(4)}px`
+  );
+  shell.style.setProperty('--studio-game-render-scale', metrics.renderScale.toFixed(4));
+}
+
 function renderMonsGhostBoardState(
   ghostBoardUi,
   gameState,
@@ -15738,10 +15952,13 @@ function renderInactiveMonsBoardGhosts() {
     const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
-    const hudScreenHeight = snapToDevicePixel(Math.max(24, boardScreenHeight - boardScreenWidth), 24);
+    const layoutMetrics = resolveStudioGameLayoutMetrics(gameState, boardScreenWidth, boardScreenHeight, 'mons');
+    const layoutWidth = layoutMetrics.designWidth;
+    const layoutBoardHeight = layoutMetrics.boardHeight;
+    const layoutHudHeight = layoutMetrics.hudHeight;
     const boardShouldCoverDrawings = gameState.coverDrawings === true;
     const boardFlipped = isMonsBoardFlipped(gameState);
-    const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
+    const showHudPotions = shouldShowMonsHudPotions(layoutWidth);
     const nextGhostStateRenderKey = buildGhostMonsRenderKey(
       normalizedGameId,
       gameState,
@@ -15766,15 +15983,16 @@ function renderInactiveMonsBoardGhosts() {
     setElementStylePx(ghostBoardUi.shell, 'top', boardScreen.y);
     setElementStylePx(ghostBoardUi.shell, 'width', boardScreenWidth);
     setElementStylePx(ghostBoardUi.shell, 'height', boardScreenHeight);
-    setElementStylePx(ghostBoardUi.boardSvg, 'width', boardScreenWidth);
-    setElementStylePx(ghostBoardUi.boardSvg, 'height', boardScreenWidth);
+    syncStudioGameRasterScale(ghostBoardUi.shell, layoutMetrics);
+    setElementStylePx(ghostBoardUi.boardSvg, 'width', layoutWidth);
+    setElementStylePx(ghostBoardUi.boardSvg, 'height', layoutBoardHeight);
     if (ghostBoardUi.lastBoardFlipped !== boardFlipped) {
       applyMonsBoardOrientation(ghostBoardUi.boardSvg, boardFlipped);
       ghostBoardUi.lastBoardFlipped = boardFlipped;
     }
     setMonsBoardCoordinatesVisibility(ghostBoardUi.boardSvg, gameState.showCoordinates !== false);
-    setElementStylePx(ghostBoardUi.hud, 'width', boardScreenWidth);
-    setElementStylePx(ghostBoardUi.hud, 'height', hudScreenHeight);
+    setElementStylePx(ghostBoardUi.hud, 'width', layoutWidth);
+    setElementStylePx(ghostBoardUi.hud, 'height', layoutHudHeight);
     if (ghostBoardUi.lastWaveFrameIndex !== monsWaveFrameIndex) {
       renderMonsCornerWavesIntoLayer(ghostBoardUi.boardWavesLayer);
       ghostBoardUi.lastWaveFrameIndex = monsWaveFrameIndex;
@@ -15783,7 +16001,7 @@ function renderInactiveMonsBoardGhosts() {
       renderMonsGhostBoardState(
         ghostBoardUi,
         gameState,
-        boardScreenWidth,
+        layoutWidth,
         pieceImageRendering,
         showHudPotions
       );
@@ -17533,8 +17751,11 @@ function renderMonsBoard(options = {}) {
   const boardScreen = worldToScreen({ x: monsGameState.x, y: monsGameState.y });
   const boardScreenWidth = snapToDevicePixel(monsGameState.width * camera.scale);
   const boardScreenHeight = snapToDevicePixel(monsGameState.height * camera.scale);
-  const hudScreenHeight = snapToDevicePixel(Math.max(24, boardScreenHeight - boardScreenWidth), 24);
-  const showHudPotions = shouldShowMonsHudPotions(boardScreenWidth);
+  const layoutMetrics = resolveStudioGameLayoutMetrics(monsGameState, boardScreenWidth, boardScreenHeight, 'mons');
+  const layoutWidth = layoutMetrics.designWidth;
+  const layoutBoardHeight = layoutMetrics.boardHeight;
+  const layoutHudHeight = layoutMetrics.hudHeight;
+  const showHudPotions = shouldShowMonsHudPotions(layoutWidth);
   const pieceImageRendering = getMonsPieceImageRendering();
   const boardFlipped = isMonsBoardFlipped(monsGameState);
   const nextLayerRenderKey = buildActiveMonsLayerRenderKey(monsGameState, pieceImageRendering);
@@ -17563,15 +17784,16 @@ function renderMonsBoard(options = {}) {
   setElementStylePx(monsGameShell, 'top', boardScreen.y);
   setElementStylePx(monsGameShell, 'width', boardScreenWidth);
   setElementStylePx(monsGameShell, 'height', boardScreenHeight);
-  setElementStylePx(monsBoardSvg, 'width', boardScreenWidth);
-  setElementStylePx(monsBoardSvg, 'height', boardScreenWidth);
+  syncStudioGameRasterScale(monsGameShell, layoutMetrics);
+  setElementStylePx(monsBoardSvg, 'width', layoutWidth);
+  setElementStylePx(monsBoardSvg, 'height', layoutBoardHeight);
   if (lastActiveMonsBoardFlipped !== boardFlipped) {
     applyMonsBoardOrientation(monsBoardSvg, boardFlipped);
     lastActiveMonsBoardFlipped = boardFlipped;
   }
   setMonsBoardCoordinatesVisibility(monsBoardSvg, monsGameState.showCoordinates !== false);
-  setElementStylePx(monsHud, 'width', boardScreenWidth);
-  setElementStylePx(monsHud, 'height', hudScreenHeight);
+  setElementStylePx(monsHud, 'width', layoutWidth);
+  setElementStylePx(monsHud, 'height', layoutHudHeight);
 
   if (lastActiveMonsLayerRenderKey !== nextLayerRenderKey) {
     renderMonsSpawnGhosts();
@@ -18886,6 +19108,9 @@ function renderTaflBoards(options = {}) {
     const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    const layoutMetrics = resolveStudioGameLayoutMetrics(gameState, boardScreenWidth, boardScreenHeight, 'tafl');
+    const layoutWidth = layoutMetrics.designWidth;
+    const layoutHeight = layoutMetrics.designHeight;
     taflUi.shell.classList.remove('hidden');
     taflUi.attackerClaimsList?.classList.remove('hidden');
     taflUi.defenderClaimsList?.classList.remove('hidden');
@@ -18893,19 +19118,20 @@ function renderTaflBoards(options = {}) {
     setElementStylePx(taflUi.shell, 'top', boardScreen.y);
     setElementStylePx(taflUi.shell, 'width', boardScreenWidth);
     setElementStylePx(taflUi.shell, 'height', boardScreenHeight);
+    syncStudioGameRasterScale(taflUi.shell, layoutMetrics);
     syncTaflShellHudThemeStyles(taflUi);
-    const hudHeight = renderTaflHudForBoard(taflUi, gameState, boardScreenWidth, boardScreenHeight);
-    const boardRenderHeight = Math.max(1, boardScreenHeight - hudHeight);
+    const hudHeight = renderTaflHudForBoard(taflUi, gameState, layoutWidth, layoutHeight);
+    const boardRenderHeight = Math.max(1, layoutHeight - hudHeight);
     taflUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
-    renderTaflCoordinatesForBoard(taflUi, gameState, boardScreenWidth, boardRenderHeight);
-    renderTaflPiecesForBoard(taflUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
-    triggerTaflCaptureFxForBoard(taflUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
+    renderTaflCoordinatesForBoard(taflUi, gameState, layoutWidth, boardRenderHeight);
+    renderTaflPiecesForBoard(taflUi, gameState, normalizedGameId, layoutWidth, boardRenderHeight);
+    triggerTaflCaptureFxForBoard(taflUi, gameState, normalizedGameId, layoutWidth, boardRenderHeight);
     renderTaflWinOverlayForBoard(
       taflUi,
       gameState,
       normalizedGameId,
-      boardScreenWidth,
-      boardScreenHeight
+      layoutWidth,
+      layoutHeight
     );
     positionMonsSideClaimsLists(
       taflUi.attackerClaimsList,
@@ -20022,6 +20248,9 @@ function renderGoBoards(options = {}) {
     const boardScreen = worldToScreen({ x: gameState.x, y: gameState.y });
     const boardScreenWidth = snapToDevicePixel(gameState.width * camera.scale);
     const boardScreenHeight = snapToDevicePixel(gameState.height * camera.scale);
+    const layoutMetrics = resolveStudioGameLayoutMetrics(gameState, boardScreenWidth, boardScreenHeight, 'go');
+    const layoutWidth = layoutMetrics.designWidth;
+    const layoutHeight = layoutMetrics.designHeight;
     goUi.shell.classList.remove('hidden');
     goUi.blackClaimsList?.classList.remove('hidden');
     goUi.whiteClaimsList?.classList.remove('hidden');
@@ -20029,15 +20258,16 @@ function renderGoBoards(options = {}) {
     setElementStylePx(goUi.shell, 'top', boardScreen.y);
     setElementStylePx(goUi.shell, 'width', boardScreenWidth);
     setElementStylePx(goUi.shell, 'height', boardScreenHeight);
+    syncStudioGameRasterScale(goUi.shell, layoutMetrics);
     syncTaflShellHudThemeStyles(goUi);
 
-    const hudHeight = renderGoHudForBoard(goUi, gameState, boardScreenWidth, boardScreenHeight);
-    const boardRenderHeight = Math.max(1, boardScreenHeight - hudHeight);
+    const hudHeight = renderGoHudForBoard(goUi, gameState, layoutWidth, layoutHeight);
+    const boardRenderHeight = Math.max(1, layoutHeight - hudHeight);
     goUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
-    renderGoCoordinatesForBoard(goUi, gameState, boardScreenWidth, boardRenderHeight);
-    triggerGoMoveFxForBoard(goUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
-    renderGoStonesAndHintsForBoard(goUi, gameState, normalizedGameId, boardScreenWidth, boardRenderHeight);
-    renderGoWinOverlayForBoard(goUi, gameState, boardScreenWidth);
+    renderGoCoordinatesForBoard(goUi, gameState, layoutWidth, boardRenderHeight);
+    triggerGoMoveFxForBoard(goUi, gameState, normalizedGameId, layoutWidth, boardRenderHeight);
+    renderGoStonesAndHintsForBoard(goUi, gameState, normalizedGameId, layoutWidth, boardRenderHeight);
+    renderGoWinOverlayForBoard(goUi, gameState, layoutWidth);
     positionMonsSideClaimsLists(
       goUi.blackClaimsList,
       goUi.whiteClaimsList,
@@ -21160,10 +21390,29 @@ function normalizeImageComponentSrc(src) {
 
 function normalizeMediaProvider(value) {
   const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'youtube' || normalized === 'soundcloud') {
+  if (
+    normalized === 'youtube' ||
+    normalized === 'soundcloud' ||
+    normalized === 'uploaded-audio' ||
+    normalized === 'uploaded-video'
+  ) {
     return normalized;
   }
   return '';
+}
+
+function isEmbeddableMediaProvider(value) {
+  const normalizedProvider = normalizeMediaProvider(value);
+  return normalizedProvider === 'youtube' || normalizedProvider === 'soundcloud';
+}
+
+function isUploadedMediaProvider(value) {
+  const normalizedProvider = normalizeMediaProvider(value);
+  return normalizedProvider === 'uploaded-audio' || normalizedProvider === 'uploaded-video';
+}
+
+function isFixedSizeMediaProvider(value) {
+  return isUploadedMediaProvider(value) || (isSwagStudioRoom && isEmbeddableMediaProvider(value));
 }
 
 function normalizeMediaSourceUrl(value) {
@@ -21180,6 +21429,269 @@ function normalizeMediaSourceUrl(value) {
   } catch {
     return '';
   }
+}
+
+function normalizeMediaDataUrl(value, expectedKind = '') {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw || !raw.startsWith('data:')) {
+    return '';
+  }
+  const normalizedKind = String(expectedKind || '').trim().toLowerCase();
+  const mediaTypeMatch = raw.match(/^data:([^;,]+);base64,/i);
+  if (!mediaTypeMatch) {
+    return '';
+  }
+  const mimeType = String(mediaTypeMatch[1] || '').trim().toLowerCase();
+  if (normalizedKind === STUDIO_UPLOAD_KIND_AUDIO && mimeType.startsWith('audio/')) {
+    return raw;
+  }
+  if (normalizedKind === STUDIO_UPLOAD_KIND_VIDEO && mimeType.startsWith('video/')) {
+    return raw;
+  }
+  if (normalizedKind === 'image' && mimeType.startsWith('image/')) {
+    return raw;
+  }
+  return '';
+}
+
+function normalizeUploadedMediaSourceUrl(value, provider = '') {
+  const normalizedHttpUrl = normalizeMediaSourceUrl(value);
+  if (normalizedHttpUrl) {
+    return normalizedHttpUrl;
+  }
+  const normalizedProvider = normalizeMediaProvider(provider);
+  if (normalizedProvider === 'uploaded-audio') {
+    return normalizeMediaDataUrl(value, STUDIO_UPLOAD_KIND_AUDIO);
+  }
+  if (normalizedProvider === 'uploaded-video') {
+    return normalizeMediaDataUrl(value, STUDIO_UPLOAD_KIND_VIDEO);
+  }
+  return '';
+}
+
+function normalizeUploadedMediaPosterUrl(value) {
+  return normalizeMediaSourceUrl(value) || normalizeMediaDataUrl(value, 'image');
+}
+
+function getMediaUrlRenderSignature(value) {
+  const normalizedValue = String(value || '');
+  if (!normalizedValue.startsWith('data:')) {
+    return normalizedValue;
+  }
+  return `${normalizedValue.slice(0, 96)}|${normalizedValue.length}|${normalizedValue.slice(-96)}`;
+}
+
+function normalizeMediaTitle(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
+function normalizeStudioUploadKind(value) {
+  return String(value || '').trim().toLowerCase() === STUDIO_UPLOAD_KIND_VIDEO
+    ? STUDIO_UPLOAD_KIND_VIDEO
+    : STUDIO_UPLOAD_KIND_AUDIO;
+}
+
+function getStudioUploadAccept(kind = activeStudioUploadKind) {
+  return normalizeStudioUploadKind(kind) === STUDIO_UPLOAD_KIND_VIDEO
+    ? STUDIO_UPLOAD_VIDEO_ACCEPT
+    : STUDIO_UPLOAD_AUDIO_ACCEPT;
+}
+
+function getStudioUploadLabelText(kind = activeStudioUploadKind) {
+  return normalizeStudioUploadKind(kind) === STUDIO_UPLOAD_KIND_VIDEO
+    ? 'upload an mp4, mov, or webm file'
+    : 'upload an mp3 or wav file';
+}
+
+function getStudioUploadHintText(kind = activeStudioUploadKind) {
+  return normalizeStudioUploadKind(kind) === STUDIO_UPLOAD_KIND_VIDEO
+    ? 'drop a video here or click to choose one'
+    : 'drop audio here or click to choose a track';
+}
+
+function getStudioUploadCoverLabelText() {
+  return 'upload album cover (optional)';
+}
+
+function getStudioUploadCoverHintText() {
+  return 'drop cover art here or click to choose an image';
+}
+
+function normalizeStudioMediaFileName(fileName) {
+  const trimmed = String(fileName || '').trim();
+  if (!trimmed) {
+    return 'upload';
+  }
+  const dotIndex = trimmed.lastIndexOf('.');
+  const nameOnly = dotIndex > 0 ? trimmed.slice(0, dotIndex) : trimmed;
+  return nameOnly.replace(/\s+/g, ' ').trim().slice(0, 120) || 'upload';
+}
+
+function isAllowedStudioUploadFile(file, kind = activeStudioUploadKind) {
+  if (!(file instanceof File)) {
+    return false;
+  }
+  const normalizedKind = normalizeStudioUploadKind(kind);
+  const name = String(file.name || '').trim().toLowerCase();
+  const type = String(file.type || '').trim().toLowerCase();
+  if (normalizedKind === STUDIO_UPLOAD_KIND_VIDEO) {
+    return (
+      type.startsWith('video/') ||
+      name.endsWith('.mp4') ||
+      name.endsWith('.mov') ||
+      name.endsWith('.m4v') ||
+      name.endsWith('.webm')
+    );
+  }
+  return (
+    type.startsWith('audio/') ||
+    name.endsWith('.mp3') ||
+    name.endsWith('.wav')
+  );
+}
+
+function getStudioUploadMimeType(file, kind = activeStudioUploadKind) {
+  const type = String(file?.type || '').trim().toLowerCase();
+  const normalizedKind = normalizeStudioUploadKind(kind);
+  if (normalizedKind === STUDIO_UPLOAD_KIND_VIDEO && type.startsWith('video/')) {
+    return type;
+  }
+  if (normalizedKind === STUDIO_UPLOAD_KIND_AUDIO && type.startsWith('audio/')) {
+    return type;
+  }
+  const name = String(file?.name || '').trim().toLowerCase();
+  if (normalizedKind === STUDIO_UPLOAD_KIND_VIDEO) {
+    if (name.endsWith('.webm')) {
+      return 'video/webm';
+    }
+    if (name.endsWith('.mov')) {
+      return 'video/quicktime';
+    }
+    return 'video/mp4';
+  }
+  if (name.endsWith('.wav')) {
+    return 'audio/wav';
+  }
+  return 'audio/mpeg';
+}
+
+function isAllowedStudioCoverFile(file) {
+  if (!(file instanceof File)) {
+    return false;
+  }
+  const name = String(file.name || '').trim().toLowerCase();
+  const type = String(file.type || '').trim().toLowerCase();
+  return (
+    type.startsWith('image/') ||
+    name.endsWith('.png') ||
+    name.endsWith('.jpg') ||
+    name.endsWith('.jpeg') ||
+    name.endsWith('.webp') ||
+    name.endsWith('.gif')
+  );
+}
+
+function getStudioCoverMimeType(file) {
+  const type = String(file?.type || '').trim().toLowerCase();
+  if (type.startsWith('image/')) {
+    return type;
+  }
+  const name = String(file?.name || '').trim().toLowerCase();
+  if (name.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  if (name.endsWith('.gif')) {
+    return 'image/gif';
+  }
+  if (name.endsWith('.png')) {
+    return 'image/png';
+  }
+  return 'image/jpeg';
+}
+
+function rewriteDataUrlMimeType(dataUrl, mimeType) {
+  const rawDataUrl = typeof dataUrl === 'string' ? dataUrl.trim() : '';
+  const normalizedMimeType = String(mimeType || '').trim().toLowerCase();
+  if (!rawDataUrl || !normalizedMimeType || !rawDataUrl.startsWith('data:')) {
+    return rawDataUrl;
+  }
+  return rawDataUrl.replace(/^data:[^;,]*;base64,/i, `data:${normalizedMimeType};base64,`);
+}
+
+function loadStudioVideoMetadata(file) {
+  if (!(file instanceof File)) {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    let settled = false;
+    const finalize = (result) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      resolve(result);
+    };
+    video.addEventListener('loadedmetadata', () => {
+      const width = Number(video.videoWidth) || 0;
+      const height = Number(video.videoHeight) || 0;
+      finalize(width > 0 && height > 0 ? { width, height } : null);
+    }, { once: true });
+    video.addEventListener('error', () => {
+      finalize(null);
+    }, { once: true });
+    video.src = objectUrl;
+  });
+}
+
+function readStudioUploadFileAsDataUrl(file, options = {}) {
+  if (!(file instanceof File)) {
+    return Promise.reject(new Error('Choose a file first.'));
+  }
+  const maxBytes = Math.max(0, Number(options.maxBytes) || 0);
+  if (maxBytes > 0 && file.size > maxBytes) {
+    const maxMegabytes = Math.max(1, Math.floor(maxBytes / (1024 * 1024)));
+    throw new Error(`Firebase Storage is unavailable and this file is too large for fallback upload. Choose a file under ${maxMegabytes} MB.`);
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      callback(value);
+    };
+    reader.addEventListener('progress', (event) => {
+      if (typeof options.onProgress !== 'function' || !event.lengthComputable) {
+        return;
+      }
+      const totalBytes = Math.max(1, Number(event.total) || 1);
+      options.onProgress(clamp((Number(event.loaded) || 0) / totalBytes, 0, 1));
+    });
+    reader.addEventListener('load', () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!dataUrl) {
+        finish(reject, new Error('Could not read the selected file.'));
+        return;
+      }
+      if (typeof options.onProgress === 'function') {
+        options.onProgress(1);
+      }
+      finish(resolve, dataUrl);
+    });
+    reader.addEventListener('error', () => {
+      finish(reject, reader.error || new Error('Could not read the selected file.'));
+    });
+    reader.addEventListener('abort', () => {
+      finish(reject, new Error('File reading was cancelled.'));
+    });
+    reader.readAsDataURL(file);
+  });
 }
 
 function parseEmbeddableMediaUrl(rawValue) {
@@ -21236,6 +21748,9 @@ function parseEmbeddableMediaUrl(rawValue) {
     embedUrl.searchParams.set('modestbranding', '1');
     embedUrl.searchParams.set('enablejsapi', '1');
     embedUrl.searchParams.set('playsinline', '1');
+    if (isSwagStudioRoom) {
+      embedUrl.searchParams.set('autoplay', '0');
+    }
     if (/^https?:$/i.test(window.location.protocol || '')) {
       embedUrl.searchParams.set('origin', window.location.origin);
     }
@@ -21308,7 +21823,338 @@ function getMediaSignalKeyFromState(dieState) {
   return `${startedAt}:${startNonce}`;
 }
 
-function teardownMediaController(dieId) {
+function toggleUploadedMediaVolumePopover(controller, shouldOpen) {
+  if (!controller || controller.disposed) {
+    return;
+  }
+  const nextOpen = shouldOpen === undefined ? !controller.volumeOpen : Boolean(shouldOpen);
+  controller.volumeOpen = nextOpen;
+  controller.root?.classList.toggle('is-volume-open', nextOpen);
+}
+
+function normalizeUploadedMediaLoopMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (
+    normalized === UPLOADED_MEDIA_LOOP_MODE_ALL ||
+    normalized === UPLOADED_MEDIA_LOOP_MODE_SECTION
+  ) {
+    return normalized;
+  }
+  return UPLOADED_MEDIA_LOOP_MODE_OFF;
+}
+
+function getNextUploadedMediaLoopMode(value) {
+  const loopMode = normalizeUploadedMediaLoopMode(value);
+  if (loopMode === UPLOADED_MEDIA_LOOP_MODE_OFF) {
+    return UPLOADED_MEDIA_LOOP_MODE_ALL;
+  }
+  if (loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL) {
+    return UPLOADED_MEDIA_LOOP_MODE_SECTION;
+  }
+  return UPLOADED_MEDIA_LOOP_MODE_OFF;
+}
+
+function getUploadedMediaDuration(mediaElement) {
+  return mediaElement instanceof HTMLMediaElement && Number.isFinite(mediaElement.duration) && mediaElement.duration > 0
+    ? mediaElement.duration
+    : 0;
+}
+
+function normalizeUploadedMediaLoopRange(controller) {
+  let startValue = Math.round(Number(controller?.loopStartValue));
+  let endValue = Math.round(Number(controller?.loopEndValue));
+  if (!Number.isFinite(startValue)) {
+    startValue = 0;
+  }
+  if (!Number.isFinite(endValue)) {
+    endValue = UPLOADED_MEDIA_LOOP_RANGE_MAX;
+  }
+  startValue = clamp(startValue, 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  endValue = clamp(endValue, 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  if (endValue - startValue < UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP) {
+    if (startValue >= UPLOADED_MEDIA_LOOP_RANGE_MAX) {
+      startValue = UPLOADED_MEDIA_LOOP_RANGE_MAX - UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP;
+      endValue = UPLOADED_MEDIA_LOOP_RANGE_MAX;
+    } else {
+      endValue = Math.min(UPLOADED_MEDIA_LOOP_RANGE_MAX, startValue + UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP);
+    }
+  }
+  return {
+    startValue,
+    endValue,
+    startRatio: startValue / UPLOADED_MEDIA_LOOP_RANGE_MAX,
+    endRatio: endValue / UPLOADED_MEDIA_LOOP_RANGE_MAX
+  };
+}
+
+function getUploadedMediaSectionLoopTimes(controller) {
+  const mediaElement = controller?.mediaElement;
+  const duration = getUploadedMediaDuration(mediaElement);
+  if (duration <= 0) {
+    return null;
+  }
+  const range = normalizeUploadedMediaLoopRange(controller);
+  return {
+    startTime: duration * range.startRatio,
+    endTime: duration * range.endRatio,
+    duration
+  };
+}
+
+function seekUploadedMediaToSectionStart(controller, options = {}) {
+  if (!controller || controller.disposed || controller.loopSeeking) {
+    return false;
+  }
+  const mediaElement = controller.mediaElement;
+  if (!(mediaElement instanceof HTMLMediaElement)) {
+    return false;
+  }
+  const sectionTimes = getUploadedMediaSectionLoopTimes(controller);
+  if (!sectionTimes) {
+    return false;
+  }
+  const wasPlaying = options.play === true || (!mediaElement.paused && !mediaElement.ended);
+  controller.loopSeeking = true;
+  try {
+    mediaElement.currentTime = clamp(sectionTimes.startTime, 0, sectionTimes.duration);
+  } catch {
+    controller.loopSeeking = false;
+    return false;
+  }
+  window.setTimeout(() => {
+    if (controller) {
+      controller.loopSeeking = false;
+    }
+  }, 0);
+  if (wasPlaying) {
+    mediaElement.play().catch(() => {});
+  }
+  return true;
+}
+
+function syncUploadedMediaLoopPlayback(controller, options = {}) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  const mediaElement = controller.mediaElement;
+  if (!(mediaElement instanceof HTMLMediaElement)) {
+    return false;
+  }
+  mediaElement.loop = false;
+  if (normalizeUploadedMediaLoopMode(controller.loopMode) !== UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+    return false;
+  }
+  const sectionTimes = getUploadedMediaSectionLoopTimes(controller);
+  if (!sectionTimes) {
+    return false;
+  }
+  const currentTime = Number(mediaElement.currentTime) || 0;
+  const boundarySlack = options.force === true ? 0 : 0.08;
+  if (
+    currentTime < sectionTimes.startTime - boundarySlack ||
+    currentTime >= sectionTimes.endTime - boundarySlack
+  ) {
+    return seekUploadedMediaToSectionStart(controller, { play: !mediaElement.paused && !mediaElement.ended });
+  }
+  return false;
+}
+
+function handleUploadedMediaEnded(controller) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  const mediaElement = controller.mediaElement;
+  if (!(mediaElement instanceof HTMLMediaElement)) {
+    return false;
+  }
+  const loopMode = normalizeUploadedMediaLoopMode(controller.loopMode);
+  if (loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL) {
+    try {
+      mediaElement.currentTime = 0;
+    } catch {
+      return false;
+    }
+    mediaElement.play().catch(() => {});
+    return true;
+  }
+  if (loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+    return seekUploadedMediaToSectionStart(controller, { play: true });
+  }
+  return false;
+}
+
+function isUploadedMediaControlsInteractiveTarget(target) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return Boolean(
+    target.closest(
+      '.table-uploaded-media-button, .table-uploaded-media-progress, .table-uploaded-media-loop-range, .table-uploaded-media-volume-popover'
+    )
+  );
+}
+
+function syncStudioEmbedDragHandles(mediaFrame, provider = '') {
+  if (!(mediaFrame instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedProvider = normalizeMediaProvider(provider);
+  const shouldShowHandles =
+    isSwagStudioRoom &&
+    (normalizedProvider === 'youtube' || normalizedProvider === 'soundcloud');
+  mediaFrame.classList.toggle('is-youtube-embed', shouldShowHandles && normalizedProvider === 'youtube');
+  mediaFrame.classList.toggle('is-soundcloud-embed', shouldShowHandles && normalizedProvider === 'soundcloud');
+  let handleLayer = mediaFrame.querySelector(':scope > .studio-embed-drag-handles');
+  if (!shouldShowHandles) {
+    handleLayer?.remove();
+    return;
+  }
+  if (!(handleLayer instanceof HTMLElement)) {
+    handleLayer = document.createElement('div');
+    handleLayer.className = 'studio-embed-drag-handles';
+    handleLayer.setAttribute('aria-hidden', 'true');
+    mediaFrame.appendChild(handleLayer);
+  }
+  const handleClasses = normalizedProvider === 'youtube'
+    ? ['is-youtube-top', 'is-youtube-right', 'is-youtube-bottom', 'is-youtube-left']
+    : [
+        'is-soundcloud-left',
+        'is-soundcloud-right',
+        'is-soundcloud-top-gap',
+        'is-soundcloud-mid-gap',
+        'is-soundcloud-bottom-gap'
+      ];
+  const signature = handleClasses.join('|');
+  if (handleLayer.dataset.handleSignature === signature) {
+    return;
+  }
+  handleLayer.dataset.handleSignature = signature;
+  handleLayer.textContent = '';
+  for (const handleClass of handleClasses) {
+    const handle = document.createElement('div');
+    handle.className = `studio-embed-drag-handle ${handleClass}`;
+    handleLayer.appendChild(handle);
+  }
+}
+
+function syncUploadedMediaControllerUi(controller) {
+  if (!controller || controller.disposed) {
+    return;
+  }
+  const mediaElement = controller.mediaElement;
+  if (!(mediaElement instanceof HTMLMediaElement)) {
+    return;
+  }
+  const duration = Number.isFinite(mediaElement.duration) && mediaElement.duration > 0 ? mediaElement.duration : 0;
+  const currentTime = duration > 0 ? clamp(Number(mediaElement.currentTime) || 0, 0, duration) : 0;
+  const progressValue = duration > 0 ? (currentTime / duration) * 1000 : 0;
+  if (controller.progressInput instanceof HTMLInputElement) {
+    controller.progressInput.value = String(Math.round(progressValue));
+    controller.progressInput.disabled = duration <= 0;
+  }
+  const loopMode = normalizeUploadedMediaLoopMode(controller.loopMode);
+  controller.loopMode = loopMode;
+  const range = normalizeUploadedMediaLoopRange(controller);
+  controller.loopStartValue = range.startValue;
+  controller.loopEndValue = range.endValue;
+  if (controller.root instanceof HTMLElement) {
+    controller.root.classList.toggle('is-loop-all', loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL);
+    controller.root.classList.toggle('is-loop-section', loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION);
+  }
+  if (controller.loopButton instanceof HTMLButtonElement) {
+    const isLooping = loopMode !== UPLOADED_MEDIA_LOOP_MODE_OFF;
+    const label =
+      loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION
+        ? 'section loop enabled'
+        : loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL
+          ? 'loop enabled'
+          : 'loop disabled';
+    const title =
+      loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION
+        ? 'section loop'
+        : loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL
+          ? 'loop all'
+          : 'loop off';
+    controller.loopButton.setAttribute('aria-label', label);
+    controller.loopButton.title = title;
+    controller.loopButton.classList.toggle('is-active', isLooping);
+    controller.loopButton.classList.toggle('is-section-active', loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION);
+    controller.loopButton.innerHTML =
+      loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION
+        ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.2 7H15.6C18 7 19.8 8.8 19.8 11.1C19.8 13.4 18 15.2 15.6 15.2H14.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.4 12.8L14.3 15.2L16.4 17.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.8 17H8.4C6 17 4.2 15.2 4.2 12.9C4.2 10.6 6 8.8 8.4 8.8H9.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.6 11.2L9.7 8.8L7.6 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 4.4V19.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 4.4V19.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.2 7H15.6C18 7 19.8 8.8 19.8 11.1C19.8 13.4 18 15.2 15.6 15.2H14.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.4 12.8L14.3 15.2L16.4 17.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.8 17H8.4C6 17 4.2 15.2 4.2 12.9C4.2 10.6 6 8.8 8.4 8.8H9.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.6 11.2L9.7 8.8L7.6 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  if (controller.sectionLoop instanceof HTMLElement) {
+    controller.sectionLoop.classList.toggle('hidden', loopMode !== UPLOADED_MEDIA_LOOP_MODE_SECTION);
+    controller.sectionLoop.style.setProperty('--loop-start-percent', `${(range.startRatio * 100).toFixed(2)}%`);
+    controller.sectionLoop.style.setProperty('--loop-end-percent', `${(range.endRatio * 100).toFixed(2)}%`);
+  }
+  if (controller.loopStartInput instanceof HTMLInputElement) {
+    controller.loopStartInput.value = String(range.startValue);
+    controller.loopStartInput.disabled = duration <= 0;
+  }
+  if (controller.loopEndInput instanceof HTMLInputElement) {
+    controller.loopEndInput.value = String(range.endValue);
+    controller.loopEndInput.disabled = duration <= 0;
+  }
+  if (controller.loopStartHandle instanceof HTMLElement) {
+    controller.loopStartHandle.setAttribute('aria-valuemin', '0');
+    controller.loopStartHandle.setAttribute('aria-valuemax', String(UPLOADED_MEDIA_LOOP_RANGE_MAX));
+    controller.loopStartHandle.setAttribute('aria-valuenow', String(range.startValue));
+    controller.loopStartHandle.tabIndex = duration > 0 ? 0 : -1;
+  }
+  if (controller.loopEndHandle instanceof HTMLElement) {
+    controller.loopEndHandle.setAttribute('aria-valuemin', '0');
+    controller.loopEndHandle.setAttribute('aria-valuemax', String(UPLOADED_MEDIA_LOOP_RANGE_MAX));
+    controller.loopEndHandle.setAttribute('aria-valuenow', String(range.endValue));
+    controller.loopEndHandle.tabIndex = duration > 0 ? 0 : -1;
+  }
+  if (controller.playButton instanceof HTMLButtonElement) {
+    const isPlaying = !mediaElement.paused && !mediaElement.ended;
+    controller.playButton.setAttribute('aria-label', isPlaying ? 'pause media' : 'play media');
+    controller.playButton.innerHTML = isPlaying
+      ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.6 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M15.4 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.7 6.3V17.7L17.2 12L8.7 6.3Z" fill="currentColor"/></svg>';
+  }
+  if (controller.volumeInput instanceof HTMLInputElement) {
+    controller.volumeInput.value = String(Math.round(clamp((mediaElement.muted ? 0 : mediaElement.volume) * 100, 0, 100)));
+  }
+  if (controller.volumeButton instanceof HTMLButtonElement) {
+    const effectiveVolume = mediaElement.muted ? 0 : clamp(Number(mediaElement.volume) || 0, 0, 1);
+    const iconSvg = effectiveVolume <= 0.001
+      ? '<path d="M6.6 10.1H9.2L13 6.9V17.1L9.2 13.9H6.6V10.1Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9L20 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 9L16 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+      : effectiveVolume < 0.5
+        ? '<path d="M6.6 10.1H9.2L13 6.9V17.1L9.2 13.9H6.6V10.1Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.1 9.8C17 10.5 17.5 11.2 17.5 12C17.5 12.8 17 13.5 16.1 14.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+        : '<path d="M6.6 10.1H9.2L13 6.9V17.1L9.2 13.9H6.6V10.1Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16.1 9.8C17 10.5 17.5 11.2 17.5 12C17.5 12.8 17 13.5 16.1 14.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.2 7.6C19.8 8.8 20.7 10.3 20.7 12C20.7 13.7 19.8 15.2 18.2 16.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+    controller.volumeButton.innerHTML = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${iconSvg}</svg>`;
+  }
+}
+
+function teardownUploadedMediaController(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  const controller = uploadedMediaControllerByDieId.get(normalizedDieId);
+  if (!controller) {
+    return;
+  }
+  controller.disposed = true;
+  toggleUploadedMediaVolumePopover(controller, false);
+  if (typeof controller.removeDocumentPointerDown === 'function') {
+    controller.removeDocumentPointerDown();
+  }
+  if (controller.mediaElement instanceof HTMLMediaElement) {
+    try {
+      controller.mediaElement.pause();
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
+  uploadedMediaControllerByDieId.delete(normalizedDieId);
+}
+
+function teardownEmbeddedMediaController(dieId) {
   const normalizedDieId = String(dieId || '').trim();
   if (!normalizedDieId) {
     return;
@@ -21341,6 +22187,15 @@ function teardownMediaController(dieId) {
     }
   }
   mediaControllerByDieId.delete(normalizedDieId);
+}
+
+function teardownMediaController(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  teardownUploadedMediaController(normalizedDieId);
+  teardownEmbeddedMediaController(normalizedDieId);
 }
 
 function clearMediaPlaybackTrackingForDie(dieId) {
@@ -21509,6 +22364,9 @@ function requestMediaStartBroadcast(dieId) {
   if (normalizeDieType(dieState?.type) !== 'media') {
     return;
   }
+  if (isSwagStudioRoom && isEmbeddableMediaProvider(dieState?.mediaProvider)) {
+    return;
+  }
   if (getMediaSignalKeyFromState(dieState)) {
     return;
   }
@@ -21525,6 +22383,16 @@ function requestMediaStartBroadcast(dieId) {
 function pauseMediaControllerPlayback(dieId) {
   const normalizedDieId = String(dieId || '').trim();
   if (!normalizedDieId) {
+    return;
+  }
+  const uploadedController = uploadedMediaControllerByDieId.get(normalizedDieId);
+  if (uploadedController && !uploadedController.disposed && uploadedController.mediaElement instanceof HTMLMediaElement) {
+    uploadedController.pendingAutoStart = false;
+    try {
+      uploadedController.mediaElement.pause();
+    } catch {
+      // Best-effort cleanup.
+    }
     return;
   }
   const controller = mediaControllerByDieId.get(normalizedDieId);
@@ -21554,8 +22422,18 @@ function tryAutoplayMediaController(dieId) {
   if (!normalizedDieId) {
     return;
   }
+  const uploadedController = uploadedMediaControllerByDieId.get(normalizedDieId);
+  if (uploadedController && !uploadedController.disposed && uploadedController.pendingAutoStart && uploadedController.mediaElement instanceof HTMLMediaElement) {
+    uploadedController.pendingAutoStart = false;
+    uploadedController.mediaElement.play().catch(() => {});
+    return;
+  }
   const controller = mediaControllerByDieId.get(normalizedDieId);
   if (!controller || controller.disposed || !controller.pendingAutoStart || !controller.ready) {
+    return;
+  }
+  if (isSwagStudioRoom && isEmbeddableMediaProvider(controller.provider)) {
+    controller.pendingAutoStart = false;
     return;
   }
   controller.pendingAutoStart = false;
@@ -21672,6 +22550,7 @@ function registerMediaEmbedController(dieId, provider, sourceUrl, iframe) {
     teardownMediaController(normalizedDieId);
   }
 
+  const shouldAllowPendingAutoStart = !(isSwagStudioRoom && isEmbeddableMediaProvider(normalizedProvider));
   const controller = {
     dieId: normalizedDieId,
     provider: normalizedProvider,
@@ -21679,7 +22558,7 @@ function registerMediaEmbedController(dieId, provider, sourceUrl, iframe) {
     iframe,
     disposed: false,
     ready: false,
-    pendingAutoStart: Boolean(getMediaSignalKeyFromState(diceById.get(normalizedDieId))),
+    pendingAutoStart: shouldAllowPendingAutoStart && Boolean(getMediaSignalKeyFromState(diceById.get(normalizedDieId))),
     player: null,
     widget: null
   };
@@ -21690,6 +22569,475 @@ function registerMediaEmbedController(dieId, provider, sourceUrl, iframe) {
   } else {
     ensureSoundCloudMediaController(normalizedDieId, controller);
   }
+}
+
+function renderUploadedMediaFace(dieId, face, dieState) {
+  const normalizedDieId = String(dieId || '').trim();
+  const provider = normalizeMediaProvider(dieState?.mediaProvider);
+  const isVideo = provider === 'uploaded-video';
+  const mediaSourceUrl = normalizeUploadedMediaSourceUrl(dieState?.mediaSourceUrl || '', provider);
+  const mediaTitle = normalizeMediaTitle(dieState?.mediaTitle || normalizeStudioMediaFileName(mediaSourceUrl));
+  const mediaMimeType = String(dieState?.mediaMimeType || '').trim();
+  const mediaPosterUrl = !isVideo ? normalizeUploadedMediaPosterUrl(dieState?.mediaPosterUrl || '') : '';
+  let mediaFrame = face.querySelector('.table-media-frame');
+  if (!(mediaFrame instanceof HTMLElement)) {
+    face.textContent = '';
+    mediaFrame = document.createElement('div');
+    mediaFrame.className = 'table-media-frame';
+    face.appendChild(mediaFrame);
+  }
+  mediaFrame.classList.toggle('is-uploaded-audio', !isVideo);
+  mediaFrame.classList.toggle('is-uploaded-video', isVideo);
+  if (!mediaSourceUrl) {
+    mediaFrame.textContent = '';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'table-media-placeholder';
+    placeholder.textContent = isVideo ? 'video unavailable' : 'audio unavailable';
+    mediaFrame.appendChild(placeholder);
+    teardownUploadedMediaController(normalizedDieId);
+    return;
+  }
+
+  const existingController = uploadedMediaControllerByDieId.get(normalizedDieId);
+  if (
+    existingController &&
+    !existingController.disposed &&
+    existingController.provider === provider &&
+    existingController.sourceUrl === mediaSourceUrl &&
+    existingController.posterUrl === mediaPosterUrl &&
+    existingController.root?.isConnected &&
+    existingController.mediaElement instanceof HTMLMediaElement
+  ) {
+    if (existingController.root.parentElement !== mediaFrame) {
+      mediaFrame.textContent = '';
+      mediaFrame.appendChild(existingController.root);
+    }
+    if (existingController.titleElement instanceof HTMLElement) {
+      existingController.titleElement.textContent = mediaTitle || (isVideo ? 'video' : 'audio');
+    }
+    if (existingController.mediaElement.src !== mediaSourceUrl) {
+      existingController.mediaElement.src = mediaSourceUrl;
+      existingController.mediaElement.load();
+    }
+    if (mediaMimeType && existingController.mediaElement.getAttribute('type') !== mediaMimeType) {
+      existingController.mediaElement.setAttribute('type', mediaMimeType);
+    }
+    syncUploadedMediaControllerUi(existingController);
+    return;
+  }
+
+  teardownUploadedMediaController(normalizedDieId);
+  mediaFrame.textContent = '';
+
+  const playerShell = document.createElement('div');
+  playerShell.className = 'table-uploaded-media-shell';
+  playerShell.classList.toggle('is-audio-shell', !isVideo);
+  mediaFrame.appendChild(playerShell);
+
+  const surface = document.createElement(isVideo ? 'video' : 'audio');
+  surface.className = isVideo ? 'table-uploaded-media-surface table-uploaded-video' : 'table-uploaded-media-surface table-uploaded-audio';
+  surface.preload = 'metadata';
+  surface.src = mediaSourceUrl;
+  surface.controls = false;
+  surface.playsInline = true;
+  surface.setAttribute('playsinline', '');
+  if (mediaMimeType) {
+    surface.setAttribute('type', mediaMimeType);
+  }
+  surface.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  surface.addEventListener('contextmenu', (event) => {
+    event.stopPropagation();
+  });
+  if (isVideo) {
+    surface.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (surface.paused) {
+        surface.play().catch(() => {});
+      } else {
+        surface.pause();
+      }
+    });
+  }
+  playerShell.appendChild(surface);
+
+  let controlsParent = playerShell;
+  if (!isVideo) {
+    const audioBody = document.createElement('div');
+    audioBody.className = 'table-uploaded-audio-body';
+    audioBody.classList.toggle('has-cover', Boolean(mediaPosterUrl));
+    if (mediaPosterUrl) {
+      const coverWrap = document.createElement('div');
+      coverWrap.className = 'table-uploaded-audio-cover-wrap';
+      const coverImage = document.createElement('img');
+      coverImage.className = 'table-uploaded-audio-cover';
+      coverImage.src = mediaPosterUrl;
+      coverImage.alt = mediaTitle ? `${mediaTitle} cover art` : 'album cover';
+      coverImage.loading = isSwagStudioRoom ? 'eager' : 'lazy';
+      if (isSwagStudioRoom) {
+        coverImage.fetchPriority = 'high';
+      }
+      coverImage.decoding = 'async';
+      coverImage.draggable = false;
+      coverWrap.appendChild(coverImage);
+      audioBody.appendChild(coverWrap);
+    }
+    playerShell.appendChild(audioBody);
+    controlsParent = audioBody;
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'table-uploaded-media-controls';
+  controls.addEventListener('pointerdown', (event) => {
+    if (isUploadedMediaControlsInteractiveTarget(event.target)) {
+      event.stopPropagation();
+    }
+  });
+  controls.addEventListener('contextmenu', (event) => {
+    event.stopPropagation();
+  });
+  controlsParent.appendChild(controls);
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'table-uploaded-media-title-row';
+  controls.appendChild(titleRow);
+
+  const titleElement = document.createElement('div');
+  titleElement.className = 'table-uploaded-media-title';
+  titleElement.textContent = mediaTitle || (isVideo ? 'video' : 'audio');
+  titleRow.appendChild(titleElement);
+
+  const controlRow = document.createElement('div');
+  controlRow.className = 'table-uploaded-media-control-row';
+  controls.appendChild(controlRow);
+
+  const playButton = document.createElement('button');
+  playButton.type = 'button';
+  playButton.className = 'table-uploaded-media-button table-uploaded-media-play-button';
+  controlRow.appendChild(playButton);
+
+  const progressInput = document.createElement('input');
+  progressInput.className = 'table-uploaded-media-progress';
+  progressInput.type = 'range';
+  progressInput.min = '0';
+  progressInput.max = '1000';
+  progressInput.step = '1';
+  progressInput.value = '0';
+  progressInput.disabled = true;
+  controlRow.appendChild(progressInput);
+
+  const loopButton = document.createElement('button');
+  loopButton.type = 'button';
+  loopButton.className = 'table-uploaded-media-button table-uploaded-media-loop-button';
+  controlRow.appendChild(loopButton);
+
+  const volumeWrap = document.createElement('div');
+  volumeWrap.className = 'table-uploaded-media-volume-wrap';
+  controlRow.appendChild(volumeWrap);
+
+  const volumeButton = document.createElement('button');
+  volumeButton.type = 'button';
+  volumeButton.className = 'table-uploaded-media-button table-uploaded-media-volume-button';
+  volumeWrap.appendChild(volumeButton);
+
+  const volumePopover = document.createElement('div');
+  volumePopover.className = 'table-uploaded-media-volume-popover';
+  volumeWrap.appendChild(volumePopover);
+
+  const volumeInput = document.createElement('input');
+  volumeInput.className = 'table-uploaded-media-volume-slider';
+  volumeInput.type = 'range';
+  volumeInput.min = '0';
+  volumeInput.max = '100';
+  volumeInput.step = '1';
+  volumeInput.value = String(Math.round(surface.volume * 100));
+  volumePopover.appendChild(volumeInput);
+
+  const sectionLoop = document.createElement('div');
+  sectionLoop.className = 'table-uploaded-media-section-loop hidden';
+  controls.appendChild(sectionLoop);
+
+  const sectionFill = document.createElement('div');
+  sectionFill.className = 'table-uploaded-media-section-fill';
+  sectionLoop.appendChild(sectionFill);
+
+  const loopStartInput = document.createElement('input');
+  loopStartInput.className = 'table-uploaded-media-loop-range is-start';
+  loopStartInput.type = 'range';
+  loopStartInput.min = '0';
+  loopStartInput.max = String(UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  loopStartInput.step = '1';
+  loopStartInput.value = '0';
+  loopStartInput.setAttribute('aria-label', 'section loop start');
+  sectionLoop.appendChild(loopStartInput);
+
+  const loopEndInput = document.createElement('input');
+  loopEndInput.className = 'table-uploaded-media-loop-range is-end';
+  loopEndInput.type = 'range';
+  loopEndInput.min = '0';
+  loopEndInput.max = String(UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  loopEndInput.step = '1';
+  loopEndInput.value = String(UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  loopEndInput.setAttribute('aria-label', 'section loop end');
+  sectionLoop.appendChild(loopEndInput);
+
+  const loopStartHandle = document.createElement('div');
+  loopStartHandle.className = 'table-uploaded-media-loop-handle is-start';
+  loopStartHandle.setAttribute('role', 'slider');
+  loopStartHandle.setAttribute('aria-label', 'section loop start');
+  sectionLoop.appendChild(loopStartHandle);
+
+  const loopEndHandle = document.createElement('div');
+  loopEndHandle.className = 'table-uploaded-media-loop-handle is-end';
+  loopEndHandle.setAttribute('role', 'slider');
+  loopEndHandle.setAttribute('aria-label', 'section loop end');
+  sectionLoop.appendChild(loopEndHandle);
+
+  const controller = {
+    dieId: normalizedDieId,
+    provider,
+    sourceUrl: mediaSourceUrl,
+    posterUrl: mediaPosterUrl,
+    disposed: false,
+    root: playerShell,
+    mediaElement: surface,
+    titleElement,
+    playButton,
+    progressInput,
+    loopButton,
+    sectionLoop,
+    loopStartInput,
+    loopEndInput,
+    loopStartHandle,
+    loopEndHandle,
+    loopMode: UPLOADED_MEDIA_LOOP_MODE_OFF,
+    loopStartValue: 0,
+    loopEndValue: UPLOADED_MEDIA_LOOP_RANGE_MAX,
+    loopSeeking: false,
+    volumeWrap,
+    volumeButton,
+    volumeInput,
+    volumePopover,
+    volumeOpen: false,
+    pendingAutoStart: false,
+    removeDocumentPointerDown: null
+  };
+
+  const onDocumentPointerDown = (event) => {
+    const target = event.target;
+    if (!(target instanceof Node) || !playerShell.contains(target)) {
+      toggleUploadedMediaVolumePopover(controller, false);
+    }
+  };
+  document.addEventListener('pointerdown', onDocumentPointerDown);
+  controller.removeDocumentPointerDown = () => {
+    document.removeEventListener('pointerdown', onDocumentPointerDown);
+  };
+
+  playButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (surface.paused) {
+      surface.play().catch(() => {});
+    } else {
+      surface.pause();
+    }
+  });
+
+  loopButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    controller.loopMode = getNextUploadedMediaLoopMode(controller.loopMode);
+    if (controller.loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+      syncUploadedMediaLoopPlayback(controller, { force: true });
+    }
+    syncUploadedMediaControllerUi(controller);
+  });
+
+  progressInput.addEventListener('input', (event) => {
+    event.stopPropagation();
+    const duration = Number.isFinite(surface.duration) && surface.duration > 0 ? surface.duration : 0;
+    if (duration <= 0) {
+      return;
+    }
+    const ratio = clamp((Number(progressInput.value) || 0) / 1000, 0, 1);
+    surface.currentTime = duration * ratio;
+    syncUploadedMediaLoopPlayback(controller, { force: true });
+    syncUploadedMediaControllerUi(controller);
+  });
+
+  const updateSectionLoopRange = (changedEdge, rawStartValue, rawEndValue) => {
+    let startValue = Math.round(Number(rawStartValue));
+    let endValue = Math.round(Number(rawEndValue));
+    if (!Number.isFinite(startValue)) {
+      startValue = 0;
+    }
+    if (!Number.isFinite(endValue)) {
+      endValue = UPLOADED_MEDIA_LOOP_RANGE_MAX;
+    }
+    startValue = clamp(startValue, 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    endValue = clamp(endValue, 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    let activeEdge = changedEdge === 'start' ? 'start' : 'end';
+    if (startValue > endValue) {
+      const crossedStartValue = startValue;
+      startValue = endValue;
+      endValue = crossedStartValue;
+      activeEdge = activeEdge === 'start' ? 'end' : 'start';
+    } else if (endValue - startValue < UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP) {
+      if (changedEdge === 'start') {
+        startValue = Math.max(0, endValue - UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP);
+      } else {
+        endValue = Math.min(UPLOADED_MEDIA_LOOP_RANGE_MAX, startValue + UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP);
+      }
+    }
+    controller.loopMode = UPLOADED_MEDIA_LOOP_MODE_SECTION;
+    controller.loopStartValue = startValue;
+    controller.loopEndValue = endValue;
+    syncUploadedMediaLoopPlayback(controller, { force: true });
+    syncUploadedMediaControllerUi(controller);
+    return activeEdge;
+  };
+
+  const handleSectionLoopRangeInput = (changedEdge) => {
+    updateSectionLoopRange(changedEdge, loopStartInput.value, loopEndInput.value);
+  };
+
+  const updateSectionLoopRangeFromClientX = (changedEdge, clientX) => {
+    const rect = sectionLoop.getBoundingClientRect();
+    if (!Number.isFinite(rect.width) || rect.width <= 0) {
+      return changedEdge;
+    }
+    const nextValue = Math.round(clamp((clientX - rect.left) / rect.width, 0, 1) * UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    if (changedEdge === 'start') {
+      return updateSectionLoopRange('start', nextValue, controller.loopEndValue);
+    } else {
+      return updateSectionLoopRange('end', controller.loopStartValue, nextValue);
+    }
+  };
+
+  const bindSectionLoopHandle = (handle, changedEdge) => {
+    if (!(handle instanceof HTMLElement)) {
+      return;
+    }
+    handle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handle.setPointerCapture?.(event.pointerId);
+      handle.dataset.activeLoopEdge = updateSectionLoopRangeFromClientX(changedEdge, event.clientX);
+    });
+    handle.addEventListener('pointermove', (event) => {
+      if (!handle.hasPointerCapture?.(event.pointerId)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const activeEdge = handle.dataset.activeLoopEdge === 'start' ? 'start' : handle.dataset.activeLoopEdge === 'end' ? 'end' : changedEdge;
+      handle.dataset.activeLoopEdge = updateSectionLoopRangeFromClientX(activeEdge, event.clientX);
+    });
+    for (const eventName of ['pointerup', 'pointercancel']) {
+      handle.addEventListener(eventName, (event) => {
+        if (handle.hasPointerCapture?.(event.pointerId)) {
+          try {
+            handle.releasePointerCapture(event.pointerId);
+          } catch {
+            // Ignore stale capture releases.
+          }
+        }
+        delete handle.dataset.activeLoopEdge;
+        event.preventDefault();
+        event.stopPropagation();
+      });
+    }
+    handle.addEventListener('keydown', (event) => {
+      const keyStep = event.shiftKey ? 50 : 10;
+      let delta = 0;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+        delta = -keyStep;
+      } else if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+        delta = keyStep;
+      } else if (event.key === 'Home') {
+        delta = -UPLOADED_MEDIA_LOOP_RANGE_MAX;
+      } else if (event.key === 'End') {
+        delta = UPLOADED_MEDIA_LOOP_RANGE_MAX;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const currentValue = changedEdge === 'start' ? controller.loopStartValue : controller.loopEndValue;
+      const nextValue = clamp(currentValue + delta, 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+      if (changedEdge === 'start') {
+        updateSectionLoopRange('start', nextValue, controller.loopEndValue);
+      } else {
+        updateSectionLoopRange('end', controller.loopStartValue, nextValue);
+      }
+    });
+  };
+
+  bindSectionLoopHandle(loopStartHandle, 'start');
+  bindSectionLoopHandle(loopEndHandle, 'end');
+
+  for (const loopInput of [loopStartInput, loopEndInput]) {
+    loopInput.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    loopInput.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+    });
+  }
+
+  loopStartInput.addEventListener('input', (event) => {
+    event.stopPropagation();
+    handleSectionLoopRangeInput('start');
+  });
+
+  loopEndInput.addEventListener('input', (event) => {
+    event.stopPropagation();
+    handleSectionLoopRangeInput('end');
+  });
+
+  volumeButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleUploadedMediaVolumePopover(controller);
+  });
+
+  volumeInput.addEventListener('input', (event) => {
+    event.stopPropagation();
+    const nextVolume = clamp((Number(volumeInput.value) || 0) / 100, 0, 1);
+    surface.volume = nextVolume;
+    surface.muted = nextVolume <= 0.001;
+    syncUploadedMediaControllerUi(controller);
+  });
+
+  for (const eventName of ['loadedmetadata', 'durationchange']) {
+    surface.addEventListener(eventName, () => {
+      syncUploadedMediaLoopPlayback(controller, { force: true });
+      syncUploadedMediaControllerUi(controller);
+    });
+  }
+  surface.addEventListener('timeupdate', () => {
+    syncUploadedMediaLoopPlayback(controller);
+    syncUploadedMediaControllerUi(controller);
+  });
+  surface.addEventListener('play', () => {
+    syncUploadedMediaLoopPlayback(controller, { force: true });
+    syncUploadedMediaControllerUi(controller);
+  });
+  for (const eventName of ['pause', 'volumechange']) {
+    surface.addEventListener(eventName, () => {
+      syncUploadedMediaControllerUi(controller);
+    });
+  }
+  surface.addEventListener('ended', () => {
+    handleUploadedMediaEnded(controller);
+    syncUploadedMediaControllerUi(controller);
+  });
+
+  uploadedMediaControllerByDieId.set(normalizedDieId, controller);
+  syncUploadedMediaControllerUi(controller);
 }
 
 function syncMediaStartSignalFromState(dieId, previousDieState, nextDieState) {
@@ -24378,10 +25726,13 @@ function ensureArcadeManaRenderLoop() {
 
 function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   if (dieType === 'label') {
-    return `label|${normalizeLabelText(dieState?.text || '')}`;
+    return `label|${normalizeLabelVariant(dieState?.labelVariant)}|${normalizeLabelText(dieState?.text || '')}`;
   }
   if (dieType === 'media') {
-    return `media|${normalizeMediaProvider(dieState?.mediaProvider)}|${normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '')}|${normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '')}`;
+    const provider = normalizeMediaProvider(dieState?.mediaProvider);
+    const sourceUrl = normalizeUploadedMediaSourceUrl(dieState?.mediaSourceUrl || '', provider);
+    const posterUrl = normalizeUploadedMediaPosterUrl(dieState?.mediaPosterUrl || '');
+    return `media|${provider}|${normalizeMediaTitle(dieState?.mediaTitle || '')}|${getMediaUrlRenderSignature(sourceUrl)}|${normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '')}|${getMediaUrlRenderSignature(posterUrl)}`;
   }
   if (dieType === 'counter') {
     return `counter|${clampCounterValue(dieState?.value)}`;
@@ -24504,6 +25855,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   }
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
+  const isHeadingLabel = isLabel && isHeadingLabelState(dieState);
   if (isLabel) {
     teardownMediaController(dieId);
     const activeEditor = face.querySelector('.table-label-editor');
@@ -24530,7 +25882,16 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
     const embedUrl = normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '');
     const provider = normalizeMediaProvider(dieState?.mediaProvider);
     const sourceUrl = normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '') || embedUrl;
+    if (isUploadedMediaProvider(provider)) {
+      syncStudioEmbedDragHandles(mediaFrame, '');
+      teardownEmbeddedMediaController(dieId);
+      renderUploadedMediaFace(dieId, face, dieState);
+      return;
+    }
+    teardownUploadedMediaController(dieId);
+    mediaFrame.classList.remove('is-uploaded-audio', 'is-uploaded-video');
     if (!embedUrl) {
+      syncStudioEmbedDragHandles(mediaFrame, '');
       mediaFrame.textContent = '';
       const placeholder = document.createElement('div');
       placeholder.className = 'table-media-placeholder';
@@ -24546,10 +25907,11 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       iframe.className = 'table-media-embed';
       iframe.allow = 'autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture';
       iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-      iframe.loading = 'lazy';
+      iframe.loading = isSwagStudioRoom ? 'eager' : 'lazy';
       iframe.setAttribute('allowfullscreen', '');
       mediaFrame.appendChild(iframe);
     }
+    syncStudioEmbedDragHandles(mediaFrame, provider);
     const nextTitle = provider === 'soundcloud' ? 'soundcloud media' : 'youtube media';
     iframe.title = nextTitle;
     const mediaIdentity = `${provider}:${sourceUrl}`;
@@ -25174,6 +26536,11 @@ function renderDieElement(dieId, options = {}) {
     return false;
   }
   const dieType = normalizeDieType(dieState.type);
+  const isMedia = dieType === 'media';
+  const mediaProvider = isMedia ? normalizeMediaProvider(dieState?.mediaProvider) : '';
+  const isUploadedMedia = isMedia && isUploadedMediaProvider(mediaProvider);
+  const isEmbeddableMedia = isMedia && isEmbeddableMediaProvider(mediaProvider);
+  const isFixedSizeMedia = isMedia && isFixedSizeMediaProvider(mediaProvider);
   if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
     if (selectedDiceIds.delete(dieId)) {
       syncSelectionDeleteButtonUi();
@@ -25190,7 +26557,7 @@ function renderDieElement(dieId, options = {}) {
     dimensions.height,
     cullMarginPx
   );
-  const keepMountedWhenOffscreen = dieType === 'media';
+  const keepMountedWhenOffscreen = isMedia;
   const hasDieElement = diceElements.has(dieId);
   if (isVisibleInViewport || keepMountedWhenOffscreen || dieState.holderClientId || selectedDiceIds.has(dieId)) {
     offscreenDieSinceById.delete(dieId);
@@ -25213,6 +26580,30 @@ function renderDieElement(dieId, options = {}) {
   setElementStylePx(die, 'top', screen.y);
   setElementStylePx(die, 'width', screenWidth);
   setElementStylePx(die, 'height', screenHeight);
+  if (isFixedSizeMedia && isSwagStudioRoom) {
+    die.style.setProperty('--studio-media-design-width', `${dimensions.width.toFixed(4)}px`);
+    die.style.setProperty('--studio-media-design-height', `${dimensions.height.toFixed(4)}px`);
+    die.style.setProperty('--studio-media-render-scale', Math.max(0.001, camera.scale).toFixed(4));
+  } else {
+    die.style.removeProperty('--studio-media-design-width');
+    die.style.removeProperty('--studio-media-design-height');
+    die.style.removeProperty('--studio-media-render-scale');
+  }
+  if (isUploadedMedia) {
+    if (isFixedSizeMedia && isSwagStudioRoom) {
+      die.style.removeProperty('--uploaded-media-unit');
+    } else {
+      die.style.setProperty('--uploaded-media-unit', `${Math.max(0.001, 16 * camera.scale).toFixed(4)}px`);
+    }
+    die.style.removeProperty('--uploaded-media-render-scale');
+    die.style.removeProperty('--uploaded-media-render-inset-x');
+    die.style.removeProperty('--uploaded-media-render-inset-y');
+  } else {
+    die.style.removeProperty('--uploaded-media-unit');
+    die.style.removeProperty('--uploaded-media-render-scale');
+    die.style.removeProperty('--uploaded-media-render-inset-x');
+    die.style.removeProperty('--uploaded-media-render-inset-y');
+  }
   if (dieType === 'arcade') {
     const unitPx = Math.max(
       0.001,
@@ -25230,7 +26621,7 @@ function renderDieElement(dieId, options = {}) {
     selectedDiceIds.delete(dieId);
     syncSelectionDeleteButtonUi();
   }
-  if (isHeld) {
+  if (isHeld && !(isSwagStudioRoom && isEmbeddableMedia)) {
     const overlayLayer = ensureHeldCardLayer();
     if (overlayLayer && die.parentElement !== overlayLayer) {
       overlayLayer.appendChild(die);
@@ -25250,13 +26641,13 @@ function renderDieElement(dieId, options = {}) {
   const renderedDieValue = getRenderedDieValue(dieState, now);
   const dieFaceRenderKey = buildDieFaceRenderKey(dieType, renderedDieValue, dieState);
   const isLabel = dieType === 'label';
-  const isMedia = dieType === 'media';
   const isCounter = dieType === 'counter';
   const isTimer = dieType === 'timer';
   const isSpinner = dieType === 'spinner';
   const isChip = dieType === 'chip';
   const isStackPoint = dieType === 'stack-point';
   const isArcade = dieType === 'arcade';
+  const isHeadingLabel = isLabel && isHeadingLabelState(dieState);
   const timerSplitCount = isTimer ? normalizeTimerSplits(dieState?.timerSplits).length : 0;
   const timerHasVisibleSplits = isTimer && (dieState?.timerSplitsVisible === true || timerSplitCount > 0);
   const timerAnimating = isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) < TIMER_MAX_ELAPSED_MS;
@@ -25322,6 +26713,7 @@ function renderDieElement(dieId, options = {}) {
     !isLabelEditing;
   const canResizeMedia =
     isMedia &&
+    !isFixedSizeMedia &&
     !heldByOther &&
     !drawModeEnabled &&
     !deleteModeEnabled;
@@ -25335,7 +26727,9 @@ function renderDieElement(dieId, options = {}) {
   die.classList.toggle('table-die-arcade', isArcade);
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
+  die.classList.toggle('is-heading-label', isHeadingLabel);
   die.classList.toggle('table-die-media', isMedia);
+  die.classList.toggle('is-fixed-size-media', isFixedSizeMedia);
   die.classList.toggle('table-die-counter', isCounter);
   die.classList.toggle('table-die-timer', isTimer);
   die.classList.toggle('is-timer-no-splits', isTimer && !timerHasVisibleSplits);
@@ -25460,7 +26854,7 @@ function renderDieElement(dieId, options = {}) {
     if (face instanceof HTMLElement) {
       const fontPx = getLabelFontSizePx(dieState);
       face.style.fontSize = `${fontPx.toFixed(2)}px`;
-      face.style.color = normalizeHexColor(dieState.textColor || '#ff7a59');
+      face.style.color = isHeadingLabel ? HEADING_LABEL_TEXT_COLOR : normalizeHexColor(dieState.textColor || '#ff7a59');
       const activeEditor = face.querySelector('.table-label-editor');
       if (activeEditor instanceof HTMLTextAreaElement) {
         activeEditor.style.fontSize = `${fontPx.toFixed(2)}px`;
@@ -25726,7 +27120,10 @@ function ensureCardElement(cardId) {
     image.alt = '';
     image.draggable = false;
     image.decoding = 'async';
-    image.loading = 'lazy';
+    image.loading = isSwagStudioRoom ? 'eager' : 'lazy';
+    if (isSwagStudioRoom) {
+      image.fetchPriority = 'high';
+    }
     image.addEventListener('load', () => {
       const loadedSrc = image.getAttribute('src') || '';
       if (loadedSrc) {
@@ -28270,6 +29667,8 @@ function initializeCamera() {
     return;
   }
 
+  setElementStyleCustomProperty(tableRoot, '--world-width-px', `${WORLD_WIDTH}px`);
+  setElementStyleCustomProperty(tableRoot, '--world-height-px', `${WORLD_HEIGHT}px`);
   playspaceLayer.style.width = `${WORLD_WIDTH}px`;
   playspaceLayer.style.height = `${WORLD_HEIGHT}px`;
   if (drawingLayer) {
@@ -28733,6 +30132,10 @@ function isMediaAddModalOpen() {
   return Boolean(mediaAddModal && !mediaAddModal.classList.contains('hidden'));
 }
 
+function isStudioUploadModalOpen() {
+  return Boolean(studioUploadModal && !studioUploadModal.classList.contains('hidden'));
+}
+
 function isRoomSettingsModalOpen() {
   return Boolean(roomSettingsModal && !roomSettingsModal.classList.contains('hidden'));
 }
@@ -28751,6 +30154,7 @@ function openRoomSettingsMenu() {
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
+  closeStudioUploadModal();
   closeGameOptionsMenu();
   closeAssetMenu();
   roomSettingsModal.classList.remove('hidden');
@@ -28771,6 +30175,228 @@ function setMediaAddValidationMessage(message = '', options = {}) {
   }
   const markInvalid = options.urlInvalid === true;
   mediaAddInput?.classList.toggle('is-invalid', markInvalid);
+}
+
+function setStudioUploadValidationMessage(message = '', options = {}) {
+  const normalizedMessage = String(message || '').trim();
+  if (studioUploadError) {
+    studioUploadError.textContent = normalizedMessage;
+    studioUploadError.classList.toggle('hidden', !normalizedMessage);
+    studioUploadError.classList.toggle('is-status', options.status === true && Boolean(normalizedMessage));
+  }
+  const markInvalid = options.fileInvalid === true;
+  const markCoverInvalid = options.coverInvalid === true;
+  studioUploadDropzone?.classList.toggle('is-invalid', markInvalid);
+  studioUploadCoverDropzone?.classList.toggle('is-invalid', markCoverInvalid);
+}
+
+function revokeStudioUploadPreviewUrl(kind = 'media') {
+  const normalizedKind = String(kind || '').trim().toLowerCase();
+  if (normalizedKind === 'cover') {
+    if (activeStudioUploadCoverPreviewUrl) {
+      URL.revokeObjectURL(activeStudioUploadCoverPreviewUrl);
+      activeStudioUploadCoverPreviewUrl = '';
+    }
+    return;
+  }
+  if (activeStudioUploadPreviewUrl) {
+    URL.revokeObjectURL(activeStudioUploadPreviewUrl);
+    activeStudioUploadPreviewUrl = '';
+  }
+}
+
+function clearStudioUploadDropzonePreview(dropzone) {
+  if (!(dropzone instanceof HTMLElement)) {
+    return;
+  }
+  dropzone.classList.remove('has-preview');
+  const preview = dropzone.querySelector('.studio-upload-preview');
+  if (preview instanceof HTMLElement) {
+    preview.remove();
+  }
+}
+
+function renderStudioUploadDropzonePreview(dropzone, file, previewUrl, previewKind) {
+  if (!(dropzone instanceof HTMLElement)) {
+    return;
+  }
+  clearStudioUploadDropzonePreview(dropzone);
+  if (!(file instanceof File) || !previewUrl) {
+    return;
+  }
+  const normalizedPreviewKind = String(previewKind || '').trim().toLowerCase();
+  const preview = document.createElement('div');
+  preview.className = `studio-upload-preview studio-upload-preview-kind-${normalizedPreviewKind || 'file'}`;
+  const mediaStop = (event) => {
+    event.stopPropagation();
+  };
+  if (normalizedPreviewKind === STUDIO_UPLOAD_KIND_VIDEO) {
+    const video = document.createElement('video');
+    video.className = 'studio-upload-preview-media';
+    video.src = previewUrl;
+    video.controls = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.preload = 'metadata';
+    video.addEventListener('pointerdown', mediaStop);
+    video.addEventListener('click', mediaStop);
+    preview.appendChild(video);
+  } else if (normalizedPreviewKind === STUDIO_UPLOAD_KIND_AUDIO) {
+    const audio = document.createElement('audio');
+    audio.className = 'studio-upload-preview-audio';
+    audio.src = previewUrl;
+    audio.controls = true;
+    audio.preload = 'metadata';
+    audio.addEventListener('pointerdown', mediaStop);
+    audio.addEventListener('click', mediaStop);
+    preview.appendChild(audio);
+  } else if (normalizedPreviewKind === 'image') {
+    const image = document.createElement('img');
+    image.className = 'studio-upload-preview-image';
+    image.src = previewUrl;
+    image.alt = '';
+    image.decoding = 'async';
+    image.draggable = false;
+    preview.appendChild(image);
+  }
+  const caption = document.createElement('span');
+  caption.className = 'studio-upload-preview-caption';
+  caption.textContent = String(file.name || '').trim() || 'selected file';
+  preview.appendChild(caption);
+  dropzone.appendChild(preview);
+  dropzone.classList.add('has-preview');
+}
+
+function syncStudioUploadModalUi() {
+  const normalizedKind = normalizeStudioUploadKind(activeStudioUploadKind);
+  const isAudioUpload = normalizedKind === STUDIO_UPLOAD_KIND_AUDIO;
+  if (studioUploadTitle) {
+    studioUploadTitle.textContent = normalizedKind === STUDIO_UPLOAD_KIND_VIDEO ? 'adding video' : 'adding audio';
+  }
+  if (studioUploadLabel) {
+    studioUploadLabel.textContent = getStudioUploadLabelText(normalizedKind);
+  }
+  if (studioUploadDropzoneHint) {
+    studioUploadDropzoneHint.textContent = getStudioUploadHintText(normalizedKind);
+  }
+  if (studioUploadInput) {
+    studioUploadInput.accept = getStudioUploadAccept(normalizedKind);
+    studioUploadInput.disabled = studioUploadSubmitting;
+    studioUploadInput.value = '';
+  }
+  if (studioUploadCoverField) {
+    studioUploadCoverField.classList.toggle('hidden', !isAudioUpload);
+  }
+  if (studioUploadCoverLabel) {
+    studioUploadCoverLabel.textContent = getStudioUploadCoverLabelText();
+  }
+  if (studioUploadCoverDropzoneHint) {
+    studioUploadCoverDropzoneHint.textContent = getStudioUploadCoverHintText();
+  }
+  if (studioUploadCoverInput) {
+    studioUploadCoverInput.accept = STUDIO_UPLOAD_IMAGE_ACCEPT;
+    studioUploadCoverInput.disabled = studioUploadSubmitting || !isAudioUpload;
+    studioUploadCoverInput.value = '';
+  }
+  if (studioUploadSelectedFile) {
+    const selectedFileName = activeStudioUploadFile instanceof File
+      ? String(activeStudioUploadFile.name || '').trim() || 'selected file'
+      : 'no file selected';
+    if (studioUploadSelectedFileName) {
+      studioUploadSelectedFileName.textContent = selectedFileName;
+    } else {
+      studioUploadSelectedFile.textContent = selectedFileName;
+    }
+    studioUploadClearButton?.classList.toggle('hidden', !(activeStudioUploadFile instanceof File));
+  }
+  if (studioUploadCoverSelectedFile) {
+    studioUploadCoverSelectedFile.classList.toggle('hidden', !isAudioUpload);
+    const selectedCoverName = activeStudioUploadCoverFile instanceof File
+      ? String(activeStudioUploadCoverFile.name || '').trim() || 'selected cover'
+      : 'no cover selected';
+    if (studioUploadCoverSelectedFileName) {
+      studioUploadCoverSelectedFileName.textContent = selectedCoverName;
+    } else {
+      studioUploadCoverSelectedFile.textContent = selectedCoverName;
+    }
+    studioUploadCoverClearButton?.classList.toggle('hidden', !isAudioUpload || !(activeStudioUploadCoverFile instanceof File));
+  }
+  if (studioUploadDropzone instanceof HTMLElement) {
+    studioUploadDropzone.setAttribute('aria-disabled', studioUploadSubmitting ? 'true' : 'false');
+    studioUploadDropzone.tabIndex = studioUploadSubmitting ? -1 : 0;
+    renderStudioUploadDropzonePreview(
+      studioUploadDropzone,
+      activeStudioUploadFile,
+      activeStudioUploadPreviewUrl,
+      normalizedKind
+    );
+  }
+  if (studioUploadCoverDropzone instanceof HTMLElement) {
+    const coverDisabled = studioUploadSubmitting || !isAudioUpload;
+    studioUploadCoverDropzone.setAttribute('aria-disabled', coverDisabled ? 'true' : 'false');
+    studioUploadCoverDropzone.tabIndex = coverDisabled ? -1 : 0;
+    renderStudioUploadDropzonePreview(
+      studioUploadCoverDropzone,
+      isAudioUpload ? activeStudioUploadCoverFile : null,
+      isAudioUpload ? activeStudioUploadCoverPreviewUrl : '',
+      'image'
+    );
+  }
+  if (studioUploadConfirmButton instanceof HTMLButtonElement) {
+    const canSubmit = activeStudioUploadFile instanceof File && !studioUploadSubmitting;
+    studioUploadConfirmButton.disabled = !canSubmit;
+    studioUploadConfirmButton.classList.toggle('is-disabled', !canSubmit);
+  }
+}
+
+function clearStudioUploadSelection() {
+  revokeStudioUploadPreviewUrl('media');
+  revokeStudioUploadPreviewUrl('cover');
+  activeStudioUploadFile = null;
+  activeStudioUploadCoverFile = null;
+  studioUploadSubmitting = false;
+  studioUploadDropzone?.classList.remove('is-dragover');
+  studioUploadCoverDropzone?.classList.remove('is-dragover');
+  setStudioUploadValidationMessage('');
+  syncStudioUploadModalUi();
+}
+
+function setActiveStudioUploadFile(file) {
+  revokeStudioUploadPreviewUrl('media');
+  if (file instanceof File && isAllowedStudioUploadFile(file, activeStudioUploadKind)) {
+    activeStudioUploadFile = file;
+    activeStudioUploadPreviewUrl = URL.createObjectURL(file);
+    setStudioUploadValidationMessage('');
+  } else if (file instanceof File) {
+    activeStudioUploadFile = null;
+    setStudioUploadValidationMessage(
+      normalizeStudioUploadKind(activeStudioUploadKind) === STUDIO_UPLOAD_KIND_VIDEO
+        ? 'choose an mp4, mov, m4v, or webm file.'
+        : 'choose an mp3 or wav file.',
+      { fileInvalid: true }
+    );
+  } else {
+    activeStudioUploadFile = null;
+    setStudioUploadValidationMessage('');
+  }
+  syncStudioUploadModalUi();
+}
+
+function setActiveStudioUploadCoverFile(file) {
+  revokeStudioUploadPreviewUrl('cover');
+  if (file instanceof File && isAllowedStudioCoverFile(file)) {
+    activeStudioUploadCoverFile = file;
+    activeStudioUploadCoverPreviewUrl = URL.createObjectURL(file);
+    setStudioUploadValidationMessage('');
+  } else if (file instanceof File) {
+    activeStudioUploadCoverFile = null;
+    setStudioUploadValidationMessage('choose a png, jpg, webp, or gif image.', { coverInvalid: true });
+  } else {
+    activeStudioUploadCoverFile = null;
+    setStudioUploadValidationMessage('');
+  }
+  syncStudioUploadModalUi();
 }
 
 function getStickerPackEntry(packKey = activeStickerPackKey) {
@@ -29213,6 +30839,7 @@ function openDiceAddModal() {
   closeStickerAddModal();
   closeImageAddModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   syncDiceAddModalUi();
   diceAddModal.classList.remove('hidden');
@@ -29236,6 +30863,7 @@ function openChipsAddModal() {
   closeStickerAddModal();
   closeImageAddModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   syncChipsAddModalUi();
   chipsAddModal.classList.remove('hidden');
@@ -29259,6 +30887,7 @@ function openSpinnerAddModal() {
   closeStickerAddModal();
   closeImageAddModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   syncSpinnerAddModalUi();
   spinnerAddModal.classList.remove('hidden');
@@ -29329,6 +30958,7 @@ function openImageAddModal() {
   closeMediaAddModal();
   closeStickerAddModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   setImageAddValidationMessage('');
   if (imageAddFrontBlankColorInput) {
@@ -29360,6 +30990,7 @@ function openStickerAddModal() {
   closeImageAddModal();
   closeMediaAddModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   setActiveStickerPack(activeStickerPackKey);
   stickerAddModal.classList.remove('hidden');
@@ -29385,7 +31016,9 @@ function openMediaAddModal() {
   closeSpinnerAddModal();
   closeImageAddModal();
   closeStickerAddModal();
+  closeStudioUploadModal();
   closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
   setMediaAddValidationMessage('');
   if (mediaAddInput) {
@@ -29402,6 +31035,33 @@ function closeMediaAddModal() {
   mediaAddModal.classList.add('hidden');
 }
 
+function openStudioUploadModal(kind = STUDIO_UPLOAD_KIND_AUDIO) {
+  if (!studioUploadModal) {
+    return;
+  }
+  activeStudioUploadKind = normalizeStudioUploadKind(kind);
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeChipsAddModal();
+  closeSpinnerAddModal();
+  closeImageAddModal();
+  closeStickerAddModal();
+  closeMediaAddModal();
+  closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
+  closeAssetMenu();
+  clearStudioUploadSelection();
+  studioUploadModal.classList.remove('hidden');
+}
+
+function closeStudioUploadModal() {
+  if (!studioUploadModal) {
+    return;
+  }
+  clearStudioUploadSelection();
+  studioUploadModal.classList.add('hidden');
+}
+
 function returnToAssetComponentMenuFromSubmenu() {
   closeDiceAddModal();
   closeChipsAddModal();
@@ -29409,7 +31069,8 @@ function returnToAssetComponentMenuFromSubmenu() {
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
-  setAssetMenuView('component');
+  closeStudioUploadModal();
+  setAssetMenuView(assetMenuSubviewReturnView);
   openAssetMenu();
 }
 
@@ -29426,6 +31087,7 @@ function openAssetMenu() {
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
+  closeStudioUploadModal();
   closeMonsItemChoiceModal();
   closeGameOptionsMenu();
   closeRoomSettingsMenu();
@@ -29443,15 +31105,21 @@ function closeAssetMenu() {
 }
 
 function setAssetMenuView(view) {
-  const nextView = view === 'component' ? 'component' : 'game';
+  const nextView = normalizeAssetMenuView(view);
   activeAssetMenuView = nextView;
   localStorage.setItem(ASSET_MENU_VIEW_KEY, nextView);
-  const isComponentView = nextView === 'component';
+  const isComponentView = nextView === ASSET_MENU_VIEW_COMPONENT;
+  const isStudioView = nextView === ASSET_MENU_VIEW_STUDIO;
+  const isGameView = nextView === ASSET_MENU_VIEW_GAME;
   assetMenuModal?.classList.toggle('is-component-view', isComponentView);
-  assetGameGallery?.classList.toggle('hidden', isComponentView);
+  assetMenuModal?.classList.toggle('is-studio-view', isStudioView);
+  assetStudioGallery?.classList.toggle('hidden', !isStudioView);
+  assetGameGallery?.classList.toggle('hidden', !isGameView);
   assetComponentGallery?.classList.toggle('hidden', !isComponentView);
-  assetMenuTabGameButton?.classList.toggle('is-active', !isComponentView);
-  assetMenuTabGameButton?.setAttribute('aria-selected', !isComponentView ? 'true' : 'false');
+  assetMenuTabStudioButton?.classList.toggle('is-active', isStudioView);
+  assetMenuTabStudioButton?.setAttribute('aria-selected', isStudioView ? 'true' : 'false');
+  assetMenuTabGameButton?.classList.toggle('is-active', isGameView);
+  assetMenuTabGameButton?.setAttribute('aria-selected', isGameView ? 'true' : 'false');
   assetMenuTabComponentButton?.classList.toggle('is-active', isComponentView);
   assetMenuTabComponentButton?.setAttribute('aria-selected', isComponentView ? 'true' : 'false');
 }
@@ -29536,8 +31204,10 @@ function syncTableResetRowLayout() {
   if (!tableResetRow || !wipeAllDrawingsButton) {
     return;
   }
+  const hasVisibleClearButton = Boolean(clearTableButton) && !clearTableButton.classList.contains('hidden');
   const hasVisibleWipeButton = !wipeAllDrawingsButton.classList.contains('hidden');
-  tableResetRow.classList.toggle('has-wipe', hasVisibleWipeButton);
+  tableResetRow.classList.toggle('hidden', !hasVisibleClearButton && !hasVisibleWipeButton);
+  tableResetRow.classList.toggle('has-wipe', hasVisibleClearButton && hasVisibleWipeButton);
 }
 
 function resolveGameOptionsTitle(targetKey) {
@@ -30014,11 +31684,14 @@ roomBackgroundPatternRow?.addEventListener('click', (event) => {
 assetMenuCloseButton?.addEventListener('click', () => {
   closeAssetMenu();
 });
+assetMenuTabStudioButton?.addEventListener('click', () => {
+  setAssetMenuView(ASSET_MENU_VIEW_STUDIO);
+});
 assetMenuTabGameButton?.addEventListener('click', () => {
-  setAssetMenuView('game');
+  setAssetMenuView(ASSET_MENU_VIEW_GAME);
 });
 assetMenuTabComponentButton?.addEventListener('click', () => {
-  setAssetMenuView('component');
+  setAssetMenuView(ASSET_MENU_VIEW_COMPONENT);
 });
 removeComponentsButton?.addEventListener('click', (event) => {
   if (removeComponentsButton.disabled) {
@@ -30263,6 +31936,22 @@ labelComponentTile?.addEventListener('click', () => {
     setRealtimeStatus('firebase: write blocked');
   });
 });
+studioHeadingTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnLabelComponent({
+    labelVariant: LABEL_VARIANT_HEADING
+  }).catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
+studioTextTile?.addEventListener('click', () => {
+  closeAssetMenu();
+  spawnLabelComponent().catch((error) => {
+    console.error(error);
+    setRealtimeStatus('firebase: write blocked');
+  });
+});
 noteComponentTile?.addEventListener('click', () => {
   closeAssetMenu();
   spawnNoteComponent().catch((error) => {
@@ -30273,8 +31962,20 @@ noteComponentTile?.addEventListener('click', () => {
 imageComponentTile?.addEventListener('click', () => {
   openImageAddModal();
 });
+studioImageTile?.addEventListener('click', () => {
+  openImageAddModal();
+});
 stickerComponentTile?.addEventListener('click', () => {
   openStickerAddModal();
+});
+studioAudioTile?.addEventListener('click', () => {
+  openStudioUploadModal(STUDIO_UPLOAD_KIND_AUDIO);
+});
+studioVideoTile?.addEventListener('click', () => {
+  openStudioUploadModal(STUDIO_UPLOAD_KIND_VIDEO);
+});
+studioEmbedTile?.addEventListener('click', () => {
+  openMediaAddModal();
 });
 mediaComponentTile?.addEventListener('click', () => {
   openMediaAddModal();
@@ -30525,6 +32226,164 @@ mediaAddConfirmButton?.addEventListener('click', () => {
     setRealtimeStatus('firebase: write blocked');
   });
 });
+studioUploadCloseButton?.addEventListener('click', () => {
+  closeStudioUploadModal();
+});
+studioUploadBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+studioUploadDropzone?.addEventListener('click', () => {
+  if (studioUploadSubmitting) {
+    return;
+  }
+  studioUploadInput?.click();
+});
+studioUploadDropzone?.addEventListener('keydown', (event) => {
+  if (studioUploadSubmitting || (event.key !== 'Enter' && event.key !== ' ')) {
+    return;
+  }
+  event.preventDefault();
+  studioUploadInput?.click();
+});
+studioUploadDropzone?.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  if (studioUploadSubmitting) {
+    return;
+  }
+  studioUploadDropzone.classList.add('is-dragover');
+});
+studioUploadDropzone?.addEventListener('dragleave', (event) => {
+  if (event.currentTarget === studioUploadDropzone) {
+    studioUploadDropzone.classList.remove('is-dragover');
+  }
+});
+studioUploadDropzone?.addEventListener('drop', (event) => {
+  event.preventDefault();
+  studioUploadDropzone.classList.remove('is-dragover');
+  if (studioUploadSubmitting) {
+    return;
+  }
+  const nextFile = event.dataTransfer?.files?.[0] || null;
+  setActiveStudioUploadFile(nextFile);
+});
+studioUploadInput?.addEventListener('change', () => {
+  const nextFile = studioUploadInput.files?.[0] || null;
+  setActiveStudioUploadFile(nextFile);
+});
+studioUploadClearButton?.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (studioUploadSubmitting) {
+    return;
+  }
+  if (studioUploadInput) {
+    studioUploadInput.value = '';
+  }
+  setActiveStudioUploadFile(null);
+});
+studioUploadCoverDropzone?.addEventListener('click', () => {
+  if (studioUploadSubmitting) {
+    return;
+  }
+  studioUploadCoverInput?.click();
+});
+studioUploadCoverDropzone?.addEventListener('keydown', (event) => {
+  if (studioUploadSubmitting || (event.key !== 'Enter' && event.key !== ' ')) {
+    return;
+  }
+  event.preventDefault();
+  studioUploadCoverInput?.click();
+});
+studioUploadCoverDropzone?.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  if (studioUploadSubmitting) {
+    return;
+  }
+  studioUploadCoverDropzone.classList.add('is-dragover');
+});
+studioUploadCoverDropzone?.addEventListener('dragleave', (event) => {
+  if (event.currentTarget === studioUploadCoverDropzone) {
+    studioUploadCoverDropzone.classList.remove('is-dragover');
+  }
+});
+studioUploadCoverDropzone?.addEventListener('drop', (event) => {
+  event.preventDefault();
+  studioUploadCoverDropzone.classList.remove('is-dragover');
+  if (studioUploadSubmitting) {
+    return;
+  }
+  const nextFile = event.dataTransfer?.files?.[0] || null;
+  setActiveStudioUploadCoverFile(nextFile);
+});
+studioUploadCoverInput?.addEventListener('change', () => {
+  const nextFile = studioUploadCoverInput.files?.[0] || null;
+  setActiveStudioUploadCoverFile(nextFile);
+});
+studioUploadCoverClearButton?.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (studioUploadSubmitting) {
+    return;
+  }
+  if (studioUploadCoverInput) {
+    studioUploadCoverInput.value = '';
+  }
+  setActiveStudioUploadCoverFile(null);
+});
+studioUploadConfirmButton?.addEventListener('click', async () => {
+  const selectedFile = activeStudioUploadFile;
+  const selectedCoverFile = activeStudioUploadCoverFile;
+  const uploadKind = normalizeStudioUploadKind(activeStudioUploadKind);
+  if (!(selectedFile instanceof File)) {
+    setStudioUploadValidationMessage(
+      uploadKind === STUDIO_UPLOAD_KIND_VIDEO
+        ? 'choose a video file first.'
+        : 'choose an audio file first.',
+      { fileInvalid: true }
+    );
+    return;
+  }
+  if (!isAllowedStudioUploadFile(selectedFile, uploadKind)) {
+    setActiveStudioUploadFile(selectedFile);
+    return;
+  }
+  studioUploadSubmitting = true;
+  syncStudioUploadModalUi();
+  setStudioUploadValidationMessage('uploading…', { status: true });
+  try {
+    const [uploaded, dimensions] = await Promise.all([
+      uploadStudioMediaFile(uploadKind, selectedFile, (progressFraction) => {
+        const percent = Math.round(clamp(progressFraction, 0, 1) * 100);
+        setStudioUploadValidationMessage(`uploading… ${percent}%`, { status: true });
+      }),
+      resolveStudioUploadedMediaSpawnDimensions(uploadKind, selectedFile)
+    ]);
+    let uploadedCover = null;
+    if (uploadKind === STUDIO_UPLOAD_KIND_AUDIO && selectedCoverFile instanceof File) {
+      setStudioUploadValidationMessage('uploading cover…', { status: true });
+      uploadedCover = await uploadStudioCoverImageFile(selectedCoverFile);
+    }
+    setStudioUploadValidationMessage('');
+    await spawnMediaComponent({
+      provider: uploadKind === STUDIO_UPLOAD_KIND_VIDEO ? 'uploaded-video' : 'uploaded-audio',
+      sourceUrl: uploaded.sourceUrl,
+      embedUrl: '',
+      title: uploaded.title,
+      mimeType: uploaded.mimeType,
+      posterUrl: uploadedCover?.sourceUrl || '',
+      width: dimensions?.width,
+      height: dimensions?.height
+    });
+    closeStudioUploadModal();
+  } catch (error) {
+    console.error(error);
+    studioUploadSubmitting = false;
+    syncStudioUploadModalUi();
+    const message = String(error?.message || '').trim();
+    setStudioUploadValidationMessage(message || 'upload failed. try a smaller file or check storage permissions.');
+    setRealtimeStatus('firebase: write blocked');
+  }
+});
 
 clearTableButton?.addEventListener('click', async () => {
   if (clearTableButton.disabled) {
@@ -30612,6 +32471,11 @@ mediaAddModal?.addEventListener('pointerdown', (event) => {
     closeMediaAddModal();
   }
 });
+studioUploadModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === studioUploadModal) {
+    closeStudioUploadModal();
+  }
+});
 
 gameOptionsModal?.addEventListener('pointerdown', (event) => {
   if (event.target === gameOptionsModal) {
@@ -30675,6 +32539,10 @@ window.addEventListener('keydown', (event) => {
   }
   if (isMediaAddModalOpen()) {
     closeMediaAddModal();
+    return;
+  }
+  if (isStudioUploadModalOpen()) {
+    closeStudioUploadModal();
     return;
   }
   if (isMonsItemChoiceModalOpen()) {
@@ -31382,6 +33250,12 @@ initializeTileTilt(marbleComponentTile);
 initializeTileTilt(stackPointComponentTile);
 initializeTileTilt(secretAreaComponentTile);
 initializeTileTilt(mediaComponentTile);
+initializeTileTilt(studioAudioTile);
+initializeTileTilt(studioVideoTile);
+initializeTileTilt(studioEmbedTile);
+initializeTileTilt(studioHeadingTile);
+initializeTileTilt(studioTextTile);
+initializeTileTilt(studioImageTile);
 initializeDiceTilePipShuffle(diceComponentTile);
 initializeCounterTileDigitShuffle(counterComponentTile);
 initializeLabelTileLetterShuffle(labelComponentTile);
@@ -31563,6 +33437,294 @@ function getOrCreatePlayerToken() {
 }
 
 localPlayerToken = getOrCreatePlayerToken();
+
+function isSwagStudioRoomCacheEnabled() {
+  return isSwagStudioRoom && typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function getSwagStudioRoomCacheKey() {
+  return `${SWAG_STUDIO_ROOM_CACHE_KEY_PREFIX}-${roomId}`;
+}
+
+function sanitizeSwagStudioCachedValue(value, key = '', depth = 0) {
+  if (value === null || value === undefined) {
+    return value === null ? null : undefined;
+  }
+  const normalizedKey = String(key || '').trim();
+  if (normalizedKey === 'holderClientId') {
+    return null;
+  }
+  if (normalizedKey === 'moving') {
+    return false;
+  }
+  if (normalizedKey === 'velocityX' || normalizedKey === 'velocityY') {
+    return 0;
+  }
+  if (normalizedKey === 'mediaStartedAt' || normalizedKey === 'mediaStartNonce') {
+    return 0;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('data:') && trimmed.length > SWAG_STUDIO_ROOM_CACHE_INLINE_DATA_MAX_CHARS) {
+      return '';
+    }
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+  if (depth > 10) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => sanitizeSwagStudioCachedValue(entry, key, depth + 1))
+      .filter((entry) => entry !== undefined);
+  }
+  if (typeof value !== 'object') {
+    return undefined;
+  }
+
+  const output = {};
+  for (const [entryKey, entryValue] of Object.entries(value)) {
+    const sanitized = sanitizeSwagStudioCachedValue(entryValue, entryKey, depth + 1);
+    if (sanitized !== undefined) {
+      output[entryKey] = sanitized;
+    }
+  }
+  return output;
+}
+
+function mapToSwagStudioCacheObject(map) {
+  const output = {};
+  if (!(map instanceof Map)) {
+    return output;
+  }
+  for (const [key, value] of map.entries()) {
+    const normalizedKey = String(key || '').trim();
+    if (!normalizedKey) {
+      continue;
+    }
+    const sanitized = sanitizeSwagStudioCachedValue(value);
+    if (sanitized !== undefined) {
+      output[normalizedKey] = sanitized;
+    }
+  }
+  return output;
+}
+
+function buildSwagStudioRoomCachePayload(options = {}) {
+  const includeDrawings = options.includeDrawings !== false;
+  const games = {
+    ...mapToSwagStudioCacheObject(monsGameStatesById),
+    ...mapToSwagStudioCacheObject(taflGameStatesById),
+    ...mapToSwagStudioCacheObject(goGameStatesById),
+    ...mapToSwagStudioCacheObject(hexitamaGameStatesById)
+  };
+  return {
+    version: SWAG_STUDIO_ROOM_CACHE_VERSION,
+    roomId,
+    savedAt: Date.now(),
+    meta: sanitizeSwagStudioCachedValue({
+      title: roomTitleValue,
+      backgroundPattern: roomBackgroundPattern,
+      drawingsLiftCutoffAt
+    }),
+    cards: mapToSwagStudioCacheObject(cards),
+    dice: mapToSwagStudioCacheObject(diceById),
+    drawings: includeDrawings ? mapToSwagStudioCacheObject(drawingStrokes) : {},
+    decks: mapToSwagStudioCacheObject(deckStatesById),
+    chipSets: mapToSwagStudioCacheObject(chipSetsById),
+    games
+  };
+}
+
+function persistSwagStudioRoomCacheNow() {
+  swagStudioRoomCacheWriteTimerId = 0;
+  if (!isSwagStudioRoomCacheEnabled()) {
+    return;
+  }
+  let payload = buildSwagStudioRoomCachePayload({ includeDrawings: true });
+  let serialized = '';
+  try {
+    serialized = JSON.stringify(payload);
+    if (serialized.length > SWAG_STUDIO_ROOM_CACHE_MAX_CHARS) {
+      payload = buildSwagStudioRoomCachePayload({ includeDrawings: false });
+      serialized = JSON.stringify(payload);
+    }
+    if (serialized.length > SWAG_STUDIO_ROOM_CACHE_MAX_CHARS) {
+      return;
+    }
+    window.localStorage.setItem(getSwagStudioRoomCacheKey(), serialized);
+  } catch (error) {
+    console.warn('Could not persist swagstudio room cache:', error);
+  }
+}
+
+function scheduleSwagStudioRoomCachePersist() {
+  if (!isSwagStudioRoomCacheEnabled()) {
+    return;
+  }
+  if (swagStudioRoomCacheWriteTimerId) {
+    return;
+  }
+  swagStudioRoomCacheWriteTimerId = window.setTimeout(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => persistSwagStudioRoomCacheNow(), { timeout: 1400 });
+      return;
+    }
+    persistSwagStudioRoomCacheNow();
+  }, SWAG_STUDIO_ROOM_CACHE_WRITE_DELAY_MS);
+}
+
+function clearSwagStudioRoomCachePreviewState() {
+  if (!swagStudioRoomCacheApplied) {
+    return;
+  }
+  tableRoot?.classList.remove('is-studio-cache-preview');
+}
+
+function applySwagStudioCachedRoomState() {
+  if (!isSwagStudioRoomCacheEnabled() || swagStudioRoomCacheApplied) {
+    return false;
+  }
+  let payload = null;
+  try {
+    payload = JSON.parse(window.localStorage.getItem(getSwagStudioRoomCacheKey()) || 'null');
+  } catch {
+    return false;
+  }
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+  if (payload.version !== SWAG_STUDIO_ROOM_CACHE_VERSION || payload.roomId !== roomId) {
+    return false;
+  }
+  const savedAt = Number(payload.savedAt) || 0;
+  if (savedAt <= 0 || Date.now() - savedAt > SWAG_STUDIO_ROOM_CACHE_TTL_MS) {
+    return false;
+  }
+
+  swagStudioRoomCacheApplied = true;
+  tableRoot?.classList.add('is-studio-cache-preview');
+
+  const cachedMeta = payload.meta && typeof payload.meta === 'object' ? payload.meta : {};
+  if (cachedMeta.title) {
+    setRoomBadgeText(cachedMeta.title);
+  }
+  if (cachedMeta.backgroundPattern) {
+    applyRoomBackgroundPattern(cachedMeta.backgroundPattern);
+  }
+  drawingsLiftCutoffAt = Math.max(0, Math.floor(Number(cachedMeta.drawingsLiftCutoffAt) || 0));
+
+  cards.clear();
+  for (const [cardId, cardPayload] of Object.entries(payload.cards || {})) {
+    cards.set(cardId, normalizeCardPayload(cardPayload, cardId));
+  }
+
+  diceById.clear();
+  for (const [dieId, diePayload] of Object.entries(payload.dice || {})) {
+    diceById.set(dieId, normalizeDicePayload(diePayload));
+  }
+
+  drawingStrokes.clear();
+  for (const [strokeId, strokePayload] of Object.entries(payload.drawings || {})) {
+    const nextStroke = normalizeDrawingPayload(strokePayload);
+    if (nextStroke.points.length > 0) {
+      drawingStrokes.set(strokeId, nextStroke);
+    }
+  }
+
+  deckStatesById.clear();
+  for (const [deckId, deckPayload] of Object.entries(payload.decks || {})) {
+    deckStatesById.set(deckId, normalizeDeckPayload(deckPayload, deckId));
+  }
+  if (!deckStatesById.has(activeDeckId)) {
+    setActiveDeckId(deckStatesById.has(DECK_KEY) ? DECK_KEY : Array.from(deckStatesById.keys())[0] || DECK_KEY);
+  }
+
+  chipSetsById.clear();
+  for (const [chipSetId, chipSetPayload] of Object.entries(payload.chipSets || {})) {
+    chipSetsById.set(chipSetId, normalizeChipSetPayload(chipSetPayload));
+  }
+
+  monsGameStatesById.clear();
+  taflGameStatesById.clear();
+  goGameStatesById.clear();
+  hexitamaGameStatesById.clear();
+  for (const [gameId, gamePayload] of Object.entries(payload.games || {})) {
+    if (isHexitamaGameId(gameId)) {
+      hexitamaGameStatesById.set(normalizeHexitamaGameId(gameId), normalizeHexitamaGamePayload(gamePayload));
+    } else if (isGoGameId(gameId)) {
+      goGameStatesById.set(normalizeGoGameId(gameId), normalizeGoGamePayload(gamePayload));
+    } else if (isTaflGameId(gameId)) {
+      taflGameStatesById.set(normalizeTaflGameId(gameId), normalizeTaflGamePayload(gamePayload));
+    } else if (isMonsGameId(gameId)) {
+      monsGameStatesById.set(normalizeMonsGameId(gameId), normalizeMonsGamePayload(gamePayload));
+    }
+  }
+  if (monsGameStatesById.size > 0 && !monsGameStatesById.has(activeMonsGameId)) {
+    setActiveMonsGameId(monsGameStatesById.has(MONS_GAME_KEY) ? MONS_GAME_KEY : Array.from(monsGameStatesById.keys())[0]);
+  }
+  if (taflGameStatesById.size > 0 && !taflGameStatesById.has(activeTaflGameId)) {
+    setActiveTaflGameId(taflGameStatesById.has(TAFL_GAME_KEY) ? TAFL_GAME_KEY : Array.from(taflGameStatesById.keys())[0]);
+  }
+  if (goGameStatesById.size > 0 && !goGameStatesById.has(activeGoGameId)) {
+    setActiveGoGameId(goGameStatesById.has(GO_GAME_KEY) ? GO_GAME_KEY : Array.from(goGameStatesById.keys())[0]);
+  }
+  if (hexitamaGameStatesById.size > 0 && !hexitamaGameStatesById.has(activeHexitamaGameId)) {
+    setActiveHexitamaGameId(
+      hexitamaGameStatesById.has(HEXITAMA_GAME_KEY) ? HEXITAMA_GAME_KEY : Array.from(hexitamaGameStatesById.keys())[0]
+    );
+  }
+
+  markCardDeckMetricsCacheDirty();
+  markCameraLooseRenderableCardIdsDirty();
+  markSecretAreaRegionsCacheDirty();
+  invalidateLocalCodegameKeyHighlightsCache();
+  invalidateCodegameKeyPatternCache();
+  renderAllCards();
+  renderAllDice();
+  renderAllDrawingStrokes();
+  renderChipSets();
+  syncCoverDrawingsGamesLayerState();
+  renderMonsBoard();
+  renderTaflBoards();
+  renderGoBoards();
+  renderHexitamaBoards();
+  syncClearTableButtonState();
+  return true;
+}
+
+function warmSwagStudioStaticVisualAssets() {
+  if (!isSwagStudioRoom) {
+    return;
+  }
+  const sources = new Set([
+    ...Object.values(MONS_PIECE_ASSET_BY_TYPE),
+    ...Object.values(TAFL_PIECE_ICON_BY_SIDE),
+    TAFL_BOARD_IMAGE_SRC,
+    HEXITAMA_CHIEF_SRC,
+    HEXITAMA_CHIEF_TEMPLE_SRC
+  ]);
+  for (const src of sources) {
+    const normalizedSrc = String(src || '').trim();
+    if (!normalizedSrc || frontImageLoadState.get(normalizedSrc) === 'loaded') {
+      continue;
+    }
+    const image = new Image();
+    image.decoding = 'async';
+    image.loading = 'eager';
+    image.onload = () => {
+      frontImageLoadState.set(normalizedSrc, 'loaded');
+    };
+    image.onerror = () => {
+      frontImageLoadState.set(normalizedSrc, 'error');
+    };
+    frontImageLoadState.set(normalizedSrc, 'loading');
+    image.src = normalizedSrc;
+  }
+}
 
 function syncRoomBadgeWidthVar() {
   roomBadgeWidthSyncRafId = 0;
@@ -32103,7 +34265,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #studioUploadModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -32432,6 +34594,12 @@ shieldPointerEvents(marbleComponentTile);
 shieldPointerEvents(stackPointComponentTile);
 shieldPointerEvents(secretAreaComponentTile);
 shieldPointerEvents(mediaComponentTile);
+shieldPointerEvents(studioAudioTile);
+shieldPointerEvents(studioVideoTile);
+shieldPointerEvents(studioEmbedTile);
+shieldPointerEvents(studioHeadingTile);
+shieldPointerEvents(studioTextTile);
+shieldPointerEvents(studioImageTile);
 shieldPointerEvents(diceAddModal);
 shieldPointerEvents(diceAddBackButton);
 shieldPointerEvents(diceAddCloseButton);
@@ -32479,6 +34647,16 @@ shieldPointerEvents(mediaAddBackButton);
 shieldPointerEvents(mediaAddCloseButton);
 shieldPointerEvents(mediaAddInput);
 shieldPointerEvents(mediaAddConfirmButton);
+shieldPointerEvents(studioUploadModal);
+shieldPointerEvents(studioUploadBackButton);
+shieldPointerEvents(studioUploadCloseButton);
+shieldPointerEvents(studioUploadDropzone);
+shieldPointerEvents(studioUploadInput);
+shieldPointerEvents(studioUploadClearButton);
+shieldPointerEvents(studioUploadCoverDropzone);
+shieldPointerEvents(studioUploadCoverInput);
+shieldPointerEvents(studioUploadCoverClearButton);
+shieldPointerEvents(studioUploadConfirmButton);
 shieldPointerEvents(removeComponentsButton);
 shieldPointerEvents(clearTableButton);
 shieldPointerEvents(wipeAllDrawingsButton);
@@ -32553,6 +34731,7 @@ async function startRealtimeSession() {
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
+  const storage = getStorage(app);
 
   const cursorsRef = ref(db, `${roomPath}/cursors`);
   const cardsRef = ref(db, `${roomPath}/cards`);
@@ -32577,6 +34756,8 @@ async function startRealtimeSession() {
   }
   localClientId = clientId;
   const myPresenceRef = ref(db, `${roomPath}/presence/${localPlayerToken}`);
+  warmSwagStudioStaticVisualAssets();
+  applySwagStudioCachedRoomState();
 
   announceMediaStartForRoom = async (dieId) => {
     const targetDieId = String(dieId || '').trim();
@@ -34082,6 +36263,10 @@ function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
       labelColorTrackingState = null;
       return;
     }
+    if (isHeadingLabelState(dieState)) {
+      labelColorTrackingState = null;
+      return;
+    }
     const patch = {
       textColor: normalizedColor
     };
@@ -34565,8 +36750,10 @@ function closeNoteEditor(options = {}) {
     editor.autocomplete = 'off';
     editor.inputMode = 'text';
     editor.value = normalizeLabelText(dieState.text || '');
-    editor.placeholder = LABEL_DEFAULT_TEXT;
-    editor.style.color = normalizeHexColor(dieState.textColor || '#ff7a59');
+    editor.placeholder = getLabelDefaultTextForVariant(dieState);
+    editor.style.color = isHeadingLabelState(dieState)
+      ? HEADING_LABEL_TEXT_COLOR
+      : normalizeHexColor(dieState.textColor || '#ff7a59');
     editor.style.fontSize = `${getLabelFontSizePx(dieState).toFixed(2)}px`;
     editor.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
@@ -34602,7 +36789,7 @@ function closeNoteEditor(options = {}) {
       closing: false
     };
     editor.focus({ preventScroll: true });
-    if ((dieState.text || '') === LABEL_DEFAULT_TEXT) {
+    if ((dieState.text || '') === getLabelDefaultTextForVariant(dieState)) {
       editor.select();
     } else {
       const end = editor.value.length;
@@ -34722,6 +36909,14 @@ function closeNoteEditor(options = {}) {
     }
   }
 
+  function isSwagStudioEmbeddedMediaDragState(state) {
+    return (
+      isSwagStudioRoom &&
+      state?.type === 'media' &&
+      isEmbeddableMediaProvider(state?.mediaProvider)
+    );
+  }
+
   function clearDieDragStateAndReleaseCapture(state = dieDragState) {
     if (!state) {
       return null;
@@ -34729,6 +36924,7 @@ function closeNoteEditor(options = {}) {
     releasePointerCaptureSafely(state.captureTarget, state.pointerId);
     if (dieDragState === state) {
       dieDragState = null;
+      tableRoot?.classList.remove('is-embedded-media-dragging');
     }
     setChipStackDropIndicator(false);
     return state;
@@ -45519,6 +47715,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       isImageAddModalOpen() ||
       isStickerAddModalOpen() ||
       isMediaAddModalOpen() ||
+      isStudioUploadModalOpen() ||
       isMonsItemChoiceModalOpen() ||
       isRoomSettingsModalOpen() ||
       (assetMenuModal && !assetMenuModal.classList.contains('hidden')) ||
@@ -49875,6 +52072,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     if (!resizeKind) {
       return;
     }
+    if (resizeKind === 'media' && isFixedSizeMediaProvider(existingDie?.mediaProvider)) {
+      return;
+    }
     if (resizeKind === 'label' && isLabelDieLocked(existingDie)) {
       return;
     }
@@ -49897,7 +52097,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     const latestDie = diceById.get(dieId) || existingDie;
     if (
       (resizeKind === 'label' && (!isLabelDieState(latestDie) || isLabelDieEditing(dieId) || isLabelDieLocked(latestDie))) ||
-      (resizeKind === 'media' && !isMediaDieState(latestDie))
+      (resizeKind === 'media' && (!isMediaDieState(latestDie) || isFixedSizeMediaProvider(latestDie?.mediaProvider)))
     ) {
       await releaseDieLock(dieId);
       return;
@@ -52199,13 +54399,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     }
 
     const nextZ = getTopObjectZ() + 1;
+    const dragDieType = normalizeDieType(currentDieState.type);
+    const dragMediaProvider = dragDieType === 'media' ? normalizeMediaProvider(currentDieState?.mediaProvider) : '';
     dieDragState = {
       dieId,
       pointerId: event.pointerId,
       pointerType: effectivePointerType,
       captureTarget: event.currentTarget instanceof Element ? event.currentTarget : null,
       startedAt: Date.now(),
-      type: normalizeDieType(currentDieState.type),
+      type: dragDieType,
+      mediaProvider: dragMediaProvider,
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
@@ -52218,6 +54421,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       moved: false,
       lastMotionAt: Date.now()
     };
+    tableRoot?.classList.toggle('is-embedded-media-dragging', isSwagStudioEmbeddedMediaDragState(dieDragState));
 
     const startPatch = {
       z: nextZ,
@@ -52241,7 +54445,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       dieDragState.pointerType === 'mouse' &&
       dieDragState.type === 'marble' &&
       mouseButtonMask === 2;
-    if (dieDragState.pointerType === 'mouse' && !isSecondaryMarbleDrag && (event.buttons & mouseButtonMask) === 0) {
+    if (
+      dieDragState.pointerType === 'mouse' &&
+      !isSecondaryMarbleDrag &&
+      !isSwagStudioEmbeddedMediaDragState(dieDragState) &&
+      (event.buttons & mouseButtonMask) === 0
+    ) {
       handleDieDragEnd({
         type: 'pointercancel',
         pointerId: event.pointerId,
@@ -55396,6 +57605,192 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     });
   }
 
+  const uploadStudioStorageFile = async (file, options = {}) => {
+    const storageGroup = String(options.storageGroup || 'upload').trim() || 'upload';
+    const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120) || 'upload';
+    const storagePath = `rooms/${roomId}/swagstudio/${storageGroup}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${safeName}`;
+    const uploadRef = storageRef(storage, storagePath);
+    const uploadTask = uploadBytesResumable(uploadRef, file, {
+      contentType: options.contentType || file.type || undefined,
+      customMetadata: {
+        roomId,
+        roomType: isSwagStudioRoom ? SWAG_STUDIO_ROOM_ID : 'table',
+        ...(options.customMetadata && typeof options.customMetadata === 'object' ? options.customMetadata : {})
+      }
+    });
+    await new Promise((resolve, reject) => {
+      let settled = false;
+      let noProgressTimerId = 0;
+      let totalTimerId = 0;
+      const clearTimers = () => {
+        if (noProgressTimerId) {
+          window.clearTimeout(noProgressTimerId);
+          noProgressTimerId = 0;
+        }
+        if (totalTimerId) {
+          window.clearTimeout(totalTimerId);
+          totalTimerId = 0;
+        }
+      };
+      const finish = (callback, value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimers();
+        callback(value);
+      };
+      const failForStall = () => {
+        try {
+          uploadTask.cancel();
+        } catch {
+          // Ignore cancellation errors; the timeout error is clearer.
+        }
+        finish(reject, new Error('Firebase Storage did not start uploading.'));
+      };
+      noProgressTimerId = window.setTimeout(failForStall, STUDIO_UPLOAD_STORAGE_NO_PROGRESS_TIMEOUT_MS);
+      totalTimerId = window.setTimeout(() => {
+        try {
+          uploadTask.cancel();
+        } catch {
+          // Ignore cancellation errors; the timeout error is clearer.
+        }
+        finish(reject, new Error('Firebase Storage upload timed out.'));
+      }, STUDIO_UPLOAD_STORAGE_TOTAL_TIMEOUT_MS);
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          if (settled) {
+            return;
+          }
+          if (typeof options.onProgress !== 'function') {
+            if ((Number(snapshot.bytesTransferred) || 0) > 0 && noProgressTimerId) {
+              window.clearTimeout(noProgressTimerId);
+              noProgressTimerId = 0;
+            }
+            return;
+          }
+          const totalBytes = Math.max(1, Number(snapshot.totalBytes) || 1);
+          const bytesTransferred = Number(snapshot.bytesTransferred) || 0;
+          if (bytesTransferred > 0 && noProgressTimerId) {
+            window.clearTimeout(noProgressTimerId);
+            noProgressTimerId = 0;
+          }
+          const fraction = clamp(bytesTransferred / totalBytes, 0, 1);
+          options.onProgress(fraction);
+        },
+        (error) => {
+          finish(reject, error);
+        },
+        () => {
+          finish(resolve);
+        }
+      );
+    });
+    const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+    return {
+      downloadUrl,
+      mimeType: String(file.type || '').trim().slice(0, 120)
+    };
+  };
+
+  const uploadStudioMediaFileToDatabase = async (kind, file, onProgress = null) => {
+    const normalizedKind = normalizeStudioUploadKind(kind);
+    const fallbackMimeType = getStudioUploadMimeType(file, normalizedKind);
+    const dataUrl = await readStudioUploadFileAsDataUrl(file, {
+      maxBytes: STUDIO_UPLOAD_DATABASE_FALLBACK_MAX_BYTES,
+      onProgress
+    });
+    const fallbackSourceUrl =
+      normalizeMediaDataUrl(dataUrl, normalizedKind) ||
+      normalizeMediaDataUrl(rewriteDataUrlMimeType(dataUrl, fallbackMimeType), normalizedKind);
+    if (!fallbackSourceUrl) {
+      throw new Error('Could not prepare the selected media file.');
+    }
+    return {
+      title: normalizeMediaTitle(normalizeStudioMediaFileName(file.name)),
+      sourceUrl: fallbackSourceUrl,
+      mimeType: fallbackMimeType.slice(0, 120)
+    };
+  };
+
+  const uploadStudioCoverImageFileToDatabase = async (file, onProgress = null) => {
+    const fallbackMimeType = getStudioCoverMimeType(file);
+    const dataUrl = await readStudioUploadFileAsDataUrl(file, {
+      maxBytes: STUDIO_UPLOAD_DATABASE_COVER_FALLBACK_MAX_BYTES,
+      onProgress
+    });
+    const fallbackSourceUrl =
+      normalizeMediaDataUrl(dataUrl, 'image') ||
+      normalizeMediaDataUrl(rewriteDataUrlMimeType(dataUrl, fallbackMimeType), 'image');
+    if (!fallbackSourceUrl) {
+      throw new Error('Could not prepare the selected cover image.');
+    }
+    return {
+      sourceUrl: fallbackSourceUrl,
+      mimeType: fallbackMimeType.slice(0, 120)
+    };
+  };
+
+  uploadStudioMediaFile = async (kind, file, onProgress = null) => {
+    const normalizedKind = normalizeStudioUploadKind(kind);
+    if (!(file instanceof File) || !isAllowedStudioUploadFile(file, normalizedKind)) {
+      throw new Error(
+        normalizedKind === STUDIO_UPLOAD_KIND_VIDEO
+          ? 'Choose an mp4, mov, m4v, or webm file.'
+          : 'Choose an mp3 or wav file.'
+      );
+    }
+    try {
+      const uploaded = await uploadStudioStorageFile(file, {
+        storageGroup: normalizedKind,
+        contentType: getStudioUploadMimeType(file, normalizedKind),
+        customMetadata: {
+          mediaKind: normalizedKind
+        },
+        onProgress
+      });
+      return {
+        title: normalizeMediaTitle(normalizeStudioMediaFileName(file.name)),
+        sourceUrl: normalizeMediaSourceUrl(uploaded.downloadUrl),
+        mimeType: uploaded.mimeType
+      };
+    } catch (error) {
+      console.warn('Firebase Storage upload failed; using database fallback for studio media.', error);
+      return uploadStudioMediaFileToDatabase(normalizedKind, file, onProgress);
+    }
+  };
+
+  uploadStudioCoverImageFile = async (file, onProgress = null) => {
+    if (!(file instanceof File) || !isAllowedStudioCoverFile(file)) {
+      throw new Error('Choose a png, jpg, webp, or gif image.');
+    }
+    try {
+      const uploaded = await uploadStudioStorageFile(file, {
+        storageGroup: 'audio-cover',
+        contentType: getStudioCoverMimeType(file),
+        customMetadata: {
+          mediaKind: 'audio-cover'
+        },
+        onProgress
+      });
+      return {
+        sourceUrl: normalizeMediaSourceUrl(uploaded.downloadUrl),
+        mimeType: uploaded.mimeType
+      };
+    } catch (error) {
+      console.warn('Firebase Storage upload failed; using database fallback for studio cover art.', error);
+      return uploadStudioCoverImageFileToDatabase(file, onProgress);
+    }
+  };
+
+  resolveStudioUploadedMediaSpawnDimensions = async (kind, file) => {
+    const normalizedKind = normalizeStudioUploadKind(kind);
+    return getDefaultMediaDimensions(
+      normalizedKind === STUDIO_UPLOAD_KIND_VIDEO ? 'uploaded-video' : 'uploaded-audio'
+    );
+  };
+
   spawnChipStacksComponent = async (options = {}) => {
     const stackCount = normalizeChipStackCount(options.stackCount, CHIP_SET_MIN_STACKS);
     const quantity = normalizeChipStackQuantity(options.quantity, CHIP_STACK_MIN_QUANTITY);
@@ -55762,11 +58157,17 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       throw error;
     }
   };
-  spawnLabelComponent = async () => {
-    const labelText = LABEL_DEFAULT_TEXT;
-    const labelColor = normalizeHexColor(playerState.color);
+  spawnLabelComponent = async (options = {}) => {
+    const labelVariant = normalizeLabelVariant(options.labelVariant);
+    const labelText = normalizeLabelText(options.text || getLabelDefaultTextForVariant(labelVariant));
+    const labelColor = labelVariant === LABEL_VARIANT_HEADING
+      ? HEADING_LABEL_TEXT_COLOR
+      : normalizeHexColor(options.textColor || playerState.color);
+    const preferredTextScale = labelVariant === LABEL_VARIANT_HEADING
+      ? getLabelTextScale(options.textScale, LABEL_TEXT_SCALE_HEADING_SPAWN)
+      : getLabelTextScale(options.textScale, LABEL_TEXT_SCALE_SPAWN);
     const baseDimensions = measureLabelWorldDimensions(labelText, {
-      textScale: LABEL_TEXT_SCALE_SPAWN
+      textScale: preferredTextScale
     });
     const targetSpawnWidth = clamp(
       Math.max(baseDimensions.width, LABEL_DEFAULT_SPAWN_WIDTH),
@@ -55777,7 +58178,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       labelText,
       targetSpawnWidth,
       baseDimensions.height,
-      LABEL_TEXT_SCALE_SPAWN
+      preferredTextScale
     );
     const viewportCenter = getViewportWorldCenter();
     const labelCenterBounds = getDieCenterBounds('label', labelLayout.labelWidth, labelLayout.labelHeight);
@@ -55813,6 +58214,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
             value: 1,
             text: labelText,
             textColor: labelColor,
+            labelVariant,
             textScale: labelLayout.textScale,
             labelLocked: false,
             labelRotation: 0,
@@ -55893,10 +58295,18 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
   };
   spawnMediaComponent = async (mediaDetails = {}) => {
     const provider = normalizeMediaProvider(mediaDetails.provider);
-    const sourceUrl = normalizeMediaSourceUrl(mediaDetails.sourceUrl);
+    const isUploadedProvider = isUploadedMediaProvider(provider);
+    const sourceUrl = isUploadedProvider
+      ? normalizeUploadedMediaSourceUrl(mediaDetails.sourceUrl, provider)
+      : normalizeMediaSourceUrl(mediaDetails.sourceUrl);
     const embedUrl = normalizeMediaSourceUrl(mediaDetails.embedUrl);
-    if (!provider || !sourceUrl || !embedUrl) {
-      throw new Error('Valid YouTube or SoundCloud media URL required');
+    const mediaTitle = normalizeMediaTitle(mediaDetails.title || mediaDetails.mediaTitle || '');
+    const mediaMimeType = String(mediaDetails.mimeType || mediaDetails.mediaMimeType || '').trim().slice(0, 120);
+    const mediaPosterUrl = isUploadedProvider
+      ? normalizeUploadedMediaPosterUrl(mediaDetails.posterUrl || mediaDetails.mediaPosterUrl || '')
+      : normalizeMediaSourceUrl(mediaDetails.posterUrl || mediaDetails.mediaPosterUrl || '');
+    if (!provider || !sourceUrl || (!isUploadedProvider && !embedUrl)) {
+      throw new Error(isUploadedProvider ? 'Valid uploaded media required' : 'Valid YouTube or SoundCloud media URL required');
     }
     const mediaSize = clampMediaDimensions(
       mediaDetails.width,
@@ -55938,6 +58348,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
             mediaProvider: provider,
             mediaSourceUrl: sourceUrl,
             mediaEmbedUrl: embedUrl,
+            mediaTitle,
+            mediaMimeType,
+            mediaPosterUrl,
             mediaStartedAt: 0,
             mediaStartNonce: 0,
             mediaWidth: mediaSize.width,
@@ -57454,6 +59867,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       if (!isRoomOwner && isRoomTitleEditing) {
         closeRoomTitleEditor();
       }
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -57687,6 +60101,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      clearSwagStudioRoomCachePreviewState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -57773,6 +60189,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      clearSwagStudioRoomCachePreviewState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -57817,6 +60235,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       }
       renderAllDrawingStrokes();
       syncClearTableButtonState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -58126,6 +60545,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      clearSwagStudioRoomCachePreviewState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -58179,6 +60600,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      clearSwagStudioRoomCachePreviewState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);
@@ -58401,6 +60824,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      clearSwagStudioRoomCachePreviewState();
+      scheduleSwagStudioRoomCachePersist();
     },
     (error) => {
       console.error(error);

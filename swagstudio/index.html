@@ -3,12 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tabletop Room</title>
+    <title>Swag Studio</title>
+    <base href="../" />
     <link rel="icon" type="image/png" href="./assets/go%20table%20%28both%20closed%29.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260514n" />
+    <link rel="stylesheet" href="./styles.css?v=20260514y" />
   </head>
   <body>
-    <main id="tableRoot" class="table-shell" aria-label="Live tabletop">
+    <main
+      id="tableRoot"
+      class="table-shell swag-studio-room"
+      data-dedicated-room-id="swagstudio"
+      aria-label="Live tabletop"
+    >
       <div class="room-badge" id="roomBadge">room: --</div>
       <div id="assetLoadingStatus" class="asset-loading-status hidden" aria-live="polite">
         <span class="asset-loading-spinner" aria-hidden="true"></span>
@@ -354,11 +360,37 @@
               <h2 id="assetMenuTitle" class="asset-menu-visually-hidden">add menu</h2>
               <div class="asset-menu-tabs" role="tablist" aria-label="add menu tabs">
                 <button
-                  id="assetMenuTabGameButton"
+                  id="assetMenuTabStudioButton"
                   class="asset-menu-tab is-active"
                   type="button"
                   role="tab"
                   aria-selected="true"
+                  aria-controls="assetStudioGallery"
+                >
+                  <svg
+                    class="asset-menu-tab-icon"
+                    viewBox="0 0 24 24"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path d="M6.5 18.4V7.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M12 18.4V4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M17.5 18.4V9.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <circle cx="6.5" cy="18.4" r="1.35" fill="currentColor" />
+                    <circle cx="12" cy="4.8" r="1.35" fill="currentColor" />
+                    <circle cx="17.5" cy="9.8" r="1.35" fill="currentColor" />
+                  </svg>
+                  <span>add to studio</span>
+                </button>
+                <button
+                  id="assetMenuTabGameButton"
+                  class="asset-menu-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
                   aria-controls="assetGameGallery"
                 >
                   <svg
@@ -410,6 +442,116 @@
               >
                 <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
               </svg>
+            </button>
+          </div>
+
+          <div id="assetStudioGallery" class="asset-gallery-grid asset-studio-grid">
+            <button id="studioAudioTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-studio-audio"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M8.1 10.3H10.6L14.1 7.4V16.6L10.6 13.7H8.1V10.3Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" />
+                  <path d="M16.7 9.1C17.8 9.9 18.4 10.8 18.4 12C18.4 13.2 17.8 14.1 16.7 14.9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">audio</span>
+            </button>
+            <button id="studioVideoTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-studio-video"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="6.1" width="15.6" height="11.8" rx="2" stroke="currentColor" stroke-width="1.75" />
+                  <path d="M10.1 9.3V14.7L14.5 12L10.1 9.3Z" fill="currentColor" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">video</span>
+            </button>
+            <button id="studioEmbedTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-media"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="6.2" width="15.6" height="11.6" rx="2.1" stroke="currentColor" stroke-width="1.75" />
+                  <path d="M10 9.2V14.8L14.6 12L10 9.2Z" fill="currentColor" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">embed</span>
+            </button>
+            <button id="studioHeadingTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-studio-heading"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <text x="12" y="16" text-anchor="middle">H1</text>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">heading</span>
+            </button>
+            <button id="studioTextTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-label"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <text x="12" y="15.8" text-anchor="middle">Abc</text>
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">text</span>
+            </button>
+            <button id="studioImageTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-image"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="5.2" width="15.6" height="13.6" rx="1.8" stroke="currentColor" stroke-width="1.75" />
+                  <circle cx="9.2" cy="10" r="1.35" fill="currentColor" opacity="0.74" />
+                  <path d="M6.4 16.4L10.6 12.2L13.2 14.8L16 12L17.6 13.6V16.4H6.4Z" fill="currentColor" opacity="0.84" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">image</span>
             </button>
           </div>
 
@@ -967,10 +1109,6 @@
             <span class="remove-components-button-emoji" aria-hidden="true">🗡️</span>
           </button>
           <div id="tableResetRow" class="asset-table-reset-row">
-            <button id="clearTableButton" class="asset-clear-button clear-table-button" type="button">
-              <span>clear table</span>
-              <img src="./assets/mons/bomb.png" alt="" class="clear-table-button-icon" draggable="false" />
-            </button>
             <button id="wipeAllDrawingsButton" class="asset-clear-button hidden" type="button">wipe all drawings</button>
           </div>
         </div>
@@ -1579,6 +1717,119 @@
       </div>
 
       <div
+        id="studioUploadModal"
+        class="asset-menu-modal media-add-modal studio-upload-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studioUploadTitle"
+      >
+        <div class="asset-menu-dialog media-add-dialog studio-upload-dialog">
+          <div class="asset-menu-header media-add-header">
+            <h2 id="studioUploadTitle" class="dice-add-title">adding audio</h2>
+            <div class="asset-submenu-header-actions">
+              <button id="studioUploadBackButton" class="asset-menu-close asset-menu-back" type="button" aria-label="back to studio menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M15.5 5L8.5 12L15.5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button id="studioUploadCloseButton" class="asset-menu-close" type="button" aria-label="close upload menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="media-add-body studio-upload-body">
+            <div class="image-add-field">
+              <label id="studioUploadLabel" class="image-add-label" for="studioUploadInput">upload an mp3 or wav file</label>
+              <div id="studioUploadDropzone" class="studio-upload-dropzone" role="button" tabindex="0">
+                <span class="studio-upload-dropzone-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M12 4.8V15.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M8.2 8.8L12 4.8L15.8 8.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M5.4 18.4H18.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                  </svg>
+                </span>
+                <span id="studioUploadDropzoneHint" class="studio-upload-dropzone-hint">drop audio here or click to choose a track</span>
+              </div>
+              <input
+                id="studioUploadInput"
+                class="hidden"
+                type="file"
+                accept=".mp3,.wav,audio/mpeg,audio/wav,audio/x-wav"
+              />
+            </div>
+            <div id="studioUploadSelectedFile" class="studio-upload-selected-file" aria-live="polite">
+              <button id="studioUploadClearButton" class="studio-upload-clear-button hidden" type="button" aria-label="clear selected file">x</button>
+              <span id="studioUploadSelectedFileName">no file selected</span>
+            </div>
+            <div id="studioUploadCoverField" class="image-add-field studio-upload-cover-field hidden">
+              <label id="studioUploadCoverLabel" class="image-add-label" for="studioUploadCoverInput">upload album cover (optional)</label>
+              <div id="studioUploadCoverDropzone" class="studio-upload-dropzone studio-upload-cover-dropzone" role="button" tabindex="0">
+                <span class="studio-upload-dropzone-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect x="4.75" y="5.25" width="14.5" height="13.5" rx="2.1" stroke="currentColor" stroke-width="1.9" />
+                    <circle cx="9.2" cy="9.2" r="1.35" fill="currentColor" />
+                    <path d="M6.8 16.3L10.1 12.9L12.7 15.3L15.4 12.5L17.2 14.3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                <span id="studioUploadCoverDropzoneHint" class="studio-upload-dropzone-hint">drop cover art here or click to choose an image</span>
+              </div>
+              <input
+                id="studioUploadCoverInput"
+                class="hidden"
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp,.gif,image/png,image/jpeg,image/webp,image/gif"
+              />
+            </div>
+            <div id="studioUploadCoverSelectedFile" class="studio-upload-selected-file hidden" aria-live="polite">
+              <button id="studioUploadCoverClearButton" class="studio-upload-clear-button hidden" type="button" aria-label="clear selected cover">x</button>
+              <span id="studioUploadCoverSelectedFileName">no cover selected</span>
+            </div>
+            <div id="studioUploadError" class="image-add-error hidden" aria-live="polite"></div>
+            <button id="studioUploadConfirmButton" class="dice-add-confirm-button is-disabled" type="button" aria-label="upload file">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
         id="instanceWarningModal"
         class="asset-menu-modal instance-warning-modal hidden"
         role="dialog"
@@ -1979,6 +2230,6 @@
       </div>
     </main>
 
-    <script type="module" src="./app-table.js?v=20260514n"></script>
+    <script type="module" src="./app-table.js?v=20260514y"></script>
   </body>
 </html>
