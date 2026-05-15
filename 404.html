@@ -23,6 +23,11 @@
         }
 
         var lowerLast = last.toLowerCase();
+        if (lowerLast === 'swagstudio') {
+          window.location.replace(basePath + 'swagstudio/index.html');
+          return;
+        }
+
         if (!last || looksLikeFile || lowerLast === 'index.html' || lowerLast === 'table.html') {
           window.location.replace(basePath + 'index.html');
           return;
