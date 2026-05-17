@@ -945,6 +945,7 @@ const LABEL_TEXT_SCALE_MIN = 0.58;
 const LABEL_TEXT_SCALE_MAX = 24;
 const LABEL_FONT_SIZE_FACTOR = 0.58;
 const LABEL_SUBTYPE_MEDIA_COMMENT = 'media-comment';
+const MEDIA_COMMENT_DEFAULT_TEXT = 'double-click to type';
 const MEDIA_COMMENT_DEFAULT_WIDTH = 360;
 const MEDIA_COMMENT_DEFAULT_HEIGHT = 156;
 const MEDIA_COMMENT_DEFAULT_TEXT_SCALE = 1.35;
@@ -8707,6 +8708,11 @@ function isMediaCommentLabelState(value) {
     return false;
   }
   return normalizeLabelSubtype(value.labelSubtype) === LABEL_SUBTYPE_MEDIA_COMMENT;
+}
+
+function getMediaCommentText(value) {
+  const normalized = normalizeLabelText(value || '');
+  return normalized || MEDIA_COMMENT_DEFAULT_TEXT;
 }
 
 function getLabelDefaultTextForVariant(value) {
@@ -22600,6 +22606,25 @@ function getUploadedMediaSectionLoopTimes(controller) {
   };
 }
 
+function setUploadedMediaControllerSectionLoop(controller, startTime, endTime, duration) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  const mediaDuration = Number.isFinite(duration) && duration > 0
+    ? duration
+    : getUploadedMediaDuration(controller.mediaElement);
+  if (mediaDuration <= 0) {
+    return false;
+  }
+  const orderedStart = clamp(Math.min(startTime, endTime), 0, mediaDuration);
+  const orderedEnd = clamp(Math.max(startTime, endTime), orderedStart, mediaDuration);
+  controller.loopMode = UPLOADED_MEDIA_LOOP_MODE_SECTION;
+  controller.loopStartValue = clamp(Math.round((orderedStart / mediaDuration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  controller.loopEndValue = clamp(Math.round((orderedEnd / mediaDuration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+  syncUploadedMediaControllerUi(controller);
+  return true;
+}
+
 function seekUploadedMediaToSectionStart(controller, options = {}) {
   if (!controller || controller.disposed || controller.loopSeeking) {
     return false;
@@ -22992,16 +23017,14 @@ function applyMediaCommentCueToController(controller, dieState) {
     return true;
   }
   if (mode === 'segment') {
-    const orderedStart = clamp(Math.min(startTime, endTime), 0, duration);
-    const orderedEnd = clamp(Math.max(startTime, endTime), orderedStart, duration);
-    controller.loopMode = UPLOADED_MEDIA_LOOP_MODE_SECTION;
-    controller.loopStartValue = clamp(Math.round((orderedStart / duration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
-    controller.loopEndValue = clamp(Math.round((orderedEnd / duration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    setUploadedMediaControllerSectionLoop(controller, startTime, endTime, duration);
+    const sectionTimes = getUploadedMediaSectionLoopTimes(controller);
+    const orderedStart = sectionTimes ? sectionTimes.startTime : clamp(Math.min(startTime, endTime), 0, duration);
     mediaElement.currentTime = orderedStart;
+    syncUploadedMediaLoopPlayback(controller, { force: true });
   } else {
     mediaElement.currentTime = clamp(startTime, 0, duration);
   }
-  syncUploadedMediaLoopPlayback(controller, { force: true });
   syncUploadedMediaControllerUi(controller);
   playUploadedMediaController(controller);
   return true;
@@ -23108,6 +23131,83 @@ function getStudioListEntrySortValue(entry) {
     return Math.max(0, Math.floor(Number(entry.state?.updatedAt) || 0));
   }
   return getStudioDieIdTimestamp(entry.id) || Math.max(0, Math.floor(Number(entry.state?.updatedAt) || 0));
+}
+
+function compareStudioListEntries(a, b) {
+  const createdDelta = getStudioListEntrySortValue(a) - getStudioListEntrySortValue(b);
+  if (createdDelta !== 0) {
+    return createdDelta;
+  }
+  const zDelta = (Number(a?.state?.z) || 0) - (Number(b?.state?.z) || 0);
+  if (zDelta !== 0) {
+    return zDelta;
+  }
+  return String(a?.id || '').localeCompare(String(b?.id || ''));
+}
+
+function getStudioListEntryKey(entry) {
+  const source = String(entry?.source || '').trim();
+  const id = String(entry?.id || '').trim();
+  return source && id ? `${source}:${id}` : '';
+}
+
+function arrangeStudioListCommentsAfterSource(entries) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return [];
+  }
+  const mediaSourceIds = new Set(
+    entries
+      .filter((entry) => entry?.source === 'die' && normalizeDieType(entry?.state?.type) === 'media')
+      .map((entry) => String(entry.id || '').trim())
+      .filter(Boolean)
+  );
+  const commentsBySourceId = new Map();
+  const autoPlacedCommentKeys = new Set();
+  for (const entry of entries) {
+    if (!isMediaCommentLabelState(entry?.state) || normalizeStudioListOrder(entry?.state?.studioListOrder) > 0) {
+      continue;
+    }
+    const sourceDieId = String(entry?.state?.mediaCommentSourceDieId || '').trim();
+    const entryKey = getStudioListEntryKey(entry);
+    if (!sourceDieId || !entryKey || !mediaSourceIds.has(sourceDieId)) {
+      continue;
+    }
+    if (!commentsBySourceId.has(sourceDieId)) {
+      commentsBySourceId.set(sourceDieId, []);
+    }
+    commentsBySourceId.get(sourceDieId).push(entry);
+    autoPlacedCommentKeys.add(entryKey);
+  }
+  if (!autoPlacedCommentKeys.size) {
+    return entries;
+  }
+  const arranged = [];
+  const emittedKeys = new Set();
+  const appendEntry = (entry) => {
+    const key = getStudioListEntryKey(entry);
+    if (!key || emittedKeys.has(key)) {
+      return;
+    }
+    arranged.push(entry);
+    emittedKeys.add(key);
+  };
+  for (const entry of entries) {
+    const entryKey = getStudioListEntryKey(entry);
+    if (autoPlacedCommentKeys.has(entryKey)) {
+      continue;
+    }
+    appendEntry(entry);
+    if (entry?.source === 'die') {
+      const comments = commentsBySourceId.get(String(entry.id || '').trim()) || [];
+      for (const commentEntry of comments) {
+        appendEntry(commentEntry);
+      }
+    }
+  }
+  for (const entry of entries) {
+    appendEntry(entry);
+  }
+  return arranged;
 }
 
 function isStudioListImageCard(cardState) {
@@ -23236,17 +23336,7 @@ function getStudioListEntries() {
       });
     }
   }
-  return entries.sort((a, b) => {
-    const createdDelta = getStudioListEntrySortValue(a) - getStudioListEntrySortValue(b);
-    if (createdDelta !== 0) {
-      return createdDelta;
-    }
-    const zDelta = (Number(a.state?.z) || 0) - (Number(b.state?.z) || 0);
-    if (zDelta !== 0) {
-      return zDelta;
-    }
-    return String(a.id || '').localeCompare(String(b.id || ''));
-  });
+  return arrangeStudioListCommentsAfterSource(entries.sort(compareStudioListEntries));
 }
 
 function getStudioFolderListRegions() {
@@ -23708,6 +23798,7 @@ function createStudioListMediaCommentBody(entry) {
   header.append(playButton, time);
   const text = createStudioListTextEditor(entry, {
     comment: true,
+    placeholderText: MEDIA_COMMENT_DEFAULT_TEXT,
     ariaLabel: 'edit media comment'
   });
   wrap.append(header, text);
@@ -30158,7 +30249,7 @@ function renderMediaCommentLabelFace(dieId, face, dieState) {
   face.classList.add('table-media-comment-face');
   face.textContent = '';
   const { shell, body } = createMediaCommentLabelShell(dieId, dieState);
-  body.textContent = normalizeLabelText(dieState?.text || '');
+  body.textContent = getMediaCommentText(dieState?.text);
   face.appendChild(shell);
 }
 
@@ -41224,6 +41315,14 @@ function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
       LABEL_MIN_WORLD_HEIGHT,
       LABEL_MAX_WORLD_HEIGHT
     );
+    if (isMediaComment) {
+      return {
+        text: normalizedText,
+        textScale: findLabelTextScaleToFit(normalizedText, targetWidth, targetHeight, LABEL_TEXT_SCALE_MAX),
+        labelWidth: targetWidth,
+        labelHeight: clamp(currentHeight, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT)
+      };
+    }
     const layout = resolveLabelLayoutForBounds(
       normalizedText,
       targetWidth,
@@ -41816,8 +41915,8 @@ function closeNoteEditor(options = {}) {
     editor.autocapitalize = 'off';
     editor.autocomplete = 'off';
     editor.inputMode = 'text';
-    editor.value = normalizeLabelText(dieState.text || '');
-    editor.placeholder = getLabelDefaultTextForVariant(dieState);
+    editor.value = isMediaComment ? getMediaCommentText(dieState.text) : normalizeLabelText(dieState.text || '');
+    editor.placeholder = isMediaComment ? MEDIA_COMMENT_DEFAULT_TEXT : getLabelDefaultTextForVariant(dieState);
     editor.style.color = isHeadingLabelState(dieState)
       ? HEADING_LABEL_TEXT_COLOR
       : normalizeHexColor(dieState.textColor || '#ff7a59');
@@ -56983,6 +57082,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       LABEL_MIN_WORLD_HEIGHT,
       Math.min(LABEL_MAX_WORLD_HEIGHT, WORLD_HEIGHT + edgeOverflow - normalizedTop)
     );
+    if (isMediaCommentLabelState(dieState)) {
+      return {
+        minWidth: LABEL_MIN_WORLD_WIDTH,
+        minHeight: clamp(MEDIA_COMMENT_HEADER_WORLD_HEIGHT + LABEL_MIN_WORLD_HEIGHT, LABEL_MIN_WORLD_HEIGHT, maxHeight),
+        maxWidth,
+        maxHeight
+      };
+    }
     const textValue = normalizeLabelText(dieState?.text || '');
     const minimumScale = LABEL_TEXT_SCALE_MIN;
     const minimumMeasureAtMaxWidth = measureLabelWorldDimensions(textValue, {
@@ -57543,6 +57650,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       moved: false,
       text: normalizeLabelText(latestDie.text || ''),
       textScale: getLabelTextScale(latestDie),
+      isMediaComment: resizeKind === 'label' && isMediaCommentLabelState(latestDie),
       aspectRatio: Math.max(0.0001, size.width / Math.max(1, size.height))
     };
     resizingLabelDieId = resizeKind === 'label' ? dieId : '';
@@ -57600,23 +57708,39 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     let nextTextScale = labelResizeState.textScale;
 
     if (labelResizeState.kind === 'label') {
-      const nextLayout = resolveLabelLayoutForBounds(
-        labelResizeState.text,
-        proposedWidth,
-        proposedHeight,
-        LABEL_TEXT_SCALE_MAX
-      );
-      nextWidth = clamp(
-        Math.max(nextLayout.labelWidth, labelResizeState.minWidth),
-        labelResizeState.minWidth,
-        labelResizeState.maxWidth
-      );
-      nextHeight = clamp(
-        Math.max(nextLayout.labelHeight, labelResizeState.minHeight),
-        labelResizeState.minHeight,
-        labelResizeState.maxHeight
-      );
-      nextTextScale = nextLayout.textScale;
+      if (labelResizeState.isMediaComment) {
+        const bodyHeight = clamp(
+          proposedHeight - MEDIA_COMMENT_HEADER_WORLD_HEIGHT,
+          LABEL_MIN_WORLD_HEIGHT,
+          LABEL_MAX_WORLD_HEIGHT
+        );
+        nextWidth = proposedWidth;
+        nextHeight = proposedHeight;
+        nextTextScale = findLabelTextScaleToFit(
+          labelResizeState.text,
+          proposedWidth,
+          bodyHeight,
+          LABEL_TEXT_SCALE_MAX
+        );
+      } else {
+        const nextLayout = resolveLabelLayoutForBounds(
+          labelResizeState.text,
+          proposedWidth,
+          proposedHeight,
+          LABEL_TEXT_SCALE_MAX
+        );
+        nextWidth = clamp(
+          Math.max(nextLayout.labelWidth, labelResizeState.minWidth),
+          labelResizeState.minWidth,
+          labelResizeState.maxWidth
+        );
+        nextHeight = clamp(
+          Math.max(nextLayout.labelHeight, labelResizeState.minHeight),
+          labelResizeState.minHeight,
+          labelResizeState.maxHeight
+        );
+        nextTextScale = nextLayout.textScale;
+      }
     } else if (event.shiftKey) {
       const fittedSize = fitSizeToAspectWithinBounds(
         proposedWidth,
@@ -63932,7 +64056,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         y: spawnCenterY,
         z: getTopObjectZ() + 1,
         value: 1,
-        text: '',
+        text: MEDIA_COMMENT_DEFAULT_TEXT,
         textColor: '#111111',
         labelVariant: LABEL_VARIANT_DEFAULT,
         labelSubtype: LABEL_SUBTYPE_MEDIA_COMMENT,
