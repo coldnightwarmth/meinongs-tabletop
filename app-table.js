@@ -88,6 +88,8 @@ const studioEmbedTile = document.getElementById('studioEmbedTile');
 const studioHeadingTile = document.getElementById('studioHeadingTile');
 const studioTextTile = document.getElementById('studioTextTile');
 const studioImageTile = document.getElementById('studioImageTile');
+const studioFolderTile = document.getElementById('studioFolderTile');
+const studioSamplerTile = document.getElementById('studioSamplerTile');
 const coolJpegsTile = document.getElementById('coolJpegsTile');
 const superMetalMonsTile = document.getElementById('superMetalMonsTile');
 const hnefataflTile = document.getElementById('hnefataflTile');
@@ -182,6 +184,14 @@ const studioUploadCoverSelectedFileName = document.getElementById('studioUploadC
 const studioUploadCoverInput = document.getElementById('studioUploadCoverInput');
 const studioUploadError = document.getElementById('studioUploadError');
 const studioUploadConfirmButton = document.getElementById('studioUploadConfirmButton');
+const studioSamplerModal = document.getElementById('studioSamplerModal');
+const studioSamplerBackButton = document.getElementById('studioSamplerBackButton');
+const studioSamplerCloseButton = document.getElementById('studioSamplerCloseButton');
+const studioSamplerTitle = document.getElementById('studioSamplerTitle');
+const studioSamplerGrid = document.getElementById('studioSamplerGrid');
+const studioSamplerInput = document.getElementById('studioSamplerInput');
+const studioSamplerError = document.getElementById('studioSamplerError');
+const studioSamplerConfirmButton = document.getElementById('studioSamplerConfirmButton');
 const removeComponentsButton = document.getElementById('removeComponentsButton');
 const tableResetRow = document.getElementById('tableResetRow');
 const clearTableButton = document.getElementById('clearTableButton');
@@ -224,6 +234,9 @@ const playerControls = document.getElementById('playerControls');
 const playerHandCount = document.getElementById('playerHandCount');
 const bottomLeftControls = document.getElementById('bottomLeftControls');
 const homeButton = document.getElementById('homeButton');
+const studioViewToggleButton = document.getElementById('studioViewToggleButton');
+const studioListView = document.getElementById('studioListView');
+const studioListItems = document.getElementById('studioListItems');
 const roomSettingsButton = document.getElementById('roomSettingsButton');
 const roomSettingsModal = document.getElementById('roomSettingsModal');
 const roomSettingsCloseButton = document.getElementById('roomSettingsCloseButton');
@@ -241,6 +254,8 @@ const ASSET_MENU_VIEW_KEY = 'tabletop-asset-menu-view';
 const CAMERA_VIEW_STORAGE_KEY_PREFIX = 'tabletop-camera-view';
 const OWNER_TOKEN_KEY = 'tabletop-owner-token';
 const PLAYER_TOKEN_KEY = 'tabletop-player-token';
+const CODEX_OBSERVER_STORAGE_KEY = 'tabletop-codex-observer';
+const YOUTUBE_TITLE_CACHE_KEY = 'tabletop-youtube-title-cache-v1';
 const ROOM_TITLE_MAX_LENGTH = 48;
 const ROOM_BACKGROUND_PATTERN_GRID = 'grid';
 const ROOM_BACKGROUND_PATTERN_DOTS = 'dots';
@@ -261,6 +276,8 @@ const SWAG_STUDIO_ROOM_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const SWAG_STUDIO_ROOM_CACHE_WRITE_DELAY_MS = 240;
 const SWAG_STUDIO_ROOM_CACHE_MAX_CHARS = 3_600_000;
 const SWAG_STUDIO_ROOM_CACHE_INLINE_DATA_MAX_CHARS = 260_000;
+const SWAG_STUDIO_INACTIVE_PLAYER_TIMEOUT_MS = 1000 * 60 * 2;
+const STUDIO_COMPONENT_MOVE_UNDO_LIMIT = 10;
 
 const WORLD_WIDTH = isSwagStudioRoom ? 7680 * 2 : 7680;
 const WORLD_HEIGHT = isSwagStudioRoom ? 4320 * 4 : 4320;
@@ -882,11 +899,12 @@ const STUCK_INTERACTION_RECOVERY_MS = 3200;
 const MEDIA_DEFAULT_WIDTH = 560;
 const MEDIA_DEFAULT_HEIGHT_YOUTUBE = 315;
 const MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD = isSwagStudioRoom ? 132 : 166;
-const MEDIA_DEFAULT_WIDTH_UPLOADED_AUDIO = 400;
-const MEDIA_DEFAULT_HEIGHT_UPLOADED_AUDIO = 500;
+const MEDIA_DEFAULT_WIDTH_UPLOADED_AUDIO = isSwagStudioRoom ? 620 : 400;
+const MEDIA_DEFAULT_HEIGHT_UPLOADED_AUDIO = isSwagStudioRoom ? 160 : 500;
 const MEDIA_DEFAULT_WIDTH_UPLOADED_VIDEO = 640;
 const MEDIA_DEFAULT_HEIGHT_UPLOADED_VIDEO = 436;
 const UPLOADED_MEDIA_LOOP_RANGE_MAX = 1000;
+const UPLOADED_AUDIO_VISUALIZER_BAR_COUNT = 22;
 const UPLOADED_MEDIA_LOOP_MODE_OFF = 'off';
 const UPLOADED_MEDIA_LOOP_MODE_ALL = 'all';
 const UPLOADED_MEDIA_LOOP_MODE_SECTION = 'section';
@@ -926,15 +944,27 @@ const LABEL_TEXT_SCALE_HEADING_SPAWN = 4.25;
 const LABEL_TEXT_SCALE_MIN = 0.58;
 const LABEL_TEXT_SCALE_MAX = 24;
 const LABEL_FONT_SIZE_FACTOR = 0.58;
+const LABEL_SUBTYPE_MEDIA_COMMENT = 'media-comment';
+const MEDIA_COMMENT_DEFAULT_WIDTH = 360;
+const MEDIA_COMMENT_DEFAULT_HEIGHT = 156;
+const MEDIA_COMMENT_DEFAULT_TEXT_SCALE = 1.35;
+const MEDIA_COMMENT_HEADER_FONT_WORLD_SIZE = 15;
+const MEDIA_COMMENT_HEADER_WORLD_HEIGHT = 30;
 const STUDIO_UPLOAD_KIND_AUDIO = 'audio';
 const STUDIO_UPLOAD_KIND_VIDEO = 'video';
 const STUDIO_UPLOAD_AUDIO_ACCEPT = '.mp3,.wav,audio/mpeg,audio/wav,audio/x-wav';
 const STUDIO_UPLOAD_VIDEO_ACCEPT = '.mp4,.mov,.m4v,.webm,video/mp4,video/quicktime,video/webm';
 const STUDIO_UPLOAD_IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,image/png,image/jpeg,image/webp,image/gif';
-const STUDIO_UPLOAD_STORAGE_NO_PROGRESS_TIMEOUT_MS = 15000;
-const STUDIO_UPLOAD_STORAGE_TOTAL_TIMEOUT_MS = 180000;
+const STUDIO_UPLOAD_STORAGE_NO_PROGRESS_TIMEOUT_MS = 60000;
+const STUDIO_UPLOAD_STORAGE_TOTAL_TIMEOUT_MS = 300000;
 const STUDIO_UPLOAD_DATABASE_FALLBACK_MAX_BYTES = 8 * 1024 * 1024;
 const STUDIO_UPLOAD_DATABASE_COVER_FALLBACK_MAX_BYTES = 2 * 1024 * 1024;
+const STUDIO_SAMPLER_DATABASE_FALLBACK_MAX_BYTES = 2 * 1024 * 1024;
+const STUDIO_SAMPLER_SLOT_COUNT = 9;
+const STUDIO_SAMPLER_DEFAULT_WIDTH = 372;
+const STUDIO_SAMPLER_DEFAULT_HEIGHT = 424;
+const STUDIO_SAMPLER_TRIGGER_DEDUPE_MS = 110;
+const STUDIO_SAMPLER_PLAYBACK_DEDUPE_MS = 110;
 const LABEL_VARIANT_DEFAULT = 'default';
 const LABEL_VARIANT_HEADING = 'heading';
 const HEADING_LABEL_TEXT_COLOR = '#111111';
@@ -944,6 +974,7 @@ const LABEL_MEASURE_BUFFER_X = 8;
 const LABEL_MEASURE_BUFFER_Y = 0;
 const NOTE_COMPONENT_SUBTYPE = 'note';
 const SECRET_AREA_COMPONENT_SUBTYPE = 'secret-area';
+const STUDIO_FOLDER_COMPONENT_SUBTYPE = 'studio-folder';
 const NOTE_TEXT_MAX_LENGTH = 24000;
 const NOTE_COMPONENT_DEFAULT_WORLD_SIZE = 252;
 const NOTE_COMPONENT_MIN_WORLD_SIZE = 150;
@@ -2188,6 +2219,22 @@ function buildRoomShareUrl(roomValue) {
 }
 
 const query = new URLSearchParams(window.location.search);
+const isCodexObserverClient = isSwagStudioRoom && (() => {
+  const observerParam = String(query.get('codexObserver') || '').trim().toLowerCase();
+  try {
+    if (observerParam === '0' || observerParam === 'false') {
+      window.localStorage.removeItem(CODEX_OBSERVER_STORAGE_KEY);
+      return false;
+    }
+    if (observerParam === '1' || observerParam === 'true') {
+      window.localStorage.setItem(CODEX_OBSERVER_STORAGE_KEY, '1');
+      return true;
+    }
+    return window.localStorage.getItem(CODEX_OBSERVER_STORAGE_KEY) === '1';
+  } catch {
+    return observerParam === '1' || observerParam === 'true';
+  }
+})();
 const roomId = String(dedicatedRoomId || query.get('room') || getRoomIdFromPath(window.location.pathname) || '').trim();
 if (!roomId) {
   window.location.replace('./index.html');
@@ -2248,8 +2295,21 @@ const drawingStrokes = new Map();
 const drawingStrokeElements = new Map();
 const mediaControllerByDieId = new Map();
 const uploadedMediaControllerByDieId = new Map();
+const uploadedMediaWarmLoadTimerByDieId = new Map();
+const uploadedMediaPreconnectedOrigins = new Set();
+const uploadedVideoDisplayClickSuppressUntilByDieId = new Map();
 const mediaSignalKeyByDieId = new Map();
 const mediaStartBroadcastInFlight = new Set();
+const embeddedMediaPreconnectedOrigins = new Set();
+const youtubeTitleCacheByVideoId = new Map();
+const youtubeTitleFetchByVideoId = new Map();
+const studioSamplerSignalKeyByDieId = new Map();
+const studioSamplerPreloadByUrl = new Map();
+const studioSamplerOneShotsByDieId = new Map();
+const studioSamplerRecentTriggerAtByPad = new Map();
+const studioSamplerRecentPlaybackAtByPad = new Map();
+const studioSamplerRecentPlaybackSignalAtByKey = new Map();
+let uploadedAudioVisualizerContext = null;
 let youtubeIframeApiPromise = null;
 let soundCloudWidgetApiPromise = null;
 let roomBadgeWidthSyncRafId = 0;
@@ -2264,6 +2324,18 @@ const trackedAssetLoadContainerCounts = new WeakMap();
 
 let localPosition = { x: 0.5, y: 0.5 };
 let syncCursorState = () => {};
+let syncStudioListLocalCursorVisibility = () => {};
+let patchStudioListTextComponent = () => {};
+let commitStudioListOrder = async () => {};
+let toggleStudioFolderCollapsed = () => {};
+let patchStudioFolderTitle = () => {};
+let spawnStudioSamplerComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding samplers.');
+};
+let updateStudioSamplerSamples = async () => {
+  showStatusMessage('Firebase connection is required before editing samplers.');
+};
+let triggerStudioSamplerPad = () => {};
 let localClientId = '';
 let localPlayerToken = '';
 let latestPresenceByToken = {};
@@ -2439,6 +2511,9 @@ let gameOptionsBoardSizeButtonsSyncing = false;
 let gameOptionsIncludeDiscardToggleSyncing = false;
 let gameOptionsCoverDrawingsToggleSyncing = false;
 function normalizeAssetMenuView(view) {
+  if (isSwagStudioRoom && studioListViewActive) {
+    return ASSET_MENU_VIEW_STUDIO;
+  }
   const normalizedView = String(view || '').trim().toLowerCase();
   if (normalizedView === ASSET_MENU_VIEW_COMPONENT) {
     return ASSET_MENU_VIEW_COMPONENT;
@@ -2475,6 +2550,17 @@ let activeStudioUploadCoverFile = null;
 let activeStudioUploadPreviewUrl = '';
 let activeStudioUploadCoverPreviewUrl = '';
 let studioUploadSubmitting = false;
+let activeStudioSamplerEditDieId = '';
+let activeStudioSamplerSlotIndex = -1;
+let activeStudioSamplerSamples = [];
+let activeStudioSamplerFiles = [];
+let studioSamplerSubmitting = false;
+let studioListViewActive = shouldDefaultStudioListViewForDevice();
+let studioListRenderRafId = 0;
+let studioListDragState = null;
+let studioEmbedFrameParkingLot = null;
+const studioListFolderCollapsedByCardId = new Map();
+const studioComponentMoveUndoStack = [];
 let stickerCatalog = cloneStickerCatalog(DEFAULT_STICKER_CATALOG);
 let stickerManifestLoaded = false;
 let stickerManifestLoadPromise = null;
@@ -2596,6 +2682,9 @@ let spawnStackPointComponent = async () => {
 let spawnSecretAreaComponent = async () => {
   showStatusMessage('Firebase connection is required before adding secret areas.');
 };
+let spawnStudioFolderComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding folders.');
+};
 let spawnSpinnerComponent = async () => {
   showStatusMessage('Firebase connection is required before adding spinners.');
 };
@@ -2607,6 +2696,9 @@ let spawnStickerComponent = async () => {
 };
 let spawnLabelComponent = async () => {
   showStatusMessage('Firebase connection is required before adding labels.');
+};
+let spawnUploadedMediaCommentComponent = async () => {
+  showStatusMessage('Firebase connection is required before adding media comments.');
 };
 let spawnNoteComponent = async () => {
   showStatusMessage('Firebase connection is required before adding notes.');
@@ -3311,6 +3403,10 @@ function applyRemoteCursorContextVisual(dot, dotPosition = null, context = null)
 }
 
 function renderAllDots() {
+  if (studioListViewActive && isSwagStudioRoom) {
+    clearStudioListCursorArtifacts();
+    return;
+  }
   if (dots.size === 0) {
     return;
   }
@@ -6630,6 +6726,9 @@ function normalizeDieType(type) {
   if (type === 'media') {
     return 'media';
   }
+  if (type === 'sampler' && isSwagStudioRoom) {
+    return 'sampler';
+  }
   if (type === 'counter') {
     return 'counter';
   }
@@ -8590,11 +8689,24 @@ function normalizeLabelVariant(value) {
     : LABEL_VARIANT_DEFAULT;
 }
 
+function normalizeLabelSubtype(value) {
+  return String(value || '').trim().toLowerCase() === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? LABEL_SUBTYPE_MEDIA_COMMENT
+    : '';
+}
+
 function isHeadingLabelState(value) {
   if (!value || typeof value !== 'object') {
     return false;
   }
   return normalizeLabelVariant(value.labelVariant) === LABEL_VARIANT_HEADING;
+}
+
+function isMediaCommentLabelState(value) {
+  if (!value || typeof value !== 'object' || normalizeDieType(value.type) !== 'label') {
+    return false;
+  }
+  return normalizeLabelSubtype(value.labelSubtype) === LABEL_SUBTYPE_MEDIA_COMMENT;
 }
 
 function getLabelDefaultTextForVariant(value) {
@@ -8623,6 +8735,29 @@ function getLabelFontSizePx(dieState) {
   const worldFontSize = LABEL_LINE_WORLD_HEIGHT * textScale * LABEL_FONT_SIZE_FACTOR;
   const screenFontSize = clamp(worldFontSize * camera.scale, 0.01, 1680);
   return snapToDevicePixel(screenFontSize, 0.01);
+}
+
+function getLabelWorldFontSizePx(dieState) {
+  const textScale = getLabelTextScale(dieState);
+  const worldFontSize = LABEL_LINE_WORLD_HEIGHT * textScale * LABEL_FONT_SIZE_FACTOR;
+  return snapToDevicePixel(worldFontSize, 0.01);
+}
+
+function syncStudioLabelRasterElement(die, dimensions, isLabel) {
+  if (!(die instanceof HTMLElement)) {
+    return;
+  }
+  if (isSwagStudioRoom && isLabel) {
+    die.classList.add('is-studio-raster-label');
+    die.style.setProperty('--studio-label-design-width', `${Math.max(1, dimensions.width).toFixed(4)}px`);
+    die.style.setProperty('--studio-label-design-height', `${Math.max(1, dimensions.height).toFixed(4)}px`);
+    die.style.setProperty('--studio-label-render-scale', Math.max(0.001, camera.scale).toFixed(4));
+  } else {
+    die.classList.remove('is-studio-raster-label');
+    die.style.removeProperty('--studio-label-design-width');
+    die.style.removeProperty('--studio-label-design-height');
+    die.style.removeProperty('--studio-label-render-scale');
+  }
 }
 
 function measureLabelWorldDimensions(textValue, options = {}) {
@@ -8741,6 +8876,12 @@ function getDieWorldDimensions(typeOrPayload, payload = typeOrPayload) {
       payload?.mediaHeight,
       payload?.mediaProvider
     );
+  }
+  if (dieType === 'sampler') {
+    return {
+      width: STUDIO_SAMPLER_DEFAULT_WIDTH,
+      height: STUDIO_SAMPLER_DEFAULT_HEIGHT
+    };
   }
   if (dieType === 'counter') {
     return {
@@ -8926,6 +9067,7 @@ function normalizeDicePayload(payload) {
   const nextY = Number(payload?.y);
   const nextValue = Number(payload?.value);
   const nextZ = Math.round(Number(payload?.z) || 1);
+  const studioListOrder = normalizeStudioListOrder(payload?.studioListOrder);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const drawLifted = payload?.drawLifted === true;
   const rollStartedAt = Number(payload?.rollStartedAt);
@@ -8970,6 +9112,28 @@ function normalizeDicePayload(payload) {
   const textScale = getLabelTextScale(payload?.textScale, LABEL_TEXT_SCALE_DEFAULT);
   const labelLocked = type === 'label' ? payload?.labelLocked === true : false;
   const labelRotation = type === 'label' ? normalizeStickerRotationDegrees(payload?.labelRotation) : 0;
+  const labelSubtype = type === 'label' ? normalizeLabelSubtype(payload?.labelSubtype) : '';
+  const mediaCommentSourceDieId = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? String(payload?.mediaCommentSourceDieId || '').trim().slice(0, 160)
+    : '';
+  const mediaCommentProvider = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeMediaProvider(payload?.mediaCommentProvider)
+    : '';
+  const mediaCommentSourceUrl = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeUploadedMediaSourceUrl(payload?.mediaCommentSourceUrl || '', mediaCommentProvider)
+    : '';
+  const mediaCommentTitle = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeMediaTitle(payload?.mediaCommentTitle || '')
+    : '';
+  const mediaCommentMode = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeMediaCommentCueMode(payload?.mediaCommentMode)
+    : 'time';
+  const mediaCommentStartTime = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeMediaCommentTime(payload?.mediaCommentStartTime)
+    : 0;
+  const mediaCommentEndTime = labelSubtype === LABEL_SUBTYPE_MEDIA_COMMENT
+    ? normalizeMediaCommentTime(payload?.mediaCommentEndTime)
+    : 0;
   let mediaProvider = type === 'media' ? normalizeMediaProvider(payload?.mediaProvider) : '';
   let mediaSourceUrl = type === 'media' ? normalizeUploadedMediaSourceUrl(payload?.mediaSourceUrl, mediaProvider) : '';
   let mediaEmbedUrl = type === 'media' ? normalizeMediaSourceUrl(payload?.mediaEmbedUrl) : '';
@@ -9008,12 +9172,27 @@ function normalizeDicePayload(payload) {
   const mediaStartNonceRaw = type === 'media' ? Number(payload?.mediaStartNonce) : 0;
   const mediaStartedAt = Number.isFinite(mediaStartedAtRaw) && mediaStartedAtRaw > 0 ? Math.floor(mediaStartedAtRaw) : 0;
   const mediaStartNonce = Number.isFinite(mediaStartNonceRaw) ? Math.floor(mediaStartNonceRaw) : 0;
+  const samplerSamples = type === 'sampler'
+    ? normalizeStudioSamplerSamples(payload?.samplerSamples)
+    : createEmptyStudioSamplerSamples();
+  const samplerTriggeredSlotRaw = Number(payload?.samplerTriggeredSlot);
+  const samplerTriggeredSlot =
+    type === 'sampler' && Number.isFinite(samplerTriggeredSlotRaw)
+      ? clamp(Math.round(samplerTriggeredSlotRaw), -1, STUDIO_SAMPLER_SLOT_COUNT - 1)
+      : -1;
+  const samplerTriggeredAtRaw = type === 'sampler' ? Number(payload?.samplerTriggeredAt) : 0;
+  const samplerTriggeredAt =
+    Number.isFinite(samplerTriggeredAtRaw) && samplerTriggeredAtRaw > 0 ? Math.floor(samplerTriggeredAtRaw) : 0;
+  const samplerTriggerNonceRaw = type === 'sampler' ? Number(payload?.samplerTriggerNonce) : 0;
+  const samplerTriggerNonce = Number.isFinite(samplerTriggerNonceRaw) ? Math.floor(samplerTriggerNonceRaw) : 0;
   const normalizedHolderClientId = labelLocked ? null : holderClientId;
   const normalizedValue = type === 'counter'
     ? clampCounterValue(nextValue)
     : type === 'timer'
       ? 0
     : type === 'arcade'
+      ? 1
+    : type === 'sampler'
       ? 1
     : type === 'chip'
       ? 1
@@ -9029,6 +9208,7 @@ function normalizeDicePayload(payload) {
       ? clamp(nextY, centerBounds.minY, centerBounds.maxY)
       : clamp(WORLD_HEIGHT / 2, centerBounds.minY, centerBounds.maxY),
     z: clamp(Number.isFinite(nextZ) ? nextZ : 1, 1, DECK_UI_Z_INDEX - 1),
+    studioListOrder,
     value: normalizedValue,
     text,
     textColor,
@@ -9048,6 +9228,14 @@ function normalizeDicePayload(payload) {
     labelRotation,
     labelWidth: dimensions.width,
     labelHeight: dimensions.height,
+    labelSubtype,
+    mediaCommentSourceDieId,
+    mediaCommentProvider,
+    mediaCommentSourceUrl,
+    mediaCommentTitle,
+    mediaCommentMode,
+    mediaCommentStartTime,
+    mediaCommentEndTime,
     mediaProvider,
     mediaSourceUrl,
     mediaEmbedUrl,
@@ -9058,6 +9246,10 @@ function normalizeDicePayload(payload) {
     mediaStartNonce,
     mediaWidth: dimensions.width,
     mediaHeight: dimensions.height,
+    samplerSamples,
+    samplerTriggeredSlot,
+    samplerTriggeredAt,
+    samplerTriggerNonce,
     spinnerSegments,
     spinnerLabels,
     spinnerResultVisible,
@@ -9123,6 +9315,7 @@ function normalizeDicePayload(payload) {
       type === 'counter' ||
       type === 'timer' ||
       type === 'arcade' ||
+      type === 'sampler' ||
       type === 'stack-point'
         ? 0
         : Number.isFinite(rollStartedAt)
@@ -9145,6 +9338,7 @@ function isDieRolling(dieState, now = Date.now()) {
     dieType === 'counter' ||
     dieType === 'timer' ||
     dieType === 'arcade' ||
+    dieType === 'sampler' ||
     dieType === 'stack-point'
   ) {
     return false;
@@ -9175,6 +9369,7 @@ function getRenderedDieValue(dieState, now = Date.now()) {
   if (
     dieType === 'timer' ||
     dieType === 'arcade' ||
+    dieType === 'sampler' ||
     dieType === 'label' ||
     dieType === 'media' ||
     dieType === 'marble'
@@ -10681,6 +10876,8 @@ function normalizeMonsGamePayload(payload) {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextMoveTick = Number(payload?.moveTick);
+  const studioListOrder = normalizeStudioListOrder(payload?.studioListOrder);
+  const updatedAt = Math.max(0, Math.floor(Number(payload?.updatedAt) || 0));
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const flipped = payload?.flipped === true;
   const showCoordinates = payload?.showCoordinates !== false;
@@ -10693,8 +10890,10 @@ function normalizeMonsGamePayload(payload) {
     enabled: payload?.enabled !== false,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    updatedAt,
     width,
     height,
+    studioListOrder,
     pieces,
     scores: normalizeMonsScoresPayload(payload?.scores),
     potions: normalizeMonsPotionsPayload(payload?.potions),
@@ -11109,6 +11308,8 @@ function normalizeTaflGamePayload(payload) {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextMoveTick = Number(payload?.moveTick);
+  const studioListOrder = normalizeStudioListOrder(payload?.studioListOrder);
+  const updatedAt = Math.max(0, Math.floor(Number(payload?.updatedAt) || 0));
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const showCoordinates = payload?.showCoordinates !== false;
   const coverDrawings = payload?.coverDrawings === true;
@@ -11117,8 +11318,10 @@ function normalizeTaflGamePayload(payload) {
     enabled: payload?.enabled !== false,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    updatedAt,
     width,
     height,
+    studioListOrder,
     pieces,
     claims: normalizeTaflClaimsPayload(payload?.claims),
     moveTick: Number.isFinite(nextMoveTick) ? nextMoveTick : 0,
@@ -11496,13 +11699,17 @@ function normalizeGoGamePayload(payload) {
   const nextX = Number(payload?.x);
   const nextY = Number(payload?.y);
   const nextMoveTick = Number(payload?.moveTick);
+  const studioListOrder = normalizeStudioListOrder(payload?.studioListOrder);
+  const updatedAt = Math.max(0, Math.floor(Number(payload?.updatedAt) || 0));
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   return {
     enabled: payload?.enabled !== false,
     x: Number.isFinite(nextX) ? clamp(nextX, width / 2, WORLD_WIDTH - width / 2) : WORLD_WIDTH / 2,
     y: Number.isFinite(nextY) ? clamp(nextY, height / 2, WORLD_HEIGHT - height / 2) : WORLD_HEIGHT / 2,
+    updatedAt,
     width,
     height,
+    studioListOrder,
     boardSize,
     stones: normalizeGoStonesPayload(payload?.stones, boardSize),
     claims: normalizeGoClaimsPayload(payload?.claims),
@@ -15927,6 +16134,9 @@ function ensureMonsGhostBoardElement(gameId) {
 }
 
 function renderInactiveMonsBoardGhosts() {
+  if (studioListViewActive && isSwagStudioRoom) {
+    return;
+  }
   if (!gameLayer || !tableRoot) {
     return;
   }
@@ -17715,6 +17925,10 @@ function renderMonsSpawnGhosts() {
 }
 
 function renderMonsBoard(options = {}) {
+  if (studioListViewActive && isSwagStudioRoom) {
+    renderStudioListGameViews();
+    return;
+  }
   syncCoverDrawingsGamesLayerState();
   monsGameState = getMonsGameStateById(activeMonsGameId);
   if (!monsGameState || monsGameState.enabled === false) {
@@ -19059,6 +19273,10 @@ function syncTaflShellHudThemeStyles(taflUi) {
 }
 
 function renderTaflBoards(options = {}) {
+  if (studioListViewActive && isSwagStudioRoom) {
+    renderStudioListGameViews();
+    return;
+  }
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -20198,6 +20416,10 @@ function renderGoStonesAndHintsForBoard(goUi, gameState, gameId, boardScreenWidt
 }
 
 function renderGoBoards(options = {}) {
+  if (studioListViewActive && isSwagStudioRoom) {
+    renderStudioListGameViews();
+    return;
+  }
   if (!tableRoot || !gameLayer) {
     return;
   }
@@ -21485,6 +21707,47 @@ function normalizeMediaTitle(value) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
 }
 
+function isGenericYouTubeMediaTitle(value) {
+  const normalized = normalizeMediaTitle(value).toLowerCase();
+  return !normalized || normalized === 'youtube' || normalized === 'youtube media' || normalized === 'youtube video' || normalized === 'youtube video player';
+}
+
+function getYouTubeVideoIdFromUrl(value) {
+  const normalizedUrl = normalizeMediaSourceUrl(value);
+  if (!normalizedUrl) {
+    return '';
+  }
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+    const host = parsedUrl.hostname.toLowerCase();
+    const pathSegments = parsedUrl.pathname.split('/').filter(Boolean);
+    const sanitizeVideoId = (candidate) => {
+      const normalized = String(candidate || '').trim();
+      return /^[A-Za-z0-9_-]{6,20}$/.test(normalized) ? normalized : '';
+    };
+    if (host === 'youtu.be') {
+      return sanitizeVideoId(pathSegments[0]);
+    }
+    if (
+      host === 'youtube.com' ||
+      host.endsWith('.youtube.com') ||
+      host === 'youtube-nocookie.com' ||
+      host.endsWith('.youtube-nocookie.com')
+    ) {
+      if (pathSegments[0] === 'watch') {
+        return sanitizeVideoId(parsedUrl.searchParams.get('v'));
+      }
+      if (pathSegments[0] === 'embed' || pathSegments[0] === 'shorts' || pathSegments[0] === 'live' || pathSegments[0] === 'v') {
+        return sanitizeVideoId(pathSegments[1]);
+      }
+      return sanitizeVideoId(parsedUrl.searchParams.get('v'));
+    }
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 function normalizeStudioUploadKind(value) {
   return String(value || '').trim().toLowerCase() === STUDIO_UPLOAD_KIND_VIDEO
     ? STUDIO_UPLOAD_KIND_VIDEO
@@ -21545,6 +21808,22 @@ function isAllowedStudioUploadFile(file, kind = activeStudioUploadKind) {
   }
   return (
     type.startsWith('audio/') ||
+    name.endsWith('.mp3') ||
+    name.endsWith('.wav')
+  );
+}
+
+function isAllowedStudioSamplerFile(file) {
+  if (!(file instanceof File)) {
+    return false;
+  }
+  const name = String(file.name || '').trim().toLowerCase();
+  const type = String(file.type || '').trim().toLowerCase();
+  return (
+    type === 'audio/mpeg' ||
+    type === 'audio/mp3' ||
+    type === 'audio/wav' ||
+    type === 'audio/x-wav' ||
     name.endsWith('.mp3') ||
     name.endsWith('.wav')
   );
@@ -21694,10 +21973,79 @@ function readStudioUploadFileAsDataUrl(file, options = {}) {
   });
 }
 
-function parseEmbeddableMediaUrl(rawValue) {
+function decodeMediaInputHtmlEntities(value) {
+  return String(value || '')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x27;/gi, "'");
+}
+
+function extractEmbeddableMediaUrlCandidate(rawValue) {
   const raw = String(rawValue || '').trim();
   if (!raw) {
+    return '';
+  }
+  const quotedSrcMatch = raw.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
+  if (quotedSrcMatch?.[2]) {
+    return decodeMediaInputHtmlEntities(quotedSrcMatch[2]).trim();
+  }
+  const bareSrcMatch = raw.match(/\bsrc\s*=\s*([^\s>]+)/i);
+  if (bareSrcMatch?.[1]) {
+    return decodeMediaInputHtmlEntities(bareSrcMatch[1]).replace(/^["']|["']$/g, '').trim();
+  }
+  return decodeMediaInputHtmlEntities(raw).trim();
+}
+
+function isSoundCloudPlaylistParsedUrl(parsedUrl) {
+  if (!(parsedUrl instanceof URL)) {
+    return false;
+  }
+  const host = parsedUrl.hostname.toLowerCase();
+  const pathSegments = parsedUrl.pathname.split('/').filter(Boolean).map((segment) => segment.toLowerCase());
+  if (host === 'api.soundcloud.com' && pathSegments[0] === 'playlists') {
+    return true;
+  }
+  return pathSegments.includes('sets') || pathSegments[0] === 'playlists';
+}
+
+function isSoundCloudPlaylistSourceUrl(value) {
+  const normalizedUrl = normalizeMediaSourceUrl(value);
+  if (!normalizedUrl) {
+    return false;
+  }
+  try {
+    return isSoundCloudPlaylistParsedUrl(new URL(normalizedUrl));
+  } catch {
+    return false;
+  }
+}
+
+function buildSoundCloudEmbedUrl(sourceUrl, options = {}) {
+  const embedUrl = new URL('https://w.soundcloud.com/player/');
+  embedUrl.searchParams.set('url', sourceUrl);
+  embedUrl.searchParams.set('color', '#ff5500');
+  embedUrl.searchParams.set('auto_play', 'false');
+  embedUrl.searchParams.set('hide_related', 'false');
+  embedUrl.searchParams.set('show_comments', 'false');
+  embedUrl.searchParams.set('show_user', 'true');
+  embedUrl.searchParams.set('show_reposts', 'false');
+  embedUrl.searchParams.set('show_teaser', 'true');
+  embedUrl.searchParams.set('visual', 'false');
+  if (options.playlist === true) {
+    embedUrl.searchParams.set('single_active', 'true');
+  }
+  return embedUrl.toString();
+}
+
+function parseEmbeddableMediaUrl(rawValue) {
+  let raw = extractEmbeddableMediaUrlCandidate(rawValue);
+  if (!raw) {
     return null;
+  }
+  if (raw.startsWith('//')) {
+    raw = `https:${raw}`;
   }
   let parsedUrl = null;
   try {
@@ -21795,12 +22143,12 @@ function parseEmbeddableMediaUrl(rawValue) {
         return null;
       }
     }
+    const isSoundCloudPlaylist = isSoundCloudPlaylistSourceUrl(sourceUrl);
     return {
       provider: 'soundcloud',
       sourceUrl,
-      embedUrl:
-        `https://w.soundcloud.com/player/?url=${encodeURIComponent(sourceUrl)}` +
-        '&color=%23ff5500&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=true&visual=false',
+      embedUrl: buildSoundCloudEmbedUrl(sourceUrl, { playlist: isSoundCloudPlaylist }),
+      title: isSoundCloudPlaylist ? 'soundcloud playlist' : '',
       width: 500,
       height: MEDIA_DEFAULT_HEIGHT_SOUNDCLOUD
     };
@@ -21821,6 +22169,284 @@ function getMediaSignalKeyFromState(dieState) {
   const startNonceRaw = Number(dieState?.mediaStartNonce);
   const startNonce = Number.isFinite(startNonceRaw) ? Math.floor(startNonceRaw) : 0;
   return `${startedAt}:${startNonce}`;
+}
+
+function createEmptyStudioSamplerSamples() {
+  return Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, () => ({
+    title: '',
+    sourceUrl: '',
+    mimeType: '',
+    sourcePending: false
+  }));
+}
+
+function normalizeStudioSamplerSample(value) {
+  if (!value || typeof value !== 'object') {
+    return {
+      title: '',
+      sourceUrl: '',
+      mimeType: ''
+    };
+  }
+  const normalizedTitle = normalizeMediaTitle(value.title || value.mediaTitle || '');
+  const mimeType = String(value.mimeType || value.mediaMimeType || '').trim().slice(0, 120);
+  const sourceUrl = normalizeUploadedMediaSourceUrl(value.sourceUrl || '', 'uploaded-audio');
+  const sourcePending =
+    !sourceUrl &&
+    (value.sourcePending === true || Boolean(normalizedTitle || mimeType));
+  return {
+    title: normalizedTitle,
+    sourceUrl,
+    mimeType,
+    sourcePending
+  };
+}
+
+function normalizeStudioSamplerSamples(value) {
+  const rawSamples = Array.isArray(value) ? value : [];
+  return Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, (_, index) => (
+    normalizeStudioSamplerSample(rawSamples[index])
+  ));
+}
+
+function hasAnyStudioSamplerSamples(samples) {
+  return normalizeStudioSamplerSamples(samples).some((sample) => Boolean(sample.sourceUrl));
+}
+
+function getStudioSamplerSampleTitle(sample, index) {
+  const normalizedTitle = normalizeMediaTitle(sample?.title || '');
+  return normalizedTitle || `sample ${Math.max(1, index + 1)}`;
+}
+
+function getStudioSamplerPadPlaybackKey(dieId, slotIndex, sourceUrl = '') {
+  return [
+    String(dieId || '').trim(),
+    Math.round(Number(slotIndex)),
+    getMediaUrlRenderSignature(sourceUrl || '')
+  ].join(':');
+}
+
+function pruneStudioSamplerRecentMap(map, now = Date.now(), maxAgeMs = 1000) {
+  if (!(map instanceof Map)) {
+    return;
+  }
+  for (const [key, timestamp] of map.entries()) {
+    if (!Number.isFinite(Number(timestamp)) || now - Number(timestamp) > maxAgeMs) {
+      map.delete(key);
+    }
+  }
+}
+
+function getStudioSamplerSamplesSignature(samples) {
+  return normalizeStudioSamplerSamples(samples)
+    .map((sample, index) => [
+      index,
+      normalizeMediaTitle(sample.title || ''),
+      getMediaUrlRenderSignature(sample.sourceUrl || ''),
+      String(sample.mimeType || ''),
+      sample.sourcePending === true ? 'pending' : ''
+    ].join(':'))
+    .join('|');
+}
+
+function getStudioSamplerSignalKeyFromState(dieState) {
+  if (normalizeDieType(dieState?.type) !== 'sampler') {
+    return '';
+  }
+  const slotIndex = Math.round(Number(dieState?.samplerTriggeredSlot));
+  if (!Number.isFinite(slotIndex) || slotIndex < 0 || slotIndex >= STUDIO_SAMPLER_SLOT_COUNT) {
+    return '';
+  }
+  const triggeredAtRaw = Number(dieState?.samplerTriggeredAt);
+  if (!Number.isFinite(triggeredAtRaw) || triggeredAtRaw <= 0) {
+    return '';
+  }
+  const triggeredAt = Math.floor(triggeredAtRaw);
+  const nonceRaw = Number(dieState?.samplerTriggerNonce);
+  const nonce = Number.isFinite(nonceRaw) ? Math.floor(nonceRaw) : 0;
+  return `${triggeredAt}:${nonce}:${slotIndex}`;
+}
+
+function getStudioSamplerSampleKey(sourceUrl = '') {
+  return getMediaUrlRenderSignature(sourceUrl || '');
+}
+
+function getStudioSamplerSampleLoadStatus(sourceUrl = '') {
+  const normalizedSourceUrl = normalizeUploadedMediaSourceUrl(sourceUrl || '', 'uploaded-audio');
+  if (!normalizedSourceUrl) {
+    return 'idle';
+  }
+  const preloadRecord = studioSamplerPreloadByUrl.get(normalizedSourceUrl);
+  return preloadRecord?.status || 'loading';
+}
+
+function syncStudioSamplerSampleLoadElements(sourceUrl = '') {
+  const sampleKey = getStudioSamplerSampleKey(sourceUrl);
+  if (!sampleKey) {
+    return;
+  }
+  const status = getStudioSamplerSampleLoadStatus(sourceUrl);
+  document.querySelectorAll('.table-sampler-pad[data-sampler-sample-key]').forEach((pad) => {
+    if (!(pad instanceof HTMLElement) || pad.dataset.samplerSampleKey !== sampleKey) {
+      return;
+    }
+    pad.classList.toggle('is-sample-loading', status === 'loading');
+    pad.classList.toggle('is-sample-error', status === 'error');
+    if (status === 'loading') {
+      pad.setAttribute('aria-busy', 'true');
+    } else {
+      pad.removeAttribute('aria-busy');
+    }
+  });
+}
+
+function preloadStudioSamplerSamples(samples) {
+  for (const sample of normalizeStudioSamplerSamples(samples)) {
+    const sourceUrl = sample.sourceUrl || '';
+    if (!sourceUrl || studioSamplerPreloadByUrl.has(sourceUrl)) {
+      continue;
+    }
+    const audio = new Audio();
+    audio.preload = 'auto';
+    const preloadRecord = {
+      audio,
+      status: 'loading'
+    };
+    const markStatus = (status) => {
+      if (preloadRecord.status === status) {
+        return;
+      }
+      preloadRecord.status = status;
+      syncStudioSamplerSampleLoadElements(sourceUrl);
+    };
+    audio.addEventListener('canplay', () => markStatus('loaded'), { once: true });
+    audio.addEventListener('canplaythrough', () => markStatus('loaded'), { once: true });
+    audio.addEventListener('loadeddata', () => markStatus('loaded'), { once: true });
+    audio.addEventListener('error', () => markStatus('error'), { once: true });
+    studioSamplerPreloadByUrl.set(sourceUrl, preloadRecord);
+    audio.src = sourceUrl;
+    if (audio.readyState >= 3) {
+      markStatus('loaded');
+    }
+    try {
+      audio.load();
+    } catch {
+      markStatus('error');
+    }
+  }
+}
+
+function playStudioSamplerSample(dieId, slotIndex, dieStateOverride = null, signalKey = '') {
+  const normalizedDieId = String(dieId || '').trim();
+  const normalizedSlotIndex = Math.round(Number(slotIndex));
+  if (!normalizedDieId || !Number.isFinite(normalizedSlotIndex) || normalizedSlotIndex < 0 || normalizedSlotIndex >= STUDIO_SAMPLER_SLOT_COUNT) {
+    return false;
+  }
+  const dieState = dieStateOverride || diceById.get(normalizedDieId);
+  if (normalizeDieType(dieState?.type) !== 'sampler') {
+    return false;
+  }
+  const sample = normalizeStudioSamplerSamples(dieState?.samplerSamples)[normalizedSlotIndex];
+  if (!sample?.sourceUrl) {
+    return false;
+  }
+  const now = Date.now();
+  const normalizedSignalKey = String(signalKey || getStudioSamplerSignalKeyFromState(dieState)).trim();
+  if (normalizedSignalKey) {
+    const playbackSignalKey = `${normalizedDieId}:${normalizedSignalKey}`;
+    pruneStudioSamplerRecentMap(studioSamplerRecentPlaybackSignalAtByKey, now, 5000);
+    if (studioSamplerRecentPlaybackSignalAtByKey.has(playbackSignalKey)) {
+      return false;
+    }
+    studioSamplerRecentPlaybackSignalAtByKey.set(playbackSignalKey, now);
+  }
+  const padPlaybackKey = getStudioSamplerPadPlaybackKey(normalizedDieId, normalizedSlotIndex, sample.sourceUrl);
+  pruneStudioSamplerRecentMap(studioSamplerRecentPlaybackAtByPad, now, 1000);
+  const previousPlaybackAt = Number(studioSamplerRecentPlaybackAtByPad.get(padPlaybackKey));
+  if (Number.isFinite(previousPlaybackAt) && now - previousPlaybackAt < STUDIO_SAMPLER_PLAYBACK_DEDUPE_MS) {
+    return false;
+  }
+  studioSamplerRecentPlaybackAtByPad.set(padPlaybackKey, now);
+  const audio = new Audio(sample.sourceUrl);
+  audio.preload = 'auto';
+  audio.currentTime = 0;
+  let activeSet = studioSamplerOneShotsByDieId.get(normalizedDieId);
+  if (!(activeSet instanceof Set)) {
+    activeSet = new Set();
+    studioSamplerOneShotsByDieId.set(normalizedDieId, activeSet);
+  }
+  activeSet.add(audio);
+  const cleanup = () => {
+    activeSet.delete(audio);
+    if (activeSet.size === 0) {
+      studioSamplerOneShotsByDieId.delete(normalizedDieId);
+    }
+  };
+  audio.addEventListener('ended', cleanup, { once: true });
+  audio.addEventListener('error', cleanup, { once: true });
+  audio.play().catch((error) => {
+    cleanup();
+    console.warn('Sampler playback blocked or failed.', error);
+  });
+  return true;
+}
+
+function clearStudioSamplerTrackingForDie(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  studioSamplerSignalKeyByDieId.delete(normalizedDieId);
+  for (const key of Array.from(studioSamplerRecentTriggerAtByPad.keys())) {
+    if (String(key).startsWith(`${normalizedDieId}:`)) {
+      studioSamplerRecentTriggerAtByPad.delete(key);
+    }
+  }
+  for (const key of Array.from(studioSamplerRecentPlaybackAtByPad.keys())) {
+    if (String(key).startsWith(`${normalizedDieId}:`)) {
+      studioSamplerRecentPlaybackAtByPad.delete(key);
+    }
+  }
+  for (const key of Array.from(studioSamplerRecentPlaybackSignalAtByKey.keys())) {
+    if (String(key).startsWith(`${normalizedDieId}:`)) {
+      studioSamplerRecentPlaybackSignalAtByKey.delete(key);
+    }
+  }
+  const activeSet = studioSamplerOneShotsByDieId.get(normalizedDieId);
+  if (activeSet instanceof Set) {
+    for (const audio of activeSet) {
+      try {
+        audio.pause();
+      } catch {
+        // Best-effort cleanup.
+      }
+    }
+  }
+  studioSamplerOneShotsByDieId.delete(normalizedDieId);
+}
+
+function syncStudioSamplerTriggerSignalFromState(dieId, previousDieState, nextDieState) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  if (normalizeDieType(nextDieState?.type) !== 'sampler') {
+    clearStudioSamplerTrackingForDie(normalizedDieId);
+    return;
+  }
+  const previousSignalKey = getStudioSamplerSignalKeyFromState(previousDieState);
+  const handledSignalKey = studioSamplerSignalKeyByDieId.get(normalizedDieId);
+  const nextSignalKey = getStudioSamplerSignalKeyFromState(nextDieState);
+  if (!nextSignalKey) {
+    studioSamplerSignalKeyByDieId.delete(normalizedDieId);
+    return;
+  }
+  if (!previousDieState || handledSignalKey === nextSignalKey || previousSignalKey === nextSignalKey) {
+    studioSamplerSignalKeyByDieId.set(normalizedDieId, nextSignalKey);
+    return;
+  }
+  studioSamplerSignalKeyByDieId.set(normalizedDieId, nextSignalKey);
+  playStudioSamplerSample(normalizedDieId, nextDieState.samplerTriggeredSlot, nextDieState, nextSignalKey);
 }
 
 function toggleUploadedMediaVolumePopover(controller, shouldOpen) {
@@ -21854,10 +22480,83 @@ function getNextUploadedMediaLoopMode(value) {
   return UPLOADED_MEDIA_LOOP_MODE_OFF;
 }
 
+function getUploadedMediaLoopButtonSvg(loopMode) {
+  if (loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+    return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 7.2V16.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 7.2V16.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8.5 12H15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 3"/><path d="M10.2 8.7L8.2 12L10.2 15.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.8 8.7L15.8 12L13.8 15.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.2 7H15.6C18 7 19.8 8.8 19.8 11.1C19.8 13.4 18 15.2 15.6 15.2H14.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.4 12.8L14.3 15.2L16.4 17.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.8 17H8.4C6 17 4.2 15.2 4.2 12.9C4.2 10.6 6 8.8 8.4 8.8H9.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.6 11.2L9.7 8.8L7.6 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function getUploadedMediaPlayPauseSvg(isPlaying) {
+  if (isPlaying) {
+    return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.6 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M15.4 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.7 6.3V17.7L17.2 12L8.7 6.3Z" fill="currentColor"/></svg>';
+}
+
 function getUploadedMediaDuration(mediaElement) {
   return mediaElement instanceof HTMLMediaElement && Number.isFinite(mediaElement.duration) && mediaElement.duration > 0
     ? mediaElement.duration
     : 0;
+}
+
+function formatUploadedMediaTimeLabel(seconds) {
+  const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+  const paddedSeconds = String(remainingSeconds).padStart(2, '0');
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${paddedSeconds}`;
+  }
+  return `${minutes}:${paddedSeconds}`;
+}
+
+function normalizeMediaCommentCueMode(value) {
+  return String(value || '').trim().toLowerCase() === 'segment' ? 'segment' : 'time';
+}
+
+function normalizeMediaCommentTime(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.min(numeric, 86400) : 0;
+}
+
+function getMediaCommentTimeLabelFromState(dieState) {
+  const mode = normalizeMediaCommentCueMode(dieState?.mediaCommentMode);
+  const startTime = normalizeMediaCommentTime(dieState?.mediaCommentStartTime);
+  const endTime = normalizeMediaCommentTime(dieState?.mediaCommentEndTime);
+  if (mode === 'segment') {
+    const orderedStart = Math.min(startTime, endTime);
+    const orderedEnd = Math.max(startTime, endTime);
+    return `${formatUploadedMediaTimeLabel(orderedStart)}-${formatUploadedMediaTimeLabel(orderedEnd)}`;
+  }
+  return formatUploadedMediaTimeLabel(startTime);
+}
+
+function getUploadedMediaDownloadFilename(title, provider = '', mimeType = '') {
+  const fallback = normalizeMediaProvider(provider) === 'uploaded-video' ? 'video' : 'audio';
+  const baseName = (normalizeMediaTitle(title || '') || fallback)
+    .replace(/[\\/:*?"<>|]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || fallback;
+  const normalizedMime = String(mimeType || '').trim().toLowerCase();
+  if (/\.[a-z0-9]{2,5}$/i.test(baseName)) {
+    return baseName;
+  }
+  if (normalizedMime.includes('mpeg')) {
+    return `${baseName}.mp3`;
+  }
+  if (normalizedMime.includes('wav')) {
+    return `${baseName}.wav`;
+  }
+  if (normalizedMime.includes('mp4')) {
+    return `${baseName}.mp4`;
+  }
+  if (normalizedMime.includes('webm')) {
+    return `${baseName}.webm`;
+  }
+  return baseName;
 }
 
 function normalizeUploadedMediaLoopRange(controller) {
@@ -21927,7 +22626,7 @@ function seekUploadedMediaToSectionStart(controller, options = {}) {
     }
   }, 0);
   if (wasPlaying) {
-    mediaElement.play().catch(() => {});
+    playUploadedMediaController(controller);
   }
   return true;
 }
@@ -21974,7 +22673,7 @@ function handleUploadedMediaEnded(controller) {
     } catch {
       return false;
     }
-    mediaElement.play().catch(() => {});
+    playUploadedMediaController(controller);
     return true;
   }
   if (loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION) {
@@ -21989,9 +22688,2763 @@ function isUploadedMediaControlsInteractiveTarget(target) {
   }
   return Boolean(
     target.closest(
-      '.table-uploaded-media-button, .table-uploaded-media-progress, .table-uploaded-media-loop-range, .table-uploaded-media-volume-popover'
+      '.table-uploaded-media-button, .table-uploaded-media-title-play-button, .table-uploaded-media-progress, .table-uploaded-media-loop-range, .table-uploaded-media-volume-popover'
     )
   );
+}
+
+function shouldSuppressUploadedVideoDisplayClick(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return false;
+  }
+  const suppressUntil = Number(uploadedVideoDisplayClickSuppressUntilByDieId.get(normalizedDieId)) || 0;
+  if (suppressUntil <= 0) {
+    return false;
+  }
+  if (Date.now() <= suppressUntil) {
+    return true;
+  }
+  uploadedVideoDisplayClickSuppressUntilByDieId.delete(normalizedDieId);
+  return false;
+}
+
+function clearUploadedMediaWarmLoadTimer(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return;
+  }
+  const timer = uploadedMediaWarmLoadTimerByDieId.get(normalizedDieId);
+  if (!timer) {
+    return;
+  }
+  if (timer.kind === 'idle' && typeof window.cancelIdleCallback === 'function') {
+    window.cancelIdleCallback(timer.id);
+  } else {
+    window.clearTimeout(timer.id);
+  }
+  uploadedMediaWarmLoadTimerByDieId.delete(normalizedDieId);
+}
+
+function preconnectUploadedMediaOrigin(url) {
+  if (!isSwagStudioRoom) {
+    return;
+  }
+  let parsed = null;
+  try {
+    parsed = new URL(String(url || '').trim());
+  } catch {
+    return;
+  }
+  if (!/^https?:$/i.test(parsed.protocol) || parsed.origin === window.location.origin) {
+    return;
+  }
+  if (uploadedMediaPreconnectedOrigins.has(parsed.origin)) {
+    return;
+  }
+  uploadedMediaPreconnectedOrigins.add(parsed.origin);
+  const preconnect = document.createElement('link');
+  preconnect.rel = 'preconnect';
+  preconnect.href = parsed.origin;
+  preconnect.crossOrigin = 'anonymous';
+  document.head.appendChild(preconnect);
+  const dnsPrefetch = document.createElement('link');
+  dnsPrefetch.rel = 'dns-prefetch';
+  dnsPrefetch.href = parsed.origin;
+  document.head.appendChild(dnsPrefetch);
+}
+
+function attachUploadedMediaSource(controller, options = {}) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  const mediaElement = controller.mediaElement;
+  const sourceUrl = String(controller.sourceUrl || '').trim();
+  if (!(mediaElement instanceof HTMLMediaElement) || !sourceUrl) {
+    return false;
+  }
+  const targetPreload = options.preload || 'auto';
+  mediaElement.preload = targetPreload;
+  if (mediaElement.src !== sourceUrl) {
+    mediaElement.src = sourceUrl;
+  }
+  if (controller.mediaMimeType && mediaElement.getAttribute('type') !== controller.mediaMimeType) {
+    mediaElement.setAttribute('type', controller.mediaMimeType);
+  }
+  if (mediaElement.networkState === mediaElement.NETWORK_EMPTY) {
+    try {
+      mediaElement.load();
+    } catch {
+      // Media load can throw for malformed browser-decoded sources.
+    }
+  }
+  controller.sourceAttached = true;
+  controller.loadingMedia = mediaElement.readyState < mediaElement.HAVE_METADATA;
+  syncUploadedMediaControllerUi(controller);
+  return true;
+}
+
+function scheduleUploadedMediaWarmLoad(controller) {
+  if (!controller || controller.disposed || !isSwagStudioRoom) {
+    return;
+  }
+  clearUploadedMediaWarmLoadTimer(controller.dieId);
+  const run = () => {
+    uploadedMediaWarmLoadTimerByDieId.delete(controller.dieId);
+    attachUploadedMediaSource(controller, { preload: 'auto' });
+  };
+  const id = window.setTimeout(run, 0);
+  uploadedMediaWarmLoadTimerByDieId.set(controller.dieId, { kind: 'timeout', id });
+}
+
+function playUploadedMediaController(controller) {
+  if (!controller || controller.disposed || !(controller.mediaElement instanceof HTMLMediaElement)) {
+    return;
+  }
+  attachUploadedMediaSource(controller, { preload: 'auto' });
+  controller.loadingMedia = controller.mediaElement.readyState < controller.mediaElement.HAVE_FUTURE_DATA;
+  syncUploadedMediaControllerUi(controller);
+  controller.mediaElement.play().catch(() => {
+    controller.loadingMedia = false;
+    syncUploadedMediaControllerUi(controller);
+  });
+}
+
+function createUploadedAudioVisualizerElement() {
+  const visualizer = document.createElement('div');
+  visualizer.className = 'table-uploaded-audio-spectrum';
+  visualizer.setAttribute('aria-hidden', 'true');
+  for (let index = 0; index < UPLOADED_AUDIO_VISUALIZER_BAR_COUNT; index += 1) {
+    const bar = document.createElement('span');
+    bar.className = 'table-uploaded-audio-spectrum-bar';
+    visualizer.appendChild(bar);
+  }
+  return visualizer;
+}
+
+function resetUploadedAudioVisualizer(controller) {
+  const bars = Array.isArray(controller?.visualizerBars) ? controller.visualizerBars : [];
+  for (const bar of bars) {
+    if (bar instanceof HTMLElement) {
+      bar.style.removeProperty('--spectrum-bar-height');
+    }
+  }
+}
+
+function stopUploadedAudioVisualizer(controller, options = {}) {
+  if (!controller) {
+    return;
+  }
+  if (controller.visualizerFrameId) {
+    window.cancelAnimationFrame(controller.visualizerFrameId);
+    controller.visualizerFrameId = 0;
+  }
+  if (controller.visualizerElement instanceof HTMLElement) {
+    controller.visualizerElement.classList.remove('is-active');
+  }
+  if (options.reset !== false) {
+    resetUploadedAudioVisualizer(controller);
+  }
+}
+
+function ensureUploadedAudioVisualizer(controller) {
+  if (!isSwagStudioRoom || !controller || controller.disposed || controller.provider !== 'uploaded-audio') {
+    return false;
+  }
+  if (!(controller.mediaElement instanceof HTMLMediaElement) || !(controller.visualizerElement instanceof HTMLElement)) {
+    return false;
+  }
+  if (controller.visualizerUnavailable) {
+    return false;
+  }
+  controller.visualizerBars = Array.from(
+    controller.visualizerElement.querySelectorAll('.table-uploaded-audio-spectrum-bar')
+  ).filter((bar) => bar instanceof HTMLElement);
+  if (!controller.visualizerBars.length) {
+    return false;
+  }
+  if (controller.visualizerAnalyser) {
+    return true;
+  }
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (typeof AudioContextConstructor !== 'function') {
+    controller.visualizerUnavailable = true;
+    return false;
+  }
+  try {
+    if (!uploadedAudioVisualizerContext) {
+      uploadedAudioVisualizerContext = new AudioContextConstructor();
+    }
+    const sourceNode = uploadedAudioVisualizerContext.createMediaElementSource(controller.mediaElement);
+    const analyserNode = uploadedAudioVisualizerContext.createAnalyser();
+    analyserNode.fftSize = 512;
+    analyserNode.smoothingTimeConstant = 0.72;
+    sourceNode.connect(analyserNode);
+    analyserNode.connect(uploadedAudioVisualizerContext.destination);
+    controller.visualizerContext = uploadedAudioVisualizerContext;
+    controller.visualizerSourceNode = sourceNode;
+    controller.visualizerAnalyser = analyserNode;
+    controller.visualizerData = new Uint8Array(analyserNode.frequencyBinCount);
+    controller.visualizerLevels = new Array(controller.visualizerBars.length).fill(0);
+    return true;
+  } catch {
+    controller.visualizerUnavailable = true;
+    return false;
+  }
+}
+
+function startUploadedAudioVisualizer(controller) {
+  if (!ensureUploadedAudioVisualizer(controller)) {
+    return;
+  }
+  const mediaElement = controller.mediaElement;
+  const analyserNode = controller.visualizerAnalyser;
+  const frequencyData = controller.visualizerData;
+  const bars = controller.visualizerBars;
+  if (
+    !(mediaElement instanceof HTMLMediaElement) ||
+    !analyserNode ||
+    !(frequencyData instanceof Uint8Array) ||
+    !Array.isArray(bars) ||
+    !bars.length
+  ) {
+    return;
+  }
+  if (controller.visualizerContext?.state === 'suspended') {
+    controller.visualizerContext.resume().catch(() => {});
+  }
+  stopUploadedAudioVisualizer(controller, { reset: false });
+  controller.visualizerElement?.classList.add('is-active');
+
+  const renderFrame = () => {
+    if (controller.disposed || mediaElement.paused || mediaElement.ended) {
+      stopUploadedAudioVisualizer(controller);
+      return;
+    }
+    analyserNode.getByteFrequencyData(frequencyData);
+    const usableBins = Math.max(1, Math.floor(frequencyData.length * 0.86));
+    for (let index = 0; index < bars.length; index += 1) {
+      const startRatio = index / bars.length;
+      const endRatio = (index + 1) / bars.length;
+      const startBin = Math.floor(Math.pow(startRatio, 1.18) * usableBins);
+      const endBin = Math.max(startBin + 1, Math.floor(Math.pow(endRatio, 1.18) * usableBins));
+      let total = 0;
+      let sampleCount = 0;
+      for (let bin = startBin; bin < endBin && bin < frequencyData.length; bin += 1) {
+        total += frequencyData[bin];
+        sampleCount += 1;
+      }
+      const rawLevel = sampleCount > 0 ? total / sampleCount / 255 : 0;
+      const shapedLevel = Math.pow(clamp(rawLevel, 0, 1), 0.72);
+      const previousLevel = controller.visualizerLevels[index] || 0;
+      const nextLevel = previousLevel * 0.58 + shapedLevel * 0.42;
+      controller.visualizerLevels[index] = nextLevel;
+      const height = 0.14 + nextLevel * 1.18;
+      bars[index].style.setProperty('--spectrum-bar-height', `${height.toFixed(3)}em`);
+    }
+    controller.visualizerFrameId = window.requestAnimationFrame(renderFrame);
+  };
+  renderFrame();
+}
+
+function findUploadedMediaControllerForComment(dieState) {
+  const sourceDieId = String(dieState?.mediaCommentSourceDieId || '').trim();
+  if (sourceDieId) {
+    const directController = uploadedMediaControllerByDieId.get(sourceDieId);
+    if (directController && !directController.disposed) {
+      return directController;
+    }
+  }
+  const provider = normalizeMediaProvider(dieState?.mediaCommentProvider);
+  const sourceUrl = normalizeUploadedMediaSourceUrl(dieState?.mediaCommentSourceUrl || '', provider);
+  if (!provider || !sourceUrl) {
+    return null;
+  }
+  for (const controller of uploadedMediaControllerByDieId.values()) {
+    if (
+      controller &&
+      !controller.disposed &&
+      normalizeMediaProvider(controller.provider) === provider &&
+      normalizeUploadedMediaSourceUrl(controller.sourceUrl || '', provider) === sourceUrl
+    ) {
+      return controller;
+    }
+  }
+  return null;
+}
+
+function applyMediaCommentCueToController(controller, dieState) {
+  if (!controller || controller.disposed || !(controller.mediaElement instanceof HTMLMediaElement)) {
+    return false;
+  }
+  const mediaElement = controller.mediaElement;
+  const mode = normalizeMediaCommentCueMode(dieState?.mediaCommentMode);
+  const startTime = normalizeMediaCommentTime(dieState?.mediaCommentStartTime);
+  const endTime = normalizeMediaCommentTime(dieState?.mediaCommentEndTime);
+  const duration = getUploadedMediaDuration(mediaElement);
+  if (duration <= 0) {
+    const retry = () => {
+      applyMediaCommentCueToController(controller, dieState);
+    };
+    mediaElement.addEventListener('loadedmetadata', retry, { once: true });
+    attachUploadedMediaSource(controller, { preload: 'auto' });
+    playUploadedMediaController(controller);
+    return true;
+  }
+  if (mode === 'segment') {
+    const orderedStart = clamp(Math.min(startTime, endTime), 0, duration);
+    const orderedEnd = clamp(Math.max(startTime, endTime), orderedStart, duration);
+    controller.loopMode = UPLOADED_MEDIA_LOOP_MODE_SECTION;
+    controller.loopStartValue = clamp(Math.round((orderedStart / duration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    controller.loopEndValue = clamp(Math.round((orderedEnd / duration) * UPLOADED_MEDIA_LOOP_RANGE_MAX), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+    mediaElement.currentTime = orderedStart;
+  } else {
+    mediaElement.currentTime = clamp(startTime, 0, duration);
+  }
+  syncUploadedMediaLoopPlayback(controller, { force: true });
+  syncUploadedMediaControllerUi(controller);
+  playUploadedMediaController(controller);
+  return true;
+}
+
+function playMediaCommentCue(dieId, dieState) {
+  const controller = findUploadedMediaControllerForComment(dieState);
+  if (!controller) {
+    showStatusMessage('Associated media player is not loaded in this room.');
+    return;
+  }
+  try {
+    applyMediaCommentCueToController(controller, dieState);
+  } catch (error) {
+    console.error(error);
+    showStatusMessage('Unable to play media comment.');
+  }
+}
+
+function getUploadedMediaCommentDetailsFromController(controller) {
+  if (!controller || controller.disposed || !(controller.mediaElement instanceof HTMLMediaElement)) {
+    return null;
+  }
+  const mediaElement = controller.mediaElement;
+  const provider = normalizeMediaProvider(controller.provider);
+  const sourceUrl = normalizeUploadedMediaSourceUrl(controller.sourceUrl || '', provider);
+  if (!isSwagStudioRoom || !isUploadedMediaProvider(provider) || !sourceUrl) {
+    return null;
+  }
+  const currentTime = normalizeMediaCommentTime(mediaElement.currentTime);
+  const duration = getUploadedMediaDuration(mediaElement);
+  const loopMode = normalizeUploadedMediaLoopMode(controller.loopMode);
+  const usePointCue = mediaElement.paused || mediaElement.ended || loopMode !== UPLOADED_MEDIA_LOOP_MODE_SECTION || duration <= 0;
+  if (usePointCue) {
+    return {
+      sourceDieId: controller.dieId,
+      provider,
+      sourceUrl,
+      title: normalizeMediaTitle(controller.mediaTitle || ''),
+      mode: 'time',
+      startTime: currentTime,
+      endTime: currentTime,
+      label: formatUploadedMediaTimeLabel(currentTime)
+    };
+  }
+  const range = normalizeUploadedMediaLoopRange(controller);
+  const startTime = duration * range.startRatio;
+  const endTime = duration * range.endRatio;
+  return {
+    sourceDieId: controller.dieId,
+    provider,
+    sourceUrl,
+    title: normalizeMediaTitle(controller.mediaTitle || ''),
+    mode: 'segment',
+    startTime,
+    endTime,
+    label: `${formatUploadedMediaTimeLabel(startTime)}-${formatUploadedMediaTimeLabel(endTime)}`
+  };
+}
+
+function getFirebasePushIdTimestamp(id) {
+  const rawId = String(id || '').trim();
+  const alphabet = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+  if (rawId.length < 8) {
+    return 0;
+  }
+  let timestamp = 0;
+  for (let index = 0; index < 8; index += 1) {
+    const digit = alphabet.indexOf(rawId[index]);
+    if (digit < 0) {
+      return 0;
+    }
+    timestamp = timestamp * 64 + digit;
+  }
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function getStudioDieIdTimestamp(id) {
+  const match = String(id || '').trim().match(/^(?:media-comment|media|label)-([a-z0-9]+)-/i);
+  if (!match) {
+    return 0;
+  }
+  const timestamp = Number.parseInt(match[1], 36);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function normalizeStudioListOrder(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.max(1, Math.floor(numeric)) : 0;
+}
+
+function getStudioListEntrySortValue(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return 0;
+  }
+  const explicitOrder = normalizeStudioListOrder(entry.state?.studioListOrder);
+  if (explicitOrder > 0) {
+    return explicitOrder;
+  }
+  if (entry.source === 'card') {
+    return getFirebasePushIdTimestamp(entry.id) || Math.max(0, Math.floor(Number(entry.state?.updatedAt) || 0));
+  }
+  if (entry.source === 'game') {
+    return Math.max(0, Math.floor(Number(entry.state?.updatedAt) || 0));
+  }
+  return getStudioDieIdTimestamp(entry.id) || Math.max(0, Math.floor(Number(entry.state?.updatedAt) || 0));
+}
+
+function isStudioListImageCard(cardState) {
+  if (!isSwagStudioRoom || !isImageComponentCard(cardState)) {
+    return false;
+  }
+  if (isNoteComponentCard(cardState) || isSecretAreaComponentCard(cardState) || isStudioFolderComponentCard(cardState)) {
+    return false;
+  }
+  if (cardState?.inDeck || cardState?.inDiscard || cardState?.inAuction) {
+    return false;
+  }
+  if (getCardHandOwnerId(cardState)) {
+    return false;
+  }
+  return true;
+}
+
+function getStudioListGameEntriesSignature() {
+  if (!isSwagStudioRoom) {
+    return '';
+  }
+  const parts = [];
+  const collect = (kind, gameMap, normalizeGameId) => {
+    for (const [rawGameId, gameState] of gameMap.entries()) {
+      if (!gameState || gameState.enabled === false) {
+        continue;
+      }
+      const gameId = normalizeGameId(rawGameId);
+      parts.push(`${kind}:${gameId}:${normalizeStudioListOrder(gameState.studioListOrder)}`);
+    }
+  };
+  collect('mons', monsGameStatesById, normalizeMonsGameId);
+  collect('tafl', taflGameStatesById, normalizeTaflGameId);
+  collect('go', goGameStatesById, normalizeGoGameId);
+  return parts.sort().join('|');
+}
+
+function getStudioListEntries() {
+  if (!isSwagStudioRoom) {
+    return [];
+  }
+  const entries = [];
+  for (const [dieId, dieState] of diceById.entries()) {
+    const dieType = normalizeDieType(dieState?.type);
+    if (dieType === 'label') {
+      entries.push({
+        id: dieId,
+        source: 'die',
+        kind: isMediaCommentLabelState(dieState)
+          ? 'comment'
+          : isHeadingLabelState(dieState)
+            ? 'heading'
+            : 'text',
+        state: dieState
+      });
+      continue;
+    }
+    if (dieType === 'media') {
+      const provider = normalizeMediaProvider(dieState?.mediaProvider);
+      if (isUploadedMediaProvider(provider) || isEmbeddableMediaProvider(provider)) {
+        entries.push({
+          id: dieId,
+          source: 'die',
+          kind: provider,
+          state: dieState
+        });
+      }
+      continue;
+    }
+    if (dieType === 'sampler') {
+      entries.push({
+        id: dieId,
+        source: 'die',
+        kind: 'sampler',
+        state: dieState
+      });
+    }
+  }
+  for (const [gameId, gameState] of monsGameStatesById.entries()) {
+    if (gameState && gameState.enabled !== false) {
+      entries.push({
+        id: normalizeMonsGameId(gameId),
+        source: 'game',
+        kind: 'mons',
+        state: gameState
+      });
+    }
+  }
+  for (const [gameId, gameState] of taflGameStatesById.entries()) {
+    if (gameState && gameState.enabled !== false) {
+      entries.push({
+        id: normalizeTaflGameId(gameId),
+        source: 'game',
+        kind: 'tafl',
+        state: gameState
+      });
+    }
+  }
+  for (const [gameId, gameState] of goGameStatesById.entries()) {
+    if (gameState && gameState.enabled !== false) {
+      entries.push({
+        id: normalizeGoGameId(gameId),
+        source: 'game',
+        kind: 'go',
+        state: gameState
+      });
+    }
+  }
+  for (const [cardId, cardState] of cards.entries()) {
+    if (isStudioFolderComponentCard(cardState)) {
+      entries.push({
+        id: cardId,
+        source: 'card',
+        kind: 'folder',
+        state: cardState
+      });
+      continue;
+    }
+    if (isStudioListImageCard(cardState)) {
+      entries.push({
+        id: cardId,
+        source: 'card',
+        kind: 'image',
+        state: cardState
+      });
+    }
+  }
+  return entries.sort((a, b) => {
+    const createdDelta = getStudioListEntrySortValue(a) - getStudioListEntrySortValue(b);
+    if (createdDelta !== 0) {
+      return createdDelta;
+    }
+    const zDelta = (Number(a.state?.z) || 0) - (Number(b.state?.z) || 0);
+    if (zDelta !== 0) {
+      return zDelta;
+    }
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+}
+
+function getStudioFolderListRegions() {
+  if (!isSwagStudioRoom) {
+    return [];
+  }
+  const regions = [];
+  for (const [cardId, cardState] of cards.entries()) {
+    if (!isStudioFolderComponentCard(cardState)) {
+      continue;
+    }
+    if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
+      continue;
+    }
+    const size = getCardTableDimensions(cardState);
+    regions.push({
+      cardId,
+      x: Number(cardState.x) || WORLD_WIDTH / 2,
+      y: Number(cardState.y) || WORLD_HEIGHT / 2,
+      width: size.width,
+      height: size.height,
+      rotationDeg: normalizeStickerRotationDegrees(cardState.componentRotation),
+      z: Number(cardState.z) || 0
+    });
+  }
+  return regions.sort((a, b) => b.z - a.z);
+}
+
+function normalizeStudioFolderTitle(value) {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return normalized || 'folder';
+}
+
+function getStudioFolderTitle(cardState) {
+  return normalizeStudioFolderTitle(cardState?.studioFolderTitle || 'folder');
+}
+
+function getStudioListFolderCollapsed(entry) {
+  const folderId = String(entry?.id || '').trim();
+  if (folderId && studioListFolderCollapsedByCardId.has(folderId)) {
+    return studioListFolderCollapsedByCardId.get(folderId) === true;
+  }
+  return true;
+}
+
+function toggleStudioListFolderCollapsed(cardId) {
+  const targetCardId = String(cardId || '').trim();
+  if (!isSwagStudioRoom || !targetCardId) {
+    return;
+  }
+  const current = cards.get(targetCardId);
+  if (!isStudioFolderComponentCard(current)) {
+    return;
+  }
+  const currentCollapsed = studioListFolderCollapsedByCardId.has(targetCardId)
+    ? studioListFolderCollapsedByCardId.get(targetCardId) === true
+    : true;
+  studioListFolderCollapsedByCardId.set(targetCardId, !currentCollapsed);
+  scheduleStudioListViewRender();
+}
+
+function getStudioFolderRegion(cardId, cardState) {
+  if (!isStudioFolderComponentCard(cardState)) {
+    return null;
+  }
+  const size = getCardTableDimensions(cardState);
+  return {
+    cardId: String(cardId || '').trim(),
+    x: Number(cardState.x) || WORLD_WIDTH / 2,
+    y: Number(cardState.y) || WORLD_HEIGHT / 2,
+    width: size.width,
+    height: size.height,
+    rotationDeg: normalizeStickerRotationDegrees(cardState.componentRotation)
+  };
+}
+
+function collectStudioFolderMoveMembers(folderCardId, folderCardState) {
+  if (!isSwagStudioRoom) {
+    return null;
+  }
+  const normalizedFolderCardId = String(folderCardId || '').trim();
+  const region = getStudioFolderRegion(normalizedFolderCardId, folderCardState);
+  if (!region) {
+    return null;
+  }
+  const memberCards = [];
+  const memberDice = [];
+  const memberGames = [];
+  for (const [cardId, cardState] of cards.entries()) {
+    if (cardId === normalizedFolderCardId || !cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction) {
+      continue;
+    }
+    if (getCardHandOwnerId(cardState) || cardState.holderClientId) {
+      continue;
+    }
+    const center = getCardWorldCenter(cardId, cardState);
+    if (!center || !isWorldPointInsideSecretAreaRegion(center.x, center.y, region)) {
+      continue;
+    }
+    memberCards.push({
+      cardId,
+      offsetX: center.x - region.x,
+      offsetY: center.y - region.y
+    });
+  }
+  for (const [dieId, dieState] of diceById.entries()) {
+    if (!dieState || dieState.holderClientId) {
+      continue;
+    }
+    const centerX = Number(dieState.x) || WORLD_WIDTH / 2;
+    const centerY = Number(dieState.y) || WORLD_HEIGHT / 2;
+    if (!isWorldPointInsideSecretAreaRegion(centerX, centerY, region)) {
+      continue;
+    }
+    memberDice.push({
+      dieId,
+      offsetX: centerX - region.x,
+      offsetY: centerY - region.y
+    });
+  }
+  const collectGameMembers = (gameMap, type, normalizeGameId) => {
+    if (!(gameMap instanceof Map)) {
+      return;
+    }
+    for (const [rawGameId, gameState] of gameMap.entries()) {
+      const gameId = normalizeGameId(rawGameId);
+      if (!gameId || !gameState || gameState.enabled === false || gameState.holderClientId) {
+        continue;
+      }
+      const centerX = Number(gameState.x) || WORLD_WIDTH / 2;
+      const centerY = Number(gameState.y) || WORLD_HEIGHT / 2;
+      if (!isWorldPointInsideSecretAreaRegion(centerX, centerY, region)) {
+        continue;
+      }
+      memberGames.push({
+        type,
+        gameId,
+        offsetX: centerX - region.x,
+        offsetY: centerY - region.y
+      });
+    }
+  };
+  collectGameMembers(monsGameStatesById, 'mons', normalizeMonsGameId);
+  collectGameMembers(taflGameStatesById, 'tafl', normalizeTaflGameId);
+  collectGameMembers(goGameStatesById, 'go', normalizeGoGameId);
+  collectGameMembers(hexitamaGameStatesById, 'hexitama', normalizeHexitamaGameId);
+  return memberCards.length || memberDice.length || memberGames.length
+    ? { cards: memberCards, dice: memberDice, games: memberGames }
+    : null;
+}
+
+function getStudioListEntryWorldPoint(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
+  if (entry.source === 'card') {
+    return getCardWorldCenter(entry.id, entry.state);
+  }
+  if (entry.source === 'die') {
+    return {
+      x: Number(entry.state?.x) || WORLD_WIDTH / 2,
+      y: Number(entry.state?.y) || WORLD_HEIGHT / 2
+    };
+  }
+  if (entry.source === 'game') {
+    return {
+      x: Number(entry.state?.x) || WORLD_WIDTH / 2,
+      y: Number(entry.state?.y) || WORLD_HEIGHT / 2
+    };
+  }
+  return null;
+}
+
+function getStudioListEntryFolderId(entry, folderRegions) {
+  if (!entry || entry.kind === 'folder' || !Array.isArray(folderRegions) || !folderRegions.length) {
+    return '';
+  }
+  const point = getStudioListEntryWorldPoint(entry);
+  if (!point) {
+    return '';
+  }
+  for (const region of folderRegions) {
+    if (region.cardId === entry.id) {
+      continue;
+    }
+    if (isWorldPointInsideSecretAreaRegion(point.x, point.y, region)) {
+      return region.cardId;
+    }
+  }
+  return '';
+}
+
+function beginStudioFolderTitleEdit(cardId, titleElement) {
+  const targetCardId = String(cardId || '').trim();
+  if (!isSwagStudioRoom || !targetCardId || !(titleElement instanceof HTMLElement)) {
+    return;
+  }
+  const cardState = cards.get(targetCardId);
+  if (!isStudioFolderComponentCard(cardState)) {
+    return;
+  }
+  if (titleElement.classList.contains('is-editing')) {
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'studio-folder-title-input';
+  if (titleElement.classList.contains('studio-list-folder-title')) {
+    input.classList.add('is-list');
+  }
+  input.maxLength = 80;
+  input.spellcheck = false;
+  input.autocomplete = 'off';
+  input.autocapitalize = 'off';
+  input.setAttribute('autocorrect', 'off');
+  input.setAttribute('aria-label', 'folder title');
+  input.value = getStudioFolderTitle(cardState);
+  let finished = false;
+  const finish = (commit) => {
+    if (finished) {
+      return;
+    }
+    finished = true;
+    const nextTitle = normalizeStudioFolderTitle(input.value);
+    input.remove();
+    titleElement.classList.remove('is-editing');
+    titleElement.textContent = commit ? nextTitle : getStudioFolderTitle(cards.get(targetCardId));
+    if (commit) {
+      patchStudioFolderTitle(targetCardId, nextTitle);
+    }
+  };
+  input.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  input.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  input.addEventListener('dblclick', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  input.addEventListener('keydown', (event) => {
+    event.stopPropagation();
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      finish(true);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      finish(false);
+    }
+  });
+  input.addEventListener('blur', () => {
+    finish(true);
+  });
+  titleElement.classList.add('is-editing');
+  titleElement.after(input);
+  window.requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function groupStudioListEntries(entries) {
+  const folderRegions = getStudioFolderListRegions();
+  const foldersById = new Map();
+  const childEntriesByFolderId = new Map();
+  const childEntryKeys = new Set();
+  for (const entry of entries) {
+    if (entry.kind === 'folder') {
+      foldersById.set(entry.id, entry);
+    }
+  }
+  for (const entry of entries) {
+    if (entry.kind === 'folder') {
+      continue;
+    }
+    const folderId = getStudioListEntryFolderId(entry, folderRegions);
+    if (!folderId || !foldersById.has(folderId)) {
+      continue;
+    }
+    if (!childEntriesByFolderId.has(folderId)) {
+      childEntriesByFolderId.set(folderId, []);
+    }
+    childEntriesByFolderId.get(folderId).push({ ...entry, studioFolderId: folderId });
+    childEntryKeys.add(`${entry.source}:${entry.id}`);
+  }
+  return entries
+    .filter((entry) => entry.kind === 'folder' || !childEntryKeys.has(`${entry.source}:${entry.id}`))
+    .map((entry) => (
+      entry.kind === 'folder'
+        ? { ...entry, childEntries: childEntriesByFolderId.get(entry.id) || [] }
+        : entry
+	    ));
+}
+
+function pruneStudioListFolderCollapseOverrides(entries) {
+  const folderIds = new Set(
+    (Array.isArray(entries) ? entries : [])
+      .filter((entry) => entry?.kind === 'folder')
+      .map((entry) => String(entry.id || '').trim())
+      .filter(Boolean)
+  );
+  for (const folderId of studioListFolderCollapsedByCardId.keys()) {
+    if (!folderIds.has(folderId)) {
+      studioListFolderCollapsedByCardId.delete(folderId);
+    }
+  }
+}
+
+function getStudioListKindLabel(entry) {
+  const kind = String(entry?.kind || '').trim();
+  if (kind === 'mons') {
+    return 'super metal mons';
+  }
+  if (kind === 'tafl') {
+    return 'hnefatafl';
+  }
+  if (kind === 'go') {
+    return 'go';
+  }
+  if (kind === 'folder') {
+    return 'folder';
+  }
+  if (kind === 'sampler') {
+    return 'sampler';
+  }
+  if (kind === 'uploaded-audio') {
+    return 'audio';
+  }
+  if (kind === 'uploaded-video') {
+    return 'video';
+  }
+  if (kind === 'youtube') {
+    return 'youtube';
+  }
+  if (kind === 'soundcloud') {
+    return 'soundcloud';
+  }
+  if (kind === 'comment') {
+    return 'comment';
+  }
+  return kind || 'component';
+}
+
+function getStudioListEntryTitle(entry) {
+  const state = entry?.state || {};
+  const kind = String(entry?.kind || '').trim();
+  if (kind === 'heading') {
+    return 'heading';
+  }
+  if (kind === 'text') {
+    return 'text';
+  }
+  if (kind === 'comment') {
+    return getMediaCommentTimeLabelFromState(state);
+  }
+  if (kind === 'folder') {
+    return 'folder';
+  }
+  if (kind === 'sampler') {
+    return 'sampler';
+  }
+  if (kind === 'mons' || kind === 'tafl' || kind === 'go') {
+    return getStudioListKindLabel(entry);
+  }
+  if (normalizeDieType(state?.type) === 'media') {
+    return normalizeMediaTitle(state.mediaTitle || '') || getStudioListKindLabel(entry);
+  }
+  return 'image';
+}
+
+function createStudioListHeader(entry) {
+  const header = document.createElement('div');
+  header.className = 'studio-list-item-header';
+  const type = document.createElement('span');
+  type.className = 'studio-list-item-type';
+  type.textContent = getStudioListKindLabel(entry);
+  const title = document.createElement('span');
+  title.className = 'studio-list-item-title';
+  title.textContent = getStudioListEntryTitle(entry);
+  header.append(type, title);
+  return header;
+}
+
+function autosizeStudioListTextEditor(editor) {
+  if (!(editor instanceof HTMLTextAreaElement)) {
+    return;
+  }
+  editor.style.height = 'auto';
+  editor.style.height = `${Math.max(36, editor.scrollHeight)}px`;
+}
+
+function createStudioListTextEditor(entry, options = {}) {
+  const state = entry?.state || {};
+  const editor = document.createElement('textarea');
+  editor.className = 'studio-list-text studio-list-text-editor';
+  editor.classList.toggle('is-heading', options.heading === true);
+  editor.classList.toggle('is-comment', options.comment === true);
+  editor.value = normalizeLabelText(state.text || '') || (options.placeholderText || '');
+  editor.rows = 1;
+  editor.spellcheck = false;
+  editor.autocomplete = 'off';
+  editor.autocapitalize = 'off';
+  editor.setAttribute('autocorrect', 'off');
+  editor.setAttribute('aria-label', options.ariaLabel || 'edit text');
+  editor.style.color = options.heading === true
+    ? HEADING_LABEL_TEXT_COLOR
+    : normalizeHexColor(state.textColor || '#111111');
+  editor.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  editor.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  editor.addEventListener('keydown', (event) => {
+    event.stopPropagation();
+  });
+  editor.addEventListener('input', () => {
+    const normalizedText = normalizeLabelText(editor.value || '');
+    if (editor.value !== normalizedText) {
+      const selectionStart = editor.selectionStart;
+      const selectionEnd = editor.selectionEnd;
+      editor.value = normalizedText;
+      editor.setSelectionRange(
+        Math.min(selectionStart, normalizedText.length),
+        Math.min(selectionEnd, normalizedText.length)
+      );
+    }
+    autosizeStudioListTextEditor(editor);
+    patchStudioListTextComponent(entry.id, normalizedText);
+  });
+  editor.addEventListener('change', () => {
+    patchStudioListTextComponent(entry.id, normalizeLabelText(editor.value || ''));
+  });
+  editor.addEventListener('blur', () => {
+    window.requestAnimationFrame(() => scheduleStudioListViewRender());
+  });
+  window.requestAnimationFrame(() => autosizeStudioListTextEditor(editor));
+  return editor;
+}
+
+function createStudioListMediaCommentBody(entry) {
+  const state = entry?.state || {};
+  const wrap = document.createElement('div');
+  const header = document.createElement('div');
+  header.className = 'studio-list-media-comment-header';
+  const playButton = document.createElement('button');
+  playButton.type = 'button';
+  playButton.className = 'studio-list-media-comment-play';
+  playButton.setAttribute('aria-label', 'play media comment');
+  playButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.7 6.3V17.7L17.2 12L8.7 6.3Z" fill="currentColor"/></svg>';
+  playButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    playMediaCommentCue(entry.id, diceById.get(entry.id) || state);
+  });
+  const time = document.createElement('span');
+  time.textContent = getMediaCommentTimeLabelFromState(state);
+  header.append(playButton, time);
+  const text = createStudioListTextEditor(entry, {
+    comment: true,
+    ariaLabel: 'edit media comment'
+  });
+  wrap.append(header, text);
+  return wrap;
+}
+
+function createStudioListLabelBody(entry) {
+  const state = entry?.state || {};
+  if (isMediaCommentLabelState(state)) {
+    return createStudioListMediaCommentBody(entry);
+  }
+  return createStudioListTextEditor(entry, {
+    heading: isHeadingLabelState(state),
+    placeholderText: getLabelDefaultTextForVariant(state),
+    ariaLabel: isHeadingLabelState(state) ? 'edit heading' : 'edit text'
+  });
+}
+
+function createStudioListUploadedMediaPlayerBody(entry) {
+  const state = entry?.state || {};
+  const provider = normalizeMediaProvider(state?.mediaProvider);
+  const dimensions = getDieWorldDimensions(state);
+  const width = Math.max(1, Number(dimensions?.width) || MEDIA_DEFAULT_WIDTH);
+  const height = Math.max(1, Number(dimensions?.height) || MEDIA_DEFAULT_HEIGHT_YOUTUBE);
+  const wrap = document.createElement('div');
+  wrap.className = `studio-list-uploaded-media is-${provider || 'uploaded-media'}`;
+  wrap.dataset.dieId = String(entry?.id || '');
+  wrap.style.setProperty('--studio-list-media-width', `${width.toFixed(4)}px`);
+  wrap.style.setProperty('--studio-list-media-height', `${height.toFixed(4)}px`);
+  wrap.style.setProperty('--studio-list-media-aspect', `${width.toFixed(4)} / ${height.toFixed(4)}`);
+  wrap.style.setProperty('--studio-media-design-width', `${width.toFixed(4)}px`);
+  wrap.style.setProperty('--studio-media-design-height', `${height.toFixed(4)}px`);
+  wrap.style.setProperty('--studio-media-render-scale', '1');
+  wrap.style.removeProperty('--uploaded-media-unit');
+  const face = document.createElement('div');
+  face.className = 'table-die-face';
+  wrap.appendChild(face);
+  if (isUploadedMediaProvider(provider)) {
+    renderUploadedMediaSkeletonFace(face, provider);
+    renderUploadedMediaFace(entry.id, face, state);
+  }
+  return wrap;
+}
+
+function loadYouTubeTitleCache() {
+  if (youtubeTitleCacheByVideoId.size > 0) {
+    return;
+  }
+  let cached = null;
+  try {
+    cached = JSON.parse(window.localStorage.getItem(YOUTUBE_TITLE_CACHE_KEY) || '{}');
+  } catch {
+    cached = null;
+  }
+  if (!cached || typeof cached !== 'object') {
+    return;
+  }
+  const now = Date.now();
+  const maxAgeMs = 1000 * 60 * 60 * 24 * 60;
+  for (const [videoId, entry] of Object.entries(cached)) {
+    const normalizedVideoId = getYouTubeVideoIdFromUrl(`https://www.youtube.com/watch?v=${videoId}`);
+    const title = normalizeMediaTitle(entry?.title || '');
+    const cachedAt = Number(entry?.cachedAt) || 0;
+    if (normalizedVideoId && title && now - cachedAt < maxAgeMs) {
+      youtubeTitleCacheByVideoId.set(normalizedVideoId, title);
+    }
+  }
+}
+
+function persistYouTubeTitleCache() {
+  const entries = {};
+  const now = Date.now();
+  for (const [videoId, title] of youtubeTitleCacheByVideoId.entries()) {
+    if (videoId && title) {
+      entries[videoId] = { title, cachedAt: now };
+    }
+  }
+  try {
+    window.localStorage.setItem(YOUTUBE_TITLE_CACHE_KEY, JSON.stringify(entries));
+  } catch {
+    // Cache is an optimization only.
+  }
+}
+
+function getCachedYouTubeTitle(sourceUrl) {
+  loadYouTubeTitleCache();
+  const videoId = getYouTubeVideoIdFromUrl(sourceUrl);
+  return videoId ? normalizeMediaTitle(youtubeTitleCacheByVideoId.get(videoId) || '') : '';
+}
+
+function setCachedYouTubeTitle(sourceUrl, title) {
+  const videoId = getYouTubeVideoIdFromUrl(sourceUrl);
+  const normalizedTitle = normalizeMediaTitle(title);
+  if (!videoId || !normalizedTitle) {
+    return;
+  }
+  youtubeTitleCacheByVideoId.set(videoId, normalizedTitle);
+  persistYouTubeTitleCache();
+}
+
+function fetchYouTubeVideoTitle(sourceUrl) {
+  const normalizedSourceUrl = normalizeMediaSourceUrl(sourceUrl);
+  const videoId = getYouTubeVideoIdFromUrl(normalizedSourceUrl);
+  if (!videoId) {
+    return Promise.resolve('');
+  }
+  const cachedTitle = getCachedYouTubeTitle(normalizedSourceUrl);
+  if (cachedTitle) {
+    return Promise.resolve(cachedTitle);
+  }
+  if (youtubeTitleFetchByVideoId.has(videoId)) {
+    return youtubeTitleFetchByVideoId.get(videoId);
+  }
+  const fetchPromise = (async () => {
+    const endpoints = [
+      `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(normalizedSourceUrl)}`,
+      `https://noembed.com/embed?url=${encodeURIComponent(normalizedSourceUrl)}`
+    ];
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          mode: 'cors',
+          credentials: 'omit',
+          cache: 'force-cache'
+        });
+        if (!response.ok) {
+          continue;
+        }
+        const payload = await response.json();
+        const title = normalizeMediaTitle(payload?.title || '');
+        if (title && !isGenericYouTubeMediaTitle(title)) {
+          setCachedYouTubeTitle(normalizedSourceUrl, title);
+          return title;
+        }
+      } catch {
+        // Try the next title endpoint.
+      }
+    }
+    return '';
+  })().finally(() => {
+    youtubeTitleFetchByVideoId.delete(videoId);
+  });
+  youtubeTitleFetchByVideoId.set(videoId, fetchPromise);
+  return fetchPromise;
+}
+
+function hydrateStudioListYouTubeTitle(titleElement, dieId, sourceUrl, currentTitle) {
+  if (!(titleElement instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedSourceUrl = normalizeMediaSourceUrl(sourceUrl);
+  if (!normalizedSourceUrl) {
+    return;
+  }
+  const storedTitle = isGenericYouTubeMediaTitle(currentTitle) ? '' : normalizeMediaTitle(currentTitle);
+  const cachedTitle = getCachedYouTubeTitle(normalizedSourceUrl);
+  const immediateTitle = storedTitle || cachedTitle;
+  titleElement.textContent = immediateTitle;
+  titleElement.classList.toggle('hidden', !immediateTitle);
+  if (immediateTitle) {
+    return;
+  }
+  fetchYouTubeVideoTitle(normalizedSourceUrl)
+    .then((title) => {
+      const normalizedTitle = normalizeMediaTitle(title);
+      if (!normalizedTitle || !(titleElement instanceof HTMLElement) || !titleElement.isConnected) {
+        return;
+      }
+      titleElement.textContent = normalizedTitle;
+      titleElement.classList.remove('hidden');
+    })
+    .catch(() => {
+      // Missing titles should not break list rendering.
+    });
+}
+
+function getEmbeddedMediaIdentity(provider, sourceUrl) {
+  const normalizedProvider = normalizeMediaProvider(provider);
+  const normalizedSourceUrl = normalizeMediaSourceUrl(sourceUrl || '');
+  return normalizedProvider && normalizedSourceUrl ? `${normalizedProvider}:${normalizedSourceUrl}` : '';
+}
+
+function getMediaFrameIframe(mediaFrame) {
+  if (!(mediaFrame instanceof HTMLElement)) {
+    return null;
+  }
+  const iframe = mediaFrame.querySelector(':scope > iframe.table-media-embed');
+  return iframe instanceof HTMLIFrameElement ? iframe : null;
+}
+
+function syncStudioEmbedFrameListPresentation(mediaFrame, provider, isListMode) {
+  if (!(mediaFrame instanceof HTMLElement)) {
+    return;
+  }
+  const normalizedProvider = normalizeMediaProvider(provider);
+  mediaFrame.classList.toggle('studio-list-embed-frame', isListMode);
+  mediaFrame.classList.toggle('is-youtube-embed', normalizedProvider === 'youtube');
+  mediaFrame.classList.toggle('is-soundcloud-embed', normalizedProvider === 'soundcloud');
+  const iframe = getMediaFrameIframe(mediaFrame);
+  if (iframe) {
+    iframe.classList.toggle('studio-list-embed', isListMode);
+    iframe.classList.toggle('is-soundcloud', isListMode && normalizedProvider === 'soundcloud');
+  }
+}
+
+function ensureStudioEmbedFrameParkingLot() {
+  if (!isSwagStudioRoom) {
+    return null;
+  }
+  if (studioEmbedFrameParkingLot instanceof HTMLElement && studioEmbedFrameParkingLot.isConnected) {
+    return studioEmbedFrameParkingLot;
+  }
+  const lot = document.createElement('div');
+  lot.className = 'studio-embed-frame-parking-lot hidden';
+  lot.setAttribute('aria-hidden', 'true');
+  lot.style.display = 'none';
+  (tableRoot || document.body)?.appendChild(lot);
+  studioEmbedFrameParkingLot = lot;
+  return lot;
+}
+
+function getReusableStudioEmbedFrameFromContainer(container, dieId, identity) {
+  if (!(container instanceof HTMLElement) || !dieId || !identity) {
+    return null;
+  }
+  const frames = container.querySelectorAll('.table-media-frame[data-die-id]');
+  for (const frame of frames) {
+    if (!(frame instanceof HTMLElement) || String(frame.dataset.dieId || '') !== dieId) {
+      continue;
+    }
+    const iframe = getMediaFrameIframe(frame);
+    if (iframe?.dataset?.mediaIdentity === identity) {
+      return frame;
+    }
+  }
+  return null;
+}
+
+function takeReusableStudioEmbedFrame(dieId, provider, sourceUrl) {
+  if (!isSwagStudioRoom) {
+    return null;
+  }
+  const normalizedDieId = String(dieId || '').trim();
+  const identity = getEmbeddedMediaIdentity(provider, sourceUrl);
+  if (!normalizedDieId || !identity) {
+    return null;
+  }
+  const parkingLot = ensureStudioEmbedFrameParkingLot();
+  const parkedFrame = getReusableStudioEmbedFrameFromContainer(parkingLot, normalizedDieId, identity);
+  if (parkedFrame) {
+    return parkedFrame;
+  }
+  const die = diceElements.get(normalizedDieId);
+  return getReusableStudioEmbedFrameFromContainer(die, normalizedDieId, identity);
+}
+
+function parkStudioListEmbedFrames() {
+  if (!isSwagStudioRoom || !(studioListItems instanceof HTMLElement)) {
+    return;
+  }
+  const parkingLot = ensureStudioEmbedFrameParkingLot();
+  if (!(parkingLot instanceof HTMLElement)) {
+    return;
+  }
+  for (const frame of Array.from(studioListItems.querySelectorAll('.studio-list-embed-frame[data-die-id]'))) {
+    if (frame instanceof HTMLElement) {
+      parkingLot.appendChild(frame);
+    }
+  }
+}
+
+function restoreStudioEmbedFramesToRoom() {
+  if (!isSwagStudioRoom) {
+    return;
+  }
+  const frameSources = [];
+  if (studioListItems instanceof HTMLElement) {
+    frameSources.push(...Array.from(studioListItems.querySelectorAll('.studio-list-embed-frame[data-die-id]')));
+  }
+  if (studioEmbedFrameParkingLot instanceof HTMLElement) {
+    frameSources.push(...Array.from(studioEmbedFrameParkingLot.querySelectorAll('.studio-list-embed-frame[data-die-id]')));
+  }
+  for (const frame of frameSources) {
+    if (!(frame instanceof HTMLElement)) {
+      continue;
+    }
+    const dieId = String(frame.dataset.dieId || '').trim();
+    const dieState = diceById.get(dieId);
+    const provider = normalizeMediaProvider(dieState?.mediaProvider);
+    if (!dieId || !isEmbeddableMediaProvider(provider)) {
+      continue;
+    }
+    const die = diceElements.get(dieId);
+    const face = die?._dieFace instanceof HTMLElement ? die._dieFace : die?.querySelector?.('.table-die-face');
+    if (!(face instanceof HTMLElement)) {
+      continue;
+    }
+    syncStudioEmbedFrameListPresentation(frame, provider, false);
+    face.appendChild(frame);
+    const iframe = getMediaFrameIframe(frame);
+    if (iframe) {
+      const sourceUrl = normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '') || normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '');
+      registerMediaEmbedController(dieId, provider, sourceUrl, iframe);
+    }
+  }
+}
+
+function cleanupUnusedParkedStudioEmbedFrames(activeEmbedDieIds) {
+  if (!(studioEmbedFrameParkingLot instanceof HTMLElement)) {
+    return;
+  }
+  const activeIds = activeEmbedDieIds instanceof Set ? activeEmbedDieIds : new Set();
+  for (const frame of Array.from(studioEmbedFrameParkingLot.querySelectorAll('.table-media-frame[data-die-id]'))) {
+    if (!(frame instanceof HTMLElement)) {
+      continue;
+    }
+    const dieId = String(frame.dataset.dieId || '').trim();
+    if (dieId && activeIds.has(dieId)) {
+      continue;
+    }
+    teardownMediaController(dieId);
+    frame.remove();
+  }
+}
+
+function createStudioListEmbedBody(entry) {
+  const state = entry?.state || {};
+  const provider = normalizeMediaProvider(state?.mediaProvider);
+  const embedUrl = normalizeMediaSourceUrl(state?.mediaEmbedUrl || '');
+  const sourceUrl = normalizeMediaSourceUrl(state?.mediaSourceUrl || '') || embedUrl;
+  const dieId = String(entry?.id || '').trim();
+  const wrap = document.createElement('div');
+  let mediaFrame = takeReusableStudioEmbedFrame(dieId, provider, sourceUrl);
+  if (!(mediaFrame instanceof HTMLElement)) {
+    mediaFrame = document.createElement('div');
+    mediaFrame.className = 'table-media-frame';
+  }
+  mediaFrame.dataset.dieId = dieId;
+  syncStudioEmbedFrameListPresentation(mediaFrame, provider, true);
+  let iframe = getMediaFrameIframe(mediaFrame);
+  if (!(iframe instanceof HTMLIFrameElement)) {
+    mediaFrame.textContent = '';
+    iframe = document.createElement('iframe');
+    iframe.className = 'table-media-embed';
+    mediaFrame.appendChild(iframe);
+  }
+  syncStudioEmbedFrameListPresentation(mediaFrame, provider, true);
+  iframe.title = provider === 'soundcloud'
+    ? (isSoundCloudPlaylistSourceUrl(sourceUrl) ? 'soundcloud playlist' : 'soundcloud media')
+    : 'youtube media';
+  const mediaIdentity = getEmbeddedMediaIdentity(provider, sourceUrl);
+  if (iframe.dataset.mediaIdentity !== mediaIdentity) {
+    iframe.src = embedUrl;
+    iframe.dataset.mediaIdentity = mediaIdentity;
+  }
+  iframe.dataset.embedSrc = embedUrl;
+  iframe.loading = 'lazy';
+  if ('fetchPriority' in iframe) {
+    iframe.fetchPriority = 'low';
+  }
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+  iframe.allow = 'autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture';
+  iframe.allowFullscreen = true;
+  syncStudioEmbedDragHandles(mediaFrame, provider);
+  registerMediaEmbedController(dieId, provider, sourceUrl, iframe);
+  if (provider === 'youtube') {
+    const title = document.createElement('div');
+    title.className = 'studio-list-media-title';
+    hydrateStudioListYouTubeTitle(title, dieId, sourceUrl, state?.mediaTitle || '');
+    wrap.appendChild(title);
+  } else if (provider !== 'soundcloud') {
+    const title = document.createElement('div');
+    title.className = 'studio-list-media-title';
+    title.textContent = normalizeMediaTitle(state?.mediaTitle || '') || provider || 'embed';
+    wrap.appendChild(title);
+  }
+  wrap.appendChild(mediaFrame);
+  return wrap;
+}
+
+function createStudioListMediaBody(entry) {
+  const state = entry?.state || {};
+  const provider = normalizeMediaProvider(state.mediaProvider);
+  if (provider === 'uploaded-audio') {
+    return createStudioListUploadedMediaPlayerBody(entry);
+  }
+  if (provider === 'uploaded-video') {
+    return createStudioListUploadedMediaPlayerBody(entry);
+  }
+  return createStudioListEmbedBody(entry);
+}
+
+function resolveStudioListGameLayoutMetrics(gameState, renderWidth, renderHeight, gameKind = '') {
+  const normalizedKind = String(gameKind || '').trim().toLowerCase();
+  const designWidth = Math.max(1, Number(gameState?.width) || MONS_BOARD_WORLD_WIDTH);
+  const designHeight = Math.max(1, Number(gameState?.height) || MONS_BOARD_WORLD_HEIGHT);
+  const renderScale = Math.max(
+    0.001,
+    Math.min(
+      Math.max(0.001, Number(renderWidth) || designWidth) / designWidth,
+      Math.max(0.001, Number(renderHeight) || designHeight) / designHeight
+    )
+  );
+  const hudHeight = normalizedKind === 'mons'
+    ? snapToDevicePixel(Math.max(24, designHeight - designWidth), 24)
+    : snapToDevicePixel(
+        Math.max(
+          TAFL_HUD_MIN_HEIGHT,
+          designHeight - designWidth,
+          designHeight * TAFL_HUD_HEIGHT_RATIO
+        ),
+        TAFL_HUD_MIN_HEIGHT
+      );
+  const boardHeight = normalizedKind === 'mons'
+    ? designWidth
+    : Math.max(1, designHeight - hudHeight);
+  return {
+    designWidth,
+    designHeight,
+    boardHeight,
+    hudHeight,
+    renderScale
+  };
+}
+
+function getStudioListGameRenderSize(wrap, gameState) {
+  const designWidth = Math.max(1, Number(gameState?.width) || MONS_BOARD_WORLD_WIDTH);
+  const designHeight = Math.max(1, Number(gameState?.height) || MONS_BOARD_WORLD_HEIGHT);
+  const rect = wrap instanceof HTMLElement ? wrap.getBoundingClientRect() : null;
+  const fallbackWidth = Math.min(designWidth, 680);
+  const renderWidth = Math.max(1, Math.round(Number(rect?.width) || fallbackWidth));
+  const renderHeight = Math.max(1, Math.round(Number(rect?.height) || (renderWidth * designHeight) / designWidth));
+  return { renderWidth, renderHeight, designWidth, designHeight };
+}
+
+function syncStudioListGameShellFrame(wrap, shell, gameState, gameKind) {
+  if (!(wrap instanceof HTMLElement) || !(shell instanceof HTMLElement)) {
+    return null;
+  }
+  const size = getStudioListGameRenderSize(wrap, gameState);
+  const metrics = resolveStudioListGameLayoutMetrics(gameState, size.renderWidth, size.renderHeight, gameKind);
+  shell.classList.remove('hidden', 'is-cover-drawings', 'is-drag-floating');
+  shell.classList.add('is-studio-list-game-shell');
+  if (shell.parentElement !== wrap) {
+    wrap.appendChild(shell);
+  }
+  setElementStylePx(shell, 'left', 0);
+  setElementStylePx(shell, 'top', 0);
+  setElementStylePx(shell, 'width', size.renderWidth);
+  setElementStylePx(shell, 'height', size.renderHeight);
+  syncStudioGameRasterScale(shell, metrics);
+  return metrics;
+}
+
+function hideStudioListGameFloatingControls(...controls) {
+  for (const control of controls) {
+    if (control instanceof HTMLElement) {
+      control.classList.add('hidden');
+      control.classList.remove('is-held-by-self', 'is-group-selected');
+    }
+  }
+}
+
+function renderStudioListMonsGame(wrap, gameId) {
+  const normalizedGameId = normalizeMonsGameId(gameId);
+  const gameState = getMonsGameStateById(normalizedGameId);
+  if (!gameState || gameState.enabled === false) {
+    return;
+  }
+  const isActive = normalizeMonsGameId(activeMonsGameId) === normalizedGameId;
+  let ui = null;
+  if (isActive) {
+    ensureMonsBoardElements();
+    ui = {
+      shell: monsGameShell,
+      boardSvg: monsBoardSvg,
+      hud: monsHud,
+      scoreBlackLabel: monsScoreBlackLabel,
+      scoreWhiteLabel: monsScoreWhiteLabel,
+      potionsBlackTray: monsPotionsBlackTray,
+      potionsWhiteTray: monsPotionsWhiteTray,
+      claimsBlackList: monsBlackClaimsList,
+      claimsWhiteList: monsWhiteClaimsList,
+      blackClaimButton: monsBlackClaimButton,
+      whiteClaimButton: monsWhiteClaimButton,
+      undoButton: monsUndoButton,
+      flipButton: monsFlipButton,
+      moveButton: monsMoveButton,
+      optionsButton: monsOptionsButton
+    };
+  } else {
+    ui = ensureMonsGhostBoardElement(normalizedGameId);
+  }
+  if (!ui?.shell || !ui.boardSvg || !ui.hud) {
+    return;
+  }
+  const metrics = syncStudioListGameShellFrame(wrap, ui.shell, gameState, 'mons');
+  if (!metrics) {
+    return;
+  }
+  const layoutWidth = metrics.designWidth;
+  const layoutBoardHeight = metrics.boardHeight;
+  const layoutHudHeight = metrics.hudHeight;
+  const pieceImageRendering = getMonsPieceImageRendering();
+  const showHudPotions = shouldShowMonsHudPotions(layoutWidth);
+  const boardFlipped = isMonsBoardFlipped(gameState);
+  setElementStylePx(ui.boardSvg, 'width', layoutWidth);
+  setElementStylePx(ui.boardSvg, 'height', layoutBoardHeight);
+  setElementStylePx(ui.hud, 'width', layoutWidth);
+  setElementStylePx(ui.hud, 'height', layoutHudHeight);
+  if (isActive) {
+    monsGameState = gameState;
+    if (lastActiveMonsBoardFlipped !== boardFlipped) {
+      applyMonsBoardOrientation(ui.boardSvg, boardFlipped);
+      lastActiveMonsBoardFlipped = boardFlipped;
+    }
+    setMonsBoardCoordinatesVisibility(ui.boardSvg, gameState.showCoordinates !== false);
+    const nextLayerRenderKey = buildActiveMonsLayerRenderKey(gameState, pieceImageRendering);
+    const nextHudRenderKey = buildActiveMonsHudRenderKey(gameState, showHudPotions);
+    if (lastActiveMonsLayerRenderKey !== nextLayerRenderKey || !monsBoardPiecesLayer?.children.length) {
+      renderMonsSpawnGhosts();
+      renderMonsPieces();
+      renderMonsAbilityHints();
+      lastActiveMonsLayerRenderKey = nextLayerRenderKey;
+    }
+    if (lastActiveMonsHudRenderKey !== nextHudRenderKey) {
+      if (ui.scoreBlackLabel) {
+        ui.scoreBlackLabel.textContent = String(Math.max(0, Number(gameState.scores?.black) || 0));
+      }
+      if (ui.scoreWhiteLabel) {
+        ui.scoreWhiteLabel.textContent = String(Math.max(0, Number(gameState.scores?.white) || 0));
+      }
+      renderMonsPotionTray(ui.potionsBlackTray, gameState.potions?.black, 'black', showHudPotions);
+      renderMonsPotionTray(ui.potionsWhiteTray, gameState.potions?.white, 'white', showHudPotions);
+      renderMonsSideClaimsList(ui.claimsBlackList, gameState.claims?.black, 'black', ui.blackClaimButton);
+      renderMonsSideClaimsList(ui.claimsWhiteList, gameState.claims?.white, 'white', ui.whiteClaimButton);
+      if (ui.undoButton) {
+        const undoHistory = Array.isArray(gameState.undoHistory) ? gameState.undoHistory : [];
+        ui.undoButton.classList.toggle('hidden', !showHudPotions);
+        ui.undoButton.disabled = !canCurrentPlayerUndoMonsEntry(undoHistory[undoHistory.length - 1] || null);
+        ui.undoButton.classList.toggle('is-disabled', ui.undoButton.disabled);
+      }
+      if (ui.flipButton) {
+        ui.flipButton.classList.toggle('hidden', !showHudPotions);
+        ui.flipButton.classList.toggle('is-flipped', boardFlipped);
+      }
+      lastActiveMonsHudRenderKey = nextHudRenderKey;
+    }
+  } else {
+    if (ui.lastBoardFlipped !== boardFlipped) {
+      applyMonsBoardOrientation(ui.boardSvg, boardFlipped);
+      ui.lastBoardFlipped = boardFlipped;
+    }
+    setMonsBoardCoordinatesVisibility(ui.boardSvg, gameState.showCoordinates !== false);
+    if (ui.lastWaveFrameIndex !== monsWaveFrameIndex) {
+      renderMonsCornerWavesIntoLayer(ui.boardWavesLayer);
+      ui.lastWaveFrameIndex = monsWaveFrameIndex;
+    }
+    const nextGhostStateRenderKey = buildGhostMonsRenderKey(normalizedGameId, gameState, pieceImageRendering, showHudPotions);
+    if (ui.lastStateRenderKey !== nextGhostStateRenderKey || !ui.boardPiecesLayer?.children.length) {
+      renderMonsGhostBoardState(ui, gameState, layoutWidth, pieceImageRendering, showHudPotions);
+      ui.lastStateRenderKey = nextGhostStateRenderKey;
+    }
+  }
+  hideStudioListGameFloatingControls(ui.moveButton, ui.optionsButton, ui.claimsBlackList, ui.claimsWhiteList);
+}
+
+function renderStudioListTaflGame(wrap, gameId) {
+  const normalizedGameId = normalizeTaflGameId(gameId);
+  const gameState = getTaflGameStateById(normalizedGameId);
+  if (!gameState || gameState.enabled === false) {
+    return;
+  }
+  const taflUi = ensureTaflBoardUi(normalizedGameId);
+  if (!taflUi?.shell || !taflUi.hud) {
+    return;
+  }
+  const metrics = syncStudioListGameShellFrame(wrap, taflUi.shell, gameState, 'tafl');
+  if (!metrics) {
+    return;
+  }
+  syncTaflShellHudThemeStyles(taflUi);
+  const hudHeight = renderTaflHudForBoard(taflUi, gameState, metrics.designWidth, metrics.designHeight);
+  const boardRenderHeight = Math.max(1, metrics.designHeight - hudHeight);
+  taflUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
+  renderTaflCoordinatesForBoard(taflUi, gameState, metrics.designWidth, boardRenderHeight);
+  renderTaflPiecesForBoard(taflUi, gameState, normalizedGameId, metrics.designWidth, boardRenderHeight);
+  triggerTaflCaptureFxForBoard(taflUi, gameState, normalizedGameId, metrics.designWidth, boardRenderHeight);
+  renderTaflWinOverlayForBoard(taflUi, gameState, normalizedGameId, metrics.designWidth, metrics.designHeight);
+  hideStudioListGameFloatingControls(taflUi.moveButton, taflUi.optionsButton, taflUi.attackerClaimsList, taflUi.defenderClaimsList);
+}
+
+function renderStudioListGoGame(wrap, gameId) {
+  const normalizedGameId = normalizeGoGameId(gameId);
+  const gameState = getGoGameStateById(normalizedGameId);
+  if (!gameState || gameState.enabled === false) {
+    return;
+  }
+  const goUi = ensureGoBoardUi(normalizedGameId, gameState.boardSize);
+  if (!goUi?.shell || !goUi.hud) {
+    return;
+  }
+  const metrics = syncStudioListGameShellFrame(wrap, goUi.shell, gameState, 'go');
+  if (!metrics) {
+    return;
+  }
+  syncTaflShellHudThemeStyles(goUi);
+  const hudHeight = renderGoHudForBoard(goUi, gameState, metrics.designWidth, metrics.designHeight);
+  const boardRenderHeight = Math.max(1, metrics.designHeight - hudHeight);
+  goUi.shell.style.setProperty('--tafl-hud-height', `${hudHeight}px`);
+  renderGoCoordinatesForBoard(goUi, gameState, metrics.designWidth, boardRenderHeight);
+  triggerGoMoveFxForBoard(goUi, gameState, normalizedGameId, metrics.designWidth, boardRenderHeight);
+  renderGoStonesAndHintsForBoard(goUi, gameState, normalizedGameId, metrics.designWidth, boardRenderHeight);
+  renderGoWinOverlayForBoard(goUi, gameState, metrics.designWidth);
+  hideStudioListGameFloatingControls(goUi.moveButton, goUi.optionsButton, goUi.blackClaimsList, goUi.whiteClaimsList);
+}
+
+function renderStudioListGameViews() {
+  if (!isSwagStudioRoom || !studioListViewActive || !(studioListItems instanceof HTMLElement)) {
+    return;
+  }
+  for (const wrap of Array.from(studioListItems.querySelectorAll('.studio-list-game[data-game-kind][data-game-id]'))) {
+    if (!(wrap instanceof HTMLElement)) {
+      continue;
+    }
+    const gameKind = String(wrap.dataset.gameKind || '').trim();
+    const gameId = String(wrap.dataset.gameId || '').trim();
+    if (gameKind === 'mons') {
+      renderStudioListMonsGame(wrap, gameId);
+    } else if (gameKind === 'tafl') {
+      renderStudioListTaflGame(wrap, gameId);
+    } else if (gameKind === 'go') {
+      renderStudioListGoGame(wrap, gameId);
+    }
+  }
+}
+
+function createStudioListGameBody(entry) {
+  const state = entry?.state || {};
+  const gameKind = String(entry?.kind || '').trim();
+  const designWidth = Math.max(1, Number(state.width) || MONS_BOARD_WORLD_WIDTH);
+  const designHeight = Math.max(1, Number(state.height) || MONS_BOARD_WORLD_HEIGHT);
+  const wrap = document.createElement('div');
+  wrap.className = `studio-list-game studio-list-game-${gameKind}`;
+  wrap.dataset.gameKind = gameKind;
+  wrap.dataset.gameId = String(entry?.id || '');
+  wrap.style.setProperty('--studio-list-game-width', `${designWidth.toFixed(4)}px`);
+  wrap.style.setProperty('--studio-list-game-aspect', `${designWidth.toFixed(4)} / ${designHeight.toFixed(4)}`);
+  return wrap;
+}
+
+function createStudioListSamplerBody(entry) {
+  const wrap = document.createElement('div');
+  wrap.className = 'studio-list-sampler';
+  const face = document.createElement('div');
+  face.className = 'table-die-face';
+  renderStudioSamplerFace(entry.id, face, entry?.state || {});
+  wrap.appendChild(face);
+  return wrap;
+}
+
+function createStudioListImageBody(entry) {
+  const state = entry?.state || {};
+  const blankColor = getImageComponentFaceBlankColor(state, state.face === 'back' ? 'back' : 'front');
+  if (blankColor) {
+    const blank = document.createElement('div');
+    blank.className = 'studio-list-image studio-list-image-blank';
+    blank.style.background = blankColor;
+    return blank;
+  }
+  const src = normalizeImageComponentSrc(state.face === 'back' ? (state.backSrc || state.frontSrc || '') : (state.frontSrc || ''));
+  if (!src) {
+    const blank = document.createElement('div');
+    blank.className = 'studio-list-image studio-list-image-blank';
+    blank.style.background = '#ffffff';
+    return blank;
+  }
+  const image = document.createElement('img');
+  image.className = 'studio-list-image';
+  image.src = src;
+  image.alt = '';
+  image.loading = 'lazy';
+  image.decoding = 'async';
+  image.draggable = false;
+  return image;
+}
+
+function getStudioListItemElements(scopeElement = studioListItems) {
+  if (!(scopeElement instanceof HTMLElement)) {
+    return [];
+  }
+  return Array.from(scopeElement.children).filter((item) => (
+    item instanceof HTMLElement && item.classList.contains('studio-list-item')
+  ));
+}
+
+function getStudioListOrderEntryDescriptor(entry) {
+  return {
+    id: String(entry?.id || '').trim(),
+    source: String(entry?.source || '').trim()
+  };
+}
+
+function getStudioListFolderChildOrderEntriesById() {
+  const childEntriesByFolderId = new Map();
+  for (const entry of groupStudioListEntries(getStudioListEntries())) {
+    if (entry?.kind !== 'folder' || !Array.isArray(entry.childEntries) || !entry.childEntries.length) {
+      continue;
+    }
+    childEntriesByFolderId.set(
+      String(entry.id || ''),
+      entry.childEntries.map(getStudioListOrderEntryDescriptor)
+    );
+  }
+  return childEntriesByFolderId;
+}
+
+function collectStudioListOrderEntriesFromDom(scopeElement = studioListItems, output = [], childEntriesByFolderId = new Map()) {
+  for (const item of getStudioListItemElements(scopeElement)) {
+    const itemDescriptor = getStudioListOrderEntryDescriptor({
+      id: item.dataset.studioListId,
+      source: item.dataset.studioListSource
+    });
+    output.push(itemDescriptor);
+    const childScope = item.querySelector(':scope > .studio-list-item-body .studio-list-folder-children');
+    if (childScope instanceof HTMLElement) {
+      collectStudioListOrderEntriesFromDom(childScope, output, childEntriesByFolderId);
+    } else if (String(item.dataset.studioListKind || '') === 'folder') {
+      output.push(...(childEntriesByFolderId.get(itemDescriptor.id) || []));
+    }
+  }
+  return output;
+}
+
+function getStudioListDragOrderFromDom(scopeElement = studioListItems) {
+  let rootScope = studioListItems;
+  if (scopeElement instanceof HTMLElement) {
+    const closestRoot = scopeElement.closest?.('#studioListItems');
+    if (closestRoot instanceof HTMLElement) {
+      rootScope = closestRoot;
+    }
+  }
+  return collectStudioListOrderEntriesFromDom(rootScope, [], getStudioListFolderChildOrderEntriesById())
+    .map((entry, index) => ({
+      ...entry,
+      order: (index + 1) * 1000
+    }))
+    .filter((entry) => entry.id && (entry.source === 'die' || entry.source === 'card' || entry.source === 'game'));
+}
+
+function updateStudioListDragPlacement(clientY) {
+  if (!studioListDragState) {
+    return;
+  }
+  const draggedItem = studioListDragState.item;
+  const scopeElement = studioListDragState.scopeElement;
+  if (!(draggedItem instanceof HTMLElement) || !(scopeElement instanceof HTMLElement)) {
+    return;
+  }
+  if (studioListView instanceof HTMLElement) {
+    const rect = studioListView.getBoundingClientRect();
+    const edgeSize = 76;
+    if (clientY < rect.top + edgeSize) {
+      studioListView.scrollTop -= Math.max(8, rect.top + edgeSize - clientY) * 0.34;
+    } else if (clientY > rect.bottom - edgeSize) {
+      studioListView.scrollTop += Math.max(8, clientY - (rect.bottom - edgeSize)) * 0.34;
+    }
+  }
+  const siblings = getStudioListItemElements(scopeElement).filter((item) => item !== draggedItem);
+  let beforeItem = null;
+  for (const item of siblings) {
+    const rect = item.getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) {
+      beforeItem = item;
+      break;
+    }
+  }
+  if (beforeItem) {
+    scopeElement.insertBefore(draggedItem, beforeItem);
+  } else {
+    scopeElement.appendChild(draggedItem);
+  }
+}
+
+function finishStudioListDrag(options = {}) {
+  const dragState = studioListDragState;
+  if (!dragState) {
+    return;
+  }
+  studioListDragState = null;
+  window.removeEventListener('pointermove', onStudioListDragPointerMove, { capture: true });
+  window.removeEventListener('pointerup', onStudioListDragPointerEnd, { capture: true });
+  window.removeEventListener('pointercancel', onStudioListDragPointerEnd, { capture: true });
+  if (dragState.handle instanceof HTMLElement && dragState.handle.hasPointerCapture?.(dragState.pointerId)) {
+    try {
+      dragState.handle.releasePointerCapture(dragState.pointerId);
+    } catch {
+      // Ignore stale capture releases.
+    }
+  }
+  if (dragState.item instanceof HTMLElement) {
+    dragState.item.classList.remove('is-studio-list-dragging');
+  }
+  document.documentElement.classList.remove('is-studio-list-dragging');
+  if (options.commit !== false) {
+    commitStudioListOrder(getStudioListDragOrderFromDom(dragState.scopeElement)).catch((error) => {
+      console.error(error);
+      showStatusMessage('Unable to reorder list.');
+      scheduleStudioListViewRender();
+    });
+  }
+}
+
+function onStudioListDragPointerMove(event) {
+  if (!studioListDragState || event.pointerId !== studioListDragState.pointerId) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  updateStudioListDragPlacement(event.clientY);
+}
+
+function onStudioListDragPointerEnd(event) {
+  if (!studioListDragState || event.pointerId !== studioListDragState.pointerId) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  finishStudioListDrag({ commit: true });
+}
+
+function onStudioListReorderPointerDown(event, entry) {
+  if (!studioListViewActive || !isSwagStudioRoom || !(studioListItems instanceof HTMLElement)) {
+    return;
+  }
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return;
+  }
+  const handle = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+  const item = handle?.closest('.studio-list-item');
+  if (!(handle instanceof HTMLElement) || !(item instanceof HTMLElement)) {
+    return;
+  }
+  const scopeElement = item.classList.contains('is-in-folder')
+    ? item.closest('.studio-list-folder-children')
+    : studioListItems;
+  if (!(scopeElement instanceof HTMLElement)) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  finishStudioListDrag({ commit: false });
+  studioListDragState = {
+    pointerId: event.pointerId,
+    item,
+    handle,
+    startClientY: event.clientY,
+    id: String(entry?.id || ''),
+    source: String(entry?.source || ''),
+    scopeElement
+  };
+  item.classList.add('is-studio-list-dragging');
+  document.documentElement.classList.add('is-studio-list-dragging');
+  handle.setPointerCapture?.(event.pointerId);
+  window.addEventListener('pointermove', onStudioListDragPointerMove, { capture: true });
+  window.addEventListener('pointerup', onStudioListDragPointerEnd, { capture: true });
+  window.addEventListener('pointercancel', onStudioListDragPointerEnd, { capture: true });
+}
+
+function createStudioListReorderHandle(entry) {
+  const handle = document.createElement('button');
+  handle.type = 'button';
+  handle.className = 'studio-list-reorder-handle';
+  handle.setAttribute('aria-label', 'reorder component');
+  handle.title = 'reorder';
+  handle.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 7H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 17H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  handle.addEventListener('pointerdown', (event) => onStudioListReorderPointerDown(event, entry));
+  handle.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  handle.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  return handle;
+}
+
+function createStudioListFolderBody(entry) {
+  const state = entry?.state || {};
+  const children = Array.isArray(entry?.childEntries) ? entry.childEntries : [];
+  const isListCollapsed = getStudioListFolderCollapsed(entry);
+  const wrap = document.createElement('div');
+  wrap.className = 'studio-list-folder';
+  const row = document.createElement('div');
+  row.className = 'studio-list-folder-row';
+  row.setAttribute('aria-expanded', isListCollapsed ? 'false' : 'true');
+  const toggleButton = document.createElement('button');
+  toggleButton.type = 'button';
+  toggleButton.className = 'studio-list-folder-toggle-button';
+  toggleButton.setAttribute('aria-label', isListCollapsed ? 'expand folder' : 'collapse folder');
+  toggleButton.innerHTML =
+    '<svg class="studio-list-folder-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="studio-list-folder-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M3.8 7.8C3.8 6.7 4.7 5.8 5.8 5.8H10L11.8 7.6H18.2C19.3 7.6 20.2 8.5 20.2 9.6V16.4C20.2 17.5 19.3 18.4 18.2 18.4H5.8C4.7 18.4 3.8 17.5 3.8 16.4V7.8Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>';
+  toggleButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleStudioListFolderCollapsed(entry.id);
+  });
+  const title = document.createElement('span');
+  title.className = 'studio-list-folder-title';
+  title.textContent = getStudioFolderTitle(state);
+  title.addEventListener('dblclick', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    beginStudioFolderTitleEdit(entry.id, title);
+  });
+  row.append(toggleButton, title, createStudioListReorderHandle(entry));
+  wrap.appendChild(row);
+  if (children.length && !isListCollapsed) {
+    const childList = document.createElement('div');
+    childList.className = 'studio-list-folder-children';
+    for (const childEntry of children) {
+      childList.appendChild(createStudioListItem(childEntry, {
+        inFolder: true
+      }));
+    }
+    wrap.appendChild(childList);
+  }
+  return wrap;
+}
+
+function createStudioListItem(entry, options = {}) {
+  const item = document.createElement('article');
+  item.className = `studio-list-item studio-list-item-${getStudioListKindLabel(entry).replace(/[^a-z0-9_-]/g, '-')}`;
+  item.classList.toggle('is-folder', entry?.kind === 'folder');
+  item.classList.toggle('is-in-folder', options.inFolder === true);
+  item.dataset.studioListId = String(entry?.id || '');
+  item.dataset.studioListSource = String(entry?.source || '');
+  item.dataset.studioListKind = String(entry?.kind || '');
+  const body = document.createElement('div');
+  body.className = 'studio-list-item-body';
+  if (entry.kind === 'folder') {
+    body.appendChild(createStudioListFolderBody(entry));
+  } else if (entry.source === 'game') {
+    body.appendChild(createStudioListGameBody(entry));
+  } else if (entry.source === 'card') {
+    body.appendChild(createStudioListImageBody(entry));
+  } else if (normalizeDieType(entry.state?.type) === 'sampler') {
+    body.appendChild(createStudioListSamplerBody(entry));
+  } else if (normalizeDieType(entry.state?.type) === 'media') {
+    body.appendChild(createStudioListMediaBody(entry));
+  } else {
+    body.appendChild(createStudioListLabelBody(entry));
+  }
+  item.appendChild(body);
+  if (entry.kind !== 'folder' && options.disableReorder !== true) {
+    item.appendChild(createStudioListReorderHandle(entry));
+  }
+  return item;
+}
+
+function renderStudioListView() {
+  if (!isSwagStudioRoom || !(studioListItems instanceof HTMLElement)) {
+    return;
+  }
+  studioListRenderRafId = 0;
+  const entries = groupStudioListEntries(getStudioListEntries());
+  pruneStudioListFolderCollapseOverrides(entries);
+  const activeEmbedDieIds = new Set(
+    getStudioListEntries()
+      .filter((entry) => entry?.source === 'die' && isEmbeddableMediaProvider(entry?.state?.mediaProvider))
+      .map((entry) => String(entry.id || '').trim())
+      .filter(Boolean)
+  );
+  parkStudioListEmbedFrames();
+  studioListItems.textContent = '';
+  if (!entries.length) {
+    const empty = document.createElement('div');
+    empty.className = 'studio-list-empty';
+    empty.textContent = 'no studio components';
+    studioListItems.appendChild(empty);
+    cleanupUnusedParkedStudioEmbedFrames(activeEmbedDieIds);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const entry of entries) {
+    fragment.appendChild(createStudioListItem(entry));
+  }
+  studioListItems.appendChild(fragment);
+  renderStudioListGameViews();
+  cleanupUnusedParkedStudioEmbedFrames(activeEmbedDieIds);
+}
+
+function scheduleStudioListViewRender() {
+  if (!studioListViewActive || !isSwagStudioRoom || !(studioListItems instanceof HTMLElement)) {
+    return;
+  }
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  if (
+    activeElement?.classList.contains('studio-list-text-editor') ||
+    activeElement?.classList.contains('studio-folder-title-input')
+  ) {
+    return;
+  }
+  if (studioListRenderRafId) {
+    return;
+  }
+  studioListRenderRafId = window.requestAnimationFrame(renderStudioListView);
+}
+
+function clearStudioListCursorArtifacts() {
+  for (const dot of dots.values()) {
+    dot.remove();
+  }
+  dots.clear();
+  document.querySelectorAll('.remote-cursor').forEach((cursor) => {
+    cursor.remove();
+  });
+  document.querySelectorAll('.local-draw-cursor, .local-delete-cursor').forEach((cursor) => {
+    cursor.classList.add('hidden');
+  });
+  if (cursorLayer instanceof HTMLElement) {
+    cursorLayer.querySelectorAll('.remote-cursor').forEach((cursor) => {
+      cursor.remove();
+    });
+  }
+  latestRoomCursors = {};
+  if (roomRoster instanceof HTMLElement) {
+    roomRoster.textContent = '';
+    roomRoster.classList.add('hidden');
+  }
+}
+
+function scrollStudioListViewFromWheel(event) {
+  if (!studioListViewActive || !isSwagStudioRoom || !(studioListView instanceof HTMLElement)) {
+    return false;
+  }
+  const deltaModeScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? studioListView.clientHeight : 1;
+  const deltaY = event.deltaY * deltaModeScale;
+  const deltaX = event.deltaX * deltaModeScale;
+  studioListView.scrollTop += deltaY;
+  studioListView.scrollLeft += deltaX;
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+}
+
+function getActiveAssetMenuScrollTarget(event) {
+  if (
+    !isSwagStudioRoom ||
+    !(assetMenuModal instanceof HTMLElement) ||
+    assetMenuModal.classList.contains('hidden')
+  ) {
+    return null;
+  }
+  const targetElement = event?.target instanceof Element ? event.target : null;
+  const targetGallery = targetElement?.closest?.(
+    '#assetStudioGallery, #assetGameGallery, #assetComponentGallery'
+  );
+  if (targetGallery instanceof HTMLElement && !targetGallery.classList.contains('hidden')) {
+    return targetGallery;
+  }
+  if (activeAssetMenuView === ASSET_MENU_VIEW_COMPONENT && assetComponentGallery instanceof HTMLElement) {
+    return assetComponentGallery;
+  }
+  if (activeAssetMenuView === ASSET_MENU_VIEW_STUDIO && assetStudioGallery instanceof HTMLElement) {
+    return assetStudioGallery;
+  }
+  if (assetGameGallery instanceof HTMLElement) {
+    return assetGameGallery;
+  }
+  return assetMenuModal.querySelector('.asset-menu-dialog');
+}
+
+function scrollActiveAssetMenuFromWheel(event) {
+  const scrollTarget = getActiveAssetMenuScrollTarget(event);
+  if (!(scrollTarget instanceof HTMLElement)) {
+    return false;
+  }
+  const deltaModeScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? scrollTarget.clientHeight : 1;
+  scrollTarget.scrollTop += event.deltaY * deltaModeScale;
+  scrollTarget.scrollLeft += event.deltaX * deltaModeScale;
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+}
+
+function getActiveStickerAddScrollTarget(event) {
+  if (
+    !isSwagStudioRoom ||
+    !(stickerAddModal instanceof HTMLElement) ||
+    stickerAddModal.classList.contains('hidden')
+  ) {
+    return null;
+  }
+  const targetElement = event?.target instanceof Element ? event.target : null;
+  const targetGallery = targetElement?.closest?.('#stickerAddGallery');
+  if (targetGallery instanceof HTMLElement) {
+    return targetGallery;
+  }
+  if (stickerAddGallery instanceof HTMLElement) {
+    return stickerAddGallery;
+  }
+  return stickerAddModal.querySelector('.sticker-add-dialog');
+}
+
+function scrollActiveStickerAddFromWheel(event) {
+  const scrollTarget = getActiveStickerAddScrollTarget(event);
+  if (!(scrollTarget instanceof HTMLElement)) {
+    return false;
+  }
+  const deltaModeScale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? scrollTarget.clientHeight : 1;
+  scrollTarget.scrollTop += event.deltaY * deltaModeScale;
+  scrollTarget.scrollLeft += event.deltaX * deltaModeScale;
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+}
+
+function getStudioComponentMoveUndoItem(kind, rawId) {
+  if (!isSwagStudioRoom) {
+    return null;
+  }
+  const normalizedKind = String(kind || '').trim();
+  const id = String(rawId || '').trim();
+  if (!normalizedKind || !id) {
+    return null;
+  }
+  if (normalizedKind === 'card') {
+    const cardState = cards.get(id);
+    if (!cardState) {
+      return null;
+    }
+    return {
+      kind: normalizedKind,
+      id,
+      state: {
+        x: Number(cardState.x) || WORLD_WIDTH / 2,
+        y: Number(cardState.y) || WORLD_HEIGHT / 2,
+        z: Number.isFinite(Number(cardState.z)) ? Number(cardState.z) : 1,
+        deckId: getCardDeckId(cardState, id),
+        inDeck: cardState.inDeck === true,
+        inDiscard: cardState.inDiscard === true,
+        inAuction: cardState.inAuction === true,
+        auctionSlotIndex: cardState.inAuction ? getCardAuctionSlotIndex(cardState) : 0,
+        codegameGridSlot: getCodegameEffectiveGridSlotIndex(id, cardState),
+        handOwnerClientId:
+          typeof cardState.handOwnerClientId === 'string' && cardState.handOwnerClientId
+            ? cardState.handOwnerClientId
+            : null,
+        handOwnerPlayerToken: getCardHandOwnerId(cardState) || null,
+        holderClientId: null
+      }
+    };
+  }
+  if (normalizedKind === 'die') {
+    const dieState = diceById.get(id);
+    if (!dieState) {
+      return null;
+    }
+    return {
+      kind: normalizedKind,
+      id,
+      state: {
+        x: Number(dieState.x) || WORLD_WIDTH / 2,
+        y: Number(dieState.y) || WORLD_HEIGHT / 2,
+        z: Number.isFinite(Number(dieState.z)) ? Number(dieState.z) : 1,
+        holderClientId: null
+      }
+    };
+  }
+  if (normalizedKind === 'deck') {
+    const deckState = getDeckStateById(id);
+    if (!deckState) {
+      return null;
+    }
+    return {
+      kind: normalizedKind,
+      id,
+      state: {
+        x: Number(deckState.x) || WORLD_WIDTH / 2,
+        y: Number(deckState.y) || WORLD_HEIGHT / 2,
+        holderClientId: null
+      }
+    };
+  }
+  if (normalizedKind === 'chip-set') {
+    const chipSetState = chipSetsById.get(id);
+    if (!chipSetState) {
+      return null;
+    }
+    return {
+      kind: normalizedKind,
+      id,
+      state: {
+        x: Number(chipSetState.x) || WORLD_WIDTH / 2,
+        y: Number(chipSetState.y) || WORLD_HEIGHT / 2,
+        z: Number.isFinite(Number(chipSetState.z)) ? Number(chipSetState.z) : 1,
+        holderClientId: null
+      }
+    };
+  }
+  const gameState =
+    normalizedKind === 'mons'
+      ? getMonsGameStateById(id)
+      : normalizedKind === 'tafl'
+        ? getTaflGameStateById(id)
+        : normalizedKind === 'go'
+          ? getGoGameStateById(id)
+          : normalizedKind === 'hexitama'
+            ? getHexitamaGameStateById(id)
+            : null;
+  if (!gameState) {
+    return null;
+  }
+  return {
+    kind: normalizedKind,
+    id,
+    state: {
+      x: Number(gameState.x) || WORLD_WIDTH / 2,
+      y: Number(gameState.y) || WORLD_HEIGHT / 2,
+      holderClientId: null
+    }
+  };
+}
+
+function captureStudioComponentMoveUndoItems(refs = []) {
+  if (!isSwagStudioRoom || !Array.isArray(refs)) {
+    return [];
+  }
+  const seen = new Set();
+  const items = [];
+  for (const refEntry of refs) {
+    const kind = String(refEntry?.kind || '').trim();
+    const id = String(refEntry?.id || '').trim();
+    const key = `${kind}:${id}`;
+    if (!kind || !id || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    const item = getStudioComponentMoveUndoItem(kind, id);
+    if (item) {
+      items.push(item);
+    }
+  }
+  return items;
+}
+
+function getStudioFolderMoveMemberUndoRefs(studioFolderMoveMembers) {
+  const refs = [];
+  for (const member of studioFolderMoveMembers?.cards || []) {
+    refs.push({ kind: 'card', id: member?.cardId });
+  }
+  for (const member of studioFolderMoveMembers?.dice || []) {
+    refs.push({ kind: 'die', id: member?.dieId });
+  }
+  for (const member of studioFolderMoveMembers?.games || []) {
+    refs.push({ kind: member?.type, id: member?.gameId });
+  }
+  return refs;
+}
+
+function didStudioComponentMoveUndoItemMove(beforeItem, afterItem) {
+  if (!beforeItem || !afterItem || beforeItem.kind !== afterItem.kind || beforeItem.id !== afterItem.id) {
+    return false;
+  }
+  const before = beforeItem.state || {};
+  const after = afterItem.state || {};
+  if (
+    Math.abs((Number(before.x) || 0) - (Number(after.x) || 0)) > 0.01 ||
+    Math.abs((Number(before.y) || 0) - (Number(after.y) || 0)) > 0.01
+  ) {
+    return true;
+  }
+  if (beforeItem.kind !== 'card') {
+    return false;
+  }
+  return (
+    String(before.deckId || '') !== String(after.deckId || '') ||
+    before.inDeck !== after.inDeck ||
+    before.inDiscard !== after.inDiscard ||
+    before.inAuction !== after.inAuction ||
+    Number(before.auctionSlotIndex || 0) !== Number(after.auctionSlotIndex || 0) ||
+    Number(before.codegameGridSlot || -1) !== Number(after.codegameGridSlot || -1) ||
+    String(before.handOwnerClientId || '') !== String(after.handOwnerClientId || '') ||
+    String(before.handOwnerPlayerToken || '') !== String(after.handOwnerPlayerToken || '')
+  );
+}
+
+function pushStudioComponentMoveUndoFromBefore(beforeItems = []) {
+  if (!isSwagStudioRoom || !Array.isArray(beforeItems) || beforeItems.length === 0) {
+    return false;
+  }
+  const undoItems = [];
+  for (const beforeItem of beforeItems) {
+    const afterItem = getStudioComponentMoveUndoItem(beforeItem?.kind, beforeItem?.id);
+    if (afterItem && didStudioComponentMoveUndoItemMove(beforeItem, afterItem)) {
+      undoItems.push(beforeItem);
+    }
+  }
+  if (undoItems.length === 0) {
+    return false;
+  }
+  studioComponentMoveUndoStack.push({
+    items: undoItems,
+    createdAt: Date.now()
+  });
+  while (studioComponentMoveUndoStack.length > STUDIO_COMPONENT_MOVE_UNDO_LIMIT) {
+    studioComponentMoveUndoStack.shift();
+  }
+  return true;
+}
+
+function isStudioComponentMoveUndoBlockedByOtherHolder(item) {
+  const kind = String(item?.kind || '').trim();
+  const id = String(item?.id || '').trim();
+  if (!kind || !id) {
+    return true;
+  }
+  const state =
+    kind === 'card'
+      ? cards.get(id)
+      : kind === 'die'
+        ? diceById.get(id)
+        : kind === 'deck'
+          ? getDeckStateById(id)
+          : kind === 'chip-set'
+            ? chipSetsById.get(id)
+            : kind === 'mons'
+              ? getMonsGameStateById(id)
+              : kind === 'tafl'
+                ? getTaflGameStateById(id)
+                : kind === 'go'
+                  ? getGoGameStateById(id)
+                  : kind === 'hexitama'
+                    ? getHexitamaGameStateById(id)
+                    : null;
+  const holder = typeof state?.holderClientId === 'string' && state.holderClientId ? state.holderClientId : '';
+  return Boolean(holder && holder !== clientId);
+}
+
+function applyStudioComponentMoveUndoItem(item) {
+  if (!item || isStudioComponentMoveUndoBlockedByOtherHolder(item)) {
+    return false;
+  }
+  const kind = String(item.kind || '').trim();
+  const id = String(item.id || '').trim();
+  const state = item.state || {};
+  if (kind === 'card') {
+    const patch = withCodegameKeyCardUnanchoredPatch(id, {
+      ...state,
+      holderClientId: null
+    });
+    patchLocalCard(id, patch);
+    queueCardPatch(id, patch);
+    persistCardStateImmediately(id);
+    return true;
+  }
+  if (kind === 'die') {
+    const patch = { ...state, holderClientId: null };
+    patchLocalDie(id, patch);
+    queueDiePatch(id, patch);
+    return true;
+  }
+  if (kind === 'deck') {
+    const patch = { ...state, holderClientId: null };
+    patchLocalDeck(patch, id);
+    queueDeckPatch(patch, id);
+    persistDeckStateImmediately(id);
+    return true;
+  }
+  if (kind === 'chip-set') {
+    const patch = { ...state, holderClientId: null };
+    patchLocalChipSet(patch, id);
+    queueChipSetPatch(patch, id);
+    return true;
+  }
+  const patch = { ...state, holderClientId: null };
+  if (kind === 'mons') {
+    patchLocalMonsGame(patch, id);
+  } else if (kind === 'tafl') {
+    patchLocalTaflGame(patch, id);
+  } else if (kind === 'go') {
+    patchLocalGoGame(patch, id);
+  } else if (kind === 'hexitama') {
+    patchLocalHexitamaGame(patch, id);
+  } else {
+    return false;
+  }
+  queueMonsPatch(patch, id);
+  return true;
+}
+
+function undoLastStudioComponentMove() {
+  if (!isSwagStudioRoom) {
+    return false;
+  }
+  while (studioComponentMoveUndoStack.length > 0) {
+    const entry = studioComponentMoveUndoStack.pop();
+    const items = Array.isArray(entry?.items) ? entry.items : [];
+    let appliedAny = false;
+    for (const item of items) {
+      appliedAny = applyStudioComponentMoveUndoItem(item) || appliedAny;
+    }
+    if (appliedAny) {
+      scheduleStudioListViewRender();
+      return true;
+    }
+  }
+  return false;
+}
+
+function shouldIgnoreStudioMoveUndoShortcut(event) {
+  const target = event?.target instanceof Element ? event.target : null;
+  if (!target) {
+    return false;
+  }
+  return Boolean(target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), .table-label-editor, .studio-list-text-editor'));
+}
+
+function handleStudioMoveUndoShortcut(event) {
+  if (
+    !isSwagStudioRoom ||
+    shouldIgnoreStudioMoveUndoShortcut(event) ||
+    String(event?.key || '').toLowerCase() !== 'z' ||
+    event.shiftKey ||
+    !(event.metaKey || event.ctrlKey)
+  ) {
+    return false;
+  }
+  if (!undoLastStudioComponentMove()) {
+    return false;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  return true;
+}
+
+function shouldDefaultStudioListViewForDevice() {
+  if (!isSwagStudioRoom || typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  try {
+    return window.matchMedia('(max-width: 1024px), (pointer: coarse)').matches;
+  } catch {
+    return false;
+  }
+}
+
+function syncStudioListViewModeUi() {
+  if (!isSwagStudioRoom || !(tableRoot instanceof HTMLElement)) {
+    return;
+  }
+  tableRoot.classList.toggle('is-studio-list-view', studioListViewActive);
+  document.documentElement.classList.toggle('is-swag-studio-list-view', studioListViewActive);
+  document.body?.classList.toggle('is-swag-studio-list-view', studioListViewActive);
+  if (studioListView instanceof HTMLElement) {
+    studioListView.classList.toggle('hidden', !studioListViewActive);
+    studioListView.setAttribute('aria-hidden', studioListViewActive ? 'false' : 'true');
+  }
+  if (studioViewToggleButton instanceof HTMLButtonElement) {
+    studioViewToggleButton.setAttribute('aria-pressed', studioListViewActive ? 'true' : 'false');
+    studioViewToggleButton.setAttribute(
+      'aria-label',
+      studioListViewActive ? 'switch to room view' : 'switch to list view'
+    );
+    studioViewToggleButton.title = studioListViewActive ? 'room view' : 'list view';
+  }
+}
+
+function setStudioListViewActive(nextActive) {
+  if (!isSwagStudioRoom) {
+    return;
+  }
+  const shouldActivate = nextActive === true;
+  if (studioListViewActive === shouldActivate) {
+    syncStudioListViewModeUi();
+    if (studioListViewActive) {
+      scheduleStudioListViewRender();
+    }
+    return;
+  }
+  studioListViewActive = shouldActivate;
+  syncStudioListViewModeUi();
+  if (studioListViewActive) {
+    closeAssetMenu();
+    closeRoomSettingsMenu();
+    closeGameOptionsMenu();
+    if (typeof closeLabelEditor === 'function') {
+      closeLabelEditor({ commit: true });
+    }
+    if (typeof closeNoteEditor === 'function') {
+      closeNoteEditor({ commit: true });
+    }
+    clearStudioListCursorArtifacts();
+    syncStudioListLocalCursorVisibility(true);
+    renderStudioListView();
+    window.requestAnimationFrame(clearStudioListCursorArtifacts);
+    studioListView?.scrollTo?.({ top: 0, left: 0 });
+    tableRoot?.scrollTo?.({ top: 0, left: 0 });
+  } else {
+    restoreStudioEmbedFramesToRoom();
+    syncStudioListLocalCursorVisibility(false);
+    renderAllDice();
+    renderMonsBoard();
+    renderTaflBoards();
+    renderGoBoards();
+    if (studioListItems instanceof HTMLElement) {
+      studioListItems.textContent = '';
+    }
+  }
+}
+
+if (isSwagStudioRoom) {
+  if (studioListViewActive) {
+    window.requestAnimationFrame(() => setStudioListViewActive(true));
+  } else {
+    syncStudioListViewModeUi();
+  }
+}
+
+function playEmbeddedMediaControllerFromUser(controller) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  controller.pendingUserPlayback = true;
+  ensureEmbeddedMediaControllerApi(controller);
+  if (!controller.ready) {
+    return true;
+  }
+  if (controller.provider === 'youtube' && controller.player && typeof controller.player.playVideo === 'function') {
+    try {
+      controller.player.playVideo();
+      controller.pendingUserPlayback = false;
+      controller.playing = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (controller.provider === 'soundcloud' && controller.widget && typeof controller.widget.play === 'function') {
+    try {
+      controller.widget.play();
+      controller.pendingUserPlayback = false;
+      controller.playing = true;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function pauseEmbeddedMediaControllerFromUser(controller) {
+  if (!controller || controller.disposed) {
+    return false;
+  }
+  controller.pendingUserPlayback = false;
+  if (controller.provider === 'youtube' && controller.player && typeof controller.player.pauseVideo === 'function') {
+    try {
+      controller.player.pauseVideo();
+      controller.playing = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (controller.provider === 'soundcloud' && controller.widget && typeof controller.widget.pause === 'function') {
+    try {
+      controller.widget.pause();
+      controller.playing = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function toggleEmbeddedMediaPlaybackFromUser(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return false;
+  }
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller || controller.disposed || !isEmbeddableMediaProvider(controller.provider)) {
+    return false;
+  }
+  return controller.playing
+    ? pauseEmbeddedMediaControllerFromUser(controller)
+    : playEmbeddedMediaControllerFromUser(controller);
+}
+
+function seekSoundCloudEmbeddedMediaFromUser(dieId, ratio) {
+  const normalizedDieId = String(dieId || '').trim();
+  if (!normalizedDieId) {
+    return false;
+  }
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller || controller.disposed || controller.provider !== 'soundcloud') {
+    return false;
+  }
+  const normalizedRatio = clamp(Number(ratio) || 0, 0, 1);
+  if (
+    !controller.ready ||
+    !controller.widget ||
+    typeof controller.widget.seekTo !== 'function' ||
+    typeof controller.widget.getDuration !== 'function'
+  ) {
+    controller.pendingSeekRatio = normalizedRatio;
+    ensureEmbeddedMediaControllerApi(controller);
+    return true;
+  }
+  try {
+    controller.widget.getDuration((duration) => {
+      const durationMs = Math.max(0, Number(duration) || 0);
+      if (!durationMs || controller.disposed) {
+        controller.pendingSeekRatio = normalizedRatio;
+        return;
+      }
+      try {
+        controller.widget.seekTo(Math.round(durationMs * normalizedRatio));
+        controller.pendingSeekRatio = null;
+      } catch {
+        // SoundCloud can reject seeks while its widget is still settling.
+        controller.pendingSeekRatio = normalizedRatio;
+      }
+    });
+    return true;
+  } catch {
+    controller.pendingSeekRatio = normalizedRatio;
+    return false;
+  }
+}
+
+function seekYouTubeEmbeddedMediaFromUser(dieId, ratio) {
+  const normalizedDieId = String(dieId || '').trim();
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (!controller || controller.disposed || controller.provider !== 'youtube') {
+    return false;
+  }
+  const normalizedRatio = clamp(Number(ratio) || 0, 0, 1);
+  if (
+    !controller.player ||
+    typeof controller.player.seekTo !== 'function' ||
+    typeof controller.player.getDuration !== 'function'
+  ) {
+    controller.pendingSeekRatio = normalizedRatio;
+    ensureEmbeddedMediaControllerApi(controller);
+    return true;
+  }
+  try {
+    const duration = Math.max(0, Number(controller.player.getDuration()) || 0);
+    if (!duration) {
+      return false;
+    }
+    controller.player.seekTo(duration * normalizedRatio, true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function toggleYouTubeEmbeddedMuteFromUser(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  if (
+    !controller ||
+    controller.disposed ||
+    controller.provider !== 'youtube' ||
+    (!controller.player && !controller.ready)
+  ) {
+    if (controller?.provider === 'youtube') {
+      ensureEmbeddedMediaControllerApi(controller);
+      return true;
+    }
+    return false;
+  }
+  if (!controller.player) {
+    ensureEmbeddedMediaControllerApi(controller);
+    return true;
+  }
+  try {
+    if (typeof controller.player.isMuted === 'function' && controller.player.isMuted()) {
+      controller.player.unMute?.();
+    } else {
+      controller.player.mute?.();
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function requestYouTubeEmbeddedFullscreenFromUser(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  const iframe = controller?.iframe;
+  if (!(iframe instanceof HTMLIFrameElement)) {
+    return false;
+  }
+  try {
+    const requestFullscreen =
+      iframe.requestFullscreen ||
+      iframe.webkitRequestFullscreen ||
+      iframe.msRequestFullscreen;
+    if (typeof requestFullscreen !== 'function') {
+      return false;
+    }
+    requestFullscreen.call(iframe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function openYouTubeEmbeddedSourceFromUser(dieId) {
+  const normalizedDieId = String(dieId || '').trim();
+  const controller = mediaControllerByDieId.get(normalizedDieId);
+  const sourceUrl = normalizeMediaSourceUrl(controller?.sourceUrl || diceById.get(normalizedDieId)?.mediaSourceUrl || '');
+  if (!sourceUrl) {
+    return false;
+  }
+  try {
+    window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+    return true;
+  } catch {
+    window.location.href = sourceUrl;
+    return true;
+  }
+}
+
+function getMediaDieIdFromElement(element) {
+  const target = element instanceof Element ? element : null;
+  const host = target?.closest?.('[data-die-id]');
+  return String(host?.dataset?.dieId || '').trim();
 }
 
 function syncStudioEmbedDragHandles(mediaFrame, provider = '') {
@@ -21999,15 +25452,193 @@ function syncStudioEmbedDragHandles(mediaFrame, provider = '') {
     return;
   }
   const normalizedProvider = normalizeMediaProvider(provider);
+  mediaFrame.classList.toggle('is-youtube-embed', normalizedProvider === 'youtube');
+  mediaFrame.classList.toggle('is-soundcloud-embed', normalizedProvider === 'soundcloud');
   const shouldShowHandles =
     isSwagStudioRoom &&
     (normalizedProvider === 'youtube' || normalizedProvider === 'soundcloud');
-  mediaFrame.classList.toggle('is-youtube-embed', shouldShowHandles && normalizedProvider === 'youtube');
-  mediaFrame.classList.toggle('is-soundcloud-embed', shouldShowHandles && normalizedProvider === 'soundcloud');
   let handleLayer = mediaFrame.querySelector(':scope > .studio-embed-drag-handles');
+  let clickProxy = mediaFrame.querySelector(':scope > .studio-embed-click-proxy');
+  let soundCloudPlayProxy = mediaFrame.querySelector(':scope > .studio-embed-soundcloud-play-proxy');
+  let seekProxy = mediaFrame.querySelector(':scope > .studio-embed-soundcloud-seek-proxy');
+  let youtubeControlsProxy = mediaFrame.querySelector(':scope > .studio-embed-youtube-controls-proxy');
   if (!shouldShowHandles) {
     handleLayer?.remove();
+    clickProxy?.remove();
+    soundCloudPlayProxy?.remove();
+    seekProxy?.remove();
+    youtubeControlsProxy?.remove();
     return;
+  }
+  if (normalizedProvider === 'youtube' && !(clickProxy instanceof HTMLButtonElement)) {
+    clickProxy?.remove();
+    clickProxy = document.createElement('button');
+    clickProxy.type = 'button';
+    clickProxy.className = 'studio-embed-click-proxy';
+    clickProxy.setAttribute('aria-label', 'play or pause embed');
+    clickProxy.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    clickProxy.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleEmbeddedMediaPlaybackFromUser(getMediaDieIdFromElement(clickProxy));
+    });
+    mediaFrame.appendChild(clickProxy);
+  } else if (normalizedProvider !== 'youtube') {
+    clickProxy?.remove();
+  }
+  if (normalizedProvider === 'soundcloud') {
+    if (!(soundCloudPlayProxy instanceof HTMLButtonElement)) {
+      soundCloudPlayProxy?.remove();
+      soundCloudPlayProxy = document.createElement('button');
+      soundCloudPlayProxy.type = 'button';
+      soundCloudPlayProxy.className = 'studio-embed-soundcloud-play-proxy';
+      soundCloudPlayProxy.setAttribute('aria-label', 'play or pause soundcloud embed');
+      soundCloudPlayProxy.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      soundCloudPlayProxy.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleEmbeddedMediaPlaybackFromUser(getMediaDieIdFromElement(soundCloudPlayProxy));
+      });
+      mediaFrame.appendChild(soundCloudPlayProxy);
+    }
+    if (!(seekProxy instanceof HTMLButtonElement)) {
+      seekProxy?.remove();
+      seekProxy = document.createElement('button');
+      seekProxy.type = 'button';
+      seekProxy.className = 'studio-embed-soundcloud-seek-proxy';
+      seekProxy.setAttribute('aria-label', 'seek soundcloud embed');
+      const seekFromPointer = (event) => {
+        const rect = seekProxy.getBoundingClientRect();
+        if (!rect.width) {
+          return;
+        }
+        const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        seekSoundCloudEmbeddedMediaFromUser(getMediaDieIdFromElement(seekProxy), ratio);
+      };
+      seekProxy.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        seekProxy.dataset.pointerActive = '1';
+        seekProxy.setPointerCapture?.(event.pointerId);
+        seekFromPointer(event);
+      });
+      seekProxy.addEventListener('pointermove', (event) => {
+        if (seekProxy.dataset.pointerActive !== '1') {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        seekFromPointer(event);
+      });
+      const clearPointer = (event) => {
+        if (seekProxy.dataset.pointerActive === '1') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        delete seekProxy.dataset.pointerActive;
+        seekProxy.releasePointerCapture?.(event.pointerId);
+      };
+      seekProxy.addEventListener('pointerup', clearPointer);
+      seekProxy.addEventListener('pointercancel', clearPointer);
+      seekProxy.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      mediaFrame.appendChild(seekProxy);
+    }
+  } else {
+    soundCloudPlayProxy?.remove();
+    seekProxy?.remove();
+  }
+  if (normalizedProvider === 'youtube') {
+    if (!(youtubeControlsProxy instanceof HTMLElement)) {
+      youtubeControlsProxy?.remove();
+      youtubeControlsProxy = document.createElement('div');
+      youtubeControlsProxy.className = 'studio-embed-youtube-controls-proxy';
+      youtubeControlsProxy.setAttribute('aria-hidden', 'true');
+      const createYouTubeControlButton = (action, label) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `studio-embed-youtube-control is-${action}`;
+        button.dataset.youtubeControl = action;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        });
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const dieId = getMediaDieIdFromElement(button);
+          if (action === 'play') {
+            toggleEmbeddedMediaPlaybackFromUser(dieId);
+          } else if (action === 'mute') {
+            toggleYouTubeEmbeddedMuteFromUser(dieId);
+          } else if (action === 'youtube-link') {
+            openYouTubeEmbeddedSourceFromUser(dieId);
+          } else if (action === 'fullscreen') {
+            requestYouTubeEmbeddedFullscreenFromUser(dieId);
+          }
+        });
+        return button;
+      };
+      const seekButton = document.createElement('button');
+      seekButton.type = 'button';
+      seekButton.className = 'studio-embed-youtube-control is-seek';
+      seekButton.setAttribute('aria-label', 'seek youtube embed');
+      const seekFromPointer = (event) => {
+        const rect = seekButton.getBoundingClientRect();
+        if (!rect.width) {
+          return;
+        }
+        const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        seekYouTubeEmbeddedMediaFromUser(getMediaDieIdFromElement(seekButton), ratio);
+      };
+      seekButton.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        seekButton.dataset.pointerActive = '1';
+        seekButton.setPointerCapture?.(event.pointerId);
+        seekFromPointer(event);
+      });
+      seekButton.addEventListener('pointermove', (event) => {
+        if (seekButton.dataset.pointerActive !== '1') {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        seekFromPointer(event);
+      });
+      const clearSeekPointer = (event) => {
+        if (seekButton.dataset.pointerActive === '1') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        delete seekButton.dataset.pointerActive;
+        seekButton.releasePointerCapture?.(event.pointerId);
+      };
+      seekButton.addEventListener('pointerup', clearSeekPointer);
+      seekButton.addEventListener('pointercancel', clearSeekPointer);
+      seekButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      });
+      youtubeControlsProxy.append(
+        seekButton,
+        createYouTubeControlButton('play', 'play or pause youtube embed'),
+        createYouTubeControlButton('mute', 'mute or unmute youtube embed'),
+        createYouTubeControlButton('youtube-link', 'open youtube video'),
+        createYouTubeControlButton('fullscreen', 'fullscreen youtube embed')
+      );
+      mediaFrame.appendChild(youtubeControlsProxy);
+    }
+  } else {
+    youtubeControlsProxy?.remove();
   }
   if (!(handleLayer instanceof HTMLElement)) {
     handleLayer = document.createElement('div');
@@ -22057,9 +25688,40 @@ function syncUploadedMediaControllerUi(controller) {
   const range = normalizeUploadedMediaLoopRange(controller);
   controller.loopStartValue = range.startValue;
   controller.loopEndValue = range.endValue;
+  if (controller.timeElement instanceof HTMLElement) {
+    const currentLabel = formatUploadedMediaTimeLabel(currentTime);
+    let rightLabel = duration > 0 ? formatUploadedMediaTimeLabel(duration) : '--:--';
+    let ariaLabel = duration > 0
+      ? `current time ${currentLabel}, duration ${rightLabel}`
+      : 'duration unavailable';
+    if (duration > 0 && loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+      const sectionStartLabel = formatUploadedMediaTimeLabel(duration * range.startRatio);
+      const sectionEndLabel = formatUploadedMediaTimeLabel(duration * range.endRatio);
+      rightLabel = `${sectionStartLabel}-${sectionEndLabel}`;
+      ariaLabel = `current time ${currentLabel}, section ${sectionStartLabel} to ${sectionEndLabel}`;
+    }
+    controller.timeElement.textContent = `${currentLabel} / ${rightLabel}`;
+    controller.timeElement.setAttribute('aria-label', ariaLabel);
+  }
+  const isMediaReady =
+    controller.mediaReady === true ||
+    mediaElement.readyState >= mediaElement.HAVE_FUTURE_DATA;
+  controller.mediaReady = isMediaReady;
   if (controller.root instanceof HTMLElement) {
+    const isPlaying = !mediaElement.paused && !mediaElement.ended;
     controller.root.classList.toggle('is-loop-all', loopMode === UPLOADED_MEDIA_LOOP_MODE_ALL);
     controller.root.classList.toggle('is-loop-section', loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION);
+    controller.root.classList.toggle('is-playing', isPlaying);
+    controller.root.classList.toggle('is-media-ready', isMediaReady);
+    controller.root.classList.toggle(
+      'is-media-loading',
+      controller.skeletonUntilReady === true && !isMediaReady
+    );
+  }
+  if (controller.coverButton instanceof HTMLButtonElement) {
+    const isPlaying = !mediaElement.paused && !mediaElement.ended;
+    controller.coverButton.setAttribute('aria-label', isPlaying ? 'pause audio' : 'play audio');
+    controller.coverButton.title = isPlaying ? 'pause audio' : 'play audio';
   }
   if (controller.loopButton instanceof HTMLButtonElement) {
     const isLooping = loopMode !== UPLOADED_MEDIA_LOOP_MODE_OFF;
@@ -22079,10 +25741,7 @@ function syncUploadedMediaControllerUi(controller) {
     controller.loopButton.title = title;
     controller.loopButton.classList.toggle('is-active', isLooping);
     controller.loopButton.classList.toggle('is-section-active', loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION);
-    controller.loopButton.innerHTML =
-      loopMode === UPLOADED_MEDIA_LOOP_MODE_SECTION
-        ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.2 7H15.6C18 7 19.8 8.8 19.8 11.1C19.8 13.4 18 15.2 15.6 15.2H14.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.4 12.8L14.3 15.2L16.4 17.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.8 17H8.4C6 17 4.2 15.2 4.2 12.9C4.2 10.6 6 8.8 8.4 8.8H9.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.6 11.2L9.7 8.8L7.6 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 4.4V19.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 4.4V19.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.2 7H15.6C18 7 19.8 8.8 19.8 11.1C19.8 13.4 18 15.2 15.6 15.2H14.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16.4 12.8L14.3 15.2L16.4 17.6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.8 17H8.4C6 17 4.2 15.2 4.2 12.9C4.2 10.6 6 8.8 8.4 8.8H9.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7.6 11.2L9.7 8.8L7.6 6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    controller.loopButton.innerHTML = getUploadedMediaLoopButtonSvg(loopMode);
   }
   if (controller.sectionLoop instanceof HTMLElement) {
     controller.sectionLoop.classList.toggle('hidden', loopMode !== UPLOADED_MEDIA_LOOP_MODE_SECTION);
@@ -22112,9 +25771,13 @@ function syncUploadedMediaControllerUi(controller) {
   if (controller.playButton instanceof HTMLButtonElement) {
     const isPlaying = !mediaElement.paused && !mediaElement.ended;
     controller.playButton.setAttribute('aria-label', isPlaying ? 'pause media' : 'play media');
-    controller.playButton.innerHTML = isPlaying
-      ? '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.6 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M15.4 6.2V17.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>'
-      : '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.7 6.3V17.7L17.2 12L8.7 6.3Z" fill="currentColor"/></svg>';
+    controller.playButton.innerHTML = getUploadedMediaPlayPauseSvg(isPlaying);
+  }
+  if (controller.titlePlayButton instanceof HTMLButtonElement) {
+    const isPlaying = !mediaElement.paused && !mediaElement.ended;
+    controller.titlePlayButton.setAttribute('aria-label', isPlaying ? 'pause audio' : 'play audio');
+    controller.titlePlayButton.title = isPlaying ? 'pause audio' : 'play audio';
+    controller.titlePlayButton.innerHTML = getUploadedMediaPlayPauseSvg(isPlaying);
   }
   if (controller.volumeInput instanceof HTMLInputElement) {
     controller.volumeInput.value = String(Math.round(clamp((mediaElement.muted ? 0 : mediaElement.volume) * 100, 0, 100)));
@@ -22140,6 +25803,17 @@ function teardownUploadedMediaController(dieId) {
     return;
   }
   controller.disposed = true;
+  clearUploadedMediaWarmLoadTimer(normalizedDieId);
+  stopUploadedAudioVisualizer(controller);
+  for (const node of [controller.visualizerSourceNode, controller.visualizerAnalyser]) {
+    if (node && typeof node.disconnect === 'function') {
+      try {
+        node.disconnect();
+      } catch {
+        // Best-effort cleanup.
+      }
+    }
+  }
   toggleUploadedMediaVolumePopover(controller, false);
   if (typeof controller.removeDocumentPointerDown === 'function') {
     controller.removeDocumentPointerDown();
@@ -22184,6 +25858,20 @@ function teardownEmbeddedMediaController(dieId) {
       } catch {
         // Best-effort cleanup.
       }
+      if (events.PAUSE) {
+        try {
+          controller.widget.unbind(events.PAUSE);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
+      if (events.FINISH) {
+        try {
+          controller.widget.unbind(events.FINISH);
+        } catch {
+          // Best-effort cleanup.
+        }
+      }
     }
   }
   mediaControllerByDieId.delete(normalizedDieId);
@@ -22205,10 +25893,41 @@ function clearMediaPlaybackTrackingForDie(dieId) {
   }
   mediaSignalKeyByDieId.delete(normalizedDieId);
   mediaStartBroadcastInFlight.delete(normalizedDieId);
+  uploadedVideoDisplayClickSuppressUntilByDieId.delete(normalizedDieId);
   teardownMediaController(normalizedDieId);
 }
 
+function preconnectEmbeddedMediaProvider(provider) {
+  const normalizedProvider = normalizeMediaProvider(provider);
+  const origins = normalizedProvider === 'youtube'
+    ? [
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://i.ytimg.com',
+        'https://www.google.com'
+      ]
+    : normalizedProvider === 'soundcloud'
+      ? [
+          'https://w.soundcloud.com',
+          'https://soundcloud.com',
+          'https://api.soundcloud.com'
+        ]
+      : [];
+  for (const origin of origins) {
+    if (embeddedMediaPreconnectedOrigins.has(origin)) {
+      continue;
+    }
+    embeddedMediaPreconnectedOrigins.add(origin);
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+  }
+}
+
 function ensureYouTubeIframeApi() {
+  preconnectEmbeddedMediaProvider('youtube');
   if (window.YT?.Player) {
     return Promise.resolve(window.YT);
   }
@@ -22293,6 +26012,7 @@ function ensureYouTubeIframeApi() {
 }
 
 function ensureSoundCloudWidgetApi() {
+  preconnectEmbeddedMediaProvider('soundcloud');
   if (window.SC?.Widget) {
     return Promise.resolve(window.SC);
   }
@@ -22425,7 +26145,7 @@ function tryAutoplayMediaController(dieId) {
   const uploadedController = uploadedMediaControllerByDieId.get(normalizedDieId);
   if (uploadedController && !uploadedController.disposed && uploadedController.pendingAutoStart && uploadedController.mediaElement instanceof HTMLMediaElement) {
     uploadedController.pendingAutoStart = false;
-    uploadedController.mediaElement.play().catch(() => {});
+    playUploadedMediaController(uploadedController);
     return;
   }
   const controller = mediaControllerByDieId.get(normalizedDieId);
@@ -22454,6 +26174,17 @@ function tryAutoplayMediaController(dieId) {
   }
 }
 
+function ensureEmbeddedMediaControllerApi(controller) {
+  if (!controller || controller.disposed) {
+    return;
+  }
+  if (controller.provider === 'youtube') {
+    ensureYouTubeMediaController(controller.dieId, controller);
+  } else if (controller.provider === 'soundcloud') {
+    ensureSoundCloudMediaController(controller.dieId, controller);
+  }
+}
+
 function ensureYouTubeMediaController(dieId, controller) {
   ensureYouTubeIframeApi()
     .then((YT) => {
@@ -22472,11 +26203,32 @@ function ensureYouTubeMediaController(dieId, controller) {
               return;
             }
             latest.ready = true;
+            if (Number.isFinite(latest.pendingSeekRatio) && typeof latest.player?.seekTo === 'function') {
+              try {
+                const duration = Math.max(0, Number(latest.player.getDuration?.()) || 0);
+                if (duration > 0) {
+                  latest.player.seekTo(duration * clamp(latest.pendingSeekRatio, 0, 1), true);
+                }
+              } catch {
+                // Seeking can fail while the iframe is still initializing.
+              }
+              latest.pendingSeekRatio = null;
+            }
+            if (latest.pendingUserPlayback) {
+              playEmbeddedMediaControllerFromUser(latest);
+            }
             tryAutoplayMediaController(dieId);
           },
           onStateChange: (event) => {
             if (event?.data === YT.PlayerState.PLAYING) {
+              activeController.playing = true;
               requestMediaStartBroadcast(dieId);
+            } else if (
+              event?.data === YT.PlayerState.PAUSED ||
+              event?.data === YT.PlayerState.ENDED ||
+              event?.data === YT.PlayerState.CUED
+            ) {
+              activeController.playing = false;
             }
           }
         }
@@ -22500,23 +26252,73 @@ function ensureSoundCloudMediaController(dieId, controller) {
       }
       const widget = SC.Widget(activeController.iframe);
       activeController.widget = widget;
-      const events = SC.Widget?.Events;
-      if (!events) {
-        activeController.ready = true;
-        tryAutoplayMediaController(dieId);
-        return;
-      }
-      widget.bind(events.READY, () => {
+      const runPendingSoundCloudSeek = (targetController) => {
+        if (
+          !targetController ||
+          targetController.disposed ||
+          !Number.isFinite(targetController.pendingSeekRatio) ||
+          typeof widget.getDuration !== 'function' ||
+          typeof widget.seekTo !== 'function'
+        ) {
+          return;
+        }
+        const seekRatio = clamp(targetController.pendingSeekRatio, 0, 1);
+        try {
+          widget.getDuration((duration) => {
+            const latest = mediaControllerByDieId.get(dieId);
+            if (!latest || latest !== activeController || latest.disposed) {
+              return;
+            }
+            const durationMs = Math.max(0, Number(duration) || 0);
+            if (durationMs <= 0) {
+              latest.pendingSeekRatio = seekRatio;
+              return;
+            }
+            try {
+              widget.seekTo(Math.round(durationMs * seekRatio));
+              latest.pendingSeekRatio = null;
+            } catch {
+              latest.pendingSeekRatio = seekRatio;
+            }
+          });
+        } catch {
+          targetController.pendingSeekRatio = seekRatio;
+        }
+      };
+      const markSoundCloudReady = () => {
         const latest = mediaControllerByDieId.get(dieId);
         if (!latest || latest !== activeController || latest.disposed) {
           return;
         }
         latest.ready = true;
+        runPendingSoundCloudSeek(latest);
+        if (latest.pendingUserPlayback) {
+          playEmbeddedMediaControllerFromUser(latest);
+        }
         tryAutoplayMediaController(dieId);
-      });
+      };
+      const events = SC.Widget?.Events;
+      if (!events) {
+        markSoundCloudReady();
+        return;
+      }
+      widget.bind(events.READY, markSoundCloudReady);
       widget.bind(events.PLAY, () => {
+        activeController.playing = true;
         requestMediaStartBroadcast(dieId);
       });
+      if (events.PAUSE) {
+        widget.bind(events.PAUSE, () => {
+          activeController.playing = false;
+        });
+      }
+      if (events.FINISH) {
+        widget.bind(events.FINISH, () => {
+          activeController.playing = false;
+        });
+      }
+      window.setTimeout(markSoundCloudReady, 350);
+      window.setTimeout(markSoundCloudReady, 1200);
     })
     .catch((error) => {
       console.error(error);
@@ -22559,16 +26361,139 @@ function registerMediaEmbedController(dieId, provider, sourceUrl, iframe) {
     disposed: false,
     ready: false,
     pendingAutoStart: shouldAllowPendingAutoStart && Boolean(getMediaSignalKeyFromState(diceById.get(normalizedDieId))),
+    pendingUserPlayback: false,
+    pendingSeekRatio: null,
+    playing: false,
     player: null,
     widget: null
   };
   mediaControllerByDieId.set(normalizedDieId, controller);
 
-  if (normalizedProvider === 'youtube') {
-    ensureYouTubeMediaController(normalizedDieId, controller);
-  } else {
-    ensureSoundCloudMediaController(normalizedDieId, controller);
+  preconnectEmbeddedMediaProvider(normalizedProvider);
+  if (!(isSwagStudioRoom && isEmbeddableMediaProvider(normalizedProvider))) {
+    ensureEmbeddedMediaControllerApi(controller);
   }
+}
+
+function renderUploadedMediaSkeletonFace(face, provider) {
+  if (!(face instanceof HTMLElement) || !isSwagStudioRoom) {
+    return false;
+  }
+  const normalizedProvider = normalizeMediaProvider(provider);
+  if (!isUploadedMediaProvider(normalizedProvider)) {
+    return false;
+  }
+  let mediaFrame = face.querySelector('.table-media-frame');
+  if (!(mediaFrame instanceof HTMLElement)) {
+    face.textContent = '';
+    mediaFrame = document.createElement('div');
+    mediaFrame.className = 'table-media-frame';
+    face.appendChild(mediaFrame);
+  }
+  if (mediaFrame.querySelector('.table-uploaded-media-shell')) {
+    return false;
+  }
+  const isVideo = normalizedProvider === 'uploaded-video';
+  mediaFrame.classList.toggle('is-uploaded-audio', !isVideo);
+  mediaFrame.classList.toggle('is-uploaded-video', isVideo);
+
+  const playerShell = document.createElement('div');
+  playerShell.className = 'table-uploaded-media-shell is-media-loading';
+  playerShell.classList.toggle('is-audio-shell', !isVideo);
+
+  let controlsParent = playerShell;
+  if (isVideo) {
+    const previewSkeleton = document.createElement('div');
+    previewSkeleton.className = 'table-uploaded-media-preview-skeleton';
+    previewSkeleton.setAttribute('aria-hidden', 'true');
+    playerShell.appendChild(previewSkeleton);
+  } else {
+    const audioBody = document.createElement('div');
+    audioBody.className = 'table-uploaded-audio-body has-cover';
+    const coverWrap = document.createElement('div');
+    coverWrap.className = 'table-uploaded-audio-cover-wrap table-uploaded-audio-cover-button';
+    const coverPlaceholder = document.createElement('span');
+    coverPlaceholder.className = 'table-uploaded-audio-cover-placeholder';
+    coverWrap.appendChild(coverPlaceholder);
+    audioBody.appendChild(coverWrap);
+    playerShell.appendChild(audioBody);
+    controlsParent = audioBody;
+  }
+
+  const controls = document.createElement('div');
+  controls.className = 'table-uploaded-media-controls';
+  controls.setAttribute('aria-hidden', 'true');
+  controlsParent.appendChild(controls);
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'table-uploaded-media-title-row';
+  controls.appendChild(titleRow);
+
+  if (!isVideo) {
+    const titlePlayButton = document.createElement('button');
+    titlePlayButton.type = 'button';
+    titlePlayButton.className = 'table-uploaded-media-title-play-button';
+    titlePlayButton.tabIndex = -1;
+    titleRow.appendChild(titlePlayButton);
+  }
+
+  const titleElement = document.createElement('div');
+  titleElement.className = 'table-uploaded-media-title';
+  titleElement.textContent = '\u00a0';
+  titleRow.appendChild(titleElement);
+
+  const timeElement = document.createElement('div');
+  timeElement.className = 'table-uploaded-media-time';
+  timeElement.textContent = '\u00a0';
+  titleRow.appendChild(timeElement);
+
+  if (!isVideo) {
+    titleRow.appendChild(createUploadedAudioVisualizerElement());
+  }
+
+  const controlRow = document.createElement('div');
+  controlRow.className = 'table-uploaded-media-control-row';
+  controls.appendChild(controlRow);
+
+  const playButton = document.createElement('button');
+  playButton.type = 'button';
+  playButton.className = 'table-uploaded-media-button table-uploaded-media-play-button';
+  playButton.tabIndex = -1;
+  controlRow.appendChild(playButton);
+
+  const progressInput = document.createElement('input');
+  progressInput.className = 'table-uploaded-media-progress';
+  progressInput.type = 'range';
+  progressInput.min = '0';
+  progressInput.max = '1000';
+  progressInput.step = '1';
+  progressInput.value = '0';
+  progressInput.disabled = true;
+  controlRow.appendChild(progressInput);
+
+  const loopButton = document.createElement('button');
+  loopButton.type = 'button';
+  loopButton.className = 'table-uploaded-media-button table-uploaded-media-loop-button';
+  loopButton.tabIndex = -1;
+  controlRow.appendChild(loopButton);
+
+  const volumeWrap = document.createElement('div');
+  volumeWrap.className = 'table-uploaded-media-volume-wrap';
+  const volumeButton = document.createElement('button');
+  volumeButton.type = 'button';
+  volumeButton.className = 'table-uploaded-media-button table-uploaded-media-volume-button';
+  volumeButton.tabIndex = -1;
+  volumeWrap.appendChild(volumeButton);
+  controlRow.appendChild(volumeWrap);
+
+  const downloadButton = document.createElement('button');
+  downloadButton.type = 'button';
+  downloadButton.className = 'table-uploaded-media-button table-uploaded-media-download-button';
+  downloadButton.tabIndex = -1;
+  controlRow.appendChild(downloadButton);
+
+  mediaFrame.replaceChildren(playerShell);
+  return true;
 }
 
 function renderUploadedMediaFace(dieId, face, dieState) {
@@ -22579,6 +26504,8 @@ function renderUploadedMediaFace(dieId, face, dieState) {
   const mediaTitle = normalizeMediaTitle(dieState?.mediaTitle || normalizeStudioMediaFileName(mediaSourceUrl));
   const mediaMimeType = String(dieState?.mediaMimeType || '').trim();
   const mediaPosterUrl = !isVideo ? normalizeUploadedMediaPosterUrl(dieState?.mediaPosterUrl || '') : '';
+  preconnectUploadedMediaOrigin(mediaSourceUrl);
+  preconnectUploadedMediaOrigin(mediaPosterUrl);
   let mediaFrame = face.querySelector('.table-media-frame');
   if (!(mediaFrame instanceof HTMLElement)) {
     face.textContent = '';
@@ -22615,37 +26542,95 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     if (existingController.titleElement instanceof HTMLElement) {
       existingController.titleElement.textContent = mediaTitle || (isVideo ? 'video' : 'audio');
     }
-    if (existingController.mediaElement.src !== mediaSourceUrl) {
+    existingController.mediaTitle = mediaTitle;
+    if (isSwagStudioRoom && !isVideo && !(existingController.titlePlayButton instanceof HTMLButtonElement)) {
+      const titleRow = existingController.titleElement instanceof HTMLElement ? existingController.titleElement.parentElement : null;
+      if (titleRow instanceof HTMLElement) {
+        const titlePlayButton = document.createElement('button');
+        titlePlayButton.type = 'button';
+        titlePlayButton.className = 'table-uploaded-media-title-play-button';
+        titleRow.insertBefore(titlePlayButton, existingController.titleElement);
+        titlePlayButton.addEventListener('pointerdown', (event) => {
+          event.stopPropagation();
+        });
+        titlePlayButton.addEventListener('contextmenu', (event) => {
+          event.stopPropagation();
+        });
+        titlePlayButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (existingController.mediaElement.paused) {
+            playUploadedMediaController(existingController);
+          } else {
+            existingController.mediaElement.pause();
+          }
+        });
+        existingController.titlePlayButton = titlePlayButton;
+      }
+    }
+    existingController.mediaMimeType = mediaMimeType;
+    if (isSwagStudioRoom && !(existingController.timeElement instanceof HTMLElement)) {
+      const titleRow = existingController.titleElement instanceof HTMLElement ? existingController.titleElement.parentElement : null;
+      if (titleRow instanceof HTMLElement) {
+        const timeElement = document.createElement('div');
+        timeElement.className = 'table-uploaded-media-time';
+        titleRow.appendChild(timeElement);
+        existingController.timeElement = timeElement;
+      }
+    }
+    if (isSwagStudioRoom && !isVideo && !(existingController.visualizerElement instanceof HTMLElement)) {
+      const titleRow = existingController.titleElement instanceof HTMLElement ? existingController.titleElement.parentElement : null;
+      if (titleRow instanceof HTMLElement) {
+        const visualizerElement = createUploadedAudioVisualizerElement();
+        titleRow.appendChild(visualizerElement);
+        existingController.visualizerElement = visualizerElement;
+        existingController.visualizerBars = Array.from(visualizerElement.querySelectorAll('.table-uploaded-audio-spectrum-bar'));
+      }
+    }
+    if (existingController.sourceAttached === true && existingController.mediaElement.src !== mediaSourceUrl) {
       existingController.mediaElement.src = mediaSourceUrl;
       existingController.mediaElement.load();
+    } else if (existingController.sourceAttached !== true && !isSwagStudioRoom) {
+      attachUploadedMediaSource(existingController, { preload: 'metadata' });
     }
     if (mediaMimeType && existingController.mediaElement.getAttribute('type') !== mediaMimeType) {
       existingController.mediaElement.setAttribute('type', mediaMimeType);
+    }
+    if (isSwagStudioRoom && existingController.sourceAttached !== true) {
+      scheduleUploadedMediaWarmLoad(existingController);
     }
     syncUploadedMediaControllerUi(existingController);
     return;
   }
 
   teardownUploadedMediaController(normalizedDieId);
-  mediaFrame.textContent = '';
 
   const playerShell = document.createElement('div');
   playerShell.className = 'table-uploaded-media-shell';
   playerShell.classList.toggle('is-audio-shell', !isVideo);
-  mediaFrame.appendChild(playerShell);
+  if (isSwagStudioRoom) {
+    playerShell.classList.add('is-media-loading');
+  }
 
   const surface = document.createElement(isVideo ? 'video' : 'audio');
   surface.className = isVideo ? 'table-uploaded-media-surface table-uploaded-video' : 'table-uploaded-media-surface table-uploaded-audio';
-  surface.preload = 'metadata';
-  surface.src = mediaSourceUrl;
+  surface.preload = isSwagStudioRoom ? 'none' : 'metadata';
+  if (!isSwagStudioRoom) {
+    surface.src = mediaSourceUrl;
+  }
   surface.controls = false;
   surface.playsInline = true;
   surface.setAttribute('playsinline', '');
+  if (isSwagStudioRoom) {
+    surface.setAttribute('fetchpriority', 'high');
+  }
   if (mediaMimeType) {
     surface.setAttribute('type', mediaMimeType);
   }
   surface.addEventListener('pointerdown', (event) => {
-    event.stopPropagation();
+    if (!(isSwagStudioRoom && isVideo)) {
+      event.stopPropagation();
+    }
   });
   surface.addEventListener('contextmenu', (event) => {
     event.stopPropagation();
@@ -22654,34 +26639,64 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     surface.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (isSwagStudioRoom && shouldSuppressUploadedVideoDisplayClick(normalizedDieId)) {
+        return;
+      }
       if (surface.paused) {
-        surface.play().catch(() => {});
+        playUploadedMediaController(controller);
       } else {
         surface.pause();
       }
     });
   }
+  if (isVideo && isSwagStudioRoom) {
+    const previewSkeleton = document.createElement('div');
+    previewSkeleton.className = 'table-uploaded-media-preview-skeleton';
+    previewSkeleton.setAttribute('aria-hidden', 'true');
+    playerShell.appendChild(previewSkeleton);
+  }
   playerShell.appendChild(surface);
 
   let controlsParent = playerShell;
+  let coverButton = null;
   if (!isVideo) {
     const audioBody = document.createElement('div');
     audioBody.className = 'table-uploaded-audio-body';
-    audioBody.classList.toggle('has-cover', Boolean(mediaPosterUrl));
-    if (mediaPosterUrl) {
-      const coverWrap = document.createElement('div');
+    audioBody.classList.toggle('has-cover', Boolean(mediaPosterUrl) || isSwagStudioRoom);
+    if (mediaPosterUrl || isSwagStudioRoom) {
+      const coverWrap = document.createElement(isSwagStudioRoom ? 'button' : 'div');
       coverWrap.className = 'table-uploaded-audio-cover-wrap';
-      const coverImage = document.createElement('img');
-      coverImage.className = 'table-uploaded-audio-cover';
-      coverImage.src = mediaPosterUrl;
-      coverImage.alt = mediaTitle ? `${mediaTitle} cover art` : 'album cover';
-      coverImage.loading = isSwagStudioRoom ? 'eager' : 'lazy';
       if (isSwagStudioRoom) {
-        coverImage.fetchPriority = 'high';
+        coverWrap.type = 'button';
+        coverWrap.classList.add('table-uploaded-audio-cover-button');
+        coverWrap.setAttribute('aria-label', 'play audio');
+        coverWrap.title = 'play audio';
+        coverButton = coverWrap;
       }
-      coverImage.decoding = 'async';
-      coverImage.draggable = false;
-      coverWrap.appendChild(coverImage);
+      coverWrap.classList.toggle('is-empty-cover', !mediaPosterUrl);
+      if (mediaPosterUrl) {
+        const coverImage = document.createElement('img');
+        coverImage.className = 'table-uploaded-audio-cover';
+        coverImage.src = mediaPosterUrl;
+        coverImage.alt = mediaTitle ? `${mediaTitle} cover art` : 'album cover';
+        coverImage.loading = 'lazy';
+        if (isSwagStudioRoom) {
+          coverImage.fetchPriority = 'low';
+        }
+        coverImage.decoding = 'async';
+        coverImage.draggable = false;
+        coverWrap.appendChild(coverImage);
+      } else if (isSwagStudioRoom) {
+        const coverPlaceholder = document.createElement('span');
+        coverPlaceholder.className = 'table-uploaded-audio-cover-placeholder';
+        coverWrap.appendChild(coverPlaceholder);
+      }
+      if (isSwagStudioRoom) {
+        const coverOverlay = document.createElement('span');
+        coverOverlay.className = 'table-uploaded-audio-cover-play-overlay';
+        coverOverlay.innerHTML = '<svg class="table-uploaded-audio-cover-play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.3 6.6V17.4L16.5 12L8.3 6.6Z" fill="currentColor"/></svg><svg class="table-uploaded-audio-cover-pause-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.5 6.2V17.8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M15.5 6.2V17.8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>';
+        coverWrap.appendChild(coverOverlay);
+      }
       audioBody.appendChild(coverWrap);
     }
     playerShell.appendChild(audioBody);
@@ -22704,10 +26719,34 @@ function renderUploadedMediaFace(dieId, face, dieState) {
   titleRow.className = 'table-uploaded-media-title-row';
   controls.appendChild(titleRow);
 
+  let titlePlayButton = null;
+  if (!isVideo && isSwagStudioRoom) {
+    titlePlayButton = document.createElement('button');
+    titlePlayButton.type = 'button';
+    titlePlayButton.className = 'table-uploaded-media-title-play-button';
+    titlePlayButton.setAttribute('aria-label', 'play audio');
+    titlePlayButton.title = 'play audio';
+    titleRow.appendChild(titlePlayButton);
+  }
+
   const titleElement = document.createElement('div');
   titleElement.className = 'table-uploaded-media-title';
   titleElement.textContent = mediaTitle || (isVideo ? 'video' : 'audio');
   titleRow.appendChild(titleElement);
+
+  let timeElement = null;
+  if (isSwagStudioRoom) {
+    timeElement = document.createElement('div');
+    timeElement.className = 'table-uploaded-media-time';
+    timeElement.textContent = '0:00 / --:--';
+    titleRow.appendChild(timeElement);
+  }
+
+  let visualizerElement = null;
+  if (!isVideo && isSwagStudioRoom) {
+    visualizerElement = createUploadedAudioVisualizerElement();
+    titleRow.appendChild(visualizerElement);
+  }
 
   const controlRow = document.createElement('div');
   controlRow.className = 'table-uploaded-media-control-row';
@@ -22755,6 +26794,28 @@ function renderUploadedMediaFace(dieId, face, dieState) {
   volumeInput.value = String(Math.round(surface.volume * 100));
   volumePopover.appendChild(volumeInput);
 
+  const downloadButton = document.createElement('a');
+  downloadButton.className = 'table-uploaded-media-button table-uploaded-media-download-button';
+  downloadButton.href = mediaSourceUrl;
+  downloadButton.download = getUploadedMediaDownloadFilename(mediaTitle, provider, mediaMimeType);
+  downloadButton.target = '_blank';
+  downloadButton.rel = 'noopener';
+  downloadButton.setAttribute('aria-label', `download ${isVideo ? 'video' : 'audio'}`);
+  downloadButton.title = `download ${isVideo ? 'video' : 'audio'}`;
+  downloadButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 4.6V14.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8.2 10.7L12 14.5L15.8 10.7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 18.6H18.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  controlRow.appendChild(downloadButton);
+
+  let commentButton = null;
+  if (isSwagStudioRoom) {
+    commentButton = document.createElement('button');
+    commentButton.type = 'button';
+    commentButton.className = 'table-uploaded-media-button table-uploaded-media-comment-button';
+    commentButton.setAttribute('aria-label', 'add media comment');
+    commentButton.title = 'add media comment';
+    commentButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5.4 5.8H18.6V14.8H10.2L6.2 18.2V14.8H5.4V5.8Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9 10.2H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    playerShell.appendChild(commentButton);
+  }
+
   const sectionLoop = document.createElement('div');
   sectionLoop.className = 'table-uploaded-media-section-loop hidden';
   controls.appendChild(sectionLoop);
@@ -22795,15 +26856,30 @@ function renderUploadedMediaFace(dieId, face, dieState) {
   loopEndHandle.setAttribute('aria-label', 'section loop end');
   sectionLoop.appendChild(loopEndHandle);
 
+  mediaFrame.replaceChildren(playerShell);
+
   const controller = {
     dieId: normalizedDieId,
     provider,
     sourceUrl: mediaSourceUrl,
     posterUrl: mediaPosterUrl,
+    mediaTitle,
+    mediaMimeType,
+    sourceAttached: !isSwagStudioRoom,
+    loadingMedia: isSwagStudioRoom,
+    mediaReady: false,
+    skeletonUntilReady: isSwagStudioRoom,
     disposed: false,
     root: playerShell,
     mediaElement: surface,
     titleElement,
+    timeElement,
+    titlePlayButton,
+    visualizerElement,
+    visualizerBars: visualizerElement instanceof HTMLElement
+      ? Array.from(visualizerElement.querySelectorAll('.table-uploaded-audio-spectrum-bar'))
+      : [],
+    coverButton,
     playButton,
     progressInput,
     loopButton,
@@ -22820,6 +26896,8 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     volumeButton,
     volumeInput,
     volumePopover,
+    downloadButton,
+    commentButton,
     volumeOpen: false,
     pendingAutoStart: false,
     removeDocumentPointerDown: null
@@ -22836,15 +26914,37 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     document.removeEventListener('pointerdown', onDocumentPointerDown);
   };
 
-  playButton.addEventListener('click', (event) => {
+  const toggleUploadedMediaPlayback = (event) => {
     event.preventDefault();
     event.stopPropagation();
     if (surface.paused) {
-      surface.play().catch(() => {});
+      playUploadedMediaController(controller);
     } else {
       surface.pause();
     }
-  });
+  };
+
+  playButton.addEventListener('click', toggleUploadedMediaPlayback);
+
+  if (titlePlayButton instanceof HTMLButtonElement) {
+    titlePlayButton.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    titlePlayButton.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+    });
+    titlePlayButton.addEventListener('click', toggleUploadedMediaPlayback);
+  }
+
+  if (coverButton instanceof HTMLButtonElement) {
+    coverButton.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    coverButton.addEventListener('contextmenu', (event) => {
+      event.stopPropagation();
+    });
+    coverButton.addEventListener('click', toggleUploadedMediaPlayback);
+  }
 
   loopButton.addEventListener('click', (event) => {
     event.preventDefault();
@@ -22866,6 +26966,9 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     surface.currentTime = duration * ratio;
     syncUploadedMediaLoopPlayback(controller, { force: true });
     syncUploadedMediaControllerUi(controller);
+    if (!isVideo && surface.paused) {
+      playUploadedMediaController(controller);
+    }
   });
 
   const updateSectionLoopRange = (changedEdge, rawStartValue, rawEndValue) => {
@@ -22914,6 +27017,66 @@ function renderUploadedMediaFace(dieId, face, dieState) {
       return updateSectionLoopRange('start', nextValue, controller.loopEndValue);
     } else {
       return updateSectionLoopRange('end', controller.loopStartValue, nextValue);
+    }
+  };
+
+  const bindSectionLoopFillDrag = () => {
+    let fillDragState = null;
+    sectionFill.addEventListener('pointerdown', (event) => {
+      const duration = Number.isFinite(surface.duration) && surface.duration > 0 ? surface.duration : 0;
+      if (duration <= 0 || normalizeUploadedMediaLoopMode(controller.loopMode) !== UPLOADED_MEDIA_LOOP_MODE_SECTION) {
+        return;
+      }
+      const rect = sectionLoop.getBoundingClientRect();
+      if (!Number.isFinite(rect.width) || rect.width <= 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const startValue = clamp(Math.round(Number(controller.loopStartValue) || 0), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+      const endValue = clamp(Math.round(Number(controller.loopEndValue) || 0), 0, UPLOADED_MEDIA_LOOP_RANGE_MAX);
+      fillDragState = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startValue,
+        endValue,
+        width: rect.width,
+        segmentWidth: Math.max(UPLOADED_MEDIA_LOOP_RANGE_MIN_GAP, endValue - startValue)
+      };
+      sectionFill.setPointerCapture?.(event.pointerId);
+      sectionFill.classList.add('is-dragging');
+    });
+    sectionFill.addEventListener('pointermove', (event) => {
+      if (!fillDragState || fillDragState.pointerId !== event.pointerId) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const deltaValue = Math.round(((event.clientX - fillDragState.startClientX) / fillDragState.width) * UPLOADED_MEDIA_LOOP_RANGE_MAX);
+      const nextStart = clamp(
+        fillDragState.startValue + deltaValue,
+        0,
+        UPLOADED_MEDIA_LOOP_RANGE_MAX - fillDragState.segmentWidth
+      );
+      updateSectionLoopRange('end', nextStart, nextStart + fillDragState.segmentWidth);
+    });
+    for (const eventName of ['pointerup', 'pointercancel']) {
+      sectionFill.addEventListener(eventName, (event) => {
+        if (!fillDragState || fillDragState.pointerId !== event.pointerId) {
+          return;
+        }
+        if (sectionFill.hasPointerCapture?.(event.pointerId)) {
+          try {
+            sectionFill.releasePointerCapture(event.pointerId);
+          } catch {
+            // Ignore stale capture releases.
+          }
+        }
+        fillDragState = null;
+        sectionFill.classList.remove('is-dragging');
+        event.preventDefault();
+        event.stopPropagation();
+      });
     }
   };
 
@@ -22976,6 +27139,7 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     });
   };
 
+  bindSectionLoopFillDrag();
   bindSectionLoopHandle(loopStartHandle, 'start');
   bindSectionLoopHandle(loopEndHandle, 'end');
 
@@ -23012,8 +27176,61 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     syncUploadedMediaControllerUi(controller);
   });
 
+  downloadButton.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  downloadButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  downloadButton.addEventListener('contextmenu', (event) => {
+    event.stopPropagation();
+  });
+
+  if (commentButton instanceof HTMLButtonElement) {
+    commentButton.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    commentButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const commentDetails = getUploadedMediaCommentDetailsFromController(controller);
+      if (!commentDetails) {
+        return;
+      }
+      spawnUploadedMediaCommentComponent(commentDetails).catch((error) => {
+        console.error(error);
+        showStatusMessage('Unable to add media comment.');
+      });
+    });
+    commentButton.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  }
+
+  for (const eventName of ['loadstart', 'waiting', 'stalled']) {
+    surface.addEventListener(eventName, () => {
+      controller.loadingMedia = true;
+      syncUploadedMediaControllerUi(controller);
+    });
+  }
+  for (const eventName of ['canplay', 'playing']) {
+    surface.addEventListener(eventName, () => {
+      controller.loadingMedia = false;
+      controller.mediaReady = true;
+      if (eventName === 'playing') {
+        startUploadedAudioVisualizer(controller);
+      }
+      syncUploadedMediaControllerUi(controller);
+    });
+  }
   for (const eventName of ['loadedmetadata', 'durationchange']) {
     surface.addEventListener(eventName, () => {
+      if (surface.readyState >= surface.HAVE_FUTURE_DATA) {
+        controller.loadingMedia = false;
+        controller.mediaReady = true;
+      }
       syncUploadedMediaLoopPlayback(controller, { force: true });
       syncUploadedMediaControllerUi(controller);
     });
@@ -23023,20 +27240,35 @@ function renderUploadedMediaFace(dieId, face, dieState) {
     syncUploadedMediaControllerUi(controller);
   });
   surface.addEventListener('play', () => {
+    startUploadedAudioVisualizer(controller);
     syncUploadedMediaLoopPlayback(controller, { force: true });
     syncUploadedMediaControllerUi(controller);
   });
   for (const eventName of ['pause', 'volumechange']) {
     surface.addEventListener(eventName, () => {
+      if (eventName === 'pause') {
+        controller.loadingMedia = false;
+        stopUploadedAudioVisualizer(controller);
+      }
       syncUploadedMediaControllerUi(controller);
     });
   }
+  surface.addEventListener('error', () => {
+    controller.loadingMedia = false;
+    stopUploadedAudioVisualizer(controller);
+    syncUploadedMediaControllerUi(controller);
+  });
   surface.addEventListener('ended', () => {
+    controller.loadingMedia = false;
+    stopUploadedAudioVisualizer(controller);
     handleUploadedMediaEnded(controller);
     syncUploadedMediaControllerUi(controller);
   });
 
   uploadedMediaControllerByDieId.set(normalizedDieId, controller);
+  if (isSwagStudioRoom) {
+    scheduleUploadedMediaWarmLoad(controller);
+  }
   syncUploadedMediaControllerUi(controller);
 }
 
@@ -23086,6 +27318,9 @@ function getCardComponentSubtype(cardState) {
   if (rawSubtype === SECRET_AREA_COMPONENT_SUBTYPE) {
     return SECRET_AREA_COMPONENT_SUBTYPE;
   }
+  if (rawSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE && isSwagStudioRoom) {
+    return STUDIO_FOLDER_COMPONENT_SUBTYPE;
+  }
   return '';
 }
 
@@ -23107,6 +27342,19 @@ function isSecretAreaComponentCard(cardState) {
     getCardComponentSubtype(cardState) === SECRET_AREA_COMPONENT_SUBTYPE &&
     cardState?.componentCardSized === false
   );
+}
+
+function isStudioFolderComponentCard(cardState) {
+  return Boolean(
+    isSwagStudioRoom &&
+    isImageComponentCard(cardState) &&
+    getCardComponentSubtype(cardState) === STUDIO_FOLDER_COMPONENT_SUBTYPE &&
+    cardState?.componentCardSized === false
+  );
+}
+
+function isStudioAreaComponentCard(cardState) {
+  return isSecretAreaComponentCard(cardState) || isStudioFolderComponentCard(cardState);
 }
 
 function isNativeImageComponentCard(cardState) {
@@ -23311,15 +27559,18 @@ function updateSecretAreaOwnerRowElement(cardElement, cardState) {
 }
 
 function getSecretAreaVisibilitySignature(cardState) {
-  if (!isSecretAreaComponentCard(cardState)) {
+  if (!isSecretAreaComponentCard(cardState) && !isStudioFolderComponentCard(cardState)) {
     return '';
   }
+  const isFolder = isStudioFolderComponentCard(cardState);
   const ownerToken = getSecretAreaOwnerPlayerToken(cardState);
   const rotation = normalizeStickerRotationDegrees(cardState?.componentRotation);
   const width = Math.max(1, Number(cardState?.componentWidth) || CARD_WIDTH);
   const height = Math.max(1, Number(cardState?.componentHeight) || CARD_HEIGHT);
   const ownerInHand = getCardHandOwnerId(cardState) || '';
   return [
+    isFolder ? 'folder' : 'secret',
+    isFolder && cardState?.studioFolderCollapsed === true ? 'collapsed' : 'expanded',
     ownerToken,
     Number(cardState?.x || 0).toFixed(3),
     Number(cardState?.y || 0).toFixed(3),
@@ -23349,7 +27600,12 @@ function rebuildSecretAreaRegionsCache() {
   }
   const nextRegions = [];
   for (const [cardId, cardState] of cards.entries()) {
-    if (!isSecretAreaComponentCard(cardState)) {
+    const isSecretArea = isSecretAreaComponentCard(cardState);
+    const isStudioFolder = isStudioFolderComponentCard(cardState);
+    if (!isSecretArea && !isStudioFolder) {
+      continue;
+    }
+    if (isStudioFolder && cardState?.studioFolderCollapsed !== true) {
       continue;
     }
     if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
@@ -23364,6 +27620,7 @@ function rebuildSecretAreaRegionsCache() {
       width,
       height,
       rotationDeg: normalizeStickerRotationDegrees(cardState.componentRotation),
+      type: isStudioFolder ? 'folder' : 'secret',
       ownerPlayerToken: getSecretAreaOwnerPlayerToken(cardState)
     });
   }
@@ -23398,6 +27655,12 @@ function isWorldPointHiddenBySecretAreaForLocalViewer(worldX, worldY, options = 
   const ignoredCardId = String(options.ignoreCardId || '').trim();
   for (const region of secretAreaRegionsCache) {
     if (ignoredCardId && region.cardId === ignoredCardId) {
+      continue;
+    }
+    if (region.type === 'folder') {
+      if (isWorldPointInsideSecretAreaRegion(worldX, worldY, region)) {
+        return true;
+      }
       continue;
     }
     if (!region.ownerPlayerToken || region.ownerPlayerToken === localPlayerToken) {
@@ -23441,7 +27704,7 @@ function getCardWorldCenter(cardId, cardState = null) {
 }
 
 function isCardHiddenBySecretAreaForLocalViewer(cardId, cardState) {
-  if (!cardState || isSecretAreaComponentCard(cardState)) {
+  if (!cardState || isSecretAreaComponentCard(cardState) || isStudioFolderComponentCard(cardState)) {
     return false;
   }
   const worldCenter = getCardWorldCenter(cardId, cardState);
@@ -23484,12 +27747,12 @@ function getHoveredSecretAreaCardIdAtWorldPoint(worldX, worldY) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) {
     return '';
   }
-  let bestCardId = '';
-  let bestZ = Number.NEGATIVE_INFINITY;
-  for (const [cardId, cardState] of cards.entries()) {
-    if (!isSecretAreaComponentCard(cardState)) {
-      continue;
-    }
+	  let bestCardId = '';
+	  let bestZ = Number.NEGATIVE_INFINITY;
+	  for (const [cardId, cardState] of cards.entries()) {
+	    if (!isSecretAreaComponentCard(cardState) && !isStudioFolderComponentCard(cardState)) {
+	      continue;
+	    }
     if (!cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction || getCardHandOwnerId(cardState)) {
       continue;
     }
@@ -23642,13 +27905,15 @@ function getFaceWhenEnteringHand(cardState) {
 function isResizableImageComponentCard(cardState) {
   const componentType = getCardComponentType(cardState);
   const isResizableComponentType = componentType === 'image' || componentType === 'sticker';
-  const isSecretArea = getCardComponentSubtype(cardState) === SECRET_AREA_COMPONENT_SUBTYPE;
+  const isAreaComponent =
+    getCardComponentSubtype(cardState) === SECRET_AREA_COMPONENT_SUBTYPE ||
+    getCardComponentSubtype(cardState) === STUDIO_FOLDER_COMPONENT_SUBTYPE;
   const heldByOther = Boolean(cardState?.holderClientId) && cardState.holderClientId !== localClientId;
   return Boolean(
     cardState &&
     isResizableComponentType &&
     !isNoteComponentCard(cardState) &&
-    (cardState.componentCardSized === false || isSecretArea) &&
+    (cardState.componentCardSized === false || isAreaComponent) &&
     !isNativeImageComponentLocked(cardState) &&
     !heldByOther &&
     !cardState.inDeck &&
@@ -23806,6 +28071,19 @@ function clampImageComponentSize(widthValue, heightValue) {
   };
 }
 
+function clampStudioFolderComponentSize(widthValue, heightValue) {
+  let width = Number(widthValue);
+  let height = Number(heightValue);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+    width = CARD_WIDTH;
+    height = CARD_HEIGHT;
+  }
+  return {
+    width: Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, width),
+    height: Math.max(IMAGE_COMPONENT_MIN_WORLD_SIZE, height)
+  };
+}
+
 function clampNoteComponentSize(widthValue, heightValue) {
   const width = Number(widthValue);
   const height = Number(heightValue);
@@ -23837,6 +28115,9 @@ function getCardTableDimensions(cardState) {
   }
   if (isStickerComponentCard(cardState)) {
     return clampStickerSquareSize(cardState.componentWidth, cardState.componentHeight);
+  }
+  if (isStudioFolderComponentCard(cardState)) {
+    return clampStudioFolderComponentSize(cardState.componentWidth, cardState.componentHeight);
   }
   return clampImageComponentSize(cardState.componentWidth, cardState.componentHeight);
 }
@@ -23886,6 +28167,7 @@ function normalizeCardPayload(payload, cardId = '') {
   const nextY = Number(payload?.y);
   const nextZ = Number(payload?.z);
   const nextUpdatedAt = Number(payload?.updatedAt);
+  const studioListOrder = normalizeStudioListOrder(payload?.studioListOrder);
   const holderClientId = typeof payload?.holderClientId === 'string' && payload.holderClientId ? payload.holderClientId : null;
   const handOwnerClientId = typeof payload?.handOwnerClientId === 'string' && payload.handOwnerClientId ? payload.handOwnerClientId : null;
   const handOwnerPlayerToken =
@@ -23895,19 +28177,24 @@ function normalizeCardPayload(payload, cardId = '') {
   const rawComponentSubtype = String(payload?.componentSubtype || '').trim().toLowerCase();
   const componentType = rawComponentType === 'image' || rawComponentType === 'sticker' ? rawComponentType : '';
   const componentSubtype = componentType === 'image' &&
-    (rawComponentSubtype === NOTE_COMPONENT_SUBTYPE || rawComponentSubtype === SECRET_AREA_COMPONENT_SUBTYPE)
+    (
+      rawComponentSubtype === NOTE_COMPONENT_SUBTYPE ||
+      rawComponentSubtype === SECRET_AREA_COMPONENT_SUBTYPE ||
+      (rawComponentSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE && isSwagStudioRoom)
+    )
     ? rawComponentSubtype
     : '';
   const isImageComponent = componentType === 'image';
   const isStickerComponent = componentType === 'sticker';
   const isNoteComponent = isImageComponent && componentSubtype === NOTE_COMPONENT_SUBTYPE;
   const isSecretAreaComponent = isImageComponent && componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE;
+  const isStudioFolderComponent = isImageComponent && componentSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE && isSwagStudioRoom;
   const componentCardSized = componentType
     ? (isStickerComponent
       ? false
       : isNoteComponent
         ? true
-        : isSecretAreaComponent
+        : isSecretAreaComponent || isStudioFolderComponent
           ? false
         : payload?.componentCardSized !== false)
     : true;
@@ -23923,10 +28210,12 @@ function normalizeCardPayload(payload, cardId = '') {
     isSecretAreaComponent && typeof payload?.componentOwnerName === 'string'
       ? String(payload.componentOwnerName || '').trim().slice(0, 24)
       : '';
-  const componentOwnerColor = isSecretAreaComponent
-    ? normalizeOptionalHexColor(payload?.componentOwnerColor || '')
-    : '';
-  const explicitDeckId = normalizeOptionalDeckId(payload?.deckId);
+	  const componentOwnerColor = isSecretAreaComponent
+	    ? normalizeOptionalHexColor(payload?.componentOwnerColor || '')
+	    : '';
+	  const studioFolderCollapsed = isStudioFolderComponent ? payload?.studioFolderCollapsed === true : false;
+	  const studioFolderTitle = isStudioFolderComponent ? normalizeStudioFolderTitle(payload?.studioFolderTitle || 'folder') : '';
+	  const explicitDeckId = normalizeOptionalDeckId(payload?.deckId);
   const inferredDeckId = componentType ? '' : inferDeckIdFromCardId(cardId);
   const baseDeckId = componentType ? '' : (inferredDeckId || explicitDeckId || '');
   let deckId = baseDeckId;
@@ -24019,6 +28308,8 @@ function normalizeCardPayload(payload, cardId = '') {
     : componentType && !componentCardSized
       ? (isStickerComponent
         ? clampStickerSquareSize(payload?.componentWidth, payload?.componentHeight)
+        : isStudioFolderComponent
+          ? clampStudioFolderComponentSize(payload?.componentWidth, payload?.componentHeight)
         : clampImageComponentSize(payload?.componentWidth, payload?.componentHeight))
       : { width: CARD_WIDTH, height: CARD_HEIGHT };
   const componentAspectRatio = isNoteComponent
@@ -24110,10 +28401,15 @@ function normalizeCardPayload(payload, cardId = '') {
   const maxX = WORLD_WIDTH - boundsWidth / 2 + overflow;
   const minY = boundsHeight / 2 - overflow;
   const maxY = WORLD_HEIGHT - boundsHeight / 2 + overflow;
+  const clampMinX = isStudioFolderComponent ? Math.min(minX, maxX) : minX;
+  const clampMaxX = isStudioFolderComponent ? Math.max(minX, maxX) : maxX;
+  const clampMinY = isStudioFolderComponent ? Math.min(minY, maxY) : minY;
+  const clampMaxY = isStudioFolderComponent ? Math.max(minY, maxY) : maxY;
   return {
-    x: Number.isFinite(nextX) ? clamp(nextX, minX, maxX) : WORLD_WIDTH / 2,
-    y: Number.isFinite(nextY) ? clamp(nextY, minY, maxY) : WORLD_HEIGHT / 2,
+    x: Number.isFinite(nextX) ? clamp(nextX, clampMinX, clampMaxX) : WORLD_WIDTH / 2,
+    y: Number.isFinite(nextY) ? clamp(nextY, clampMinY, clampMaxY) : WORLD_HEIGHT / 2,
     z: Number.isFinite(nextZ) ? nextZ : 1,
+    studioListOrder,
     face,
     frontSrc: normalizedFrontSrc,
     backSrc,
@@ -24128,9 +28424,11 @@ function normalizeCardPayload(payload, cardId = '') {
     noteFrontText,
     noteBackText,
     componentOwnerPlayerToken,
-    componentOwnerName,
-    componentOwnerColor,
-    componentLocked,
+	    componentOwnerName,
+	    componentOwnerColor,
+	    studioFolderCollapsed,
+	    studioFolderTitle,
+	    componentLocked,
     componentRotation,
     componentAspectRatio,
     componentWidth: componentSize.width,
@@ -25726,13 +30024,24 @@ function ensureArcadeManaRenderLoop() {
 
 function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   if (dieType === 'label') {
-    return `label|${normalizeLabelVariant(dieState?.labelVariant)}|${normalizeLabelText(dieState?.text || '')}`;
+    return [
+      'label',
+      normalizeLabelVariant(dieState?.labelVariant),
+      normalizeLabelSubtype(dieState?.labelSubtype),
+      normalizeLabelText(dieState?.text || ''),
+      getMediaCommentTimeLabelFromState(dieState),
+      String(dieState?.mediaCommentSourceDieId || ''),
+      normalizeUploadedMediaSourceUrl(dieState?.mediaCommentSourceUrl || '', dieState?.mediaCommentProvider)
+    ].join('|');
   }
   if (dieType === 'media') {
     const provider = normalizeMediaProvider(dieState?.mediaProvider);
     const sourceUrl = normalizeUploadedMediaSourceUrl(dieState?.mediaSourceUrl || '', provider);
     const posterUrl = normalizeUploadedMediaPosterUrl(dieState?.mediaPosterUrl || '');
     return `media|${provider}|${normalizeMediaTitle(dieState?.mediaTitle || '')}|${getMediaUrlRenderSignature(sourceUrl)}|${normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '')}|${getMediaUrlRenderSignature(posterUrl)}`;
+  }
+  if (dieType === 'sampler') {
+    return `sampler|${getStudioSamplerSamplesSignature(dieState?.samplerSamples)}`;
   }
   if (dieType === 'counter') {
     return `counter|${clampCounterValue(dieState?.value)}`;
@@ -25800,6 +30109,137 @@ function buildDieFaceRenderKey(dieType, faceValue, dieState) {
   return `d6|${clamp(Math.round(Number(faceValue) || 1), 1, 6)}`;
 }
 
+function createMediaCommentPlayButton(dieId, dieState) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'table-media-comment-play-button';
+  button.setAttribute('aria-label', 'play media comment');
+  button.title = 'play media comment';
+  button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.7 6.3V17.7L17.2 12L8.7 6.3Z" fill="currentColor"/></svg>';
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    playMediaCommentCue(dieId, diceById.get(dieId) || dieState);
+  });
+  button.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  return button;
+}
+
+function createMediaCommentLabelShell(dieId, dieState) {
+  const shell = document.createElement('div');
+  shell.className = 'table-media-comment-shell';
+
+  const header = document.createElement('div');
+  header.className = 'table-media-comment-header';
+  header.appendChild(createMediaCommentPlayButton(dieId, dieState));
+
+  const timeLabel = document.createElement('span');
+  timeLabel.className = 'table-media-comment-time';
+  timeLabel.textContent = getMediaCommentTimeLabelFromState(dieState);
+  header.appendChild(timeLabel);
+  shell.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'table-media-comment-body';
+  shell.appendChild(body);
+
+  return { shell, body };
+}
+
+function renderMediaCommentLabelFace(dieId, face, dieState) {
+  face.classList.remove('table-label-text');
+  face.classList.add('table-media-comment-face');
+  face.textContent = '';
+  const { shell, body } = createMediaCommentLabelShell(dieId, dieState);
+  body.textContent = normalizeLabelText(dieState?.text || '');
+  face.appendChild(shell);
+}
+
+function renderStudioSamplerFace(dieId, face, dieState) {
+  if (!(face instanceof HTMLElement)) {
+    return;
+  }
+  const samples = normalizeStudioSamplerSamples(dieState?.samplerSamples);
+  preloadStudioSamplerSamples(samples);
+  face.classList.remove('table-label-text', 'table-media-comment-face');
+  face.classList.add('table-sampler-face');
+  face.textContent = '';
+
+  const shell = document.createElement('div');
+  shell.className = 'table-sampler-shell';
+
+  const grid = document.createElement('div');
+  grid.className = 'table-sampler-grid';
+  for (let index = 0; index < STUDIO_SAMPLER_SLOT_COUNT; index += 1) {
+    const sample = samples[index];
+    const hasPlayableSample = Boolean(sample?.sourceUrl);
+    const hasSample = hasPlayableSample || sample?.sourcePending === true;
+    const sampleLoadStatus = hasPlayableSample
+      ? getStudioSamplerSampleLoadStatus(sample.sourceUrl)
+      : sample?.sourcePending === true
+        ? 'loading'
+        : 'idle';
+    const pad = document.createElement('button');
+    pad.type = 'button';
+    pad.className = 'table-sampler-pad';
+    pad.classList.toggle('has-sample', hasSample);
+    pad.classList.toggle('is-sample-loading', sampleLoadStatus === 'loading');
+    pad.classList.toggle('is-sample-error', sampleLoadStatus === 'error');
+    pad.disabled = !hasPlayableSample;
+    pad.dataset.samplerSlot = String(index);
+    if (hasSample) {
+      pad.dataset.samplerSampleKey = getStudioSamplerSampleKey(sample.sourceUrl);
+    }
+    if (sampleLoadStatus === 'loading') {
+      pad.setAttribute('aria-busy', 'true');
+    }
+    pad.setAttribute('aria-label', hasSample ? `play ${getStudioSamplerSampleTitle(sample, index)}` : `empty sample ${index + 1}`);
+    pad.title = hasSample ? getStudioSamplerSampleTitle(sample, index) : 'empty';
+    pad.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    pad.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      triggerStudioSamplerPad(dieId, index);
+    });
+    const loader = document.createElement('span');
+    loader.className = 'table-sampler-pad-loader';
+    loader.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.className = 'table-sampler-pad-label';
+    label.textContent = hasSample ? getStudioSamplerSampleTitle(sample, index) : 'empty';
+    pad.append(loader, label);
+    grid.appendChild(pad);
+  }
+
+  const editButton = document.createElement('button');
+  editButton.type = 'button';
+  editButton.className = 'table-sampler-edit-button';
+  editButton.setAttribute('aria-label', 'edit samples');
+  editButton.title = 'edit samples';
+  editButton.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="17.5" cy="12" r="1.7"/></svg>';
+  editButton.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+  });
+  editButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openStudioSamplerModal(dieId);
+  });
+
+  shell.append(grid, editButton);
+  face.appendChild(shell);
+}
+
 function syncArcadePlayFaceControls(die, dieState) {
   if (!(die instanceof HTMLElement)) {
     return;
@@ -25855,7 +30295,11 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
   }
   const isLabel = dieType === 'label';
   const isMedia = dieType === 'media';
+  if (dieType !== 'sampler') {
+    face.classList.remove('table-sampler-face');
+  }
   const isHeadingLabel = isLabel && isHeadingLabelState(dieState);
+  const isMediaCommentLabel = isLabel && isMediaCommentLabelState(dieState);
   if (isLabel) {
     teardownMediaController(dieId);
     const activeEditor = face.querySelector('.table-label-editor');
@@ -25866,7 +30310,12 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       die.classList.remove('is-label-editing');
       delete die.dataset.labelEditing;
     }
+    if (isMediaCommentLabelState(dieState)) {
+      renderMediaCommentLabelFace(dieId, face, dieState);
+      return;
+    }
     face.classList.add('table-label-text');
+    face.classList.remove('table-media-comment-face');
     face.textContent = normalizeLabelText(dieState?.text || '');
     return;
   }
@@ -25879,6 +30328,7 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       mediaFrame.className = 'table-media-frame';
       face.appendChild(mediaFrame);
     }
+    mediaFrame.dataset.dieId = String(dieId || '');
     const embedUrl = normalizeMediaSourceUrl(dieState?.mediaEmbedUrl || '');
     const provider = normalizeMediaProvider(dieState?.mediaProvider);
     const sourceUrl = normalizeMediaSourceUrl(dieState?.mediaSourceUrl || '') || embedUrl;
@@ -25907,12 +30357,28 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       iframe.className = 'table-media-embed';
       iframe.allow = 'autoplay; encrypted-media; clipboard-write; fullscreen; picture-in-picture';
       iframe.referrerPolicy = 'strict-origin-when-cross-origin';
-      iframe.loading = isSwagStudioRoom ? 'eager' : 'lazy';
       iframe.setAttribute('allowfullscreen', '');
       mediaFrame.appendChild(iframe);
     }
     syncStudioEmbedDragHandles(mediaFrame, provider);
-    const nextTitle = provider === 'soundcloud' ? 'soundcloud media' : 'youtube media';
+    preconnectEmbeddedMediaProvider(provider);
+    const mediaDimensions = getDieWorldDimensions(dieState);
+    const shouldPrioritizeStudioEmbed =
+      isSwagStudioRoom &&
+      isWorldRectLikelyVisible(
+        dieState.x,
+        dieState.y,
+        mediaDimensions.width,
+        mediaDimensions.height,
+        Math.max(420, getViewportCullMarginPx() * 0.5)
+      );
+    iframe.loading = shouldPrioritizeStudioEmbed ? 'eager' : 'lazy';
+    if ('fetchPriority' in iframe) {
+      iframe.fetchPriority = shouldPrioritizeStudioEmbed ? 'high' : 'low';
+    }
+    const nextTitle = provider === 'soundcloud'
+      ? (isSoundCloudPlaylistSourceUrl(sourceUrl) ? 'soundcloud playlist' : 'soundcloud media')
+      : 'youtube media';
     iframe.title = nextTitle;
     const mediaIdentity = `${provider}:${sourceUrl}`;
     if (iframe.dataset.mediaIdentity !== mediaIdentity) {
@@ -25921,6 +30387,11 @@ function renderDieFace(dieId, die, face, dieType, faceValue, dieState) {
       iframe.dataset.embedSrc = embedUrl;
     }
     registerMediaEmbedController(dieId, provider, sourceUrl, iframe);
+    return;
+  }
+  if (dieType === 'sampler') {
+    teardownMediaController(dieId);
+    renderStudioSamplerFace(dieId, face, dieState);
     return;
   }
   if (dieType === 'counter') {
@@ -26541,6 +31012,7 @@ function renderDieElement(dieId, options = {}) {
   const isUploadedMedia = isMedia && isUploadedMediaProvider(mediaProvider);
   const isEmbeddableMedia = isMedia && isEmbeddableMediaProvider(mediaProvider);
   const isFixedSizeMedia = isMedia && isFixedSizeMediaProvider(mediaProvider);
+  const isSampler = dieType === 'sampler';
   if (isWorldPointHiddenBySecretAreaForLocalViewer(dieState.x, dieState.y)) {
     if (selectedDiceIds.delete(dieId)) {
       syncSelectionDeleteButtonUi();
@@ -26557,7 +31029,7 @@ function renderDieElement(dieId, options = {}) {
     dimensions.height,
     cullMarginPx
   );
-  const keepMountedWhenOffscreen = isMedia;
+  const keepMountedWhenOffscreen = isMedia || isSampler;
   const hasDieElement = diceElements.has(dieId);
   if (isVisibleInViewport || keepMountedWhenOffscreen || dieState.holderClientId || selectedDiceIds.has(dieId)) {
     offscreenDieSinceById.delete(dieId);
@@ -26573,6 +31045,12 @@ function renderDieElement(dieId, options = {}) {
   if (!die) {
     return false;
   }
+  if (isUploadedMedia && isSwagStudioRoom) {
+    const face = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
+    if (renderUploadedMediaSkeletonFace(face, mediaProvider)) {
+      delete die.dataset.faceRenderKey;
+    }
+  }
   const screen = worldToScreen({ x: dieState.x, y: dieState.y });
   const screenWidth = snapToDevicePixel(dimensions.width * camera.scale, 2);
   const screenHeight = snapToDevicePixel(dimensions.height * camera.scale, 2);
@@ -26584,10 +31062,12 @@ function renderDieElement(dieId, options = {}) {
     die.style.setProperty('--studio-media-design-width', `${dimensions.width.toFixed(4)}px`);
     die.style.setProperty('--studio-media-design-height', `${dimensions.height.toFixed(4)}px`);
     die.style.setProperty('--studio-media-render-scale', Math.max(0.001, camera.scale).toFixed(4));
+    die.style.removeProperty('--studio-media-font-size');
   } else {
     die.style.removeProperty('--studio-media-design-width');
     die.style.removeProperty('--studio-media-design-height');
     die.style.removeProperty('--studio-media-render-scale');
+    die.style.removeProperty('--studio-media-font-size');
   }
   if (isUploadedMedia) {
     if (isFixedSizeMedia && isSwagStudioRoom) {
@@ -26612,6 +31092,15 @@ function renderDieElement(dieId, options = {}) {
     die.style.setProperty('--arcade-unit', `${unitPx.toFixed(4)}px`);
   } else {
     die.style.removeProperty('--arcade-unit');
+  }
+  if (isSampler) {
+    const unitPx = Math.max(
+      0.001,
+      Math.min(screenWidth / STUDIO_SAMPLER_DEFAULT_WIDTH, screenHeight / STUDIO_SAMPLER_DEFAULT_HEIGHT)
+    );
+    die.style.setProperty('--sampler-unit', `${unitPx.toFixed(4)}px`);
+  } else {
+    die.style.removeProperty('--sampler-unit');
   }
 
   const isHeld = Boolean(dieState.holderClientId);
@@ -26648,6 +31137,8 @@ function renderDieElement(dieId, options = {}) {
   const isStackPoint = dieType === 'stack-point';
   const isArcade = dieType === 'arcade';
   const isHeadingLabel = isLabel && isHeadingLabelState(dieState);
+  const isMediaCommentLabel = isLabel && isMediaCommentLabelState(dieState);
+  syncStudioLabelRasterElement(die, dimensions, isLabel);
   const timerSplitCount = isTimer ? normalizeTimerSplits(dieState?.timerSplits).length : 0;
   const timerHasVisibleSplits = isTimer && (dieState?.timerSplitsVisible === true || timerSplitCount > 0);
   const timerAnimating = isTimer && dieState.timerRunning === true && getTimerElapsedMs(dieState, now) < TIMER_MAX_ELAPSED_MS;
@@ -26665,8 +31156,17 @@ function renderDieElement(dieId, options = {}) {
     if (isLabel) {
       const face = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
       if (face instanceof HTMLElement) {
-        const fontPx = getLabelFontSizePx(dieState);
+        const fontPx = isSwagStudioRoom ? getLabelWorldFontSizePx(dieState) : getLabelFontSizePx(dieState);
         face.style.fontSize = `${fontPx.toFixed(2)}px`;
+        if (isMediaCommentLabelState(dieState)) {
+          face.style.setProperty(
+            '--media-comment-header-font-size',
+            `${snapToDevicePixel(
+              isSwagStudioRoom ? MEDIA_COMMENT_HEADER_FONT_WORLD_SIZE : MEDIA_COMMENT_HEADER_FONT_WORLD_SIZE * camera.scale,
+              0.01
+            ).toFixed(2)}px`
+          );
+        }
         const activeEditor = face.querySelector('.table-label-editor');
         if (activeEditor instanceof HTMLTextAreaElement) {
           activeEditor.style.fontSize = `${fontPx.toFixed(2)}px`;
@@ -26694,6 +31194,7 @@ function renderDieElement(dieId, options = {}) {
   const isLabelEditing = isLabel && die.dataset.labelEditing === '1' && hasActiveLabelEditor;
   const canToggleLabelLock =
     isLabel &&
+    !isMediaCommentLabel &&
     !heldByOther &&
     !drawModeEnabled &&
     !isLabelEditing;
@@ -26706,6 +31207,7 @@ function renderDieElement(dieId, options = {}) {
     !isLabelEditing;
   const canRotateLabel =
     isLabel &&
+    !isMediaCommentLabel &&
     !heldByOther &&
     !isLabelLocked &&
     !drawModeEnabled &&
@@ -26725,9 +31227,11 @@ function renderDieElement(dieId, options = {}) {
   die.classList.toggle('table-die-chip', isChip);
   die.classList.toggle('table-die-stack-point', isStackPoint);
   die.classList.toggle('table-die-arcade', isArcade);
+  die.classList.toggle('table-die-sampler', isSampler);
   die.classList.toggle('table-die-marble', dieType === 'marble');
   die.classList.toggle('table-die-label', isLabel);
   die.classList.toggle('is-heading-label', isHeadingLabel);
+  die.classList.toggle('is-media-comment-label', isMediaCommentLabel);
   die.classList.toggle('table-die-media', isMedia);
   die.classList.toggle('is-fixed-size-media', isFixedSizeMedia);
   die.classList.toggle('table-die-counter', isCounter);
@@ -26813,6 +31317,8 @@ function renderDieElement(dieId, options = {}) {
     die.setAttribute('aria-label', 'label');
   } else if (dieType === 'media') {
     die.setAttribute('aria-label', 'media');
+  } else if (dieType === 'sampler') {
+    die.setAttribute('aria-label', 'sampler');
   } else if (dieType === 'counter') {
     die.setAttribute('aria-label', 'counter');
   } else if (dieType === 'timer') {
@@ -26852,9 +31358,20 @@ function renderDieElement(dieId, options = {}) {
   if (dieType === 'label') {
     const face = die._dieFace instanceof HTMLElement ? die._dieFace : die.querySelector('.table-die-face');
     if (face instanceof HTMLElement) {
-      const fontPx = getLabelFontSizePx(dieState);
+      const fontPx = isSwagStudioRoom ? getLabelWorldFontSizePx(dieState) : getLabelFontSizePx(dieState);
       face.style.fontSize = `${fontPx.toFixed(2)}px`;
       face.style.color = isHeadingLabel ? HEADING_LABEL_TEXT_COLOR : normalizeHexColor(dieState.textColor || '#ff7a59');
+      if (isMediaCommentLabel) {
+        face.style.setProperty(
+          '--media-comment-header-font-size',
+          `${snapToDevicePixel(
+            isSwagStudioRoom ? MEDIA_COMMENT_HEADER_FONT_WORLD_SIZE : MEDIA_COMMENT_HEADER_FONT_WORLD_SIZE * camera.scale,
+            0.01
+          ).toFixed(2)}px`
+        );
+      } else {
+        face.style.removeProperty('--media-comment-header-font-size');
+      }
       const activeEditor = face.querySelector('.table-label-editor');
       if (activeEditor instanceof HTMLTextAreaElement) {
         activeEditor.style.fontSize = `${fontPx.toFixed(2)}px`;
@@ -27203,6 +31720,52 @@ function ensureCardElement(cardId) {
     card._secretAreaOwnerDot = secretAreaOwnerDot;
     card._secretAreaOwnerName = secretAreaOwnerName;
 
+    const studioFolderToggle = document.createElement('button');
+    studioFolderToggle.type = 'button';
+    studioFolderToggle.className = 'studio-folder-toggle-button';
+    studioFolderToggle.setAttribute('aria-label', 'toggle folder');
+    studioFolderToggle.innerHTML =
+      '<svg class="studio-folder-chevron" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><svg class="studio-folder-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M3.8 7.8C3.8 6.7 4.7 5.8 5.8 5.8H10L11.8 7.6H18.2C19.3 7.6 20.2 8.5 20.2 9.6V16.4C20.2 17.5 19.3 18.4 18.2 18.4H5.8C4.7 18.4 3.8 17.5 3.8 16.4V7.8Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>';
+    studioFolderToggle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    studioFolderToggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleStudioFolderCollapsed(cardId);
+    });
+    const studioFolderTitle = document.createElement('span');
+    studioFolderTitle.className = 'studio-folder-title';
+    studioFolderTitle.textContent = 'folder';
+    studioFolderTitle.addEventListener('pointerdown', (event) => {
+      event.stopPropagation();
+    });
+    studioFolderTitle.addEventListener('dblclick', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      beginStudioFolderTitleEdit(cardId, studioFolderTitle);
+    });
+    const studioFolderHeader = document.createElement('div');
+    studioFolderHeader.className = 'studio-folder-toggle hidden';
+    studioFolderHeader.addEventListener('pointerdown', (event) => {
+      if (event.target === studioFolderToggle || studioFolderToggle.contains(event.target)) {
+        return;
+      }
+      if (event.target instanceof HTMLElement && event.target.closest('.studio-folder-title-input')) {
+        return;
+      }
+      onSecretAreaMovePointerDown(event, cardId);
+    });
+    studioFolderHeader.append(studioFolderToggle, studioFolderTitle);
+    shieldPointerEvents(studioFolderToggle, { allowRightMousePassthrough: true });
+    shieldPointerEvents(studioFolderTitle, { allowRightMousePassthrough: true });
+    shieldPointerEvents(studioFolderHeader, { allowRightMousePassthrough: true });
+    card.appendChild(studioFolderHeader);
+    card._studioFolderToggle = studioFolderHeader;
+    card._studioFolderToggleButton = studioFolderToggle;
+    card._studioFolderTitle = studioFolderTitle;
+
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'table-card-resize-handle hidden';
     resizeHandle.setAttribute('aria-hidden', 'true');
@@ -27219,6 +31782,27 @@ function ensureCardElement(cardId) {
     });
     card.appendChild(resizeHandle);
     card._cardResizeHandle = resizeHandle;
+
+    const studioFolderResizeEdges = document.createElement('div');
+    studioFolderResizeEdges.className = 'studio-folder-resize-edges hidden';
+    studioFolderResizeEdges.setAttribute('aria-hidden', 'true');
+    for (const direction of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
+      const edgeHandle = document.createElement('div');
+      edgeHandle.className = `studio-folder-resize-edge is-${direction}`;
+      edgeHandle.dataset.resizeDirection = direction;
+      edgeHandle.addEventListener('pointerdown', (event) => {
+        onCardResizePointerDown(event, cardId, { resizeDirection: direction });
+      });
+      edgeHandle.addEventListener('pointerenter', () => {
+        card.classList.add('is-resize-hovered');
+      });
+      edgeHandle.addEventListener('pointerleave', () => {
+        card.classList.remove('is-resize-hovered');
+      });
+      studioFolderResizeEdges.appendChild(edgeHandle);
+    }
+    card.appendChild(studioFolderResizeEdges);
+    card._studioFolderResizeEdges = studioFolderResizeEdges;
 
     const lockControl = document.createElement('button');
     lockControl.type = 'button';
@@ -28091,10 +32675,13 @@ function buildCardRenderLogicKey(cardId, cardState) {
     getCardHandOwnerId(cardState) || '',
     cardState?.inDeck ? '1' : '0',
     cardState?.inDiscard ? '1' : '0',
-    cardState?.inAuction ? '1' : '0',
-    cardState?.inAuction ? getCardAuctionSlotIndex(cardState) : -1,
-    getCardDeckId(cardState, cardId),
-    selectedCardIds.has(cardId) ? '1' : '0',
+	    cardState?.inAuction ? '1' : '0',
+	    cardState?.inAuction ? getCardAuctionSlotIndex(cardState) : -1,
+	    getCardDeckId(cardState, cardId),
+	    getCardComponentSubtype(cardState),
+	    cardState?.studioFolderCollapsed === true ? 'folder-collapsed' : 'folder-expanded',
+	    cardState?.studioFolderTitle || '',
+	    selectedCardIds.has(cardId) ? '1' : '0',
     handDropPreview?.cardId === cardId ? '1' : '0',
     discardReturnAnimatingCardIds.has(cardId) ? '1' : '0',
     resizingImageCardId === cardId ? '1' : '0',
@@ -28259,11 +32846,14 @@ function renderCardElement(cardId, options = {}) {
   if (!card) {
     return;
   }
-  const wasHeldBySelf = card.classList.contains('is-held-by-self');
-  const shouldAlwaysCoverDrawings = !isCoolStackCard && !isNoteComponent && cardDeckState?.coverDrawings === true;
-  const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
-  const isSecretAreaComponent = isSecretAreaComponentCard(cardState);
-  const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
+	  const wasHeldBySelf = card.classList.contains('is-held-by-self');
+	  const shouldAlwaysCoverDrawings = !isCoolStackCard && !isNoteComponent && cardDeckState?.coverDrawings === true;
+	  const shouldLiftAboveOldDrawings = !isCoolStackCard && cardState.drawLifted === true;
+	  const isSecretAreaComponent = isSecretAreaComponentCard(cardState);
+	  const isStudioFolderComponent = isStudioFolderComponentCard(cardState);
+	  const isAreaComponent = isSecretAreaComponent || isStudioFolderComponent;
+	  const studioFolderCollapsed = isStudioFolderComponent && cardState.studioFolderCollapsed === true;
+	  const screen = worldToScreen({ x: cardWorldX, y: cardWorldY });
   setElementStylePx(card, 'left', screen.x);
   setElementStylePx(card, 'top', screen.y);
   let cardScreenWidth = cardState.inAuction
@@ -28294,8 +32884,8 @@ function renderCardElement(cardId, options = {}) {
     }
   } else {
     let tableCardLayer = cardLayer;
-    if (isSecretAreaComponent && secretAreaLayer) {
-      tableCardLayer = secretAreaLayer;
+	    if (isAreaComponent && secretAreaLayer) {
+	      tableCardLayer = secretAreaLayer;
     } else if (isCoolStackCard && stackLayer) {
       tableCardLayer = stackLayer;
     } else if (shouldAlwaysCoverDrawings && coverCardLayer) {
@@ -28312,13 +32902,18 @@ function renderCardElement(cardId, options = {}) {
   const baseZ = clamp(rawBaseZ, 1, DECK_UI_Z_INDEX - 1);
   const renderZ = isHeld && !isCoolStackCard ? HELD_CARD_Z_INDEX_BASE + baseZ : baseZ;
   setElementStyleValue(card, 'zIndex', String(renderZ));
-  const moveControl =
-    card._cardMoveControl instanceof HTMLElement ? card._cardMoveControl : card.querySelector('.table-card-move-control');
-  if (moveControl instanceof HTMLElement) {
-    const useSecretAreaOverlayControl = isSecretAreaComponent && Boolean(tableRoot);
-    moveControl.classList.toggle('hidden', !isSecretAreaComponent);
-    moveControl.classList.toggle('is-secret-area-overlay', useSecretAreaOverlayControl);
-    moveControl.classList.toggle('is-group-selected', isSecretAreaComponent && selectedCardIds.has(cardId));
+	  const moveControl =
+	    card._cardMoveControl instanceof HTMLElement ? card._cardMoveControl : card.querySelector('.table-card-move-control');
+	  if (moveControl instanceof HTMLElement) {
+	    const useSecretAreaOverlayControl = isAreaComponent && Boolean(tableRoot);
+	    const hideStudioFolderRoomMoveControl =
+	      isSwagStudioRoom && studioListViewActive && isStudioFolderComponent;
+	    moveControl.classList.toggle('hidden', !isAreaComponent || studioFolderCollapsed || hideStudioFolderRoomMoveControl);
+	    moveControl.classList.toggle('is-secret-area-overlay', useSecretAreaOverlayControl);
+	    moveControl.classList.toggle(
+	      'is-group-selected',
+	      isAreaComponent && !studioFolderCollapsed && !hideStudioFolderRoomMoveControl && selectedCardIds.has(cardId)
+	    );
     if (useSecretAreaOverlayControl) {
       if (moveControl.parentElement !== tableRoot) {
         tableRoot.appendChild(moveControl);
@@ -28485,12 +33080,14 @@ function renderCardElement(cardId, options = {}) {
     syncSelectionDeleteButtonUi();
   }
   const isResizableImage = isResizableImageComponentCard(cardState);
-  const isResizingThisCard = resizingImageCardId === cardId;
-  const isRotatingThisCard = rotatingStickerCardId === cardId;
-  card.classList.toggle('is-image-component', isImageComponent);
-  card.classList.toggle('is-sticker-component', isStickerComponent);
-  card.classList.toggle('is-secret-area-component', isSecretAreaComponent);
-  card.classList.toggle('is-note-component', isNoteComponent);
+	  const isResizingThisCard = resizingImageCardId === cardId;
+	  const isRotatingThisCard = rotatingStickerCardId === cardId;
+	  card.classList.toggle('is-image-component', isImageComponent);
+	  card.classList.toggle('is-sticker-component', isStickerComponent);
+	  card.classList.toggle('is-secret-area-component', isAreaComponent);
+	  card.classList.toggle('is-studio-folder-component', isStudioFolderComponent);
+	  card.classList.toggle('is-studio-folder-collapsed', studioFolderCollapsed);
+	  card.classList.toggle('is-note-component', isNoteComponent);
   card.classList.toggle('is-hexitama-card', isHexitamaCard);
   applyHexitamaActionCardSelectionVisual(card, isHexitamaActionSelected);
   card.classList.toggle('is-sticker-locked', isStickerLocked);
@@ -28502,7 +33099,7 @@ function renderCardElement(cardId, options = {}) {
   card.classList.toggle('is-resizable-image', isResizableImage);
   card.classList.toggle('is-resizing', isResizingThisCard);
   card.classList.toggle('is-rotating', isRotatingThisCard);
-  card.classList.toggle('is-secret-area-hovered', isSecretAreaComponent && hoveredSecretAreaCardId === cardId);
+	  card.classList.toggle('is-secret-area-hovered', isAreaComponent && !studioFolderCollapsed && hoveredSecretAreaCardId === cardId);
   if (isNoteComponent) {
     if (wasHeldBySelf !== heldBySelf) {
       scheduleNoteAttachmentPickupSync(cardId);
@@ -28511,17 +33108,42 @@ function renderCardElement(cardId, options = {}) {
     clearNoteAttachmentPickupSync(cardId);
   }
   card.style.setProperty('--card-rotation-deg', `${componentRotationDeg}deg`);
-  if (isSecretAreaComponent) {
-    const secretAreaOutlineColor = resolveSecretAreaOutlineColor(cardState);
-    if (secretAreaOutlineColor) {
-      card.style.setProperty('--secret-area-owner-color', secretAreaOutlineColor);
+	  if (isAreaComponent) {
+	    const secretAreaOutlineColor = isStudioFolderComponent ? '#111111' : resolveSecretAreaOutlineColor(cardState);
+	    if (secretAreaOutlineColor) {
+	      card.style.setProperty('--secret-area-owner-color', secretAreaOutlineColor);
     } else {
       card.style.removeProperty('--secret-area-owner-color');
     }
   } else {
     card.style.removeProperty('--secret-area-owner-color');
-  }
-  updateSecretAreaOwnerRowElement(card, cardState);
+	  }
+	  updateSecretAreaOwnerRowElement(card, cardState);
+	  const studioFolderToggle =
+	    card._studioFolderToggle instanceof HTMLElement ? card._studioFolderToggle : card.querySelector('.studio-folder-toggle');
+	  if (studioFolderToggle instanceof HTMLElement) {
+	    const showFolderToggle =
+	      isStudioFolderComponent &&
+	      !cardState.inDeck &&
+	      !cardState.inDiscard &&
+	      !cardState.inAuction &&
+	      !getCardHandOwnerId(cardState);
+	    studioFolderToggle.classList.toggle('hidden', !showFolderToggle);
+	    studioFolderToggle.classList.toggle('is-collapsed', studioFolderCollapsed);
+	    studioFolderToggle.setAttribute('aria-expanded', studioFolderCollapsed ? 'false' : 'true');
+	  }
+	  const studioFolderToggleButton =
+	    card._studioFolderToggleButton instanceof HTMLElement
+	      ? card._studioFolderToggleButton
+	      : card.querySelector('.studio-folder-toggle-button');
+	  if (studioFolderToggleButton instanceof HTMLElement) {
+	    studioFolderToggleButton.setAttribute('aria-label', studioFolderCollapsed ? 'expand folder' : 'collapse folder');
+	  }
+	  const studioFolderTitle =
+	    card._studioFolderTitle instanceof HTMLElement ? card._studioFolderTitle : card.querySelector('.studio-folder-title');
+	  if (studioFolderTitle instanceof HTMLElement && !studioFolderTitle.classList.contains('is-editing')) {
+	    studioFolderTitle.textContent = getStudioFolderTitle(cardState);
+	  }
   if (!isResizingThisCard && !isResizableImage) {
     card.classList.remove('is-resize-hovered');
   }
@@ -28529,23 +33151,30 @@ function renderCardElement(cardId, options = {}) {
     card.classList.remove('is-rotate-hovered');
   }
 
-  const resizeHandle =
-    card._cardResizeHandle instanceof HTMLElement ? card._cardResizeHandle : card.querySelector('.table-card-resize-handle');
-  if (resizeHandle instanceof HTMLElement) {
-    resizeHandle.classList.toggle('hidden', !isResizableImage);
-  }
+	  const resizeHandle =
+	    card._cardResizeHandle instanceof HTMLElement ? card._cardResizeHandle : card.querySelector('.table-card-resize-handle');
+	  if (resizeHandle instanceof HTMLElement) {
+	    resizeHandle.classList.toggle('hidden', !isResizableImage || studioFolderCollapsed || isStudioFolderComponent);
+	  }
+	  const studioFolderResizeEdges =
+	    card._studioFolderResizeEdges instanceof HTMLElement
+	      ? card._studioFolderResizeEdges
+	      : card.querySelector('.studio-folder-resize-edges');
+	  if (studioFolderResizeEdges instanceof HTMLElement) {
+	    studioFolderResizeEdges.classList.toggle('hidden', !isStudioFolderComponent || !isResizableImage || studioFolderCollapsed);
+	  }
   const lockControl =
     card._cardLockControl instanceof HTMLElement ? card._cardLockControl : card.querySelector('.table-card-lock-control');
-  if (lockControl instanceof HTMLElement) {
-    lockControl.classList.toggle('hidden', !isNativeImageMode);
-    lockControl.classList.toggle('is-locked', isComponentLocked);
-    lockControl.setAttribute('aria-label', isComponentLocked ? 'unlock image' : 'lock image');
-  }
+	  if (lockControl instanceof HTMLElement) {
+	    lockControl.classList.toggle('hidden', !isNativeImageMode || isStudioFolderComponent);
+	    lockControl.classList.toggle('is-locked', isComponentLocked);
+	    lockControl.setAttribute('aria-label', isComponentLocked ? 'unlock image' : 'lock image');
+	  }
   const rotateControl =
     card._cardRotateControl instanceof HTMLElement ? card._cardRotateControl : card.querySelector('.table-card-rotate-control');
-  if (rotateControl instanceof HTMLElement) {
-    const canShowImageRotateControl = isNativeImageMode && !isComponentLocked;
-    rotateControl.classList.toggle('hidden', !canShowImageRotateControl);
+	  if (rotateControl instanceof HTMLElement) {
+	    const canShowImageRotateControl = isNativeImageMode && !isComponentLocked && !isStudioFolderComponent;
+	    rotateControl.classList.toggle('hidden', !canShowImageRotateControl);
     rotateControl.setAttribute('aria-label', 'rotate image');
   }
   const image = card._cardImage instanceof HTMLImageElement ? card._cardImage : card.querySelector('img');
@@ -30155,6 +34784,7 @@ function openRoomSettingsMenu() {
   closeStickerAddModal();
   closeMediaAddModal();
   closeStudioUploadModal();
+  closeStudioSamplerModal();
   closeGameOptionsMenu();
   closeAssetMenu();
   roomSettingsModal.classList.remove('hidden');
@@ -30397,6 +35027,147 @@ function setActiveStudioUploadCoverFile(file) {
     setStudioUploadValidationMessage('');
   }
   syncStudioUploadModalUi();
+}
+
+function isStudioSamplerModalOpen() {
+  return Boolean(studioSamplerModal && !studioSamplerModal.classList.contains('hidden'));
+}
+
+function setStudioSamplerValidationMessage(message = '', options = {}) {
+  const normalizedMessage = String(message || '').trim();
+  if (studioSamplerError) {
+    studioSamplerError.textContent = normalizedMessage;
+    studioSamplerError.classList.toggle('hidden', !normalizedMessage);
+    studioSamplerError.classList.toggle('is-status', options.status === true && Boolean(normalizedMessage));
+  }
+}
+
+function resetStudioSamplerModalState(dieId = '') {
+  const targetDieId = String(dieId || '').trim();
+  const dieState = targetDieId ? diceById.get(targetDieId) : null;
+  activeStudioSamplerEditDieId = normalizeDieType(dieState?.type) === 'sampler' ? targetDieId : '';
+  activeStudioSamplerSlotIndex = -1;
+  activeStudioSamplerSamples = activeStudioSamplerEditDieId
+    ? normalizeStudioSamplerSamples(dieState?.samplerSamples)
+    : createEmptyStudioSamplerSamples();
+  activeStudioSamplerFiles = Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, () => null);
+  studioSamplerSubmitting = false;
+  if (studioSamplerInput) {
+    studioSamplerInput.value = '';
+  }
+  setStudioSamplerValidationMessage('');
+}
+
+function getActiveStudioSamplerSlotTitle(index) {
+  const file = activeStudioSamplerFiles[index];
+  if (file instanceof File) {
+    return normalizeStudioMediaFileName(file.name);
+  }
+  const sample = activeStudioSamplerSamples[index];
+  return getStudioSamplerSampleTitle(sample, index);
+}
+
+function getActiveStudioSamplerSlotHasValue(index) {
+  return (
+    activeStudioSamplerFiles[index] instanceof File ||
+    Boolean(activeStudioSamplerSamples[index]?.sourceUrl)
+  );
+}
+
+function syncStudioSamplerModalUi() {
+  if (studioSamplerTitle) {
+    studioSamplerTitle.textContent = activeStudioSamplerEditDieId ? 'editing sampler' : 'adding sampler';
+  }
+  if (studioSamplerInput) {
+    studioSamplerInput.accept = STUDIO_UPLOAD_AUDIO_ACCEPT;
+    studioSamplerInput.disabled = studioSamplerSubmitting;
+    studioSamplerInput.value = '';
+  }
+  if (studioSamplerGrid instanceof HTMLElement) {
+    studioSamplerGrid.textContent = '';
+    for (let index = 0; index < STUDIO_SAMPLER_SLOT_COUNT; index += 1) {
+      const hasValue = getActiveStudioSamplerSlotHasValue(index);
+      const hasNewFile = activeStudioSamplerFiles[index] instanceof File;
+      const pad = document.createElement('button');
+      pad.type = 'button';
+      pad.className = 'studio-sampler-upload-pad';
+      pad.classList.toggle('has-sample', hasValue);
+      pad.classList.toggle('has-new-file', hasNewFile);
+      pad.dataset.samplerSlot = String(index);
+      pad.disabled = studioSamplerSubmitting;
+      pad.setAttribute('aria-label', `${hasValue ? 'replace' : 'choose'} sample ${index + 1}`);
+      const number = document.createElement('span');
+      number.className = 'studio-sampler-upload-number';
+      number.textContent = String(index + 1);
+      const label = document.createElement('span');
+      label.className = 'studio-sampler-upload-label';
+      label.textContent = hasValue ? getActiveStudioSamplerSlotTitle(index) : 'choose audio';
+      pad.append(number, label);
+      studioSamplerGrid.appendChild(pad);
+    }
+  }
+  if (studioSamplerConfirmButton instanceof HTMLButtonElement) {
+    const canSubmit =
+      !studioSamplerSubmitting &&
+      Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, (_, index) => getActiveStudioSamplerSlotHasValue(index)).some(Boolean);
+    studioSamplerConfirmButton.disabled = !canSubmit;
+    studioSamplerConfirmButton.classList.toggle('is-disabled', !canSubmit);
+  }
+}
+
+function openStudioSamplerModal(dieId = '') {
+  if (!studioSamplerModal) {
+    return;
+  }
+  closeMonsItemChoiceModal();
+  closeDiceAddModal();
+  closeChipsAddModal();
+  closeSpinnerAddModal();
+  closeImageAddModal();
+  closeStickerAddModal();
+  closeMediaAddModal();
+  closeStudioUploadModal();
+  closeGameOptionsMenu();
+  assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
+  closeAssetMenu();
+  resetStudioSamplerModalState(dieId);
+  syncStudioSamplerModalUi();
+  studioSamplerModal.classList.remove('hidden');
+}
+
+function closeStudioSamplerModal() {
+  if (!studioSamplerModal) {
+    return;
+  }
+  resetStudioSamplerModalState('');
+  studioSamplerModal.classList.add('hidden');
+}
+
+function setActiveStudioSamplerFile(index, file) {
+  const slotIndex = Math.round(Number(index));
+  if (!Number.isFinite(slotIndex) || slotIndex < 0 || slotIndex >= STUDIO_SAMPLER_SLOT_COUNT) {
+    return;
+  }
+  if (file instanceof File && isAllowedStudioSamplerFile(file)) {
+    activeStudioSamplerFiles[slotIndex] = file;
+    setStudioSamplerValidationMessage('');
+  } else if (file instanceof File) {
+    activeStudioSamplerFiles[slotIndex] = null;
+    setStudioSamplerValidationMessage('choose an mp3 or wav file.', { fileInvalid: true });
+  }
+  syncStudioSamplerModalUi();
+}
+
+function chooseStudioSamplerSlot(index) {
+  if (studioSamplerSubmitting) {
+    return;
+  }
+  const slotIndex = Math.round(Number(index));
+  if (!Number.isFinite(slotIndex) || slotIndex < 0 || slotIndex >= STUDIO_SAMPLER_SLOT_COUNT) {
+    return;
+  }
+  activeStudioSamplerSlotIndex = slotIndex;
+  studioSamplerInput?.click();
 }
 
 function getStickerPackEntry(packKey = activeStickerPackKey) {
@@ -31017,6 +35788,7 @@ function openMediaAddModal() {
   closeImageAddModal();
   closeStickerAddModal();
   closeStudioUploadModal();
+  closeStudioSamplerModal();
   closeGameOptionsMenu();
   assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
@@ -31047,6 +35819,7 @@ function openStudioUploadModal(kind = STUDIO_UPLOAD_KIND_AUDIO) {
   closeImageAddModal();
   closeStickerAddModal();
   closeMediaAddModal();
+  closeStudioSamplerModal();
   closeGameOptionsMenu();
   assetMenuSubviewReturnView = normalizeAssetMenuView(activeAssetMenuView);
   closeAssetMenu();
@@ -31070,6 +35843,7 @@ function returnToAssetComponentMenuFromSubmenu() {
   closeStickerAddModal();
   closeMediaAddModal();
   closeStudioUploadModal();
+  closeStudioSamplerModal();
   setAssetMenuView(assetMenuSubviewReturnView);
   openAssetMenu();
 }
@@ -31088,10 +35862,11 @@ function openAssetMenu() {
   closeStickerAddModal();
   closeMediaAddModal();
   closeStudioUploadModal();
+  closeStudioSamplerModal();
   closeMonsItemChoiceModal();
   closeGameOptionsMenu();
   closeRoomSettingsMenu();
-  setAssetMenuView(activeAssetMenuView);
+  setAssetMenuView(studioListViewActive && isSwagStudioRoom ? ASSET_MENU_VIEW_STUDIO : activeAssetMenuView);
   syncClearTableButtonState();
   assetMenuModal.classList.remove('hidden');
 }
@@ -31111,8 +35886,10 @@ function setAssetMenuView(view) {
   const isComponentView = nextView === ASSET_MENU_VIEW_COMPONENT;
   const isStudioView = nextView === ASSET_MENU_VIEW_STUDIO;
   const isGameView = nextView === ASSET_MENU_VIEW_GAME;
+  const isListStudioOnly = studioListViewActive && isSwagStudioRoom;
   assetMenuModal?.classList.toggle('is-component-view', isComponentView);
   assetMenuModal?.classList.toggle('is-studio-view', isStudioView);
+  assetMenuModal?.classList.toggle('is-list-studio-only', isListStudioOnly);
   assetStudioGallery?.classList.toggle('hidden', !isStudioView);
   assetGameGallery?.classList.toggle('hidden', !isGameView);
   assetComponentGallery?.classList.toggle('hidden', !isComponentView);
@@ -31660,6 +36437,10 @@ roomSettingsButton?.addEventListener('click', () => {
   openRoomSettingsMenu();
 });
 
+studioViewToggleButton?.addEventListener('click', () => {
+  setStudioListViewActive(!studioListViewActive);
+});
+
 roomSettingsCloseButton?.addEventListener('click', () => {
   closeRoomSettingsMenu();
 });
@@ -31962,12 +36743,22 @@ noteComponentTile?.addEventListener('click', () => {
 imageComponentTile?.addEventListener('click', () => {
   openImageAddModal();
 });
-studioImageTile?.addEventListener('click', () => {
-  openImageAddModal();
-});
-stickerComponentTile?.addEventListener('click', () => {
-  openStickerAddModal();
-});
+	studioImageTile?.addEventListener('click', () => {
+	  openImageAddModal();
+	});
+	studioFolderTile?.addEventListener('click', () => {
+	  closeAssetMenu();
+	  spawnStudioFolderComponent().catch((error) => {
+	    console.error(error);
+	    setRealtimeStatus('firebase: write blocked');
+	  });
+	});
+	studioSamplerTile?.addEventListener('click', () => {
+	  openStudioSamplerModal();
+	});
+	stickerComponentTile?.addEventListener('click', () => {
+	  openStickerAddModal();
+	});
 studioAudioTile?.addEventListener('click', () => {
   openStudioUploadModal(STUDIO_UPLOAD_KIND_AUDIO);
 });
@@ -32216,7 +37007,7 @@ mediaAddInput?.addEventListener('keydown', (event) => {
 mediaAddConfirmButton?.addEventListener('click', () => {
   const parsed = parseEmbeddableMediaUrl(mediaAddInput?.value || '');
   if (!parsed) {
-    setMediaAddValidationMessage('enter a valid YouTube or SoundCloud URL.', { urlInvalid: true });
+    setMediaAddValidationMessage('enter a valid YouTube or SoundCloud URL or embed code.', { urlInvalid: true });
     return;
   }
   setMediaAddValidationMessage('');
@@ -32384,6 +37175,118 @@ studioUploadConfirmButton?.addEventListener('click', async () => {
     setRealtimeStatus('firebase: write blocked');
   }
 });
+studioSamplerCloseButton?.addEventListener('click', () => {
+  closeStudioSamplerModal();
+});
+studioSamplerBackButton?.addEventListener('click', () => {
+  returnToAssetComponentMenuFromSubmenu();
+});
+studioSamplerGrid?.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-sampler-slot]') : null;
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+  chooseStudioSamplerSlot(target.dataset.samplerSlot);
+});
+studioSamplerGrid?.addEventListener('dragover', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-sampler-slot]') : null;
+  if (!(target instanceof HTMLElement) || studioSamplerSubmitting) {
+    return;
+  }
+  event.preventDefault();
+  target.classList.add('is-dragover');
+});
+studioSamplerGrid?.addEventListener('dragleave', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-sampler-slot]') : null;
+  if (target instanceof HTMLElement) {
+    target.classList.remove('is-dragover');
+  }
+});
+studioSamplerGrid?.addEventListener('drop', (event) => {
+  const target = event.target instanceof Element ? event.target.closest('[data-sampler-slot]') : null;
+  if (!(target instanceof HTMLElement) || studioSamplerSubmitting) {
+    return;
+  }
+  event.preventDefault();
+  target.classList.remove('is-dragover');
+  const nextFile = event.dataTransfer?.files?.[0] || null;
+  setActiveStudioSamplerFile(target.dataset.samplerSlot, nextFile);
+});
+studioSamplerInput?.addEventListener('change', () => {
+  const nextFile = studioSamplerInput.files?.[0] || null;
+  setActiveStudioSamplerFile(activeStudioSamplerSlotIndex, nextFile);
+});
+studioSamplerConfirmButton?.addEventListener('click', async () => {
+  if (studioSamplerSubmitting) {
+    return;
+  }
+  if (!Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, (_, index) => getActiveStudioSamplerSlotHasValue(index)).some(Boolean)) {
+    setStudioSamplerValidationMessage('choose at least one sample first.');
+    return;
+  }
+  studioSamplerSubmitting = true;
+  syncStudioSamplerModalUi();
+  setStudioSamplerValidationMessage('uploading samples…', { status: true });
+  const uploadSlotIndexes = Array.from({ length: STUDIO_SAMPLER_SLOT_COUNT }, (_, index) => index)
+    .filter((index) => activeStudioSamplerFiles[index] instanceof File);
+  const uploadProgressBySlot = new Map(uploadSlotIndexes.map((index) => [index, 0]));
+  const syncProgress = () => {
+    if (uploadSlotIndexes.length === 0) {
+      setStudioSamplerValidationMessage('saving sampler…', { status: true });
+      return;
+    }
+    let completedProgress = 0;
+    for (const index of uploadSlotIndexes) {
+      completedProgress += clamp(uploadProgressBySlot.get(index) || 0, 0, 1);
+    }
+    const average = completedProgress / uploadSlotIndexes.length;
+    setStudioSamplerValidationMessage(`uploading samples… ${Math.round(average * 100)}%`, { status: true });
+  };
+  let didStartSamplerSave = false;
+  try {
+    const nextSamples = normalizeStudioSamplerSamples(activeStudioSamplerSamples);
+    syncProgress();
+    for (const index of uploadSlotIndexes) {
+      const selectedFile = activeStudioSamplerFiles[index];
+      if (!(selectedFile instanceof File)) {
+        continue;
+      }
+      const uploaded = await uploadStudioMediaFile(STUDIO_UPLOAD_KIND_AUDIO, selectedFile, (progressFraction) => {
+        uploadProgressBySlot.set(index, clamp(progressFraction, 0, 1));
+        syncProgress();
+      }, {
+        databaseFallbackMaxBytes: STUDIO_SAMPLER_DATABASE_FALLBACK_MAX_BYTES
+      });
+      uploadProgressBySlot.set(index, 1);
+      syncProgress();
+      nextSamples[index] = normalizeStudioSamplerSample({
+        title: uploaded.title,
+        sourceUrl: uploaded.sourceUrl,
+        mimeType: uploaded.mimeType
+      });
+    }
+    if (!hasAnyStudioSamplerSamples(nextSamples)) {
+      throw new Error('Choose at least one valid audio sample.');
+    }
+    setStudioSamplerValidationMessage('');
+    didStartSamplerSave = true;
+    if (activeStudioSamplerEditDieId) {
+      await updateStudioSamplerSamples(activeStudioSamplerEditDieId, nextSamples);
+    } else {
+      await spawnStudioSamplerComponent(nextSamples);
+    }
+    closeStudioSamplerModal();
+  } catch (error) {
+    console.error(error);
+    studioSamplerSubmitting = false;
+    syncStudioSamplerModalUi();
+    const message = String(error?.message || '').trim();
+    setStudioSamplerValidationMessage(message || 'sampler upload failed.');
+    if (didStartSamplerSave) {
+      setRealtimeStatus('firebase: write blocked');
+    }
+  }
+});
 
 clearTableButton?.addEventListener('click', async () => {
   if (clearTableButton.disabled) {
@@ -32476,6 +37379,11 @@ studioUploadModal?.addEventListener('pointerdown', (event) => {
     closeStudioUploadModal();
   }
 });
+studioSamplerModal?.addEventListener('pointerdown', (event) => {
+  if (event.target === studioSamplerModal) {
+    closeStudioSamplerModal();
+  }
+});
 
 gameOptionsModal?.addEventListener('pointerdown', (event) => {
   if (event.target === gameOptionsModal) {
@@ -32514,6 +37422,9 @@ goBoardResizeWarningModal?.addEventListener('pointerdown', (event) => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (handleStudioMoveUndoShortcut(event)) {
+    return;
+  }
   if (event.key !== 'Escape') {
     return;
   }
@@ -33253,10 +38164,12 @@ initializeTileTilt(mediaComponentTile);
 initializeTileTilt(studioAudioTile);
 initializeTileTilt(studioVideoTile);
 initializeTileTilt(studioEmbedTile);
-initializeTileTilt(studioHeadingTile);
-initializeTileTilt(studioTextTile);
-initializeTileTilt(studioImageTile);
-initializeDiceTilePipShuffle(diceComponentTile);
+	initializeTileTilt(studioHeadingTile);
+	initializeTileTilt(studioTextTile);
+	initializeTileTilt(studioImageTile);
+	initializeTileTilt(studioFolderTile);
+	initializeTileTilt(studioSamplerTile);
+	initializeDiceTilePipShuffle(diceComponentTile);
 initializeCounterTileDigitShuffle(counterComponentTile);
 initializeLabelTileLetterShuffle(labelComponentTile);
 initializeStickerTileIconShuffle(stickerComponentTile);
@@ -33483,6 +38396,30 @@ function sanitizeSwagStudioCachedValue(value, key = '', depth = 0) {
   }
   if (typeof value !== 'object') {
     return undefined;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(value, 'sourceUrl') &&
+    (Object.prototype.hasOwnProperty.call(value, 'title') ||
+      Object.prototype.hasOwnProperty.call(value, 'mimeType'))
+  ) {
+    const output = {};
+    const rawSourceUrl = typeof value.sourceUrl === 'string' ? value.sourceUrl.trim() : '';
+    const sourceWasDeferred =
+      rawSourceUrl.startsWith('data:') && rawSourceUrl.length > SWAG_STUDIO_ROOM_CACHE_INLINE_DATA_MAX_CHARS;
+    for (const [entryKey, entryValue] of Object.entries(value)) {
+      if (entryKey === 'sourceUrl' && sourceWasDeferred) {
+        output.sourceUrl = '';
+        continue;
+      }
+      const sanitized = sanitizeSwagStudioCachedValue(entryValue, entryKey, depth + 1);
+      if (sanitized !== undefined) {
+        output[entryKey] = sanitized;
+      }
+    }
+    if (sourceWasDeferred) {
+      output.sourcePending = true;
+    }
+    return output;
   }
 
   const output = {};
@@ -34252,7 +39189,7 @@ function shouldIgnorePointerEvent(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #studioUploadModal, #studioSamplerModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, .deck-control-button, #handTray, #handDropGlow, #gameLayer, #monsGameShell, #monsMoveButton, #monsOptionsButton, .mons-game-shell, .mons-move-button, .mons-options-button, .table-label-editor'
     )
   );
 }
@@ -34265,7 +39202,7 @@ function shouldIgnorePointerEventInDrawMode(event) {
   }
   return Boolean(
     targetElement.closest(
-      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #studioUploadModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, #handTray, #handDropGlow, .table-label-editor'
+      '#copyLinkButton, #bottomRightControls, #assetMenuModal, #diceAddModal, #chipsAddModal, #spinnerAddModal, #imageAddModal, #stickerAddModal, #mediaAddModal, #studioUploadModal, #studioSamplerModal, #clearTableWarningModal, #drawClearWarningModal, #goBoardResizeWarningModal, #instanceWarningModal, #gameOptionsModal, #roomSettingsModal, #monsItemChoiceModal, #playerControls, #bottomLeftControls, #roomBadge, #roomTitleInput, #drawModeButton, #drawClearButton, #drawUndoButton, #drawToolRow, #drawToolFreeButton, #drawToolLineButton, #drawToolBoxButton, #auctionBidEntry, #auctionBidInput, #auctionEndButton, #handTray, #handDropGlow, .table-label-editor'
     )
   );
 }
@@ -34311,6 +39248,9 @@ function isPresencePayloadActive(payload, now = Date.now()) {
   if (payload.connected !== true) {
     return false;
   }
+  if (isSwagStudioRoom && !hasFreshStudioPresenceActivity(payload, now)) {
+    return false;
+  }
   const lastSeen = parseServerTimestamp(payload.lastSeen);
   if (!lastSeen) {
     return true;
@@ -34318,11 +39258,23 @@ function isPresencePayloadActive(payload, now = Date.now()) {
   return now - lastSeen <= PRESENCE_STALE_TIMEOUT_MS;
 }
 
+function hasFreshStudioPresenceActivity(payload, now = Date.now()) {
+  if (!isSwagStudioRoom) {
+    return true;
+  }
+  const activityAt = parseServerTimestamp(payload?.activityAt);
+  return Boolean(activityAt && now - activityAt <= SWAG_STUDIO_INACTIVE_PLAYER_TIMEOUT_MS);
+}
+
 function isCursorPayloadActive(id, payload, now = Date.now()) {
   if (!payload || typeof payload !== 'object') {
     return false;
   }
   const token = typeof payload.playerToken === 'string' && payload.playerToken ? payload.playerToken : id;
+  const presencePayload = token ? latestPresenceByToken[token] : null;
+  if (isSwagStudioRoom && !hasFreshStudioPresenceActivity(payload?.activityAt ? payload : presencePayload, now)) {
+    return false;
+  }
   const presenceState = token ? isPresencePayloadActive(latestPresenceByToken[token], now) : null;
   if (presenceState === false) {
     return false;
@@ -34389,6 +39341,15 @@ function upsertDot(id, payload, visibilityContext = null) {
   if (!cursorLayer || typeof payload?.x !== 'number' || typeof payload?.y !== 'number') {
     return;
   }
+  if (studioListViewActive && isSwagStudioRoom) {
+    const existingDot = dots.get(id);
+    if (existingDot) {
+      existingDot.remove();
+      dots.delete(id);
+    }
+    cursorLayer.replaceChildren();
+    return;
+  }
 
   const payloadToken =
     typeof payload?.playerToken === 'string' && payload.playerToken
@@ -34445,6 +39406,11 @@ function upsertDot(id, payload, visibilityContext = null) {
 
 function renderRoomRoster(allCursors, localId) {
   if (!roomRoster) {
+    return;
+  }
+  if (studioListViewActive && isSwagStudioRoom) {
+    roomRoster.textContent = '';
+    roomRoster.classList.add('hidden');
     return;
   }
 
@@ -34597,10 +39563,12 @@ shieldPointerEvents(mediaComponentTile);
 shieldPointerEvents(studioAudioTile);
 shieldPointerEvents(studioVideoTile);
 shieldPointerEvents(studioEmbedTile);
-shieldPointerEvents(studioHeadingTile);
-shieldPointerEvents(studioTextTile);
-shieldPointerEvents(studioImageTile);
-shieldPointerEvents(diceAddModal);
+	shieldPointerEvents(studioHeadingTile);
+	shieldPointerEvents(studioTextTile);
+	shieldPointerEvents(studioImageTile);
+	shieldPointerEvents(studioFolderTile);
+	shieldPointerEvents(studioSamplerTile);
+	shieldPointerEvents(diceAddModal);
 shieldPointerEvents(diceAddBackButton);
 shieldPointerEvents(diceAddCloseButton);
 shieldPointerEvents(diceTypeD6Button);
@@ -34657,6 +39625,12 @@ shieldPointerEvents(studioUploadCoverDropzone);
 shieldPointerEvents(studioUploadCoverInput);
 shieldPointerEvents(studioUploadCoverClearButton);
 shieldPointerEvents(studioUploadConfirmButton);
+shieldPointerEvents(studioSamplerModal);
+shieldPointerEvents(studioSamplerBackButton);
+shieldPointerEvents(studioSamplerCloseButton);
+shieldPointerEvents(studioSamplerGrid);
+shieldPointerEvents(studioSamplerInput);
+shieldPointerEvents(studioSamplerConfirmButton);
 shieldPointerEvents(removeComponentsButton);
 shieldPointerEvents(clearTableButton);
 shieldPointerEvents(wipeAllDrawingsButton);
@@ -34684,6 +39658,8 @@ shieldPointerEvents(gameOptionsCoverDrawingsToggle);
 shieldPointerEvents(gameOptionsResetButton);
 shieldPointerEvents(gameOptionsPutAwayButton);
 shieldPointerEvents(roomSettingsButton);
+shieldPointerEvents(studioViewToggleButton);
+shieldPointerEvents(studioListView);
 shieldPointerEvents(roomSettingsModal);
 shieldPointerEvents(roomSettingsCloseButton);
 shieldPointerEvents(monsItemChoiceModal);
@@ -34787,6 +39763,42 @@ async function startRealtimeSession() {
       { applyLocally: false }
     );
     return Boolean(result?.committed);
+  };
+
+  triggerStudioSamplerPad = (dieId, slotIndex) => {
+    const targetDieId = String(dieId || '').trim();
+    const normalizedSlotIndex = Math.round(Number(slotIndex));
+    if (!isSwagStudioRoom || !targetDieId || !Number.isFinite(normalizedSlotIndex) || normalizedSlotIndex < 0 || normalizedSlotIndex >= STUDIO_SAMPLER_SLOT_COUNT) {
+      return;
+    }
+    const currentDie = diceById.get(targetDieId);
+    if (normalizeDieType(currentDie?.type) !== 'sampler') {
+      return;
+    }
+    const samples = normalizeStudioSamplerSamples(currentDie?.samplerSamples);
+    const sample = samples[normalizedSlotIndex];
+    if (!sample?.sourceUrl) {
+      return;
+    }
+    const triggeredAt = Date.now();
+    const triggerPadKey = getStudioSamplerPadPlaybackKey(targetDieId, normalizedSlotIndex, sample.sourceUrl);
+    pruneStudioSamplerRecentMap(studioSamplerRecentTriggerAtByPad, triggeredAt, 1000);
+    const previousTriggerAt = Number(studioSamplerRecentTriggerAtByPad.get(triggerPadKey));
+    if (Number.isFinite(previousTriggerAt) && triggeredAt - previousTriggerAt < STUDIO_SAMPLER_TRIGGER_DEDUPE_MS) {
+      return;
+    }
+    studioSamplerRecentTriggerAtByPad.set(triggerPadKey, triggeredAt);
+    const triggerNonce = getRandomIntInclusive(1, 0x7fffffff);
+    const patch = {
+      samplerTriggeredSlot: normalizedSlotIndex,
+      samplerTriggeredAt: triggeredAt,
+      samplerTriggerNonce: triggerNonce,
+      updatedAt: triggeredAt
+    };
+    update(ref(db, `${roomPath}/dice/${targetDieId}`), patch).catch((error) => {
+      console.error(error);
+      setRealtimeStatus('firebase: write blocked');
+    });
   };
 
   publishCoolJpegsDeckPlayerJoin = async (deckId, playerEntry) => {
@@ -34978,6 +39990,8 @@ async function startRealtimeSession() {
     }
   };
 
+  let localPresenceActivityAt = Date.now();
+
   function buildPayload(position = localPosition) {
     return {
       x: clamp(position.x, 0, 1),
@@ -34986,6 +40000,7 @@ async function startRealtimeSession() {
       color: playerState.color,
       drawMode: drawModeEnabled,
       playerToken: localPlayerToken,
+      activityAt: localPresenceActivityAt,
       updatedAt: serverTimestamp()
     };
   }
@@ -34995,12 +40010,36 @@ async function startRealtimeSession() {
       x: clamp(position.x, 0, 1),
       y: clamp(position.y, 0, 1)
     };
+    if (studioListViewActive && isSwagStudioRoom) {
+      clearStudioListCursorArtifacts();
+      return;
+    }
+    if (isCodexObserverClient) {
+      clearStudioListCursorArtifacts();
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
+    if (isSwagStudioRoom) {
+      localPresenceActivityAt = Date.now();
+    }
     const payload = buildPayload(localPosition);
     upsertDot(clientId, payload);
     update(myCursorRef, payload).catch((error) => {
       console.error(error);
       setRealtimeStatus('firebase: write blocked');
     });
+  };
+
+  syncStudioListLocalCursorVisibility = (hidden) => {
+    if (!isSwagStudioRoom) {
+      return;
+    }
+    if (hidden) {
+      clearStudioListCursorArtifacts();
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
+    syncCursorState(localPosition);
   };
 
   await runTransaction(
@@ -35103,21 +40142,25 @@ async function startRealtimeSession() {
     drawingsLiftCutoffFlushTimerId = window.setTimeout(flushDrawingsLiftCutoffUpdate, delay);
   };
 
-  await set(myCursorRef, buildPayload(localPosition));
-  onDisconnect(myCursorRef).remove();
-  await update(myPresenceRef, {
-    connected: true,
-    clientId,
-    lastSeen: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  onDisconnect(myPresenceRef).update({
-    connected: false,
-    clientId: null,
-    lastSeen: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  upsertDot(clientId, buildPayload(localPosition));
+  if (!isCodexObserverClient) {
+    await set(myCursorRef, buildPayload(localPosition));
+    onDisconnect(myCursorRef).remove();
+    await update(myPresenceRef, {
+      connected: true,
+      clientId,
+      activityAt: localPresenceActivityAt,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    onDisconnect(myPresenceRef).update({
+      connected: false,
+      clientId: null,
+      activityAt: localPresenceActivityAt,
+      lastSeen: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    upsertDot(clientId, buildPayload(localPosition));
+  }
   setRealtimeStatus('connected');
 
   let cardWriteScheduled = false;
@@ -36158,6 +41201,7 @@ function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
     const currentTextScale = getLabelTextScale(sourceState, LABEL_TEXT_SCALE_DEFAULT);
     const currentWidth = Number(sourceState?.labelWidth);
     const currentHeight = Number(sourceState?.labelHeight);
+    const isMediaComment = isMediaCommentLabelState(sourceState);
     if (!Number.isFinite(currentWidth) || !Number.isFinite(currentHeight)) {
       const dimensions = measureLabelWorldDimensions(normalizedText, {
         textScale: currentTextScale
@@ -36166,13 +41210,20 @@ function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
         text: normalizedText,
         textScale: currentTextScale,
         labelWidth: dimensions.width,
-        labelHeight: dimensions.height
+        labelHeight: isMediaComment
+          ? clamp(dimensions.height + MEDIA_COMMENT_HEADER_WORLD_HEIGHT, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT)
+          : dimensions.height
       };
     }
 
     // Refit text to fill the current label area, then expand bounds only if needed.
     const targetWidth = clamp(currentWidth, LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
-    const targetHeight = clamp(currentHeight, LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+    const headerReserve = isMediaComment ? MEDIA_COMMENT_HEADER_WORLD_HEIGHT : 0;
+    const targetHeight = clamp(
+      currentHeight - headerReserve,
+      LABEL_MIN_WORLD_HEIGHT,
+      LABEL_MAX_WORLD_HEIGHT
+    );
     const layout = resolveLabelLayoutForBounds(
       normalizedText,
       targetWidth,
@@ -36180,7 +41231,11 @@ function getHexitamaGameDeleteFadeElements(gameId = activeHexitamaGameId) {
       LABEL_TEXT_SCALE_MAX
     );
     const nextWidth = clamp(Math.max(targetWidth, layout.labelWidth), LABEL_MIN_WORLD_WIDTH, LABEL_MAX_WORLD_WIDTH);
-    const nextHeight = clamp(Math.max(targetHeight, layout.labelHeight), LABEL_MIN_WORLD_HEIGHT, LABEL_MAX_WORLD_HEIGHT);
+    const nextHeight = clamp(
+      Math.max(currentHeight, layout.labelHeight + headerReserve),
+      LABEL_MIN_WORLD_HEIGHT,
+      LABEL_MAX_WORLD_HEIGHT
+    );
     return {
       text: normalizedText,
       textScale: layout.textScale,
@@ -36740,10 +41795,22 @@ function closeNoteEditor(options = {}) {
     if (rotateControl instanceof HTMLElement) {
       rotateControl.classList.add('hidden');
     }
+    const isMediaComment = isMediaCommentLabelState(dieState);
     face.classList.remove('table-label-text');
     face.textContent = '';
+    let editorParent = face;
+    if (isMediaComment) {
+      face.classList.add('table-media-comment-face');
+      const { shell, body } = createMediaCommentLabelShell(targetDieId, dieState);
+      editorParent = body;
+      face.appendChild(shell);
+    } else {
+      face.classList.remove('table-media-comment-face');
+    }
     const editor = document.createElement('textarea');
-    editor.className = 'table-label-editor';
+    editor.className = isMediaComment
+      ? 'table-label-editor table-media-comment-editor'
+      : 'table-label-editor';
     editor.rows = 1;
     editor.spellcheck = false;
     editor.autocapitalize = 'off';
@@ -36782,7 +41849,7 @@ function closeNoteEditor(options = {}) {
     editor.addEventListener('blur', () => {
       closeLabelEditor({ commit: true });
     });
-    face.appendChild(editor);
+    editorParent.appendChild(editor);
     labelEditState = {
       dieId: targetDieId,
       editor,
@@ -36801,20 +41868,37 @@ function closeNoteEditor(options = {}) {
     if (hasSignaledSessionLeave) {
       return;
     }
+    if (isCodexObserverClient) {
+      clearStudioListCursorArtifacts();
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
     update(myPresenceRef, {
       connected: true,
       clientId,
+      activityAt: localPresenceActivityAt,
       lastSeen: serverTimestamp(),
       updatedAt: serverTimestamp()
     }).catch((error) => {
       console.error(error);
       setRealtimeStatus('firebase: write blocked');
     });
+    if (isSwagStudioRoom && Date.now() - localPresenceActivityAt > SWAG_STUDIO_INACTIVE_PLAYER_TIMEOUT_MS) {
+      clearStudioListCursorArtifacts();
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
+    if (studioListViewActive && isSwagStudioRoom) {
+      clearStudioListCursorArtifacts();
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
     update(myCursorRef, {
       name: playerState.name,
       color: playerState.color,
       drawMode: drawModeEnabled,
       playerToken: localPlayerToken,
+      activityAt: localPresenceActivityAt,
       updatedAt: serverTimestamp()
     }).catch((error) => {
       console.error(error);
@@ -36831,9 +41915,14 @@ function closeNoteEditor(options = {}) {
       window.clearInterval(cursorHeartbeatIntervalId);
       cursorHeartbeatIntervalId = 0;
     }
+    if (isCodexObserverClient) {
+      set(myCursorRef, null).catch(() => {});
+      return;
+    }
     update(myPresenceRef, {
       connected: false,
       clientId: null,
+      activityAt: localPresenceActivityAt,
       lastSeen: serverTimestamp(),
       updatedAt: serverTimestamp()
     }).catch(() => {
@@ -36844,8 +41933,18 @@ function closeNoteEditor(options = {}) {
     });
   };
 
+  const markLocalPresenceActivity = () => {
+    if (!isSwagStudioRoom || isCodexObserverClient || hasSignaledSessionLeave) {
+      return;
+    }
+    localPresenceActivityAt = Date.now();
+  };
+
   cursorHeartbeatIntervalId = window.setInterval(sendPresenceHeartbeat, CURSOR_HEARTBEAT_INTERVAL_MS);
   sendPresenceHeartbeat();
+  window.addEventListener('pointerdown', markLocalPresenceActivity, true);
+  window.addEventListener('pointermove', markLocalPresenceActivity, true);
+  window.addEventListener('keydown', markLocalPresenceActivity, true);
   window.addEventListener('pagehide', signalSessionLeave);
 
   function setHandHoverDragLock(active) {
@@ -40480,9 +45579,13 @@ function closeNoteEditor(options = {}) {
         currentCard.componentCardSized === false
           ? normalizeStickerRotationDegrees(currentCard.componentRotation)
           : 0;
-      if (isSecretAreaComponentCard(currentCard)) {
+      if (isSecretAreaComponentCard(currentCard) || isStudioFolderComponentCard(currentCard)) {
         nextPatch.componentCardSized = false;
       }
+	      if (isStudioFolderComponentCard(currentCard)) {
+	        nextPatch.studioFolderCollapsed = currentCard.studioFolderCollapsed === true;
+	        nextPatch.studioFolderTitle = getStudioFolderTitle(currentCard);
+	      }
     }
     return nextPatch;
   }
@@ -41727,7 +46830,153 @@ function closeNoteEditor(options = {}) {
     runRenderSafely('patchLocalDie', () => renderDieElement(dieId));
   }
 
-  function patchLocalCard(cardId, patch, options = {}) {
+  patchStudioListTextComponent = (dieId, nextText) => {
+    const targetDieId = String(dieId || '').trim();
+    if (!isSwagStudioRoom || !targetDieId) {
+      return;
+    }
+    const current = diceById.get(targetDieId);
+    if (!current || normalizeDieType(current.type) !== 'label') {
+      return;
+    }
+    const normalizedText = normalizeLabelText(nextText || '');
+    if ((current.text || '') === normalizedText) {
+      return;
+    }
+    const patch = { text: normalizedText };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+  };
+
+	  updateStudioSamplerSamples = async (dieId, samples = []) => {
+	    const targetDieId = String(dieId || '').trim();
+	    if (!isSwagStudioRoom || !targetDieId) {
+	      return;
+    }
+    const current = diceById.get(targetDieId);
+	    if (!current || normalizeDieType(current.type) !== 'sampler') {
+	      return;
+	    }
+	    const samplerSamples = normalizeStudioSamplerSamples(samples);
+	    if (!hasAnyStudioSamplerSamples(samplerSamples)) {
+	      throw new Error('Choose at least one valid audio sample.');
+	    }
+	    const patch = {
+	      samplerSamples,
+      updatedAt: Date.now()
+    };
+    patchLocalDie(targetDieId, patch);
+    queueDiePatch(targetDieId, patch);
+  };
+
+  commitStudioListOrder = async (orderedItems = []) => {
+    if (!isSwagStudioRoom || !Array.isArray(orderedItems)) {
+      return;
+    }
+    const cardUpdates = {};
+    const dieUpdates = {};
+    const gameUpdates = {};
+    const seen = new Set();
+    for (const entry of orderedItems) {
+      const source = String(entry?.source || '').trim();
+      const id = String(entry?.id || '').trim();
+      const order = normalizeStudioListOrder(entry?.order);
+      const key = `${source}:${id}`;
+      if (!id || !order || seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      if (source === 'die') {
+        const existing = diceById.get(id);
+        if (!existing) {
+          continue;
+        }
+        diceById.set(id, normalizeDicePayload({ ...existing, studioListOrder: order }));
+        dieUpdates[`${id}/studioListOrder`] = order;
+      } else if (source === 'card') {
+        const existing = cards.get(id);
+        if (!existing) {
+          continue;
+        }
+        cards.set(id, normalizeCardPayload({ ...existing, studioListOrder: order }, id));
+        cardUpdates[`${id}/studioListOrder`] = order;
+      } else if (source === 'game') {
+        if (isMonsGameId(id)) {
+          const existing = monsGameStatesById.get(normalizeMonsGameId(id));
+          if (!existing) {
+            continue;
+          }
+          monsGameStatesById.set(normalizeMonsGameId(id), normalizeMonsGamePayload({ ...existing, studioListOrder: order }));
+        } else if (isTaflGameId(id)) {
+          const existing = taflGameStatesById.get(normalizeTaflGameId(id));
+          if (!existing) {
+            continue;
+          }
+          taflGameStatesById.set(normalizeTaflGameId(id), normalizeTaflGamePayload({ ...existing, studioListOrder: order }));
+        } else if (isGoGameId(id)) {
+          const existing = goGameStatesById.get(normalizeGoGameId(id));
+          if (!existing) {
+            continue;
+          }
+          goGameStatesById.set(normalizeGoGameId(id), normalizeGoGamePayload({ ...existing, studioListOrder: order }));
+        } else {
+          continue;
+        }
+        gameUpdates[`${id}/studioListOrder`] = order;
+      }
+    }
+    const writes = [];
+    if (Object.keys(dieUpdates).length > 0) {
+      writes.push(update(diceRef, dieUpdates));
+    }
+    if (Object.keys(cardUpdates).length > 0) {
+      writes.push(update(cardsRef, cardUpdates));
+    }
+    if (Object.keys(gameUpdates).length > 0) {
+      writes.push(update(gamesRef, gameUpdates));
+    }
+    if (writes.length > 0) {
+      await Promise.all(writes);
+    }
+  };
+
+	  toggleStudioFolderCollapsed = (cardId) => {
+	    const targetCardId = String(cardId || '').trim();
+	    if (!isSwagStudioRoom || !targetCardId) {
+      return;
+    }
+    const current = cards.get(targetCardId);
+    if (!isStudioFolderComponentCard(current)) {
+      return;
+    }
+    const patch = {
+      studioFolderCollapsed: current.studioFolderCollapsed !== true
+    };
+	    patchLocalCard(targetCardId, patch);
+	    queueCardPatch(targetCardId, patch);
+	  };
+
+	  patchStudioFolderTitle = (cardId, nextTitle) => {
+	    const targetCardId = String(cardId || '').trim();
+	    if (!isSwagStudioRoom || !targetCardId) {
+	      return;
+	    }
+	    const current = cards.get(targetCardId);
+	    if (!isStudioFolderComponentCard(current)) {
+	      return;
+	    }
+	    const title = normalizeStudioFolderTitle(nextTitle);
+	    if (getStudioFolderTitle(current) === title) {
+	      return;
+	    }
+	    const patch = {
+	      studioFolderTitle: title
+	    };
+	    patchLocalCard(targetCardId, patch);
+	    queueCardPatch(targetCardId, patch);
+	  };
+
+	  function patchLocalCard(cardId, patch, options = {}) {
     const existingCard = cards.get(cardId);
     if (!existingCard) {
       return;
@@ -41819,22 +47068,122 @@ function closeNoteEditor(options = {}) {
       runRenderSafely('patchLocalCard:hand', () => renderLocalHandCards());
       runRenderSafely('patchLocalCard:handCount', () => setLocalHandCountLabel());
     }
-    if (secretAreaVisibilityChanged) {
-      runRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
-      runRenderSafely('patchLocalCard:dice', () => renderAllDice());
-      runRenderSafely('patchLocalCard:chipSets', () => renderChipSets());
+	    if (secretAreaVisibilityChanged) {
+	      if (isStudioFolderComponentCard(existingCard) || isStudioFolderComponentCard(nextCard)) {
+	        runRenderSafely('patchLocalCard:studioFolderCards', () => renderAllCards());
+	      }
+	      runRenderSafely('patchLocalCard:deckControls', () => renderDeckControls());
+	      runRenderSafely('patchLocalCard:dice', () => renderAllDice());
+	      runRenderSafely('patchLocalCard:chipSets', () => renderChipSets());
       runRenderSafely('patchLocalCard:mons', () => renderMonsBoard());
       runRenderSafely('patchLocalCard:tafl', () => renderTaflBoards());
       runRenderSafely('patchLocalCard:go', () => renderGoBoards());
-      runRenderSafely('patchLocalCard:hexitama', () => renderHexitamaBoards());
-    }
-    return {
-      affectsLocalHand,
-      secretAreaVisibilityChanged
-    };
-  }
+	      runRenderSafely('patchLocalCard:hexitama', () => renderHexitamaBoards());
+	    }
+	    if (
+	      isSwagStudioRoom &&
+	      (
+	        secretAreaVisibilityChanged ||
+	        patchTouchesPosition(localPatch) ||
+	        Object.prototype.hasOwnProperty.call(localPatch || {}, 'studioListOrder') ||
+	        Object.prototype.hasOwnProperty.call(localPatch || {}, 'studioFolderCollapsed')
+	      )
+	    ) {
+	      scheduleStudioListViewRender();
+	    }
+	    return {
+	      affectsLocalHand,
+	      secretAreaVisibilityChanged
+	    };
+	  }
 
-  function clearQueuedFastDeckMoveRenders() {
+	  function moveStudioFolderDragMembers(dragState, nextFolderX, nextFolderY) {
+	    if (!isSwagStudioRoom || !dragState?.studioFolderMoveMembers) {
+	      return;
+	    }
+	    const members = dragState.studioFolderMoveMembers;
+	    const folderX = Number(nextFolderX);
+	    const folderY = Number(nextFolderY);
+	    if (!Number.isFinite(folderX) || !Number.isFinite(folderY)) {
+	      return;
+	    }
+	    for (const member of members.cards || []) {
+	      const memberCardId = String(member?.cardId || '').trim();
+	      const cardState = cards.get(memberCardId);
+	      if (!memberCardId || !cardState || cardState.inDeck || cardState.inDiscard || cardState.inAuction) {
+	        continue;
+	      }
+	      if (getCardHandOwnerId(cardState) || (cardState.holderClientId && cardState.holderClientId !== clientId)) {
+	        continue;
+	      }
+	      const cardSize = getCardTableDimensions(cardState);
+	      const cardBounds = getCardPositionBounds(cardState, cardSize.width, cardSize.height);
+	      const nextX = clamp(folderX + (Number(member.offsetX) || 0), cardBounds.minX, cardBounds.maxX);
+	      const nextY = clamp(folderY + (Number(member.offsetY) || 0), cardBounds.minY, cardBounds.maxY);
+	      const patch = {
+	        x: nextX,
+	        y: nextY,
+	        inDeck: false,
+	        inDiscard: false,
+	        inAuction: false,
+	        handOwnerClientId: null,
+	        handOwnerPlayerToken: null
+	      };
+	      patchLocalCard(memberCardId, patch);
+	      queueCardPatch(memberCardId, patch);
+	    }
+	    for (const member of members.dice || []) {
+	      const memberDieId = String(member?.dieId || '').trim();
+	      const dieState = diceById.get(memberDieId);
+	      if (!memberDieId || !dieState || (dieState.holderClientId && dieState.holderClientId !== clientId)) {
+	        continue;
+	      }
+	      const dimensions = getDieWorldDimensions(dieState);
+	      const dieBounds = getDieCenterBounds(dieState.type, dimensions.width, dimensions.height);
+	      const nextX = clamp(folderX + (Number(member.offsetX) || 0), dieBounds.minX, dieBounds.maxX);
+	      const nextY = clamp(folderY + (Number(member.offsetY) || 0), dieBounds.minY, dieBounds.maxY);
+	      const patch = { x: nextX, y: nextY };
+	      patchLocalDie(memberDieId, patch);
+	      queueDiePatch(memberDieId, patch);
+	    }
+	    for (const member of members.games || []) {
+	      const gameType = String(member?.type || '').trim();
+	      const gameId = String(member?.gameId || '').trim();
+	      if (!gameType || !gameId) {
+	        continue;
+	      }
+	      const gameState =
+	        gameType === 'mons'
+	          ? getMonsGameStateById(gameId)
+	          : gameType === 'tafl'
+	            ? getTaflGameStateById(gameId)
+	            : gameType === 'go'
+	              ? getGoGameStateById(gameId)
+	              : gameType === 'hexitama'
+	                ? getHexitamaGameStateById(gameId)
+	                : null;
+	      if (!gameState || gameState.enabled === false || (gameState.holderClientId && gameState.holderClientId !== clientId)) {
+	        continue;
+	      }
+	      const gameWidth = Math.max(1, Number(gameState.width) || MONS_BOARD_WORLD_WIDTH);
+	      const gameHeight = Math.max(1, Number(gameState.height) || MONS_BOARD_WORLD_HEIGHT);
+	      const nextX = clamp(folderX + (Number(member.offsetX) || 0), gameWidth / 2, WORLD_WIDTH - gameWidth / 2);
+	      const nextY = clamp(folderY + (Number(member.offsetY) || 0), gameHeight / 2, WORLD_HEIGHT - gameHeight / 2);
+	      const patch = { x: nextX, y: nextY, holderClientId: null };
+	      if (gameType === 'mons') {
+	        patchLocalMonsGame(patch, gameId);
+	      } else if (gameType === 'tafl') {
+	        patchLocalTaflGame(patch, gameId);
+	      } else if (gameType === 'go') {
+	        patchLocalGoGame(patch, gameId);
+	      } else if (gameType === 'hexitama') {
+	        patchLocalHexitamaGame(patch, gameId);
+	      }
+	      queueMonsPatch(patch, gameId);
+	    }
+	  }
+
+	  function clearQueuedFastDeckMoveRenders() {
     pendingFastDeckMoveRenderDeckIds.clear();
     pendingFastDeckMoveFollowerCardIdsByDeck.clear();
     if (fastDeckMoveRenderRafId) {
@@ -43695,6 +49044,30 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       const bottom = centerY + halfHeight;
       return !(right < minX || left > maxX || bottom < minY || top > maxY);
     };
+    const overlapsSelectionScreenRect = (left, top, width, height) => {
+      const scale = Math.max(0.001, Number(camera.scale) || 1);
+      const rectLeft = (Number(left) - camera.panX) / scale;
+      const rectTop = (Number(top) - camera.panY) / scale;
+      const rectRight = (Number(left) + Math.max(0, Number(width) || 0) - camera.panX) / scale;
+      const rectBottom = (Number(top) + Math.max(0, Number(height) || 0) - camera.panY) / scale;
+      return !(rectRight < minX || rectLeft > maxX || rectBottom < minY || rectTop > maxY);
+    };
+    const overlapsStudioFolderMoveHandle = (cardState, cardWidth, cardHeight) => {
+      if (!isSwagStudioRoom || !isStudioFolderComponentCard(cardState) || cardState.studioFolderCollapsed === true) {
+        return false;
+      }
+      const screen = worldToScreen({ x: cardState.x, y: cardState.y });
+      const cardScreenWidth = snapToDevicePixel(Math.max(1, Number(cardWidth) || CARD_WIDTH) * camera.scale);
+      const cardScreenHeight = snapToDevicePixel(Math.max(1, Number(cardHeight) || CARD_HEIGHT) * camera.scale);
+      const handleSize = 26;
+      const handleGap = 8;
+      return overlapsSelectionScreenRect(
+        screen.x + cardScreenWidth / 2 + handleGap,
+        screen.y + cardScreenHeight / 2 - handleSize,
+        handleSize,
+        handleSize
+      );
+    };
     let bypassSecretAreaOcclusion = false;
     for (const [, cardState] of cards.entries()) {
       if (!isSecretAreaComponentCard(cardState)) {
@@ -43741,7 +49114,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       const cardDimensions = getCardTableDimensions(cardState);
       const cardWidth = Math.max(1, Number(cardDimensions?.width) || CARD_WIDTH);
       const cardHeight = Math.max(1, Number(cardDimensions?.height) || CARD_HEIGHT);
-      if (overlapsSelectionRect(cardState.x, cardState.y, cardWidth, cardHeight)) {
+      const isStudioFolderSelectionCandidate = isStudioFolderComponentCard(cardState)
+        ? overlapsStudioFolderMoveHandle(cardState, cardWidth, cardHeight)
+        : overlapsSelectionRect(cardState.x, cardState.y, cardWidth, cardHeight);
+      if (isStudioFolderSelectionCandidate) {
         cardCandidates.push(cardId);
       }
     }
@@ -44063,6 +49439,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       }
       baseHexitamaPositions.set(gameId, { x: gameState.x, y: gameState.y });
     }
+    const studioMoveUndoBefore = captureStudioComponentMoveUndoItems([
+      ...Array.from(basePositions.keys()).map((id) => ({ kind: 'card', id })),
+      ...Array.from(baseDiePositions.keys()).map((id) => ({ kind: 'die', id })),
+      ...Array.from(baseDeckPositions.keys()).map((id) => ({ kind: 'deck', id })),
+      ...Array.from(baseChipSetPositions.keys()).map((id) => ({ kind: 'chip-set', id })),
+      ...Array.from(baseMonsPositions.keys()).map((id) => ({ kind: 'mons', id })),
+      ...Array.from(baseTaflPositions.keys()).map((id) => ({ kind: 'tafl', id })),
+      ...Array.from(baseGoPositions.keys()).map((id) => ({ kind: 'go', id })),
+      ...Array.from(baseHexitamaPositions.keys()).map((id) => ({ kind: 'hexitama', id }))
+    ]);
 
     return {
       basePositions,
@@ -44072,7 +49458,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       baseChipSetPositions,
       baseTaflPositions,
       baseGoPositions,
-      baseHexitamaPositions
+      baseHexitamaPositions,
+      studioMoveUndoBefore
     };
   }
 
@@ -44959,6 +50346,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     if (selectedIds.length === 0) {
       return true;
     }
+    if (finishedGroupDrag.moved) {
+      pushStudioComponentMoveUndoFromBefore(finishedGroupDrag.studioMoveUndoBefore);
+    }
 
     const anchorCardForHandDrop =
       finishedGroupDrag.anchorType === 'card' && finishedGroupDrag.anchorCardId
@@ -45548,7 +50938,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startX: targetMonsGameState.x,
       startY: targetMonsGameState.y,
       width: targetMonsGameState.width,
-      height: targetMonsGameState.height
+      height: targetMonsGameState.height,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'mons', id: targetMonsGameId }])
     };
 
     patchLocalMonsGame({ holderClientId: clientId }, targetMonsGameId);
@@ -45610,11 +51001,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
 
-    const targetMonsGameId = normalizeMonsGameId(monsDragState.gameId || activeMonsGameId);
+    const finishedMonsDrag = monsDragState;
+    const targetMonsGameId = normalizeMonsGameId(finishedMonsDrag.gameId || activeMonsGameId);
     monsDragState = null;
     setMonsBoardDragFloating(false);
     patchLocalMonsGame({ holderClientId: null }, targetMonsGameId);
     queueMonsPatch({ holderClientId: null }, targetMonsGameId);
+    pushStudioComponentMoveUndoFromBefore(finishedMonsDrag.studioMoveUndoBefore);
     releaseMonsBoardLock(targetMonsGameId).catch((error) => {
       console.error(error);
     });
@@ -51413,6 +56806,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
   }
 
   function updateLocalMouseCursor(clientX, clientY) {
+    if (studioListViewActive && isSwagStudioRoom) {
+      isMouseInsideTable = false;
+      hideLocalDrawCursor();
+      hideLocalDeleteCursor();
+      return;
+    }
     localMouseClientX = clientX;
     localMouseClientY = clientY;
     const screenPoint = getScreenPoint(clientX, clientY);
@@ -51427,6 +56826,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
   }
 
   function schedulePublishFromClient(clientX, clientY) {
+    if (studioListViewActive && isSwagStudioRoom) {
+      return;
+    }
     const world = screenToWorldFromClient(clientX, clientY);
     if (!world) {
       return;
@@ -51539,16 +56941,28 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     return true;
   }
 
+  function normalizeCardResizeDirection(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    const vertical = raw.includes('n') ? 'n' : raw.includes('s') ? 's' : '';
+    const horizontal = raw.includes('w') ? 'w' : raw.includes('e') ? 'e' : '';
+    return `${vertical}${horizontal}` || 'se';
+  }
+
   function getImageResizeBounds(cardLeft, cardTop, cardState = null) {
     const normalizedLeft = clamp(Number(cardLeft) || 0, 0, WORLD_WIDTH);
     const normalizedTop = clamp(Number(cardTop) || 0, 0, WORLD_HEIGHT);
     const isSticker = isStickerComponentCard(cardState);
+    const isStudioFolder = isStudioFolderComponentCard(cardState);
     const minWidth = isSticker ? STICKER_COMPONENT_MIN_WORLD_SIZE : IMAGE_COMPONENT_MIN_WORLD_SIZE;
     const minHeight = isSticker ? STICKER_COMPONENT_MIN_WORLD_SIZE : IMAGE_COMPONENT_MIN_WORLD_SIZE;
     const maxWidthLimit = isSticker ? STICKER_COMPONENT_MAX_WORLD_WIDTH : IMAGE_COMPONENT_MAX_WORLD_WIDTH;
     const maxHeightLimit = isSticker ? STICKER_COMPONENT_MAX_WORLD_HEIGHT : IMAGE_COMPONENT_MAX_WORLD_HEIGHT;
-    const maxWidth = Math.max(minWidth, Math.min(maxWidthLimit, WORLD_WIDTH - normalizedLeft));
-    const maxHeight = Math.max(minHeight, Math.min(maxHeightLimit, WORLD_HEIGHT - normalizedTop));
+    const maxWidth = isStudioFolder
+      ? Number.MAX_SAFE_INTEGER
+      : Math.max(minWidth, Math.min(maxWidthLimit, WORLD_WIDTH - normalizedLeft));
+    const maxHeight = isStudioFolder
+      ? Number.MAX_SAFE_INTEGER
+      : Math.max(minHeight, Math.min(maxHeightLimit, WORLD_HEIGHT - normalizedTop));
     return {
       minWidth,
       minHeight,
@@ -52750,7 +58164,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
-  async function handleCardResizePointerDown(event, cardId) {
+  async function handleCardResizePointerDown(event, cardId, options = {}) {
     if (drawModeEnabled) {
       return;
     }
@@ -52821,8 +58235,15 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       await releaseCardLock(cardId);
       return;
     }
+    if (isStudioFolderComponentCard(latestCard) && latestCard.studioFolderCollapsed === true) {
+      await releaseCardLock(cardId);
+      return;
+    }
     const latestSubtype = getCardComponentSubtype(latestCard);
-    if (latestSubtype === SECRET_AREA_COMPONENT_SUBTYPE && latestCard.componentCardSized !== false) {
+	    if (
+	      (latestSubtype === SECRET_AREA_COMPONENT_SUBTYPE || latestSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE) &&
+	      latestCard.componentCardSized !== false
+	    ) {
       const resizeEnablePatch = {
         componentCardSized: false,
         componentWidth: Math.max(1, Number(latestCard.componentWidth) || CARD_WIDTH),
@@ -52844,14 +58265,20 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     const cardLeft = latestCard.x - size.width / 2;
     const cardTop = latestCard.y - size.height / 2;
     const resizeBounds = getImageResizeBounds(cardLeft, cardTop, latestCard);
+    const resizeDirection = isStudioFolderComponentCard(latestCard)
+      ? normalizeCardResizeDirection(options?.resizeDirection || 'se')
+      : 'se';
     cardResizeState = {
       cardId,
       pointerId: event.pointerId,
       pointerType: event.pointerType,
+      resizeDirection,
       lockSquare: isStickerComponentCard(latestCard),
       aspectRatio: isNonCardImageComponentCard(latestCard) ? getNativeImageAspectRatio(latestCard, size.width, size.height) : 0,
       cardLeft,
       cardTop,
+      cardRight: cardLeft + size.width,
+      cardBottom: cardTop + size.height,
       minWidth: resizeBounds.minWidth,
       minHeight: resizeBounds.minHeight,
       maxWidth: resizeBounds.maxWidth,
@@ -52918,8 +58345,47 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       cardResizeState.moved = true;
     }
 
-    let nextWidth = clamp(worldPoint.x - cardResizeState.cardLeft, cardResizeState.minWidth, cardResizeState.maxWidth);
-    let nextHeight = clamp(worldPoint.y - cardResizeState.cardTop, cardResizeState.minHeight, cardResizeState.maxHeight);
+    const resizeDirection = normalizeCardResizeDirection(cardResizeState.resizeDirection || 'se');
+    const resizeNorth = resizeDirection.includes('n');
+    const resizeSouth = resizeDirection.includes('s');
+    const resizeWest = resizeDirection.includes('w');
+    const resizeEast = resizeDirection.includes('e');
+    let nextLeft = Number(cardResizeState.cardLeft) || 0;
+    let nextTop = Number(cardResizeState.cardTop) || 0;
+    let nextRight = Number(cardResizeState.cardRight);
+    let nextBottom = Number(cardResizeState.cardBottom);
+    if (!Number.isFinite(nextRight)) {
+      nextRight = nextLeft + cardResizeState.minWidth;
+    }
+    if (!Number.isFinite(nextBottom)) {
+      nextBottom = nextTop + cardResizeState.minHeight;
+    }
+    if (resizeWest) {
+      nextLeft = worldPoint.x;
+    } else if (resizeEast) {
+      nextRight = worldPoint.x;
+    }
+    if (resizeNorth) {
+      nextTop = worldPoint.y;
+    } else if (resizeSouth) {
+      nextBottom = worldPoint.y;
+    }
+    if (resizeWest) {
+      nextLeft = Math.min(nextLeft, nextRight - cardResizeState.minWidth);
+      nextLeft = Math.max(nextLeft, nextRight - cardResizeState.maxWidth);
+    } else {
+      nextRight = Math.max(nextRight, nextLeft + cardResizeState.minWidth);
+      nextRight = Math.min(nextRight, nextLeft + cardResizeState.maxWidth);
+    }
+    if (resizeNorth) {
+      nextTop = Math.min(nextTop, nextBottom - cardResizeState.minHeight);
+      nextTop = Math.max(nextTop, nextBottom - cardResizeState.maxHeight);
+    } else {
+      nextBottom = Math.max(nextBottom, nextTop + cardResizeState.minHeight);
+      nextBottom = Math.min(nextBottom, nextTop + cardResizeState.maxHeight);
+    }
+    let nextWidth = Math.max(cardResizeState.minWidth, nextRight - nextLeft);
+    let nextHeight = Math.max(cardResizeState.minHeight, nextBottom - nextTop);
     if (cardResizeState.lockSquare) {
       const minSide = Math.max(cardResizeState.minWidth, cardResizeState.minHeight);
       const maxSide = Math.min(cardResizeState.maxWidth, cardResizeState.maxHeight);
@@ -52930,6 +58396,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       );
       nextWidth = nextSide;
       nextHeight = nextSide;
+      nextLeft = cardResizeState.cardLeft;
+      nextTop = cardResizeState.cardTop;
     } else if (event.shiftKey) {
       const aspectRatio = Number(cardResizeState.aspectRatio);
       if (Number.isFinite(aspectRatio) && aspectRatio > 0.0001) {
@@ -52948,8 +58416,18 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         nextHeight = fittedSize.height;
       }
     }
-    const nextX = cardResizeState.cardLeft + nextWidth / 2;
-    const nextY = cardResizeState.cardTop + nextHeight / 2;
+    if (resizeWest) {
+      nextLeft = nextRight - nextWidth;
+    } else {
+      nextRight = nextLeft + nextWidth;
+    }
+    if (resizeNorth) {
+      nextTop = nextBottom - nextHeight;
+    } else {
+      nextBottom = nextTop + nextHeight;
+    }
+    const nextX = nextLeft + nextWidth / 2;
+    const nextY = nextTop + nextHeight / 2;
     const resizePatch = {
       x: nextX,
       y: nextY,
@@ -53016,6 +58494,75 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
+  function getLockedComponentPointerPassthroughTarget(event, blockedElement) {
+    if (
+      !isSwagStudioRoom ||
+      drawModeEnabled ||
+      deleteModeEnabled ||
+      studioListViewActive ||
+      !(blockedElement instanceof HTMLElement)
+    ) {
+      return null;
+    }
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return null;
+    }
+    const elements = typeof document.elementsFromPoint === 'function'
+      ? document.elementsFromPoint(event.clientX, event.clientY)
+      : [];
+    for (const element of elements) {
+      if (!(element instanceof Element) || blockedElement.contains(element)) {
+        continue;
+      }
+      const dieElement = element.closest('.table-die');
+      if (dieElement instanceof HTMLElement && !blockedElement.contains(dieElement)) {
+        const dieId = String(dieElement.dataset.dieId || '').trim();
+        const dieState = dieId ? diceById.get(dieId) : null;
+        if (dieState && !isLabelDieLocked(dieState)) {
+          return {
+            kind: 'die',
+            id: dieId,
+            element: dieElement
+          };
+        }
+      }
+      const cardElement = element.closest('.table-card');
+      if (cardElement instanceof HTMLElement && !blockedElement.contains(cardElement)) {
+        const targetCardId = String(cardElement.dataset.cardId || '').trim();
+        const cardState = targetCardId ? cards.get(targetCardId) : null;
+        if (cardState && !isNativeImageComponentLocked(cardState)) {
+          return {
+            kind: 'card',
+            id: targetCardId,
+            element: cardElement
+          };
+        }
+      }
+    }
+    return null;
+  }
+
+  async function passLockedComponentPointerDownThrough(event, blockedElement) {
+    const passthroughTarget = getLockedComponentPointerPassthroughTarget(event, blockedElement);
+    if (!passthroughTarget) {
+      return false;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const passthroughOptions = {
+      captureTargetOverride: passthroughTarget.element
+    };
+    if (passthroughTarget.kind === 'card') {
+      await handleCardPointerDown(event, passthroughTarget.id, passthroughOptions);
+      return true;
+    }
+    if (passthroughTarget.kind === 'die') {
+      await handleDiePointerDown(event, passthroughTarget.id, passthroughOptions);
+      return true;
+    }
+    return false;
+  }
+
   async function handleCardPointerDown(event, cardId, options = {}) {
     if (drawModeEnabled) {
       return;
@@ -53031,6 +58578,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     if (!existingCard) {
       return;
     }
+    if (isNativeImageComponentLocked(existingCard)) {
+      const passedThrough = await passLockedComponentPointerDownThrough(event, options?.captureTargetOverride || event.currentTarget);
+      if (passedThrough) {
+        return;
+      }
+    }
+    const pointerCaptureTarget =
+      options?.captureTargetOverride instanceof Element ? options.captureTargetOverride : event.currentTarget;
     const canAttemptCodegameGridReveal =
       isCodegameCardState(existingCard) &&
       !isCodegameKeyCardState(existingCard) &&
@@ -53175,7 +58730,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     const isStackedDeckCard = Boolean(existingCard.inDeck || existingCard.inDiscard || existingCard.inAuction);
     if (hasAnyGroupSelection()) {
       if (!isStackedDeckCard && selectedCardIds.has(cardId) && beginGroupDrag(event, cardId)) {
-        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        safeSetPointerCapture(pointerCaptureTarget, event.pointerId);
         schedulePublishFromClient(event.clientX, event.clientY);
         return;
       }
@@ -53245,11 +58800,18 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
             : codegameKeyStartCenter
               ? codegameKeyStartCenter.y
             : latestCard.y;
-    const cardStartX = Number.isFinite(rawCardStartX) ? rawCardStartX : worldPoint.x;
-    const cardStartY = Number.isFinite(rawCardStartY) ? rawCardStartY : worldPoint.y;
-    cardDragState = {
-      cardId,
-      pointerId: event.pointerId,
+	    const cardStartX = Number.isFinite(rawCardStartX) ? rawCardStartX : worldPoint.x;
+	    const cardStartY = Number.isFinite(rawCardStartY) ? rawCardStartY : worldPoint.y;
+	    const studioFolderMoveMembers = isStudioFolderComponentCard(latestCard)
+	      ? collectStudioFolderMoveMembers(cardId, latestCard)
+	      : null;
+	    const studioMoveUndoBefore = captureStudioComponentMoveUndoItems([
+	      { kind: 'card', id: cardId },
+	      ...getStudioFolderMoveMemberUndoRefs(studioFolderMoveMembers)
+	    ]);
+	    cardDragState = {
+	      cardId,
+	      pointerId: event.pointerId,
       offsetX: Number.isFinite(worldPoint.x - cardStartX) ? worldPoint.x - cardStartX : 0,
       offsetY: Number.isFinite(worldPoint.y - cardStartY) ? worldPoint.y - cardStartY : 0,
       pointerType: effectivePointerType,
@@ -53257,10 +58819,12 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startClientX: event.clientX,
       startClientY: event.clientY,
       lastClientX: event.clientX,
-      lastClientY: event.clientY,
-      lastMotionAt: 0,
-      moved: false
-    };
+	      lastClientY: event.clientY,
+	      lastMotionAt: 0,
+	      moved: false,
+	      studioFolderMoveMembers,
+	      studioMoveUndoBefore
+	    };
     if (isRightMouseHexitamaDrag) {
       suppressNextCardContextMenu = true;
     }
@@ -53287,7 +58851,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     patchLocalCard(cardId, startPatch);
     queueCardPatch(cardId, startPatch);
 
-    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    safeSetPointerCapture(pointerCaptureTarget, event.pointerId);
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
@@ -53766,9 +59330,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     const dragPatch = cardDragState.moved
       ? withCodegameKeyCardUnanchoredPatch(cardDragState.cardId, dragPatchBase)
       : dragPatchBase;
-    patchLocalCard(cardDragState.cardId, dragPatch);
-    queueCardPatch(cardDragState.cardId, dragPatch);
-    schedulePublishFromClient(event.clientX, event.clientY);
+	    patchLocalCard(cardDragState.cardId, dragPatch);
+	    queueCardPatch(cardDragState.cardId, dragPatch);
+	    moveStudioFolderDragMembers(cardDragState, nextX, nextY);
+	    schedulePublishFromClient(event.clientX, event.clientY);
     event.preventDefault();
   }
 
@@ -53900,6 +59465,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     releaseCardLock(finishedDrag.cardId).catch((error) => {
       console.error(error);
     });
+    if (wasMeaningfulDrag) {
+      pushStudioComponentMoveUndoFromBefore(finishedDrag.studioMoveUndoBefore);
+    }
 
     if (
       event.type === 'pointerup' &&
@@ -53947,8 +59515,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       console.error(error);
     });
   };
-  onCardResizePointerDown = (event, cardId) => {
-    handleCardResizePointerDown(event, cardId).catch((error) => {
+  onCardResizePointerDown = (event, cardId, options = {}) => {
+    handleCardResizePointerDown(event, cardId, options).catch((error) => {
       console.error(error);
     });
   };
@@ -54143,7 +59711,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
-  async function handleDiePointerDown(event, dieId) {
+  async function handleDiePointerDown(event, dieId, options = {}) {
     recoverStuckPointerInteractions(Date.now());
     const pointerDownStartedAt = Date.now();
     if (drawModeEnabled) {
@@ -54165,6 +59733,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
     let targetDieState = diceById.get(dieId);
+    if (isLabelDieLocked(targetDieState)) {
+      const passedThrough = await passLockedComponentPointerDownThrough(event, options?.captureTargetOverride || event.currentTarget);
+      if (passedThrough) {
+        return;
+      }
+    }
+    const pointerCaptureTarget =
+      options?.captureTargetOverride instanceof Element ? options.captureTargetOverride : event.currentTarget;
     const targetDieType = normalizeDieType(targetDieState?.type);
     if (targetDieType === 'arcade') {
       clearArcadeControllerIdentityIfOwnerHidden(dieId, targetDieState);
@@ -54299,7 +59875,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
 
     if (!isMouseSecondaryMarbleDrag && hasAnyGroupSelection()) {
       if (selectedDiceIds.has(dieId) && beginGroupDragFromDie(event, dieId)) {
-        safeSetPointerCapture(event.currentTarget, event.pointerId);
+        safeSetPointerCapture(pointerCaptureTarget, event.pointerId);
         schedulePublishFromClient(event.clientX, event.clientY);
         return;
       }
@@ -54318,7 +59894,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       if (stackPointCardCount > 0) {
         const topCardIdOnStackPoint = getTopCardIdOnStackPoint(dieId);
         if (topCardIdOnStackPoint) {
-          await handleCardPointerDown(event, topCardIdOnStackPoint);
+          await handleCardPointerDown(event, topCardIdOnStackPoint, {
+            captureTargetOverride: pointerCaptureTarget
+          });
         }
         // Non-empty stack points should not be dragged directly.
         return;
@@ -54405,7 +59983,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       dieId,
       pointerId: event.pointerId,
       pointerType: effectivePointerType,
-      captureTarget: event.currentTarget instanceof Element ? event.currentTarget : null,
+      captureTarget: pointerCaptureTarget instanceof Element ? pointerCaptureTarget : null,
       startedAt: Date.now(),
       type: dragDieType,
       mediaProvider: dragMediaProvider,
@@ -54419,7 +59997,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       height: getDieWorldDimensions(currentDieState).height,
       mouseButtonMask: isMouseSecondaryMarbleDrag ? 2 : 1,
       moved: false,
-      lastMotionAt: Date.now()
+      lastMotionAt: Date.now(),
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'die', id: dieId }])
     };
     tableRoot?.classList.toggle('is-embedded-media-dragging', isSwagStudioEmbeddedMediaDragState(dieDragState));
 
@@ -54429,7 +60008,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     };
     patchLocalDie(dieId, startPatch);
     queueDiePatch(dieId, startPatch);
-    safeSetPointerCapture(event.currentTarget, event.pointerId);
+    safeSetPointerCapture(pointerCaptureTarget, event.pointerId);
     schedulePublishFromClient(event.clientX, event.clientY);
   }
 
@@ -54572,6 +60151,16 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         console.error(error);
         queueDiePatch(finishedDrag.dieId, releasePatch);
       });
+    } else if (finishedDrag.moved) {
+      pushStudioComponentMoveUndoFromBefore(finishedDrag.studioMoveUndoBefore);
+    }
+    if (
+      isSwagStudioRoom &&
+      finishedDrag.moved &&
+      finishedDrag.type === 'media' &&
+      normalizeMediaProvider(finishedDrag.mediaProvider) === 'uploaded-video'
+    ) {
+      uploadedVideoDisplayClickSuppressUntilByDieId.set(finishedDrag.dieId, Date.now() + 450);
     }
 
     if (event.type === 'pointerup' && !finishedDrag.moved) {
@@ -54903,7 +60492,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startClientX: event.clientX,
       startClientY: event.clientY,
       startX: normalized.x,
-      startY: normalized.y
+      startY: normalized.y,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'chip-set', id: targetChipSetId }])
     };
     activelyDraggedChipSetIds.add(targetChipSetId);
     patchLocalChipSet({ holderClientId: clientId }, targetChipSetId);
@@ -54951,7 +60541,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     if (event.type === 'pointerup' && event.button !== 0 && (event.buttons & 1) !== 0) {
       return;
     }
-    const targetChipSetId = String(chipSetDragState.chipSetId || '').trim();
+    const finishedChipSetDrag = chipSetDragState;
+    const targetChipSetId = String(finishedChipSetDrag.chipSetId || '').trim();
     chipSetDragState = null;
     if (targetChipSetId) {
       activelyDraggedChipSetIds.delete(targetChipSetId);
@@ -54961,6 +60552,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     }
     patchLocalChipSet({ holderClientId: null }, targetChipSetId);
     queueChipSetPatch({ holderClientId: null }, targetChipSetId);
+    pushStudioComponentMoveUndoFromBefore(finishedChipSetDrag.studioMoveUndoBefore);
     releaseChipSetLock(targetChipSetId).catch((error) => {
       console.error(error);
     });
@@ -55045,7 +60637,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       lastMotionAt: Date.now(),
       lastClientX: event.clientX,
       lastClientY: event.clientY,
-      captureTarget: null
+      captureTarget: null,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'deck', id: targetDeckId }])
     };
     activelyDraggedDeckIds.add(targetDeckId);
     deckDragLastQueuedAt = 0;
@@ -55165,7 +60758,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       lastMotionAt: Date.now(),
       lastClientX: event.clientX,
       lastClientY: event.clientY,
-      captureTarget: null
+      captureTarget: null,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'deck', id: targetDeckId }])
     };
     activelyDraggedDeckIds.add(targetDeckId);
     deckDragLastQueuedAt = 0;
@@ -55317,9 +60911,10 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
 
-    const targetDeckId = normalizeDeckId(deckDragState.deckId);
-    releasePointerCaptureSafely(deckDragState.captureTarget, deckDragState.pointerId);
-    const dragFollowCardIds = Array.isArray(deckDragState.followCardIds) ? deckDragState.followCardIds : null;
+    const finishedDeckDrag = deckDragState;
+    const targetDeckId = normalizeDeckId(finishedDeckDrag.deckId);
+    releasePointerCaptureSafely(finishedDeckDrag.captureTarget, finishedDeckDrag.pointerId);
+    const dragFollowCardIds = Array.isArray(finishedDeckDrag.followCardIds) ? finishedDeckDrag.followCardIds : null;
     deckDragState = null;
     deckDragLastQueuedAt = 0;
     if (targetDeckId) {
@@ -55327,6 +60922,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     }
     patchLocalDeck({ holderClientId: null }, targetDeckId, { followCardIds: dragFollowCardIds });
     queueDeckPatch({ holderClientId: null }, targetDeckId);
+    pushStudioComponentMoveUndoFromBefore(finishedDeckDrag.studioMoveUndoBefore);
     releaseDeckLock(targetDeckId).catch((error) => {
       console.error(error);
     });
@@ -56257,7 +61853,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startX: targetTaflGameState.x,
       startY: targetTaflGameState.y,
       width: targetTaflGameState.width,
-      height: targetTaflGameState.height
+      height: targetTaflGameState.height,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'tafl', id: targetTaflGameId }])
     };
 
     patchLocalTaflGame({ holderClientId: clientId }, targetTaflGameId);
@@ -56314,11 +61911,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
 
-    const targetTaflGameId = normalizeTaflGameId(taflDragState.gameId || activeTaflGameId);
+    const finishedTaflDrag = taflDragState;
+    const targetTaflGameId = normalizeTaflGameId(finishedTaflDrag.gameId || activeTaflGameId);
     taflDragState = null;
     setTaflBoardDragFloating(targetTaflGameId, false);
     patchLocalTaflGame({ holderClientId: null }, targetTaflGameId);
     queueMonsPatch({ holderClientId: null }, targetTaflGameId);
+    pushStudioComponentMoveUndoFromBefore(finishedTaflDrag.studioMoveUndoBefore);
     releaseMonsBoardLock(targetTaflGameId).catch((error) => {
       console.error(error);
     });
@@ -57014,7 +62613,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startX: targetGoGameState.x,
       startY: targetGoGameState.y,
       width: targetGoGameState.width,
-      height: targetGoGameState.height
+      height: targetGoGameState.height,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'go', id: targetGoGameId }])
     };
 
     patchLocalGoGame({ holderClientId: clientId }, targetGoGameId);
@@ -57073,11 +62673,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
 
-    const targetGoGameId = normalizeGoGameId(goDragState.gameId || activeGoGameId);
+    const finishedGoDrag = goDragState;
+    const targetGoGameId = normalizeGoGameId(finishedGoDrag.gameId || activeGoGameId);
     goDragState = null;
     setGoBoardDragFloating(targetGoGameId, false);
     patchLocalGoGame({ holderClientId: null }, targetGoGameId);
     queueMonsPatch({ holderClientId: null }, targetGoGameId);
+    pushStudioComponentMoveUndoFromBefore(finishedGoDrag.studioMoveUndoBefore);
     releaseMonsBoardLock(targetGoGameId).catch((error) => {
       console.error(error);
     });
@@ -57405,7 +63007,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       startX: targetHexitamaGameState.x,
       startY: targetHexitamaGameState.y,
       width: targetHexitamaGameState.width,
-      height: targetHexitamaGameState.height
+      height: targetHexitamaGameState.height,
+      studioMoveUndoBefore: captureStudioComponentMoveUndoItems([{ kind: 'hexitama', id: targetHexitamaGameId }])
     };
 
     patchLocalHexitamaGame({ holderClientId: clientId }, targetHexitamaGameId);
@@ -57464,11 +63067,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       return;
     }
 
-    const targetHexitamaGameId = normalizeHexitamaGameId(hexitamaDragState.gameId || activeHexitamaGameId);
+    const finishedHexitamaDrag = hexitamaDragState;
+    const targetHexitamaGameId = normalizeHexitamaGameId(finishedHexitamaDrag.gameId || activeHexitamaGameId);
     hexitamaDragState = null;
     setHexitamaBoardDragFloating(targetHexitamaGameId, false);
     patchLocalHexitamaGame({ holderClientId: null }, targetHexitamaGameId);
     queueMonsPatch({ holderClientId: null }, targetHexitamaGameId);
+    pushStudioComponentMoveUndoFromBefore(finishedHexitamaDrag.studioMoveUndoBefore);
     releaseMonsBoardLock(targetHexitamaGameId).catch((error) => {
       console.error(error);
     });
@@ -57694,11 +63299,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     };
   };
 
-  const uploadStudioMediaFileToDatabase = async (kind, file, onProgress = null) => {
+  const uploadStudioMediaFileToDatabase = async (kind, file, onProgress = null, options = {}) => {
     const normalizedKind = normalizeStudioUploadKind(kind);
     const fallbackMimeType = getStudioUploadMimeType(file, normalizedKind);
     const dataUrl = await readStudioUploadFileAsDataUrl(file, {
-      maxBytes: STUDIO_UPLOAD_DATABASE_FALLBACK_MAX_BYTES,
+      maxBytes: Math.max(0, Number(options.maxBytes) || STUDIO_UPLOAD_DATABASE_FALLBACK_MAX_BYTES),
       onProgress
     });
     const fallbackSourceUrl =
@@ -57732,7 +63337,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     };
   };
 
-  uploadStudioMediaFile = async (kind, file, onProgress = null) => {
+  uploadStudioMediaFile = async (kind, file, onProgress = null, options = {}) => {
     const normalizedKind = normalizeStudioUploadKind(kind);
     if (!(file instanceof File) || !isAllowedStudioUploadFile(file, normalizedKind)) {
       throw new Error(
@@ -57757,7 +63362,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       };
     } catch (error) {
       console.warn('Firebase Storage upload failed; using database fallback for studio media.', error);
-      return uploadStudioMediaFileToDatabase(normalizedKind, file, onProgress);
+      return uploadStudioMediaFileToDatabase(normalizedKind, file, onProgress, {
+        maxBytes: options.databaseFallbackMaxBytes
+      });
     }
   };
 
@@ -58096,6 +63703,23 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       initialHeight: SECRET_AREA_DEFAULT_HEIGHT
     });
   };
+  spawnStudioFolderComponent = async () => {
+    if (!isSwagStudioRoom) {
+      return;
+    }
+    await spawnImageComponent('', {
+      componentType: 'image',
+      componentSubtype: STUDIO_FOLDER_COMPONENT_SUBTYPE,
+      cardSized: false,
+      twoSided: false,
+      frontBlank: true,
+      frontBlankColor: '#ffffff',
+	      initialWidth: SECRET_AREA_DEFAULT_WIDTH,
+	      initialHeight: SECRET_AREA_DEFAULT_HEIGHT,
+	      collapsed: false,
+	      title: 'folder'
+	    });
+	  };
   spawnSpinnerComponent = async (options = {}) => {
     const segmentCount = normalizeSpinnerSegmentCount(options.segments);
     const textEnabled = options.textEnabled === true;
@@ -58157,7 +63781,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       throw error;
     }
   };
-  spawnLabelComponent = async (options = {}) => {
+	  spawnLabelComponent = async (options = {}) => {
     const labelVariant = normalizeLabelVariant(options.labelVariant);
     const labelText = normalizeLabelText(options.text || getLabelDefaultTextForVariant(labelVariant));
     const labelColor = labelVariant === LABEL_VARIANT_HEADING
@@ -58192,6 +63816,38 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     });
     let createdLabelId = '';
     try {
+      const labelPayloadBase = {
+        type: 'label',
+        x: spawnCenterX,
+        y: spawnCenterY,
+        value: 1,
+        text: labelText,
+        textColor: labelColor,
+        labelVariant,
+        textScale: labelLayout.textScale,
+        labelLocked: false,
+        labelRotation: 0,
+        labelWidth: labelLayout.labelWidth,
+        labelHeight: labelLayout.labelHeight,
+        holderClientId: null,
+        rollStartedAt: 0,
+        rollDurationMs: DIE_ROLL_DURATION_MS,
+        rollSeed: 0,
+        updatedAt: Date.now()
+      };
+      if (isSwagStudioRoom) {
+        const nextDieRef = push(diceRef);
+        createdLabelId = String(nextDieRef.key || '').trim();
+        if (!createdLabelId) {
+          throw new Error('Could not create text.');
+        }
+        await set(nextDieRef, {
+          ...labelPayloadBase,
+          z: getTopObjectZ() + 1
+        });
+        finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdLabelId) && diceById.has(createdLabelId));
+        return;
+      }
       await runTransaction(
         diceRef,
         (currentDice) => {
@@ -58207,23 +63863,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
           }
           createdLabelId = nextDieId;
           baseDice[nextDieId] = {
-            type: 'label',
-            x: spawnCenterX,
-            y: spawnCenterY,
+            ...labelPayloadBase,
             z: nextTopZ,
-            value: 1,
-            text: labelText,
-            textColor: labelColor,
-            labelVariant,
-            textScale: labelLayout.textScale,
-            labelLocked: false,
-            labelRotation: 0,
-            labelWidth: labelLayout.labelWidth,
-            labelHeight: labelLayout.labelHeight,
-            holderClientId: null,
-            rollStartedAt: 0,
-            rollDurationMs: DIE_ROLL_DURATION_MS,
-            rollSeed: 0,
             updatedAt: Date.now()
           };
           return baseDice;
@@ -58231,6 +63872,89 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         { applyLocally: false }
       );
       finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdLabelId) && diceById.has(createdLabelId));
+    } catch (error) {
+      failSpawnLoadingIndicator(indicatorId);
+      throw error;
+    }
+  };
+  spawnUploadedMediaCommentComponent = async (commentDetails = {}) => {
+    if (!isSwagStudioRoom) {
+      return;
+    }
+    const provider = normalizeMediaProvider(commentDetails.provider);
+    const sourceUrl = normalizeUploadedMediaSourceUrl(commentDetails.sourceUrl || '', provider);
+    if (!isUploadedMediaProvider(provider) || !sourceUrl) {
+      return;
+    }
+    const sourceDieId = String(commentDetails.sourceDieId || '').trim().slice(0, 160);
+    const sourceDieState = sourceDieId ? diceById.get(sourceDieId) : null;
+    const sourceDimensions = sourceDieState ? getDieWorldDimensions(sourceDieState) : null;
+    const labelWidth = MEDIA_COMMENT_DEFAULT_WIDTH;
+    const labelHeight = MEDIA_COMMENT_DEFAULT_HEIGHT;
+    const centerBounds = getDieCenterBounds('label', labelWidth, labelHeight);
+    const viewportCenter = getViewportWorldCenter();
+    const sourceX = Number(sourceDieState?.x);
+    const sourceY = Number(sourceDieState?.y);
+    const spawnCenterX = clamp(
+      Number.isFinite(sourceX) && sourceDimensions
+        ? sourceX + sourceDimensions.width / 2 + labelWidth / 2 + 44
+        : viewportCenter.x,
+      centerBounds.minX,
+      centerBounds.maxX
+    );
+    const spawnCenterY = clamp(
+      Number.isFinite(sourceY) ? sourceY : viewportCenter.y,
+      centerBounds.minY,
+      centerBounds.maxY
+    );
+    const mode = normalizeMediaCommentCueMode(commentDetails.mode);
+    const startTime = normalizeMediaCommentTime(commentDetails.startTime);
+    const endTime = mode === 'segment'
+      ? normalizeMediaCommentTime(commentDetails.endTime)
+      : startTime;
+    const mediaTitle = normalizeMediaTitle(commentDetails.title || sourceDieState?.mediaTitle || '');
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: labelWidth,
+      worldHeight: labelHeight
+    });
+    let createdCommentId = '';
+    try {
+      const nextDieRef = push(diceRef);
+      createdCommentId = String(nextDieRef.key || '').trim();
+      if (!createdCommentId) {
+        throw new Error('Could not create media comment.');
+      }
+      await set(nextDieRef, {
+        type: 'label',
+        x: spawnCenterX,
+        y: spawnCenterY,
+        z: getTopObjectZ() + 1,
+        value: 1,
+        text: '',
+        textColor: '#111111',
+        labelVariant: LABEL_VARIANT_DEFAULT,
+        labelSubtype: LABEL_SUBTYPE_MEDIA_COMMENT,
+        textScale: MEDIA_COMMENT_DEFAULT_TEXT_SCALE,
+        labelLocked: false,
+        labelRotation: 0,
+        labelWidth,
+        labelHeight,
+        mediaCommentSourceDieId: sourceDieId,
+        mediaCommentProvider: provider,
+        mediaCommentSourceUrl: sourceUrl,
+        mediaCommentTitle: mediaTitle,
+        mediaCommentMode: mode,
+        mediaCommentStartTime: startTime,
+        mediaCommentEndTime: endTime,
+        holderClientId: null,
+        rollStartedAt: 0,
+        rollDurationMs: DIE_ROLL_DURATION_MS,
+        rollSeed: 0,
+        updatedAt: Date.now()
+      });
+      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdCommentId) && diceById.has(createdCommentId));
     } catch (error) {
       failSpawnLoadingIndicator(indicatorId);
       throw error;
@@ -58325,6 +64049,40 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     });
     let createdMediaId = '';
     try {
+      const mediaPayloadBase = {
+        type: 'media',
+        x: spawnCenterX,
+        y: spawnCenterY,
+        value: 1,
+        mediaProvider: provider,
+        mediaSourceUrl: sourceUrl,
+        mediaEmbedUrl: embedUrl,
+        mediaTitle,
+        mediaMimeType,
+        mediaPosterUrl,
+        mediaStartedAt: 0,
+        mediaStartNonce: 0,
+        mediaWidth: mediaSize.width,
+        mediaHeight: mediaSize.height,
+        holderClientId: null,
+        rollStartedAt: 0,
+        rollDurationMs: DIE_ROLL_DURATION_MS,
+        rollSeed: 0,
+        updatedAt: Date.now()
+      };
+      if (isSwagStudioRoom) {
+        const nextDieRef = push(diceRef);
+        createdMediaId = String(nextDieRef.key || '').trim();
+        if (!createdMediaId) {
+          throw new Error('Could not create media.');
+        }
+        await set(nextDieRef, {
+          ...mediaPayloadBase,
+          z: getTopObjectZ() + 1
+        });
+        finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdMediaId) && diceById.has(createdMediaId));
+        return;
+      }
       await runTransaction(
         diceRef,
         (currentDice) => {
@@ -58340,25 +64098,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
           }
           createdMediaId = nextDieId;
           baseDice[nextDieId] = {
-            type: 'media',
-            x: spawnCenterX,
-            y: spawnCenterY,
+            ...mediaPayloadBase,
             z: nextTopZ,
-            value: 1,
-            mediaProvider: provider,
-            mediaSourceUrl: sourceUrl,
-            mediaEmbedUrl: embedUrl,
-            mediaTitle,
-            mediaMimeType,
-            mediaPosterUrl,
-            mediaStartedAt: 0,
-            mediaStartNonce: 0,
-            mediaWidth: mediaSize.width,
-            mediaHeight: mediaSize.height,
-            holderClientId: null,
-            rollStartedAt: 0,
-            rollDurationMs: DIE_ROLL_DURATION_MS,
-            rollSeed: 0,
             updatedAt: Date.now()
           };
           return baseDice;
@@ -58371,13 +64112,65 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       throw error;
     }
   };
+	  spawnStudioSamplerComponent = async (samples = []) => {
+	    if (!isSwagStudioRoom) {
+	      throw new Error('Samplers are only available in the studio.');
+	    }
+	    const samplerSamples = normalizeStudioSamplerSamples(samples);
+	    if (!hasAnyStudioSamplerSamples(samplerSamples)) {
+	      throw new Error('Choose at least one valid audio sample.');
+	    }
+	    const viewportCenter = getViewportWorldCenter();
+	    const samplerCenterBounds = getDieCenterBounds('sampler', STUDIO_SAMPLER_DEFAULT_WIDTH, STUDIO_SAMPLER_DEFAULT_HEIGHT);
+	    const spawnCenterX = clamp(viewportCenter.x, samplerCenterBounds.minX, samplerCenterBounds.maxX);
+	    const spawnCenterY = clamp(viewportCenter.y, samplerCenterBounds.minY, samplerCenterBounds.maxY);
+    const indicatorId = createSpawnLoadingIndicator({
+      worldX: spawnCenterX,
+      worldY: spawnCenterY,
+      worldWidth: STUDIO_SAMPLER_DEFAULT_WIDTH,
+      worldHeight: STUDIO_SAMPLER_DEFAULT_HEIGHT
+	    });
+	    let createdSamplerId = '';
+	    try {
+	      let nextDieId = `sampler-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+	      while (diceById.has(nextDieId)) {
+	        nextDieId = `sampler-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+	      }
+	      createdSamplerId = nextDieId;
+	      const samplerPayload = {
+	        type: 'sampler',
+	        x: spawnCenterX,
+	        y: spawnCenterY,
+	        z: getTopObjectZ() + 1,
+	        value: 1,
+	        samplerSamples,
+	        samplerTriggeredSlot: -1,
+	        samplerTriggeredAt: 0,
+	        samplerTriggerNonce: 0,
+	        holderClientId: null,
+	        rollStartedAt: 0,
+	        rollDurationMs: DIE_ROLL_DURATION_MS,
+	        rollSeed: 0,
+	        updatedAt: Date.now()
+	      };
+	      await set(ref(db, `${roomPath}/dice/${createdSamplerId}`), samplerPayload);
+	      finalizeSpawnLoadingIndicator(indicatorId, () => Boolean(createdSamplerId) && diceById.has(createdSamplerId));
+	    } catch (error) {
+	      failSpawnLoadingIndicator(indicatorId);
+	      throw error;
+    }
+  };
   spawnImageComponent = async (frontSrc, options = {}) => {
     const requestedComponentType = String(options.componentType || 'image').trim().toLowerCase();
     const componentType = requestedComponentType === 'sticker' ? 'sticker' : 'image';
     const requestedSubtype = String(options.componentSubtype || '').trim().toLowerCase();
     const componentSubtype =
       componentType === 'image' &&
-      (requestedSubtype === NOTE_COMPONENT_SUBTYPE || requestedSubtype === SECRET_AREA_COMPONENT_SUBTYPE)
+      (
+        requestedSubtype === NOTE_COMPONENT_SUBTYPE ||
+        requestedSubtype === SECRET_AREA_COMPONENT_SUBTYPE ||
+        (requestedSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE && isSwagStudioRoom)
+      )
         ? requestedSubtype
         : '';
     const componentOwnerPlayerToken =
@@ -58417,7 +64210,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     try {
       const nativeSizeBase = useCardSize
         ? { width: CARD_WIDTH, height: CARD_HEIGHT }
-        : componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE
+        : (componentSubtype === SECRET_AREA_COMPONENT_SUBTYPE || componentSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE)
           ? clampImageComponentSize(options.initialWidth, options.initialHeight)
         : frontBlank
           ? { width: CARD_WIDTH, height: CARD_HEIGHT }
@@ -58467,8 +64260,14 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         componentBackColor: backBlankColor,
         componentOwnerPlayerToken,
         componentOwnerName,
-        componentOwnerColor,
-        componentLocked: false,
+	        componentOwnerColor,
+	        studioFolderCollapsed: componentSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE
+	          ? options.collapsed === true
+	          : false,
+	        studioFolderTitle: componentSubtype === STUDIO_FOLDER_COMPONENT_SUBTYPE
+	          ? normalizeStudioFolderTitle(options.title || 'folder')
+	          : '',
+	        componentLocked: false,
         componentRotation: 0,
         componentAspectRatio,
         componentWidth: nativeSize.width,
@@ -59767,6 +65566,11 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
   };
 
   const refreshVisibleCursorState = () => {
+    if (studioListViewActive && isSwagStudioRoom) {
+      clearStudioListCursorArtifacts();
+      setRealtimeStatus('connected');
+      return;
+    }
     if (!hasLoadedInitialCardsSnapshot) {
       for (const dot of dots.values()) {
         dot.remove();
@@ -60101,6 +65905,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      scheduleStudioListViewRender();
       clearSwagStudioRoomCachePreviewState();
       scheduleSwagStudioRoomCachePersist();
     },
@@ -60135,6 +65940,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         );
         diceById.set(dieId, nextDieState);
         syncMediaStartSignalFromState(dieId, previousDieState, nextDieState);
+        syncStudioSamplerTriggerSignalFromState(dieId, previousDieState, nextDieState);
         syncMarbleMotionFromState(dieId, nextDieState);
       }
       if (labelEditState) {
@@ -60172,7 +65978,8 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
           dieSelectionChanged = true;
         }
         clearMediaPlaybackTrackingForDie(dieId);
-        staleDieLockRecoveryAttemptAtById.delete(dieId);
+  clearStudioSamplerTrackingForDie(dieId);
+  staleDieLockRecoveryAttemptAtById.delete(dieId);
         staleDieLockRecoveryInFlight.delete(dieId);
         marbleCollisionActionInFlight.delete(`die:${dieId}`);
         marbleCollisionCooldownByTarget.delete(`die:${dieId}`);
@@ -60189,6 +65996,7 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
         syncSelectionDeleteButtonUi();
       }
       syncClearTableButtonState();
+      scheduleStudioListViewRender();
       clearSwagStudioRoomCachePreviewState();
       scheduleSwagStudioRoomCachePersist();
     },
@@ -60616,6 +66424,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       if (isTableResetting) {
         return;
       }
+      const previousStudioGameListSignature = studioListViewActive && isSwagStudioRoom
+        ? getStudioListGameEntriesSignature()
+        : '';
       const nextGamesRaw = snapshot.val();
       const nextMonsEntries = [];
       const nextTaflEntries = [];
@@ -60817,6 +66628,13 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
       renderTaflBoards();
       renderGoBoards();
       renderHexitamaBoards();
+      if (
+        studioListViewActive &&
+        isSwagStudioRoom &&
+        previousStudioGameListSignature !== getStudioListGameEntriesSignature()
+      ) {
+        scheduleStudioListViewRender();
+      }
       for (const hexitamaGameId of nextHexitamaIds) {
         renderHexitamaSlottedCardsForGame(hexitamaGameId);
       }
@@ -61009,6 +66827,9 @@ function canPlaceCardOnAuction(cardId, deckId = activeDeckId, slotIndex = 0) {
     scheduleApplyCamera();
     scheduleRoomBadgeWidthSync();
     scheduleAuctionBidUiRender();
+    if (studioListViewActive && isSwagStudioRoom) {
+      scheduleStudioListViewRender();
+    }
   });
 
   function capturePinchState() {
@@ -61246,10 +67067,16 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   tableRoot.addEventListener(
     'wheel',
     (event) => {
-      if (isEventOnTimerSplits(event)) {
+      if (scrollActiveAssetMenuFromWheel(event)) {
         return;
       }
-      if (shouldIgnorePointerEvent(event) && !isEventOnZoomPermittedPlayspaceUi(event)) {
+      if (scrollActiveStickerAddFromWheel(event)) {
+        return;
+      }
+      if (scrollStudioListViewFromWheel(event)) {
+        return;
+      }
+      if (isEventOnTimerSplits(event)) {
         return;
       }
       event.preventDefault();
@@ -61284,6 +67111,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
     recoverStuckPointerInteractions(Date.now());
     endedPointerAtById.delete(event.pointerId);
     endedTouchPointerIds.delete(event.pointerId);
+    if (studioListViewActive && isSwagStudioRoom) {
+      return;
+    }
     if (drawModeEnabled) {
       if (shouldIgnorePointerEventInDrawMode(event)) {
         return;
@@ -61428,6 +67258,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   });
 
   tableRoot.addEventListener('pointermove', (event) => {
+    if (studioListViewActive && isSwagStudioRoom) {
+      return;
+    }
     if (event.pointerType === 'mouse') {
       if (deleteModeEnabled) {
         syncDeleteCursorLock();
@@ -61542,6 +67375,9 @@ function getDeleteModeStrokeIdAtClient(clientX, clientY) {
   });
 
   tableRoot.addEventListener('pointerenter', (event) => {
+    if (studioListViewActive && isSwagStudioRoom) {
+      return;
+    }
     if (event.pointerType === 'mouse') {
       if (deleteModeEnabled) {
         syncDeleteCursorLock();

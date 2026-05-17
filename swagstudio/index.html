@@ -6,7 +6,7 @@
     <title>Swag Studio</title>
     <base href="../" />
     <link rel="icon" type="image/png" href="./assets/go%20table%20%28both%20closed%29.png" />
-    <link rel="stylesheet" href="./styles.css?v=20260514y" />
+    <link rel="stylesheet" href="./styles.css?v=20260517b" />
   </head>
   <body>
     <main
@@ -153,6 +153,11 @@
         />
       </div>
       <div id="auctionBidBoard" class="auction-bid-board hidden" aria-live="polite"></div>
+      <section id="studioListView" class="studio-list-view hidden" aria-label="studio list view">
+        <div class="studio-list-view-inner">
+          <div id="studioListItems" class="studio-list-items"></div>
+        </div>
+      </section>
       <div id="auctionBidEntry" class="auction-bid-entry hidden">
         <span id="auctionBidLabel" class="auction-bid-label">bid:</span>
         <div id="auctionBidRow" class="auction-bid-row">
@@ -270,6 +275,37 @@
             />
           </svg>
         </a>
+        <button id="studioViewToggleButton" class="studio-view-toggle-button" type="button" aria-label="switch to list view" aria-pressed="false" title="list view">
+          <svg
+            class="studio-view-toggle-icon studio-view-toggle-icon-list"
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path d="M8 6.5H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M8 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M8 17.5H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M4.6 6.5H4.7" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <path d="M4.6 12H4.7" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <path d="M4.6 17.5H4.7" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          </svg>
+          <svg
+            class="studio-view-toggle-icon studio-view-toggle-icon-room"
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <rect x="4.5" y="5" width="15" height="14" rx="1.8" stroke="currentColor" stroke-width="1.9" />
+            <path d="M8 9H16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M8 13H12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </button>
         <button id="roomSettingsButton" class="room-settings-button" type="button" aria-label="open room settings" title="room settings">
           <svg
             viewBox="0 0 24 24"
@@ -485,7 +521,7 @@
             <button id="studioEmbedTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
               <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
                 <svg
-                  class="asset-component-icon asset-component-icon-media"
+                  class="asset-component-icon asset-component-icon-studio-embed"
                   viewBox="0 0 24 24"
                   width="24"
                   height="24"
@@ -493,8 +529,12 @@
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
                 >
-                  <rect x="4.2" y="6.2" width="15.6" height="11.6" rx="2.1" stroke="currentColor" stroke-width="1.75" />
-                  <path d="M10 9.2V14.8L14.6 12L10 9.2Z" fill="currentColor" />
+                  <circle cx="12" cy="12" r="7.8" stroke="currentColor" stroke-width="1.55" />
+                  <path d="M4.6 12H19.4" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+                  <path d="M12 4.2C14.2 6.2 15.3 8.8 15.3 12C15.3 15.2 14.2 17.8 12 19.8" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+                  <path d="M12 4.2C9.8 6.2 8.7 8.8 8.7 12C8.7 15.2 9.8 17.8 12 19.8" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
+                  <path d="M6.3 7.2C7.8 8.1 9.7 8.6 12 8.6C14.3 8.6 16.2 8.1 17.7 7.2" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" />
+                  <path d="M6.3 16.8C7.8 15.9 9.7 15.4 12 15.4C14.3 15.4 16.2 15.9 17.7 16.8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" />
                 </svg>
                 <span class="asset-preview-gloss"></span>
               </span>
@@ -552,6 +592,48 @@
                 <span class="asset-preview-gloss"></span>
               </span>
               <span class="asset-label">image</span>
+            </button>
+            <button id="studioFolderTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-studio-folder"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M3.8 7.8C3.8 6.7 4.7 5.8 5.8 5.8H10L11.8 7.6H18.2C19.3 7.6 20.2 8.5 20.2 9.6V16.4C20.2 17.5 19.3 18.4 18.2 18.4H5.8C4.7 18.4 3.8 17.5 3.8 16.4V7.8Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">folder</span>
+            </button>
+            <button id="studioSamplerTile" class="asset-gallery-item asset-gallery-item-cool asset-component-item" type="button">
+              <span class="asset-placeholder-box asset-preview-box asset-component-icon-wrap" aria-hidden="true">
+                <svg
+                  class="asset-component-icon asset-component-icon-studio-sampler"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <rect x="4.2" y="4.2" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="10" y="4.2" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="15.8" y="4.2" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="4.2" y="10" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="10" y="10" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="15.8" y="10" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="4.2" y="15.8" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="10" y="15.8" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                  <rect x="15.8" y="15.8" width="4.1" height="4.1" rx="0.9" stroke="currentColor" stroke-width="1.55" />
+                </svg>
+                <span class="asset-preview-gloss"></span>
+              </span>
+              <span class="asset-label">sampler</span>
             </button>
           </div>
 
@@ -1688,7 +1770,7 @@
           </div>
           <div class="media-add-body">
             <div class="image-add-field">
-              <label class="image-add-label" for="mediaAddInput">embed youtube or soundcloud media</label>
+              <label class="image-add-label" for="mediaAddInput">embed youtube or soundcloud media/playlist</label>
               <input
                 id="mediaAddInput"
                 class="image-add-input"
@@ -1814,6 +1896,68 @@
             </div>
             <div id="studioUploadError" class="image-add-error hidden" aria-live="polite"></div>
             <button id="studioUploadConfirmButton" class="dice-add-confirm-button is-disabled" type="button" aria-label="upload file">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden="true"
+              >
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="studioSamplerModal"
+        class="asset-menu-modal media-add-modal studio-sampler-modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studioSamplerTitle"
+      >
+        <div class="asset-menu-dialog media-add-dialog studio-sampler-dialog">
+          <div class="asset-menu-header media-add-header">
+            <h2 id="studioSamplerTitle" class="dice-add-title">adding sampler</h2>
+            <div class="asset-submenu-header-actions">
+              <button id="studioSamplerBackButton" class="asset-menu-close asset-menu-back" type="button" aria-label="back to studio menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M15.5 5L8.5 12L15.5 19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <button id="studioSamplerCloseButton" class="asset-menu-close" type="button" aria-label="close sampler menu">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="media-add-body studio-sampler-body">
+            <div id="studioSamplerGrid" class="studio-sampler-upload-grid" aria-label="sampler uploads"></div>
+            <input
+              id="studioSamplerInput"
+              class="hidden"
+              type="file"
+              accept=".mp3,.wav,audio/mpeg,audio/wav,audio/x-wav"
+            />
+            <div id="studioSamplerError" class="image-add-error hidden" aria-live="polite"></div>
+            <button id="studioSamplerConfirmButton" class="dice-add-confirm-button is-disabled" type="button" aria-label="add sampler">
               <svg
                 viewBox="0 0 24 24"
                 width="24"
@@ -2230,6 +2374,6 @@
       </div>
     </main>
 
-    <script type="module" src="./app-table.js?v=20260514y"></script>
+    <script type="module" src="./app-table.js?v=20260517b"></script>
   </body>
 </html>
